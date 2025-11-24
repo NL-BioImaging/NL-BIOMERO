@@ -43,10 +43,11 @@ RUN python3 -m venv $VIRTUAL_ENV \
     && $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && wget https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp39-cp39-manylinux_2_28_x86_64.whl \
     && $VIRTUAL_ENV/bin/python -m pip install zeroc_ice-3.6.5-cp39-cp39-manylinux_2_28_x86_64.whl \
-    && rm zeroc_ice-3.6.5-cp39-cp39-manylinux_2_28_x86_64.whl \
-    && $VIRTUAL_ENV/bin/python -m pip install omero-cli-zarr==0.5.5 \
-    && $VIRTUAL_ENV/bin/python -m pip install biomero==${BIOMERO_VERSION} \
-    && $VIRTUAL_ENV/bin/python -m pip install ezomero==1.1.1 tifffile==2020.9.3 omero-metadata==0.12.0
+    && rm zeroc_ice-3.6.5-cp39-cp39-manylinux_2_28_x86_64.whl
+
+# Cache buster: fetch latest commit SHA from GitHub API for biomero_schema branch
+ADD https://api.github.com/repos/NL-BioImaging/biomero/git/refs/heads/biomero_schema /tmp/biomero_cache_buster
+RUN $VIRTUAL_ENV/bin/python -m pip install --no-cache-dir 'git+https://github.com/NL-BioImaging/biomero@biomero_schema#egg=biomero[full]'
 
 ## Adjust processor code with AMC Processor
 # This version forwards HTTP(S) PROXY environment variables to the subprocesses (scripts)
