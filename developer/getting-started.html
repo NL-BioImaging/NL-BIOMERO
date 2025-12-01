@@ -338,12 +338,25 @@ docker-compose<span class="w"> </span>-f<span class="w"> </span>docker-compose-d
 <p>For detailed setup instructions, see the main README:</p>
 <section id="containerized-omero-with-biomero">
 <h3>Containerized OMERO with BIOMERO<a class="headerlink" href="#containerized-omero-with-biomero" title="Permalink to this heading"></a></h3>
-<p>These scripts spin up the entire OMERO environment required for <a href="https://github.com/NL-BioImaging/biomero" target="_blank" rel="noopener noreferrer">BIOMERO</a>, and other improvements by the Core Facility Cellular Imaging.</p>
-<p>It uses Docker Compose to setup an OMERO grid on one computer with a server, web, processor and a BIOMERO processor.
-If you also want to spin up a local HPC cluster with Docker Compose, to connect BIOMERO to, we host an example <a href="https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">here</a>.</p>
+<p>NL‑BIOMERO delivers a full containerized stack to run <strong>OMERO</strong> together with the <strong>BIOMERO 2.0</strong> framework. It provides Docker/Podman configurations and Compose files to deploy OMERO + BIOMERO subsystems (importer, analyzer, OMERO.web plugin, databases, and auxiliary services) — the recommended starting point for a FAIR‑oriented bioimaging setup.</p>
+<p>BIOMERO 2.0 is described in our preprint: <a class="reference external" href="https://arxiv.org/abs/2511.13611">“BIOMERO 2.0: end-to-end FAIR infrastructure for bioimaging data import, analysis, and provenance”</a>. It transforms OMERO into a provenance‑aware, FAIR (findable, accessible, interoperable, reusable) platform by combining:</p>
+<ul class="simple">
+<li><p>containerized data import and preprocessing (importer subsystem),</p></li>
+<li><p>containerized or HPC‑based analysis workflows (analyzer subsystem),</p></li>
+<li><p>metadata enrichment, versioning, and provenance tracking,</p></li>
+<li><p>integrated workflow monitoring and dashboards.</p></li>
+</ul>
+<p>Using NL‑BIOMERO yields a unified environment where image data import, preprocessing, analysis, and provenance tracking are managed end-to-end — from raw data to processed results — in a reproducible, shareable, FAIR‑compliant infrastructure.</p>
+<p>It uses Docker Compose to setup an OMERO grid on one computer with a server, web, processor, and a BIOMERO processor, importer and database.
+If you want to experiment with a local HPC cluster, an example Docker Compose setup is hosted <a href="https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">here</a>.</p>
 <p>This is an adaptation of OME’s <a href="https://github.com/ome/docker-example-omero-grid" target="_blank" rel="noopener noreferrer">OMERO.server grid and OMERO.web (docker-compose)</a> / <a href="http://www.openmicroscopy.org/site/support/omero5/sysadmins/grid.html#nodes-on-multiple-hosts" target="_blank" rel="noopener noreferrer">OMERO.server components on multiple nodes using OMERO.grid</a>.</p>
-<p>OMERO.server is listening on the standard OMERO ports <code class="docutils literal notranslate"><span class="pre">4063</span></code> and <code class="docutils literal notranslate"><span class="pre">4064</span></code>.
-OMERO.web is listening on port <code class="docutils literal notranslate"><span class="pre">4080</span></code> (http://localhost:4080/).</p>
+<ul class="simple">
+<li><p>OMERO.server listens on ports <code class="docutils literal notranslate"><span class="pre">4063</span></code> and <code class="docutils literal notranslate"><span class="pre">4064</span></code></p></li>
+<li><p>OMERO.web listens on port <code class="docutils literal notranslate"><span class="pre">4080</span></code> (http://localhost:4080/)</p></li>
+</ul>
+<blockquote>
+<div><p>⚠️ <strong>Warning:</strong> This setup is mainly intended for demonstration or development purposes. For professional deployments, refer to the documented deployment scenarios in our documentation and see the <a class="reference internal" href="#./deployment_scenarios"><span class="xref myst">deployment scenarios</span></a> folder. We <strong>strongly discourage</strong> running Slurm inside Docker Compose for production; connect BIOMERO to a real HPC cluster to ensure stability, full feature support, and performance.</p>
+</div></blockquote>
 <hr class="docutils" />
 <section id="platform-specific-deployment">
 <h4>🚀 Platform-Specific Deployment<a class="headerlink" href="#platform-specific-deployment" title="Permalink to this heading"></a></h4>
