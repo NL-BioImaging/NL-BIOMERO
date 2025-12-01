@@ -1,14 +1,24 @@
 # Containerized OMERO with BIOMERO
 
-These scripts spin up the entire OMERO environment required for <a href="https://github.com/NL-BioImaging/biomero" target="_blank" rel="noopener noreferrer">BIOMERO</a>, and other improvements by the Core Facility Cellular Imaging.
+NL‑BIOMERO delivers a full containerized stack to run **OMERO** together with the **BIOMERO 2.0** framework. It provides Docker/Podman configurations and Compose files to deploy OMERO + BIOMERO subsystems (importer, analyzer, OMERO.web plugin, databases, and auxiliary services) — the recommended starting point for a FAIR‑oriented bioimaging setup.
 
-It uses Docker Compose to setup an OMERO grid on one computer with a server, web, processor and a BIOMERO processor.
-If you also want to spin up a local HPC cluster with Docker Compose, to connect BIOMERO to, we host an example <a href="https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">here</a>.
+BIOMERO 2.0 is described in our preprint: [“BIOMERO 2.0: end-to-end FAIR infrastructure for bioimaging data import, analysis, and provenance”](https://arxiv.org/abs/2511.13611). It transforms OMERO into a provenance‑aware, FAIR (findable, accessible, interoperable, reusable) platform by combining:
+- containerized data import and preprocessing (importer subsystem),  
+- containerized or HPC‑based analysis workflows (analyzer subsystem),  
+- metadata enrichment, versioning, and provenance tracking,  
+- integrated workflow monitoring and dashboards.
+
+Using NL‑BIOMERO yields a unified environment where image data import, preprocessing, analysis, and provenance tracking are managed end-to-end — from raw data to processed results — in a reproducible, shareable, FAIR‑compliant infrastructure.
+
+It uses Docker Compose to setup an OMERO grid on one computer with a server, web, processor, and a BIOMERO processor, importer and database.
+If you want to experiment with a local HPC cluster, an example Docker Compose setup is hosted <a href="https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">here</a>.
 
 This is an adaptation of OME's <a href="https://github.com/ome/docker-example-omero-grid" target="_blank" rel="noopener noreferrer">OMERO.server grid and OMERO.web (docker-compose)</a> / <a href="http://www.openmicroscopy.org/site/support/omero5/sysadmins/grid.html#nodes-on-multiple-hosts" target="_blank" rel="noopener noreferrer">OMERO.server components on multiple nodes using OMERO.grid</a>.
 
-OMERO.server is listening on the standard OMERO ports `4063` and `4064`.
-OMERO.web is listening on port `4080` (http://localhost:4080/).
+- OMERO.server listens on ports `4063` and `4064`  
+- OMERO.web listens on port `4080` (http://localhost:4080/)  
+
+> ⚠️ **Warning:** This setup is mainly intended for demonstration or development purposes. For professional deployments, refer to the documented deployment scenarios in our documentation and see the [deployment scenarios](./deployment_scenarios) folder. We **strongly discourage** running Slurm inside Docker Compose for production; connect BIOMERO to a real HPC cluster to ensure stability, full feature support, and performance.
 
 ---
 
