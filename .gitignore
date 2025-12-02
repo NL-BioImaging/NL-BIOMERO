@@ -18,3 +18,4 @@ logs
 
 # Sphinx documentation
 docs/_build/
+docs/venv/

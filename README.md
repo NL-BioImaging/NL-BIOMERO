@@ -11,7 +11,7 @@ BIOMERO 2.0 is described in our preprint: [“BIOMERO 2.0: end-to-end FAIR infr
 Using NL‑BIOMERO yields a unified environment where image data import, preprocessing, analysis, and provenance tracking are managed end-to-end — from raw data to processed results — in a reproducible, shareable, FAIR‑compliant infrastructure.
 
 It uses Docker Compose to setup an OMERO grid on one computer with a server, web, processor, and a BIOMERO processor, importer and database.
-If you want to experiment with a local HPC cluster, an example Docker Compose setup is hosted <a href="https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">here</a>.
+If you want to experiment with a local HPC cluster, an example Docker Compose setup is hosted <a href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">here</a>.
 
 This is an adaptation of OME's <a href="https://github.com/ome/docker-example-omero-grid" target="_blank" rel="noopener noreferrer">OMERO.server grid and OMERO.web (docker-compose)</a> / <a href="http://www.openmicroscopy.org/site/support/omero5/sysadmins/grid.html#nodes-on-multiple-hosts" target="_blank" rel="noopener noreferrer">OMERO.server components on multiple nodes using OMERO.grid</a>.
 
@@ -50,7 +50,7 @@ Then do all these steps in Powershell:
 Clone this repository locally:
 
 ```bash
-git clone --recurse-submodules https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO.git
+git clone --recursive https://github.com/NL-BioImaging/NL-BIOMERO.git
 cd NL-BIOMERO
 ```
 
@@ -72,7 +72,7 @@ For local testing with a containerized Slurm cluster:
 ```bash
 # Setup local Slurm cluster
 cd ..
-git clone https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm
+git clone https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm
 cd NL-BIOMERO-Local-Slurm
 cp ~/.ssh/id_rsa.pub .
 docker compose -f .\docker-compose-from-dockerhub.yml up -d --build  
@@ -283,14 +283,14 @@ More details in [web/README.md](web/README.md).
 
 - 📖 **[Ubuntu/Linux Deployment](README.linux.md)** - Production deployment guide
 - 🧬 **<a href="https://nl-bioimaging.github.io/biomero/" target="_blank" rel="noopener noreferrer">BIOMERO Documentation</a>** - Analysis workflows
-- 🏗️ **<a href="https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">Local Slurm Cluster</a>** - Testing environment
+- 🏗️ **<a href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">Local Slurm Cluster</a>** - Testing environment
 - 🔬 **<a href="https://omero.readthedocs.io/" target="_blank" rel="noopener noreferrer">OMERO Documentation</a>** - Core platform docs
 
 ---
 
 ## 🤝 Support
 
-- **Issues**: <a href="https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>
+- **Issues**: <a href="https://github.com/NL-BioImaging/NL-BIOMERO/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>
 - **Discussions**: <a href="https://forum.image.sc/" target="_blank" rel="noopener noreferrer">image.sc</a> (tag #biomero)
 - **Contact**: cellularimaging /at/ amsterdamumc.nl
 

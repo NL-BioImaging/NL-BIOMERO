@@ -1,5 +1,8 @@
 FROM openmicroscopy/omero-web-standalone:5.29.2
 
+ARG OMERO_FORMS_VERSION
+ARG OMERO_BIOMERO_VERSION
+
 USER root
 
 # Update to Python 3.12
@@ -85,14 +88,14 @@ COPY biomeroworker/slurm-config.ini /etc/slurm-config.ini
 # RUN git clone -b main https://github.com/Cellular-Imaging-Amsterdam-UMC/OMERO.biomero.git /opt/omero/web/OMERO.biomero
 
 # Install released OMERO.biomero from PyPI and run setup
-RUN /opt/omero/web/venv3/bin/pip install omero-biomero==1.0.0b9 \
+RUN /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 
 ### Install OMERO.forms ###
 
 # Install OMERO.forms from PyPI
-RUN /opt/omero/web/venv3/bin/pip install omero-forms==2.1.1
+RUN /opt/omero/web/venv3/bin/pip install omero-forms==${OMERO_FORMS_VERSION}
 
 # Set the working directory
 WORKDIR /opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb
