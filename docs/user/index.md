@@ -2,9 +2,10 @@
 
 End-user documentation for working with NL-BIOMERO.
 
-<div class="toctree" maxdepth="2">
+## Contents
 
-getting-started data-import biomero-workflows web-interfaces
-metabase-analytics
-
-</div>
+- [Getting Started](getting-started.md)
+- [Data Import](data-import.md)
+- [BIOMERO Workflows](biomero-workflows.md)
+- [Web Interfaces](web-interfaces.md)
+- [Metabase Analytics](metabase-analytics.md)

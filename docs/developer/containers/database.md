@@ -1,7 +1,6 @@
 # Database Containers
 
-NL-BIOMERO uses PostgreSQL containers for persistent data storage across
-multiple services.
+NL-BIOMERO uses PostgreSQL containers for persistent data storage across multiple services.
 
 ## Overview
 
@@ -20,20 +19,14 @@ The platform uses separate PostgreSQL instances:
 
 ## Schema customization
 
-- OMERO: The OMERO schema is managed by the OME project. NL-BIOMERO does
-  not alter it. Only OMERO.forms interacts with OMERO data using
-  supported APIs.
-- BIOMERO: Schemas are owned and created via SQLAlchemy by BIOMERO and
-  BIOMERO.importer. Any schema changes or updates must go through
-  SQLAlchemy migrations or model updates.
+- OMERO: The OMERO schema is managed by the OME project. NL-BIOMERO does not alter it. Only OMERO.forms interacts with OMERO data using supported APIs.
+- BIOMERO: Schemas are owned and created via SQLAlchemy by BIOMERO and BIOMERO.importer. Any schema changes or updates must go through SQLAlchemy migrations or model updates.
 
 ## Migration
 
-Migrate to a new PostgreSQL version using pg_dump/pg_restore. The
-backup_and_restore scripts in this repo automate most steps and can also
-help migrate an existing OMERO DB into NL-BIOMERO.
+Migrate to a new PostgreSQL version using pg_dump/pg_restore. The backup_and_restore scripts in this repo automate most steps and can also help migrate an existing OMERO DB into NL-BIOMERO.
 
-``` bash
+```bash
 # Dump from old Postgres (inside container or via exec)
 docker exec -t nl-biomero_database_1 \
   pg_dump -Fc -U "$POSTGRES_USER" "$POSTGRES_DB" \
@@ -47,11 +40,9 @@ docker cp nl-biomero_database_1:/tmp/omero.pg_dump ./backup_and_restore/backups/
 
 ## Performance tuning
 
-You can pass PostgreSQL settings to the container via the entrypoint
-command or environment variables. Example (Podman) enabling logging and
-increasing connections:
+You can pass PostgreSQL settings to the container via the entrypoint command or environment variables. Example (Podman) enabling logging and increasing connections:
 
-``` bash
+```bash
 podman run -d --rm --name database \
   --network=omero \
   -e POSTGRES_USER=... \
@@ -73,24 +64,20 @@ See the PostgreSQL documentation for the full list of tunables.
 ## Backup automation
 
 Follow the OMERO backup/restore guidance:
-<https://omero.readthedocs.io/en/stable/sysadmins/server-backup-and-restore.html>
+https://omero.readthedocs.io/en/stable/sysadmins/server-backup-and-restore.html
 
-This repository provides container-oriented helpers in
-backup_and_restore:
+This repository provides container-oriented helpers in backup_and_restore:
 
-- Backup: backup/backup_db.sh, backup/backup_server.sh,
-  backup/backup_metabase.sh
-- Restore: restore/restore_db.sh, restore/restore_server.sh,
-  restore/restore_metabase.sh
+- Backup: backup/backup_db.sh, backup/backup_server.sh, backup/backup_metabase.sh
+- Restore: restore/restore_db.sh, restore/restore_server.sh, restore/restore_metabase.sh
 
-If you mount data to disk directly, the process mirrors the OMERO docs
-closely.
+If you mount data to disk directly, the process mirrors the OMERO docs closely.
 
 ## Accessing PostgreSQL
 
 You can exec into the database containers and use psql directly.
 
-``` bash
+```bash
 # OMERO DB
 docker exec -it nl-biomero_database_1 bash
 psql -U "$POSTGRES_USER"
@@ -102,7 +89,7 @@ psql -U "$BIOMERO_POSTGRES_USER"
 
 Common psql commands:
 
-``` psql
+```psql
 -- List tables
 \dt
 
@@ -125,5 +112,4 @@ WHERE uuid = '00000000-0000-0000-0000-000000000000';
 ## Related Documentation
 
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [OMERO Database
-  Documentation](https://omero.readthedocs.io/en/stable/sysadmins/unix/server-postgresql.html)
+- [OMERO Database Documentation](https://omero.readthedocs.io/en/stable/sysadmins/unix/server-postgresql.html)

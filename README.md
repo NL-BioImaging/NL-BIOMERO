@@ -156,6 +156,7 @@ If you disabled modules via `IMPORTER_ENABLED=FALSE` or `ANALYZER_ENABLED=FALSE`
 
 ---
 
+<a name="data_import"></a>
 ## 📊 Data Import
 
 To get started with data:

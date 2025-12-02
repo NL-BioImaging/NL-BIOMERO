@@ -2,9 +2,11 @@
 
 Technical documentation for extending and customizing NL-BIOMERO.
 
-<div class="toctree" maxdepth="2">
+## Contents
 
-getting-started architecture containers/index customization api
-contributing
-
-</div>
+- [Getting Started](getting-started.md)
+- [Architecture](architecture.md)
+- [Containers](containers/index.md)
+- [Customization](customization.md)
+- [API](api.md)
+- [Contributing](contributing.md)

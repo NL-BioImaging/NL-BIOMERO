@@ -1,7 +1,6 @@
 # SLURM Integration
 
-NL-BIOMERO integrates with High-Performance Computing (HPC) clusters
-using SLURM for scalable bioimage analysis workflows.
+NL-BIOMERO integrates with High-Performance Computing (HPC) clusters using SLURM for scalable bioimage analysis workflows.
 
 ## Overview
 
@@ -14,34 +13,33 @@ The SLURM integration allows you to:
 
 ## Architecture
 
-``` text
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   OMERO Web     │    │  BIOMERO Worker │    │  SLURM Cluster  │
-│                 │    │                 │    │                 │
-│ ┌─────────────┐ │    │ ┌─────────────┐ │    │ ┌─────────────┐ │
-│ │ User submits│ │───▶│ │ Workflow    │ │───▶│ │ Job Queue   │ │
-│ │ workflow    │ │    │ │ Manager     │ │    │ │             │ │
-│ └─────────────┘ │    │ └─────────────┘ │    │ └─────────────┘ │
-│                 │    │        │        │    │        │        │
-│ ┌─────────────┐ │    │        ▼        │    │        ▼        │
-│ │ Results     │ │◀───│ ┌─────────────┐ │    │ ┌─────────────┐ │
-│ │ Display     │ │    │ │ Progress    │ │◀───│ │ Compute     │ │
-│ └─────────────┘ │    │ │ Tracking    │ │    │ │ Nodes       │ │
-└─────────────────┘    │ └─────────────┘ │    │ └─────────────┘ │
-                       └─────────────────┘    └─────────────────┘
+```
+   ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+   │   OMERO Web     │    │  BIOMERO Worker │    │  SLURM Cluster  │
+   │                 │    │                 │    │                 │
+   │ ┌─────────────┐ │    │ ┌─────────────┐ │    │ ┌─────────────┐ │
+   │ │ User submits│ │───>│ │ Workflow    │ │───>│ │ Job Queue   │ │
+   │ │ workflow    │ │    │ │ Manager     │ │    │ │             │ │
+   │ └─────────────┘ │    │ └─────────────┘ │    │ └─────────────┘ │
+   │                 │    │        │        │    │        │        │
+   │ ┌─────────────┐ │    │        ▼        │    │        ▼        │
+   │ │ Results     │ │<───│ ┌─────────────┐ │    │ ┌─────────────┐ │
+   │ │ Display     │ │    │ │ Progress    │ │<───│ │ Compute     │ │
+   │ └─────────────┘ │    │ │ Tracking    │ │    │ │ Nodes       │ │
+   └─────────────────┘    │ └─────────────┘ │    │ └─────────────┘ │
+                          └─────────────────┘    └─────────────────┘
 ```
 
 ## Configuration
 
-SLURM integration is configured through `slurm-config.ini` files located
-in:
+SLURM integration is configured through `slurm-config.ini` files located in:
 
 - **Web interface**: `/NL-BIOMERO/web/slurm-config.ini`
 - **Worker service**: `/NL-BIOMERO/biomeroworker/slurm-config.ini`
 
 ### Basic Configuration
 
-``` ini
+```ini
 [SSH]
 # SLURM cluster connection
 host=localslurm
@@ -58,7 +56,7 @@ slurm_script_path=/data/my-scratch/slurm-scripts
 
 For environments requiring explicit container path binding:
 
-``` ini
+```ini
 [SLURM]
 # Required when containers need explicit path binding
 # Sets APPTAINER_BINDPATH environment variable
@@ -68,15 +66,14 @@ slurm_data_bind_path=/data/my-scratch/data
 slurm_conversion_partition=cpu-short
 ```
 
-> [!NOTE]
-> Configure `slurm_data_bind_path` only when your HPC administrator
-> requires setting the `APPTAINER_BINDPATH` environment variable.
+> **Note:**
+> Configure `slurm_data_bind_path` only when your HPC administrator requires setting the `APPTAINER_BINDPATH` environment variable.
 
 ### Workflow Definitions
 
 Available workflows are defined in the `[MODELS]` section:
 
-``` ini
+```ini
 [MODELS]
 # Cellpose segmentation workflow
 cellpose=cellpose
@@ -84,7 +81,7 @@ cellpose_repo=https://github.com/TorecLuik/W_NucleiSegmentation-Cellpose/tree/v1
 cellpose_job=jobs/cellpose.sh
 cellpose_job_mem=4GB
 
-# StarDist segmentation workflow  
+# StarDist segmentation workflow
 stardist=stardist
 stardist_repo=https://github.com/Neubias-WG5/W_NucleiSegmentation-Stardist/tree/v1.3.2
 stardist_job=jobs/stardist.sh
@@ -94,7 +91,7 @@ stardist_job=jobs/stardist.sh
 
 Enable workflow tracking and analytics:
 
-``` ini
+```ini
 [ANALYTICS]
 # Enable workflow tracking
 track_workflows=True
@@ -111,7 +108,7 @@ enable_workflow_analytics=True
 
 Configure SSH access to your SLURM cluster:
 
-``` bash
+```bash
 # In ~/.ssh/config
 Host localslurm
     HostName your-slurm-cluster.example.com
@@ -124,7 +121,7 @@ Host localslurm
 
 Ensure required directories exist on the SLURM cluster:
 
-``` bash
+```bash
 # Create directory structure
 mkdir -p /data/my-scratch/{data,singularity_images/{workflows,converters},slurm-scripts}
 ```
@@ -140,47 +137,42 @@ mkdir -p /data/my-scratch/{data,singularity_images/{workflows,converters},slurm-
 ### Common Issues
 
 **Container Access Errors**
-
 If workflows fail with file access errors:
 
-1.  Configure explicit path binding:
+1. Configure explicit path binding:
 
-    ``` ini
-    [SLURM]
-    slurm_data_bind_path=/data/my-scratch/data
-    ```
+   ```ini
+   [SLURM]
+   slurm_data_bind_path=/data/my-scratch/data
+   ```
 
-2.  Verify directory permissions on the SLURM cluster
-
-3.  Check if Singularity/Apptainer can access the data directory
+2. Verify directory permissions on the SLURM cluster
+3. Check if Singularity/Apptainer can access the data directory
 
 **SSH Connection Failures**
-
 If the worker cannot connect to SLURM:
 
-1.  Test SSH connection manually from the worker container
-2.  Verify SSH key authentication
-3.  Check network connectivity and firewall rules
+1. Test SSH connection manually from the worker container
+2. Verify SSH key authentication
+3. Check network connectivity and firewall rules
 
 **Job Submission Issues**
-
 If jobs fail to submit:
 
-1.  Verify SLURM account and partition access
-2.  Check resource request limits (memory, GPU, etc.)
-3.  Review SLURM queue policies and restrictions
+1. Verify SLURM account and partition access
+2. Check resource request limits (memory, GPU, etc.)
+3. Review SLURM queue policies and restrictions
 
 **Workflow Execution Failures**
-
 If submitted jobs fail during execution:
 
-1.  Check SLURM job logs for errors
-2.  Verify container images are accessible
-3.  Ensure input data is properly transferred
+1. Check SLURM job logs for errors
+2. Verify container images are accessible
+3. Ensure input data is properly transferred
 
 ### Debug Commands
 
-``` bash
+```bash
 # Test SSH connection
 docker exec -it biomeroworker ssh localslurm
 
@@ -200,7 +192,7 @@ docker exec -it biomeroworker ssh localslurm "ls -la /data/my-scratch/"
 
 Optimize resource requests for different workflow types:
 
-``` ini
+```ini
 [MODELS]
 # CPU-intensive workflow
 cellprofiler_job_mem=32GB
@@ -225,7 +217,7 @@ stardist_job_partition=himem
 
 Enable comprehensive monitoring:
 
-``` ini
+```ini
 [ANALYTICS]
 track_workflows=True
 enable_job_accounting=True
@@ -246,8 +238,7 @@ sqlalchemy_url=postgresql://user:pass@db:5432/analytics
 
 ## Further Reading
 
-- `../developer/containers/biomeroworker` - Worker container details
-- `omero-biomero-admin` - Administrative procedures
+- [BIOMERO Worker](../developer/containers/biomeroworker.md) - Worker container details
+- [OMERO.biomero Plugin Administration](omero-biomero-admin.md) - Administrative procedures
 - [SLURM Documentation](https://slurm.schedmd.com/documentation.html)
-- [Singularity User
-  Guide](https://docs.sylabs.io/guides/latest/user-guide/)
+- [Singularity User Guide](https://docs.sylabs.io/guides/latest/user-guide/)

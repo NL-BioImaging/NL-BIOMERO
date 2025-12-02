@@ -1,60 +1,22 @@
-site_name: NL-BIOMERO
-site_description: Documentation for NL-BIOMERO (converted from Sphinx to MkDocs)
-repo_name: NL-BioImaging/NL-BIOMERO
-repo_url: https://github.com/NL-BioImaging/NL-BIOMERO
+site_name: NL-BIOMERO Documentation
+site_url: https://nl-bioimaging.github.io/NL-BIOMERO/
+site_author: Core Facility Cellular Imaging
+copyright: 2025, Core Facility Cellular Imaging
+
 docs_dir: docs
-theme:
-  name: material
-  logo: _static/logo.png
-  favicon: _static/favicon.png
-  palette:
-    - scheme: default
-      primary: indigo
-      accent: indigo
-    - scheme: slate
-      primary: indigo
-      accent: indigo
-  features:
-    - navigation.sections
-    - navigation.expand
-    - navigation.indexes
-    - navigation.tabs
-    - toc.integrate
-    - content.code.copy
-    - content.action.edit
-    - content.tabs.link
-markdown_extensions:
-  - admonition
-  - toc:
-      permalink: true
-  - tables
-  - footnotes
-  - def_list
-  - attr_list
-  - md_in_html
-  - pymdownx.details
-  - pymdownx.emoji
-  - pymdownx.superfences
-  - pymdownx.tabbed
-  - pymdownx.snippets
-  - pymdownx.highlight
-plugins:
-  - search
-  - tags
+
 nav:
   - Home: index.md
-  - User:
-      - Overview: user/index.md
-      - Getting Started: user/getting-started.md
-  - Sysadmin:
+  - System Administration:
       - Overview: sysadmin/index.md
       - Deployment: sysadmin/deployment.md
-      - Linux Deployment: sysadmin/linux-deployment.md
-      - Docker Compose Scenarios: sysadmin/docker-compose-scenarios.md
-      - OMERO & BIOMERO Admin: sysadmin/omero-biomero-admin.md
       - Backup & Restore: sysadmin/backup-restore.md
-      - Slurm Integration: sysadmin/slurm-integration.md
-  - Developer:
+      - Docker Compose Scenarios: sysadmin/docker-compose-scenarios.md
+      - Linux Deployment: sysadmin/linux-deployment.md
+      - OMERO-BIOMERO Admin: sysadmin/omero-biomero-admin.md
+      - SLURM Integration: sysadmin/slurm-integration.md
+      - Development Setup: sysadmin/development-setup.md
+  - Developer Guide:
       - Overview: developer/index.md
       - Getting Started: developer/getting-started.md
       - Architecture: developer/architecture.md
@@ -67,3 +29,20 @@ nav:
           - OMERO Server: developer/containers/omeroserver.md
           - OMERO Web: developer/containers/omeroweb.md
           - Releases: developer/containers/releases.md
+      
+  - User Guide:
+      - Overview: user/index.md
+      - Getting Started: user/getting-started.md
+      # Add more user docs as needed
+
+# Theme and plugins
+theme:
+  name: material
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+plugins:
+  - search
+  - include-markdown
