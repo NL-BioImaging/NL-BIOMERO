@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Developer Guide &mdash; NL-BIOMERO latest documentation</title>
+  <title>Developer Guide &mdash; NL-BIOMERO 1.0.0 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -16,9 +16,7 @@
         <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Developer Getting Started" href="getting-started.html" />
-    <link rel="prev" title="Backup and Restore" href="../sysadmin/backup-restore.html" /> 
+    <link rel="search" title="Search" href="../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -32,6 +30,9 @@
           <a href="../index.html" class="icon icon-home">
             NL-BIOMERO
           </a>
+              <div class="version">
+                1.0.0
+              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -42,224 +43,380 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">System Administration</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../sysadmin/index.html">System Administration Guide</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/deployment.html">Deployment Guide</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#nl-biomero-deployment-upgrade-guide">NL-BIOMERO Deployment &amp; Upgrade Guide</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/deployment.html#scenario-0-development-demo">Scenario 0: Development &amp; Demo</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/deployment.html#scenario-1-fresh-deployment-no-existing-data">Scenario 1: Fresh Deployment (no existing data)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/deployment.html#scenario-2-fresh-deployment-with-existing-data">Scenario 2: Fresh Deployment with Existing Data</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/deployment.html#scenario-3-hybrid-deployment-with-existing-omero-server">Scenario 3: Hybrid Deployment with Existing OMERO Server</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/deployment.html#scenario-4-full-non-docker-install-not-recommended">Scenario 4: Full Non-Docker Install (Not Recommended)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/deployment.html#notes">Notes</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/deployment.html#next-steps">Next Steps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/deployment.html">Deployment Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/deployment.html#nl-biomero-deployment-upgrade-guide">NL-BIOMERO Deployment &amp; Upgrade Guide</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#scenario-0-development-demo">Scenario 0: Development &amp; Demo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#scenario-1-fresh-deployment-no-existing-data">Scenario 1: Fresh Deployment (no existing data)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#scenario-2-fresh-deployment-with-existing-data">Scenario 2: Fresh Deployment with Existing Data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#scenario-3-hybrid-deployment-with-existing-omero-server">Scenario 3: Hybrid Deployment with Existing OMERO Server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#scenario-4-full-non-docker-install-not-recommended">Scenario 4: Full Non-Docker Install (Not Recommended)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#notes">Notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html">OMERO.biomero Plugin Administration</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#accessing-admin-interfaces">Accessing Admin Interfaces</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#importer-admin-configuration">Importer Admin Configuration</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#group-folder-mappings">Group Folder Mappings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#configuration-file-management">Configuration File Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html">OMERO.biomero Plugin Administration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#accessing-admin-interfaces">Accessing Admin Interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#importer-admin-configuration">Importer Admin Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#group-folder-mappings">Group Folder Mappings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#configuration-file-management">Configuration File Management</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#analyzer-admin-configuration">Analyzer Admin Configuration</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#overview">Overview</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#configuration-file-sharing">Configuration File Sharing</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#settings-interface-usage">Settings Interface Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#analyzer-admin-configuration">Analyzer Admin Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#configuration-file-sharing">Configuration File Sharing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#settings-interface-usage">Settings Interface Usage</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#settings-categories">Settings Categories</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#ssh-settings">1. SSH Settings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#slurm-settings">2. Slurm Settings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#analytics-settings">3. Analytics Settings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#converters-settings">4. Converters Settings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#models-settings-workflows">5. Models Settings (Workflows)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#slurm-check-setup-output">Slurm Check Setup Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#settings-categories">Settings Categories</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#ssh-settings">1. SSH Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#slurm-settings">2. Slurm Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#analytics-settings">3. Analytics Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#converters-settings">4. Converters Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#models-settings-workflows">5. Models Settings (Workflows)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#adding-new-workflows">Adding New Workflows</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#common-sbatch-parameters">Common SBATCH Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#editing-existing-workflows">Editing Existing Workflows</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#required-follow-up-actions">Required Follow-up Actions</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#security-considerations">Security Considerations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#troubleshooting">Troubleshooting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#related-documentation">Related Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#slurm-check-setup-output">Slurm Check Setup Output</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html">SLURM Integration</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#overview">Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#architecture">Architecture</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#configuration">Configuration</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/slurm-integration.html#basic-configuration">Basic Configuration</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/slurm-integration.html#container-environment-configuration">Container Environment Configuration</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/slurm-integration.html#workflow-definitions">Workflow Definitions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/slurm-integration.html#analytics-and-monitoring">Analytics and Monitoring</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#security-considerations">Security Considerations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#related-documentation">Related Documentation</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#deployment-considerations">Deployment Considerations</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/slurm-integration.html#ssh-configuration">SSH Configuration</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/slurm-integration.html#directory-structure">Directory Structure</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/slurm-integration.html#permissions-and-access">Permissions and Access</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/slurm-integration.html">SLURM Integration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#configuration">Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#basic-configuration">Basic Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#container-environment-configuration">Container Environment Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#workflow-definitions">Workflow Definitions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#analytics-and-monitoring">Analytics and Monitoring</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#troubleshooting">Troubleshooting</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/slurm-integration.html#common-issues">Common Issues</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/slurm-integration.html#debug-commands">Debug Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#deployment-considerations">Deployment Considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#ssh-configuration">SSH Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#directory-structure">Directory Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#permissions-and-access">Permissions and Access</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#performance-tuning">Performance Tuning</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/slurm-integration.html#resource-allocation">Resource Allocation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/slurm-integration.html#queue-management">Queue Management</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/slurm-integration.html#monitoring-and-analytics">Monitoring and Analytics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#common-issues">Common Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#debug-commands">Debug Commands</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#security-considerations">Security Considerations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#further-reading">Further Reading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#performance-tuning">Performance Tuning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#resource-allocation">Resource Allocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#queue-management">Queue Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#monitoring-and-analytics">Monitoring and Analytics</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html">Docker Compose Scenarios</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#nl-biomero-deployment-scenarios-and-docker-compose-files">NL-BIOMERO Deployment Scenarios and Docker Compose Files</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#overview">Overview</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#important-usage-note">Important Usage Note</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-0-development-demo">Scenario 0: Development &amp; Demo</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-1-fresh-deployment-no-existing-data">Scenario 1: Fresh Deployment (no existing data)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-2-fresh-deployment-with-existing-data">Scenario 2: Fresh Deployment with Existing Data</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-3-hybrid-deployment-with-existing-omero-server">Scenario 3: Hybrid Deployment with Existing OMERO Server</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#additional-configurations">Additional Configurations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#creating-a-custom-deployment">Creating a Custom Deployment</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#detailed-deployment-guides">Detailed Deployment Guides</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#security-considerations">Security Considerations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#further-reading">Further Reading</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html">Docker Compose Scenarios</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#nl-biomero-deployment-scenarios-and-docker-compose-files">NL-BIOMERO Deployment Scenarios and Docker Compose Files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#important-usage-note">Important Usage Note</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-0-development-demo">Scenario 0: Development &amp; Demo</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-0-1-local-development-setup">Scenario 0.1: Local Development Setup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-0-2-default-local-build">Scenario 0.2: Default (Local Build)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-1-fresh-deployment-no-existing-data">Scenario 1: Fresh Deployment (no existing data)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-1-1-standard-production-deployment">Scenario 1.1: Standard Production Deployment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-1-2-production-with-ssl-ubuntu">Scenario 1.2: Production with SSL (Ubuntu)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-2-fresh-deployment-with-existing-data">Scenario 2: Fresh Deployment with Existing Data</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-2-1-restore-from-omero-backup">Scenario 2.1: Restore from OMERO Backup</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-3-hybrid-deployment-with-existing-omero-server">Scenario 3: Hybrid Deployment with Existing OMERO Server</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-3-1-biomero-only-external-omero">Scenario 3.1: BIOMERO Only (External OMERO)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-3-2-biomero-importer-only-external-omero">Scenario 3.2: BIOMERO.importer Only (External OMERO)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#additional-configurations">Additional Configurations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#component-selection-with-profiles">Component Selection with Profiles</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#toggle-ui-modules-omero-biomero-plugin">Toggle UI Modules (OMERO.biomero plugin)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#environment-customization">Environment Customization</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#creating-a-custom-deployment">Creating a Custom Deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#detailed-deployment-guides">Detailed Deployment Guides</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#production-deployments">Production Deployments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#development-demo-deployments">Development &amp; Demo Deployments</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/linux-deployment.html">Linux/Ubuntu Deployment</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#nlbiomero-ubuntu-linux">NL‑BIOMERO (Ubuntu/Linux) 🚀</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#prerequisites">🧰 Prerequisites</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#key-differences-from-windows-docker-desktop">🔧 Key Differences from Windows Docker Desktop</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#quick-start-ubuntu">✅ Quick Start (Ubuntu)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#troubleshooting-tips">🛠️ Troubleshooting Tips</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#lessons-learned">🧠 Lessons Learned</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#tl-dr">📋 TL;DR</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#additional-resources">🔗 Additional Resources</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/linux-deployment.html">Linux/Ubuntu Deployment</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/linux-deployment.html#nlbiomero-ubuntu-linux">NL‑BIOMERO (Ubuntu/Linux) 🚀</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#prerequisites">🧰 Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#key-differences-from-windows-docker-desktop">🔧 Key Differences from Windows Docker Desktop</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#postgresql-image">1. PostgreSQL Image</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#privileged-access-needed">2. Privileged Access Needed</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#ssh-permissions-in-biomero-worker">3. SSH Permissions in biomero-worker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#containerized-slurm-build">4. Containerized Slurm Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#host-networking-host-docker-internal-replacement">5. Host Networking (host.docker.internal Replacement)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#volume-permission-fixes">6. Volume Permission Fixes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#secrets-metabase-setup">7. Secrets &amp; Metabase Setup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#https-via-nginx-reverse-proxy">8. HTTPS via Nginx Reverse Proxy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#persistent-logs">9. Persistent Logs</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#quick-start-ubuntu">✅ Quick Start (Ubuntu)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#troubleshooting-tips">🛠️ Troubleshooting Tips</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#lessons-learned">🧠 Lessons Learned</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#tl-dr">📋 TL;DR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#additional-resources">🔗 Additional Resources</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/development-setup.html">Development &amp; Demo Setup</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/development-setup.html#biomero-101-installation-guide">BIOMERO 101 Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/development-setup.html">Development &amp; Demo Setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/development-setup.html#biomero-101-installation-guide">BIOMERO 101 Installation Guide</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/backup-restore.html">Backup and Restore</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#nl-biomero-backup-restore-scripts">NL-BIOMERO Backup &amp; Restore Scripts</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#key-features">Key Features</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#quick-start">Quick Start</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#individual-script-usage">Individual Script Usage</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#restore-scripts">Restore Scripts</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#omero-configuration-hierarchy">OMERO Configuration Hierarchy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#example-backup-omero-from-host-folder">Example: Backup OMERO from Host Folder</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#example-backup-metabase-from-host-folder">Example: Backup Metabase from Host Folder</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#requirements">Requirements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#troubleshooting">Troubleshooting</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#help">Help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/backup-restore.html">Backup and Restore</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/backup-restore.html#nl-biomero-backup-restore-scripts">NL-BIOMERO Backup &amp; Restore Scripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#key-features">Key Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#master-backup-recommended">Master Backup (Recommended)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#common-options">Common Options</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#typical-backup-workflow">Typical Backup Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#typical-restore-workflow">Typical Restore Workflow</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#individual-script-usage">Individual Script Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#database-backup">Database Backup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#server-backup">Server Backup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#metabase-backup">Metabase Backup</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#restore-scripts">Restore Scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#omero-configuration-hierarchy">OMERO Configuration Hierarchy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#example-backup-omero-from-host-folder">Example: Backup OMERO from Host Folder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#example-backup-metabase-from-host-folder">Example: Backup Metabase from Host Folder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#requirements">Requirements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#help">Help</a></li>
 </ul>
 </li>
 </ul>
 </li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Developer Guide</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Developer Guide</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="getting-started.html">Developer Getting Started</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="getting-started.html#quick-setup-for-development">Quick Setup for Development</a></li>
-<li class="toctree-l3"><a class="reference internal" href="getting-started.html#development-features">Development Features</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="getting-started.html#containerized-omero-with-biomero">Containerized OMERO with BIOMERO</a></li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Developer Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#quick-setup-for-development">Quick Setup for Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#development-features">Development Features</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#containerized-omero-with-biomero">Containerized OMERO with BIOMERO</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="getting-started.html#platform-specific-deployment">🚀 Platform-Specific Deployment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="getting-started.html#quickstart-windows">Quickstart (Windows)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="getting-started.html#data-import">📊 Data Import</a></li>
+<li class="toctree-l4"><a class="reference internal" href="getting-started.html#biomero-bioimage-analysis">🧬 BIOMERO - BioImage Analysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="getting-started.html#container-management">🛠️ Container Management</a></li>
+<li class="toctree-l4"><a class="reference internal" href="getting-started.html#configuration">🔧 Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="getting-started.html#frontend-customizations">🎨 Frontend Customizations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="getting-started.html#additional-resources">📚 Additional Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="getting-started.html#support">🤝 Support</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="architecture.html">Architecture Overview</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="architecture.html#container-architecture">Container Architecture</a></li>
-<li class="toctree-l3"><a class="reference internal" href="architecture.html#network-architecture">Network Architecture</a></li>
-<li class="toctree-l3"><a class="reference internal" href="architecture.html#storage-architecture">Storage Architecture</a></li>
-<li class="toctree-l3"><a class="reference internal" href="architecture.html#integration-points">Integration Points</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="containers/index.html">Container Development</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="containers/omeroserver.html">OMERO Server Container</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#overview">Overview</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#key-customizations">Key Customizations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#dockerfile-key-changes">Dockerfile Key Changes</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#development-guidelines">Development Guidelines</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#related-documentation">Related Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#container-architecture">Container Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#network-architecture">Network Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#storage-architecture">Storage Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#integration-points">Integration Points</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html">OMERO Web Container</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#overview">Overview</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#development-workflow">Development Workflow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#key-installed-plugins">Key Installed Plugins</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#custom-interface-modifications">Custom Interface Modifications</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#dockerfile-key-sections">Dockerfile Key Sections</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#development-guidelines">Development Guidelines</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#related-documentation">Related Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="containers/index.html">Container Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="containers/omeroserver.html">OMERO Server Container</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroserver.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroserver.html#key-customizations">Key Customizations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#script-installation">Script Installation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#automated-configuration-restoration">Automated Configuration Restoration</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html">BIOMERO Worker Container</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#overview">Overview</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#key-features">Key Features</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#container-customizations">Container Customizations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#configuration-management">Configuration Management</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#worker-startup-process">Worker Startup Process</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#development-guidelines">Development Guidelines</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#troubleshooting">Troubleshooting</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#upgrade-considerations">Upgrade Considerations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#related-documentation">Related Documentation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#external-resources">External Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroserver.html#dockerfile-key-changes">Dockerfile Key Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroserver.html#development-guidelines">Development Guidelines</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#configuration-changes">Configuration Changes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#adding-new-scripts">Adding New Scripts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#testing-changes">Testing Changes</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="containers/database.html">Database Containers</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="containers/database.html#overview">Overview</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/database.html#key-components">Key Components</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/database.html#schema-customization">Schema customization</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/database.html#migration">Migration</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/database.html#performance-tuning">Performance tuning</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/database.html#backup-automation">Backup automation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/database.html#accessing-postgresql">Accessing PostgreSQL</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/database.html#related-documentation">Related Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroserver.html#related-documentation">Related Documentation</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="containers/metabase.html">Metabase Container</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#why-metabase">Why Metabase?</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#dashboard-development">Dashboard Development</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#troubleshooting">Troubleshooting</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#related-documentation">Related Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="containers/omeroweb.html">OMERO Web Container</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html#development-workflow">Development Workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#development-mode">Development Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#omero-biomero-plugin-development">OMERO.biomero Plugin Development</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html">BIOMERO.importer Container</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomero-importer.html#overview">Overview</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomero-importer.html#import-workflow">Import Workflow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomero-importer.html#import-order-creation-and-management">Import order creation and management</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomero-importer.html#file-system-monitoring-and-processing">File system monitoring and processing</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomero-importer.html#configuration">Configuration</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomero-importer.html#integration-with-omero-server">Integration with OMERO server</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomero-importer.html#custom-import-pipeline-development">Custom import pipeline development</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomero-importer.html#error-handling-and-retry-mechanisms">Error handling and retry mechanisms</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomero-importer.html#testing">Testing</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomero-importer.html#security-and-runtime-requirements">Security and runtime requirements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/biomero-importer.html#related-documentation">Related Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html#key-installed-plugins">Key Installed Plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#core-omero-plugins">Core OMERO Plugins</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#supporting-libraries">Supporting Libraries</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="containers/releases.html">Container Releases</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#release-overview">Release Overview</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#release-workflow">Release Workflow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#versioning-guidelines">Versioning Guidelines</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#dependency-management">Dependency Management</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#omero-adi-submodule">OMERO ADI Submodule</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#docker-hub-management">Docker Hub Management</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#communication-announcements">Communication &amp; Announcements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#troubleshooting-releases">Troubleshooting Releases</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#best-practices">Best Practices</a></li>
-<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#related-documentation">Related Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html#custom-interface-modifications">Custom Interface Modifications</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html#dockerfile-key-sections">Dockerfile Key Sections</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html#development-guidelines">Development Guidelines</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#starting-development">Starting Development</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#making-changes">Making Changes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#customizing-login-page-with-volume-mounts">Customizing Login Page with Volume Mounts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#testing">Testing</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="containers/biomeroworker.html">BIOMERO Worker Container</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#key-features">Key Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#container-customizations">Container Customizations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#ssh-integration">SSH Integration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#database-integration">Database Integration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#data-export-pipeline">Data Export Pipeline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#biomero-library-integration">BIOMERO Library Integration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#custom-processor-implementation">Custom Processor Implementation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#configuration-management">Configuration Management</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#slurm-configuration">Slurm Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#analytics-configuration">Analytics Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#worker-startup-process">Worker Startup Process</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#configuration-generation">Configuration Generation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#development-guidelines">Development Guidelines</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#biomero-script-development">BIOMERO Script Development</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#ssh-key-management">SSH Key Management</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#configuration-testing">Configuration Testing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#eventsourcing">Eventsourcing</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#common-issues">Common Issues</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#performance-optimization">Performance Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#upgrade-considerations">Upgrade Considerations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#biomero-library-updates">BIOMERO Library Updates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#processor-py-maintenance">Processor.py Maintenance</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#related-documentation">Related Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#external-resources">External Resources</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="containers/database.html">Database Containers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#key-components">Key Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#schema-customization">Schema customization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#migration">Migration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#performance-tuning">Performance tuning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#backup-automation">Backup automation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#accessing-postgresql">Accessing PostgreSQL</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="containers/metabase.html">Metabase Container</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/metabase.html#why-metabase">Why Metabase?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/metabase.html#dashboard-development">Dashboard Development</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#access">Access</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#dashboards-in-use">Dashboards in use</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#embedding-in-omero-web">Embedding in OMERO.web</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#editing-dashboards">Editing dashboards</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#adding-a-new-dashboard">Adding a new dashboard</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#browse-attached-databases">Browse attached databases</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#managing-database-connections">Managing database connections</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#initial-security-setup">Initial Security Setup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#user-account-and-password">User account and password</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#versioning-and-migration">Versioning and migration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#upgrading-metabase-dashboards">Upgrading Metabase Dashboards</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/metabase.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#common-issues-and-solutions">Common Issues and Solutions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/metabase.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="containers/biomero-importer.html">BIOMERO.importer Container</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#import-workflow">Import Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#import-order-creation-and-management">Import order creation and management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#file-system-monitoring-and-processing">File system monitoring and processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#integration-with-omero-server">Integration with OMERO server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#custom-import-pipeline-development">Custom import pipeline development</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#error-handling-and-retry-mechanisms">Error handling and retry mechanisms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#security-and-runtime-requirements">Security and runtime requirements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="containers/releases.html">Container Releases</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#release-overview">Release Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#release-workflow">Release Workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#container-build-automation">Container Build Automation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#typical-release-process">Typical Release Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#versioning-guidelines">Versioning Guidelines</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#semantic-versioning">Semantic Versioning</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#pre-release-versions">Pre-release Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#release-examples">Release Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#dependency-management">Dependency Management</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#library-updates">Library Updates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#example-dependency-update">Example Dependency Update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#omero-adi-submodule">OMERO ADI Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#special-handling">Special Handling</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#docker-hub-management">Docker Hub Management</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#container-registry">Container Registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#repository-management">Repository Management</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#communication-announcements">Communication &amp; Announcements</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#release-communication">Release Communication</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#release-notes-template">Release Notes Template</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#troubleshooting-releases">Troubleshooting Releases</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#common-issues">Common Issues</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#emergency-releases">Emergency Releases</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#best-practices">Best Practices</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#release-checklist">Release Checklist</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#release-quality">Release Quality</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#related-documentation">Related Documentation</a></li>
 </ul>
 </li>
 </ul>
@@ -267,16 +424,16 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../user/index.html">User Guide</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html">Getting Started</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#first-steps-with-nl-biomero">First Steps with NL-BIOMERO</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../user/getting-started.html#access-the-platform">Access the Platform</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../user/getting-started.html#default-login">Default Login</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../user/getting-started.html#next-steps">Next Steps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user/getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#first-steps-with-nl-biomero">First Steps with NL-BIOMERO</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#access-the-platform">Access the Platform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#default-login">Default Login</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#platform-overview">Platform Overview</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../user/getting-started.html#biomero-bioimage-analysis">🧬 BIOMERO - BioImage Analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#platform-overview">Platform Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#biomero-bioimage-analysis">🧬 BIOMERO - BioImage Analysis</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../user/getting-started.html#quick-workflow-example">Quick Workflow Example:</a></li>
 </ul>
 </li>
 </ul>
@@ -343,10 +500,7 @@
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../sysadmin/backup-restore.html" class="btn btn-neutral float-left" title="Backup and Restore" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="getting-started.html" class="btn btn-neutral float-right" title="Developer Getting Started" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 
