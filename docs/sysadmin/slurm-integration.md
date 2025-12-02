@@ -13,21 +13,43 @@ The SLURM integration allows you to:
 
 ## Architecture
 
-```
-   ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-   │   OMERO Web     │    │  BIOMERO Worker │    │  SLURM Cluster  │
-   │                 │    │                 │    │                 │
-   │ ┌─────────────┐ │    │ ┌─────────────┐ │    │ ┌─────────────┐ │
-   │ │ User submits│ │───>│ │ Workflow    │ │───>│ │ Job Queue   │ │
-   │ │ workflow    │ │    │ │ Manager     │ │    │ │             │ │
-   │ └─────────────┘ │    │ └─────────────┘ │    │ └─────────────┘ │
-   │                 │    │        │        │    │        │        │
-   │ ┌─────────────┐ │    │        ▼        │    │        ▼        │
-   │ │ Results     │ │<───│ ┌─────────────┐ │    │ ┌─────────────┐ │
-   │ │ Display     │ │    │ │ Progress    │ │<───│ │ Compute     │ │
-   │ └─────────────┘ │    │ │ Tracking    │ │    │ │ Nodes       │ │
-   └─────────────────┘    │ └─────────────┘ │    │ └─────────────┘ │
-                          └─────────────────┘    └─────────────────┘
+```mermaid
+---
+config:
+  themeVariables:
+    fontSize: 20px
+    curve: linear
+---
+flowchart LR
+    subgraph " "
+        direction TB
+        subgraph omero_web["OMERO Web"]
+            direction TB
+            submit_workflow("User submits workflow")
+            results_display("Results Display")
+        end
+
+        subgraph biomero_worker["BIOMERO Worker"]
+            direction TB
+            workflow_manager("Workflow Manager")
+            progress_tracking("Progress Tracking")
+        end
+
+        subgraph slurm_cluster["SLURM Cluster"]
+            direction TB
+            job_queue("Job Queue")
+            compute_nodes("Compute Nodes")
+        end
+    end
+
+    submit_workflow --> workflow_manager
+    progress_tracking --> results_display
+    
+    workflow_manager --> progress_tracking
+    workflow_manager --> job_queue
+
+    job_queue --> compute_nodes
+    compute_nodes --> progress_tracking
 ```
 
 ## Configuration
