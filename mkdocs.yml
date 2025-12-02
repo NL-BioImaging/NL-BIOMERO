@@ -1,0 +1,69 @@
+site_name: NL-BIOMERO
+site_description: Documentation for NL-BIOMERO (converted from Sphinx to MkDocs)
+repo_name: NL-BioImaging/NL-BIOMERO
+repo_url: https://github.com/NL-BioImaging/NL-BIOMERO
+docs_dir: docs
+theme:
+  name: material
+  logo: _static/logo.png
+  favicon: _static/favicon.png
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.tabs
+    - toc.integrate
+    - content.code.copy
+    - content.action.edit
+    - content.tabs.link
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - tables
+  - footnotes
+  - def_list
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.emoji
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.snippets
+  - pymdownx.highlight
+plugins:
+  - search
+  - tags
+nav:
+  - Home: index.md
+  - User:
+      - Overview: user/index.md
+      - Getting Started: user/getting-started.md
+  - Sysadmin:
+      - Overview: sysadmin/index.md
+      - Deployment: sysadmin/deployment.md
+      - Linux Deployment: sysadmin/linux-deployment.md
+      - Docker Compose Scenarios: sysadmin/docker-compose-scenarios.md
+      - OMERO & BIOMERO Admin: sysadmin/omero-biomero-admin.md
+      - Backup & Restore: sysadmin/backup-restore.md
+      - Slurm Integration: sysadmin/slurm-integration.md
+  - Developer:
+      - Overview: developer/index.md
+      - Getting Started: developer/getting-started.md
+      - Architecture: developer/architecture.md
+      - Containers:
+          - Overview: developer/containers/index.md
+          - Biomero Importer: developer/containers/biomero-importer.md
+          - Biomero Worker: developer/containers/biomeroworker.md
+          - Database: developer/containers/database.md
+          - Metabase: developer/containers/metabase.md
+          - OMERO Server: developer/containers/omeroserver.md
+          - OMERO Web: developer/containers/omeroweb.md
+          - Releases: developer/containers/releases.md
