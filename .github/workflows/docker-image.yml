@@ -48,6 +48,8 @@ jobs:
           labels: ${{ steps.meta-web.outputs.labels }}
           build-args: |
             BIOMERO_VERSION=${{ env.BIOMERO_VERSION }}
+            OMERO_BIOMERO_VERSION=${{ env.OMERO_BIOMERO_VERSION }}
+            OMERO_FORMS_VERSION=${{ env.OMERO_FORMS_VERSION }}
       -
         name: Docker meta SERVER
         id: meta-server
