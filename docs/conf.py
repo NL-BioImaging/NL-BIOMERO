@@ -46,7 +46,8 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinx.ext.githubpages',
-    'myst_parser'
+    'myst_parser',
+    'sphinxcontrib.mermaid'
 ]
 
 templates_path = ['_templates']

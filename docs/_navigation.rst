@@ -5,6 +5,7 @@
 
    sysadmin/deployment
    sysadmin/omero-biomero-admin
+   sysadmin/metabase-admin
    sysadmin/slurm-integration
    sysadmin/docker-compose-scenarios
    sysadmin/linux-deployment
@@ -17,6 +18,7 @@
    :maxdepth: 2
 
    developer/getting-started
+   developer/workflow-development
    developer/architecture
    developer/containers/index
 

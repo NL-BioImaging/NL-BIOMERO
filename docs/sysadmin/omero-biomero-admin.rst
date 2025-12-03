@@ -1,3 +1,5 @@
+.. _omero-biomero-plugin-administration:
+
 OMERO.biomero Plugin Administration
 ===================================
 
@@ -5,7 +7,8 @@ The OMERO.biomero plugin provides two administrative interfaces for managing the
 
 .. note::
    For technical details about the Metabase integration and container configuration, 
-   see :doc:`../developer/containers/metabase`.
+   see :doc:`../developer/containers/metabase`. For Metabase administrative setup
+   and security configuration, see :doc:`metabase-admin`.
 
 Accessing Admin Interfaces
 ---------------------------
@@ -26,6 +29,7 @@ Group Folder Mappings
 **Purpose**: Restrict which OMERO groups have access to specific folders that the importer can import from.
 
 **Configuration**:
+
 - Currently supports 1:1 mapping only
 - Each OMERO group can be mapped to one subfolder instead of the full mounted disk folder
 
@@ -87,24 +91,12 @@ Overview
 1. Save settings in the left panel
 2. Run the "Slurm Init" script from the right panel
 
-Configuration File Sharing
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Configuration Management
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-**File**: ``slurm-config.ini`` - shared between OMERO.web and BIOMERO worker
+**File Management**: The Admin interface manages the ``slurm-config.ini`` file automatically.
 
-**Recommended Setup**:
-
-.. code-block:: yaml
-
-   # OMERO.web service
-   volumes:
-     - "./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
-   
-   # BIOMERO worker service  
-   volumes:
-     - "./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
-
-This allows OMERO.web to write changes while BIOMERO worker reads the current configuration.
+For container mounting and file sharing setup, see :doc:`slurm-integration`.
 
 Settings Interface Usage
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,102 +108,99 @@ Settings Interface Usage
 Settings Categories
 -------------------
 
-1. SSH Settings
-~~~~~~~~~~~~~~~
+SSH Settings
+~~~~~~~~~~~~
 
-**SSH Alias**: Configure the alias used by BIOMERO to connect to the Slurm cluster
+**SSH Alias Field**: Enter the SSH alias name for your SLURM cluster connection.
 
-- Must reflect an existing SSH alias configured in the BIOMERO container
-- Used for headless connection to Slurm
+.. note::
+   The alias must match an entry in your SSH config. For SSH setup and configuration details, see :doc:`slurm-integration`.
 
-2. Slurm Settings
-~~~~~~~~~~~~~~~~~
+SLURM Settings
+~~~~~~~~~~~~~~
 
-**Slurm Data Path**: Storage location for OMERO I/O data on Slurm cluster
-**Slurm Images Path**: Storage location for container images
-**Slurm Script Path**: Storage location for Slurm job scripts
-**Slurm Script Repository**: (Optional) GitHub repository URL for custom Slurm scripts
+**Slurm Data Path**: Path where OMERO data will be stored on the cluster
+
+**Slurm Images Path**: Path where workflow container images are stored
+
+**Slurm Script Path**: Path where job scripts are generated and stored
+
+**Slurm Script Repository**: (Optional) Custom GitHub repository for job scripts
 
 .. warning::
-   **Script Repository**: Either use a repository with scripts for ALL workflows, or let BIOMERO 
-   generate scripts automatically (recommended). Only use custom repositories for advanced cases.
+   **Script Repository**: Leave empty to use auto-generated scripts (recommended). Only specify for advanced custom script repositories.
 
-3. Analytics Settings
-~~~~~~~~~~~~~~~~~~~~
+Analytics Settings
+~~~~~~~~~~~~~~~~~~
 
 .. danger::
-   **NOT RECOMMENDED FOR MODIFICATION**
-   
-   **FOR ADVANCED USERS ONLY**
+   **Advanced Users Only - Do Not Modify**
 
-**Tracking**: Controls BIOMERO 2.0 eventsourcing system
-
-- **Warning**: Disabling tracking breaks views/listeners and progress monitoring
-- **Dependencies**: Views/listeners create database tables from tracking records
-- **Impact**: Progress tables in OMERO.biomero web plugin depend on this system
-
-4. Converters Settings
-~~~~~~~~~~~~~~~~~~~~~~
-
-**FOR ADVANCED USERS ONLY**
-
-**Add Custom Converters**: 
-
-- **Naming Convention**: ``X_to_Y`` format (e.g., ``zarr_to_tiff``)
-- **Docker Image**: Specify container image (e.g., ``cellularimagingcf/convert_zarr_to_tiff:1.14.0``)
-- **Default Behavior**: BIOMERO generates ``zarr_to_tiff`` converter automatically
+**Tracking Checkbox**: Controls the BIOMERO eventsourcing system
 
 .. warning::
-   **Manual Integration Required**: Custom converters require additional script modifications:
-   
-   1. Modify Slurm Workflow script to use custom conversion
-   2. Update Run Workflow script for user selection
-   3. Ensure Slurm Remote Conversion script handles custom converter
+   Disabling tracking will break progress monitoring and result displays in the web interface.
 
-5. Models Settings (Workflows)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Converters Settings
+~~~~~~~~~~~~~~~~~~~
 
-**Primary Function**: Manage available workflows in BIOMERO
+**For Advanced Users Only**
+
+**Add Converter Button**: Click to add custom data converters
+
+**Name Field**: Use ``X_to_Y`` format (e.g., ``zarr_to_tiff``)
+
+**Docker Image Field**: Specify the container image URL
+
+.. warning::
+   Custom converters require additional integration work. Most users should rely on built-in converters.
+
+Models Settings (Workflows)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Purpose**: Add and manage analysis workflows available to users
 
 Adding New Workflows
 ^^^^^^^^^^^^^^^^^^^^
 
-Click "Add Model" and configure:
+1. **Click "Add Model"** to create a new workflow entry
 
-**Name**: No spaces (becomes folder name on Slurm)
-**GitHub Repository**: Versioned URL (e.g., ``https://github.com/user/repo/tree/v1.0.0``)
-**Slurm Job Script**: Usually ``jobs/<name>.sh`` (auto-generated default)
-**Additional Slurm Parameters**: SBATCH options specific to this workflow
+2. **Configure Fields**:
+   
+   - **Name**: Workflow identifier (no spaces)
+   - **GitHub Repository**: Versioned URL to workflow code
+   - **Slurm Job Script**: Job script path (usually auto-generated)
+   - **Additional Slurm Parameters**: Custom SBATCH options for this workflow
+
+3. **Save Settings** to store the configuration
 
 Common SBATCH Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Add as ``<key>=<value>`` format (without ``--`` prefix):
+**Format**: Enter as ``key=value`` pairs (without ``--`` prefix)
 
-.. code-block:: text
+**Examples**:
 
-   # GPU allocation
-   gres=gpu:1g.10gb:1
-   
-   # Partition selection  
-   partition=luna-gpu-short
-   
-   # Memory allocation
-   mem=15GB
-   
-   # Time limits (d-hh:mm:ss)
-   time=08:00:00
+- **GPU allocation**: ``gres=gpu:1g.10gb:1``
+- **Partition selection**: ``partition=luna-gpu-short``
+- **Memory allocation**: ``mem=15GB``
+- **Time limits**: ``time=08:00:00`` (d-hh:mm:ss format)
 
 Editing Existing Workflows
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Edit Model**: Click pencil icon to modify settings
-**Version Updates**: Change GitHub Repository URL version
-**Parameter Management**: Add/edit/delete Additional Slurm Parameters
-**Reset**: "Reset values" button undos changes to specific model
-**Remove**: "Delete model" button removes workflow entirely
+**Edit Model**: Click the pencil icon next to a workflow to modify its settings
 
-**Save Requirement**: Click "Save Settings" after modifications
+**Version Updates**: Change the GitHub Repository URL to update workflow versions
+
+**Parameter Management**: Add, edit, or delete Additional Slurm Parameters
+
+**Reset Changes**: Use "Reset values" button to undo modifications to a specific workflow
+
+**Remove Workflow**: Click "Delete model" to remove a workflow entirely
+
+.. important::
+   Always click "Save Settings" after making any modifications.
 
 Required Follow-up Actions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -247,22 +236,18 @@ The "Slurm Check Setup" script provides:
 - ``ERROR`` - Problem occurred
 - ``starting/finished`` - Normal download process
 
-Security Considerations
------------------------
 
-**Configuration Files**: Ensure proper file permissions for mounted configuration files
-**SSH Access**: Verify SSH aliases and key access for Slurm connectivity  
-**Database Access**: Confirm BIOMERO worker can access shared configuration files
 
-For initial security setup including Metabase integration, see :doc:`../developer/containers/metabase`.
+Interface Troubleshooting
+-------------------------
 
-Troubleshooting
----------------
+**Changes Not Visible**: Log out and log back in instead of using browser refresh
 
-**Changes Not Visible**: Log out and back in instead of refreshing
-**Slurm Connection Issues**: Verify SSH alias configuration and key access
-**Model Not Available**: Run "Slurm Init" after adding/modifying workflows
-**Permission Errors**: Check file permissions on mounted configuration files
+**Folder Selection Issues**: Navigate to Import Images tab first to load subfolders, then return to Admin tab
+
+**Model Not Available After Adding**: Run the "Slurm Init" script after saving new workflow configurations
+
+For SLURM connection, SSH, and deployment issues, see :doc:`slurm-integration`.
 
 For Metabase-specific troubleshooting (e.g., "Message seems corrupt" errors), 
 see :doc:`../developer/containers/metabase`.
@@ -270,6 +255,7 @@ see :doc:`../developer/containers/metabase`.
 Related Documentation
 ---------------------
 
+* :doc:`slurm-integration` - SLURM cluster deployment, SSH setup, and system architecture
 * :doc:`../developer/containers/metabase` - Metabase container configuration and troubleshooting
 * :doc:`../developer/containers/omeroweb` - OMERO.web container setup
 * :doc:`deployment` - Initial deployment configuration
