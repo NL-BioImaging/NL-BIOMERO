@@ -574,6 +574,16 @@ docker-compose<span class="w"> </span>-f<span class="w"> </span>docker-compose-d
 git<span class="w"> </span>clone<span class="w"> </span>https://github.com/NL-BioImaging/OMERO.biomero.git
 <span class="nb">cd</span><span class="w"> </span>OMERO.biomero
 
+<span class="c1"># Build the frontend (required before starting web server)</span>
+<span class="nb">cd</span><span class="w"> </span>webapp
+<span class="c1"># On Windows:</span>
+corepack<span class="w"> </span>yarn<span class="w"> </span>install
+corepack<span class="w"> </span>yarn<span class="w"> </span>build
+<span class="c1"># On Linux:</span>
+<span class="c1"># yarn install</span>
+<span class="c1"># yarn build</span>
+<span class="nb">cd</span><span class="w"> </span>..
+
 <span class="c1"># Start OMERO web server (use WSL on Windows)</span>
 ./omero-init.sh
 
@@ -596,7 +606,11 @@ git<span class="w"> </span>clone<span class="w"> </span>https://github.com/NL-Bi
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>For detailed OMERO.biomero setup and development workflow, see the <a class="reference external" href="https://github.com/NL-BioImaging/OMERO.biomero">OMERO.biomero README</a>.</p>
+<p><strong>Frontend Build Required</strong>: Before running <code class="docutils literal notranslate"><span class="pre">./omero-init.sh</span></code>, you must build the OMERO.biomero frontend assets. On Windows, you may need to install <code class="docutils literal notranslate"><span class="pre">corepack</span></code> and <code class="docutils literal notranslate"><span class="pre">yarn</span></code> first.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For detailed OMERO.biomero setup (including Node.js/yarn installation) and development workflow, see the <a class="reference external" href="https://github.com/NL-BioImaging/OMERO.biomero?tab=readme-ov-file#setup-and-development-of-the-plugin-frontend">OMERO.biomero Setup and Development Guide</a>.</p>
 </div>
 <p>For general deployment instructions, see the main README:</p>
 <section id="containerized-omero-with-biomero">
