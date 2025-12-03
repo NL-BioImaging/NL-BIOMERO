@@ -46,8 +46,11 @@ Choose your path forward:
    
    <div style="background: #f3e5f5; border: 1px solid #ce93d8; padding: 20px; border-radius: 8px; text-align: center;">
    <h4 style="margin: 0 0 10px 0; color: #7b1fa2;">⚡ Development</h4>
-   <p style="margin: 0 0 15px 0; font-size: 14px;">Contribute to BIOMERO ecosystem</p>
-   <a href="developer/getting-started.html" target="_blank" style="background: #9c27b0; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-weight: bold;">Dev Setup →</a>
+   <p style="margin: 0 0 15px 0; font-size: 14px;">Extend the platform or add your workflows</p>
+   <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+   <a href="developer/getting-started.html" target="_blank" style="background: #9c27b0; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 12px;">Dev Setup</a>
+   <a href="developer/workflow-development.html" target="_blank" style="background: #4caf50; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 12px;">Add Workflows</a>
+   </div>
    </div>
    
    <div style="background: #f5f5f5; border: 1px solid #bdbdbd; padding: 20px; border-radius: 8px; text-align: center;">
@@ -87,6 +90,7 @@ This documentation serves as your **main gateway** to the BIOMERO 2.0 ecosystem.
    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
    <a href="https://nl-bioimaging.github.io/biomero/" target="_blank" style="background: #007bff; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,123,255,0.3);">📚 Documentation</a>
    <a href="https://github.com/NL-BioImaging/biomero?tab=readme-ov-file#readme" target="_blank" style="background: #6c757d; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(108,117,125,0.3);">📖 README</a>
+   <a href="developer/workflow-development.html" target="_blank" style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(23,162,184,0.3);">👨‍💻 Dev Guide</a>
    <a href="sysadmin/slurm-integration.html" target="_blank" style="background: #28a745; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 6px rgba(40,167,69,0.4);">⚙️ Admin Guide</a>
    </div>
    </div>
@@ -191,7 +195,8 @@ This documentation serves as your **main gateway** to the BIOMERO 2.0 ecosystem.
    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
    <a href="https://www.metabase.com/docs/" target="_blank" style="background: #007bff; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,123,255,0.3);">📚 Documentation</a>
    <a href="https://www.metabase.com/license/" target="_blank" style="background: #ffc107; color: #212529; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(255,193,7,0.3);">📄 Licensing</a>
-   <a href="developer/containers/metabase.html" target="_blank" style="background: #28a745; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 6px rgba(40,167,69,0.4);">⚙️ Setup Guide</a>
+   <a href="sysadmin/metabase-admin.html" target="_blank" style="background: #28a745; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 6px rgba(40,167,69,0.4);">⚙️ Admin Guide</a>
+   <a href="developer/containers/metabase.html" target="_blank" style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(23,162,184,0.3);">👨‍💻 Dev Guide</a>
    </div>
    </div>
    

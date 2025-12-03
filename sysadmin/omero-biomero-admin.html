@@ -17,7 +17,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="SLURM Integration" href="slurm-integration.html" />
+    <link rel="next" title="Metabase Administration" href="metabase-admin.html" />
     <link rel="prev" title="Deployment Guide" href="deployment.html" /> 
 </head>
 
@@ -67,16 +67,16 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#analyzer-admin-configuration">Analyzer Admin Configuration</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#configuration-file-sharing">Configuration File Sharing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-management">Configuration Management</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#settings-interface-usage">Settings Interface Usage</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#settings-categories">Settings Categories</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ssh-settings">1. SSH Settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#slurm-settings">2. Slurm Settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#analytics-settings">3. Analytics Settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#converters-settings">4. Converters Settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#models-settings-workflows">5. Models Settings (Workflows)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ssh-settings">SSH Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#slurm-settings">SLURM Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#analytics-settings">Analytics Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#converters-settings">Converters Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#models-settings-workflows">Models Settings (Workflows)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#adding-new-workflows">Adding New Workflows</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#common-sbatch-parameters">Common SBATCH Parameters</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#editing-existing-workflows">Editing Existing Workflows</a></li>
@@ -86,39 +86,102 @@
 <li class="toctree-l3"><a class="reference internal" href="#slurm-check-setup-output">Slurm Check Setup Output</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#security-considerations">Security Considerations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#interface-troubleshooting">Interface Troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#related-documentation">Related Documentation</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="slurm-integration.html">SLURM Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#overview">Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#architecture">Architecture</a></li>
-<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#configuration">Configuration</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#basic-configuration">Basic Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#container-environment-configuration">Container Environment Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#workflow-definitions">Workflow Definitions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#analytics-and-monitoring">Analytics and Monitoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metabase-admin.html">Metabase Administration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#initial-security-setup">Initial Security Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#after-first-deployment">After First Deployment</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#deployment-considerations">Deployment Considerations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#database-connection-management">Database Connection Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#adding-database-connections">Adding Database Connections</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#testing-connections">Testing Connections</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#dashboard-management">Dashboard Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#standard-dashboards">Standard Dashboards</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#embedding-configuration">Embedding Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#editing-dashboards">Editing Dashboards</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#user-account-management">User Account Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#admin-account">Admin Account</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#additional-users">Additional Users</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#backup-and-migration">Backup and Migration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#database-file-management">Database File Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#upgrading-dashboards">Upgrading Dashboards</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#environment-configuration">Environment Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#docker-compose-setup">Docker Compose Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#integration-with-omero-web">Integration with OMERO.web</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#security-considerations">Security Considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#network-access">Network Access</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#data-protection">Data Protection</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#common-issues">Common Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#performance-issues">Performance Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="slurm-integration.html">BIOMERO.analyzer SLURM Integration for NL-BIOMERO</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#ssh-key-management-for-container-deployment">SSH Key Management for Container Deployment</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#development-docker-compose-setup">Development/Docker Compose Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#production-podman-deployment-with-secrets">Production/Podman Deployment with Secrets</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#configuration-files">Configuration Files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#container-file-sharing-setup">Container File Sharing Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#configuration-content-structure">Configuration Content Structure</a></li>
 <li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#ssh-configuration">SSH Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#directory-structure">Directory Structure</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#permissions-and-access">Permissions and Access</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#slurm-environment-setup">SLURM Environment Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#web-based-configuration-recommended">Web-Based Configuration (Recommended)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#manual-slurm-cluster-setup">Manual SLURM Cluster Setup</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#security-considerations">Security Considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#file-permissions">File Permissions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#ssh-access-security">SSH Access Security</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#database-access">Database Access</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#manual-verification">Manual Verification</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#network-security">Network Security</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#required-network-access">Required Network Access</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#firewall-configuration">Firewall Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#service-account-architecture">Service Account Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#single-service-account">Single Service Account</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#account-requirements">Account Requirements</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#deployment-specific-examples">Deployment-Specific Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#local-development-docker-compose">Local Development (docker-compose)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#production-podman-with-secrets">Production (Podman with Secrets)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#troubleshooting">Troubleshooting</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#common-issues">Common Issues</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#debug-commands">Debug Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#ssh-connection-issues">SSH Connection Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#slurm-job-issues">SLURM Job Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#configuration-validation">Configuration Validation</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#performance-tuning">Performance Tuning</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#resource-allocation">Resource Allocation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#queue-management">Queue Management</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slurm-integration.html#monitoring-and-analytics">Monitoring and Analytics</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#security-considerations">Security Considerations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="slurm-integration.html#further-reading">Further Reading</a></li>
 </ul>
 </li>
@@ -238,6 +301,31 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../developer/workflow-development.html">Adding Your Workflow to BIOMERO</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#getting-started">Getting Started</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#core-documentation">Core Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#workflow-types-tutorials">Workflow Types &amp; Tutorials</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#cellprofiler-workflows">CellProfiler Workflows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#python-workflows">Python Workflows</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#fair-workflow-packaging">FAIR Workflow Packaging</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#workshop-materials">Workshop Materials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#real-world-example-stardist-workflow">Real-World Example: Stardist Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#additional-resources">Additional Resources</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#biaflows-integration">BIAFLOWS Integration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#development-workflow">Development Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#next-steps">Next Steps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#community-support">Community Support</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../developer/architecture.html">Architecture Overview</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../developer/architecture.html#container-architecture">Container Architecture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/architecture.html#network-architecture">Network Architecture</a></li>
@@ -349,7 +437,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/metabase.html#adding-a-new-dashboard">Adding a new dashboard</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/metabase.html#browse-attached-databases">Browse attached databases</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/metabase.html#managing-database-connections">Managing database connections</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../developer/containers/metabase.html#initial-security-setup">Initial Security Setup</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/metabase.html#user-account-and-password">User account and password</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/metabase.html#versioning-and-migration">Versioning and migration</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/metabase.html#upgrading-metabase-dashboards">Upgrading Metabase Dashboards</a></li>
@@ -469,12 +556,13 @@
            <div itemprop="articleBody">
              
   <section id="omero-biomero-plugin-administration">
-<h1>OMERO.biomero Plugin Administration<a class="headerlink" href="#omero-biomero-plugin-administration" title="Permalink to this heading"></a></h1>
+<span id="id1"></span><h1>OMERO.biomero Plugin Administration<a class="headerlink" href="#omero-biomero-plugin-administration" title="Permalink to this heading"></a></h1>
 <p>The OMERO.biomero plugin provides two administrative interfaces for managing the Importer (ADI) and Analyzer components. These admin screens are accessible from the OMERO.web interface and provide essential configuration options for system administrators.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>For technical details about the Metabase integration and container configuration,
-see <a class="reference internal" href="../developer/containers/metabase.html"><span class="doc">Metabase Container</span></a>.</p>
+see <a class="reference internal" href="../developer/containers/metabase.html"><span class="doc">Metabase Container</span></a>. For Metabase administrative setup
+and security configuration, see <a class="reference internal" href="metabase-admin.html"><span class="doc">Metabase Administration</span></a>.</p>
 </div>
 <section id="accessing-admin-interfaces">
 <h2>Accessing Admin Interfaces<a class="headerlink" href="#accessing-admin-interfaces" title="Permalink to this heading"></a></h2>
@@ -490,9 +578,11 @@ see <a class="reference internal" href="../developer/containers/metabase.html"><
 <section id="group-folder-mappings">
 <h3>Group Folder Mappings<a class="headerlink" href="#group-folder-mappings" title="Permalink to this heading"></a></h3>
 <p><strong>Purpose</strong>: Restrict which OMERO groups have access to specific folders that the importer can import from.</p>
-<p><strong>Configuration</strong>:
-- Currently supports 1:1 mapping only
-- Each OMERO group can be mapped to one subfolder instead of the full mounted disk folder</p>
+<p><strong>Configuration</strong>:</p>
+<ul class="simple">
+<li><p>Currently supports 1:1 mapping only</p></li>
+<li><p>Each OMERO group can be mapped to one subfolder instead of the full mounted disk folder</p></li>
+</ul>
 <p><strong>Setup Process</strong>:</p>
 <ol class="arabic simple">
 <li><p>Select the target OMERO group</p></li>
@@ -551,20 +641,10 @@ see <a class="reference internal" href="../developer/containers/metabase.html"><
 <li><p>Run the “Slurm Init” script from the right panel</p></li>
 </ol>
 </section>
-<section id="configuration-file-sharing">
-<h3>Configuration File Sharing<a class="headerlink" href="#configuration-file-sharing" title="Permalink to this heading"></a></h3>
-<p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code> - shared between OMERO.web and BIOMERO worker</p>
-<p><strong>Recommended Setup</strong>:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># OMERO.web service</span>
-<span class="nt">volumes</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw&quot;</span>
-
-<span class="c1"># BIOMERO worker service</span>
-<span class="nt">volumes</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw&quot;</span>
-</pre></div>
-</div>
-<p>This allows OMERO.web to write changes while BIOMERO worker reads the current configuration.</p>
+<section id="configuration-management">
+<h3>Configuration Management<a class="headerlink" href="#configuration-management" title="Permalink to this heading"></a></h3>
+<p><strong>File Management</strong>: The Admin interface manages the <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code> file automatically.</p>
+<p>For container mounting and file sharing setup, see <a class="reference internal" href="slurm-integration.html"><span class="doc">BIOMERO.analyzer SLURM Integration for NL-BIOMERO</span></a>.</p>
 </section>
 <section id="settings-interface-usage">
 <h3>Settings Interface Usage<a class="headerlink" href="#settings-interface-usage" title="Permalink to this heading"></a></h3>
@@ -576,94 +656,87 @@ see <a class="reference internal" href="../developer/containers/metabase.html"><
 <section id="settings-categories">
 <h2>Settings Categories<a class="headerlink" href="#settings-categories" title="Permalink to this heading"></a></h2>
 <section id="ssh-settings">
-<h3>1. SSH Settings<a class="headerlink" href="#ssh-settings" title="Permalink to this heading"></a></h3>
-<p><strong>SSH Alias</strong>: Configure the alias used by BIOMERO to connect to the Slurm cluster</p>
-<ul class="simple">
-<li><p>Must reflect an existing SSH alias configured in the BIOMERO container</p></li>
-<li><p>Used for headless connection to Slurm</p></li>
-</ul>
+<h3>SSH Settings<a class="headerlink" href="#ssh-settings" title="Permalink to this heading"></a></h3>
+<p><strong>SSH Alias Field</strong>: Enter the SSH alias name for your SLURM cluster connection.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The alias must match an entry in your SSH config. For SSH setup and configuration details, see <a class="reference internal" href="slurm-integration.html"><span class="doc">BIOMERO.analyzer SLURM Integration for NL-BIOMERO</span></a>.</p>
+</div>
 </section>
 <section id="slurm-settings">
-<h3>2. Slurm Settings<a class="headerlink" href="#slurm-settings" title="Permalink to this heading"></a></h3>
-<p><strong>Slurm Data Path</strong>: Storage location for OMERO I/O data on Slurm cluster
-<strong>Slurm Images Path</strong>: Storage location for container images
-<strong>Slurm Script Path</strong>: Storage location for Slurm job scripts
-<strong>Slurm Script Repository</strong>: (Optional) GitHub repository URL for custom Slurm scripts</p>
+<h3>SLURM Settings<a class="headerlink" href="#slurm-settings" title="Permalink to this heading"></a></h3>
+<p><strong>Slurm Data Path</strong>: Path where OMERO data will be stored on the cluster</p>
+<p><strong>Slurm Images Path</strong>: Path where workflow container images are stored</p>
+<p><strong>Slurm Script Path</strong>: Path where job scripts are generated and stored</p>
+<p><strong>Slurm Script Repository</strong>: (Optional) Custom GitHub repository for job scripts</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p><strong>Script Repository</strong>: Either use a repository with scripts for ALL workflows, or let BIOMERO
-generate scripts automatically (recommended). Only use custom repositories for advanced cases.</p>
+<p><strong>Script Repository</strong>: Leave empty to use auto-generated scripts (recommended). Only specify for advanced custom script repositories.</p>
 </div>
 </section>
 <section id="analytics-settings">
-<h3>3. Analytics Settings<a class="headerlink" href="#analytics-settings" title="Permalink to this heading"></a></h3>
+<h3>Analytics Settings<a class="headerlink" href="#analytics-settings" title="Permalink to this heading"></a></h3>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
-<p><strong>NOT RECOMMENDED FOR MODIFICATION</strong></p>
-<p><strong>FOR ADVANCED USERS ONLY</strong></p>
+<p><strong>Advanced Users Only - Do Not Modify</strong></p>
 </div>
-<p><strong>Tracking</strong>: Controls BIOMERO 2.0 eventsourcing system</p>
-<ul class="simple">
-<li><p><strong>Warning</strong>: Disabling tracking breaks views/listeners and progress monitoring</p></li>
-<li><p><strong>Dependencies</strong>: Views/listeners create database tables from tracking records</p></li>
-<li><p><strong>Impact</strong>: Progress tables in OMERO.biomero web plugin depend on this system</p></li>
-</ul>
-</section>
-<section id="converters-settings">
-<h3>4. Converters Settings<a class="headerlink" href="#converters-settings" title="Permalink to this heading"></a></h3>
-<p><strong>FOR ADVANCED USERS ONLY</strong></p>
-<p><strong>Add Custom Converters</strong>:</p>
-<ul class="simple">
-<li><p><strong>Naming Convention</strong>: <code class="docutils literal notranslate"><span class="pre">X_to_Y</span></code> format (e.g., <code class="docutils literal notranslate"><span class="pre">zarr_to_tiff</span></code>)</p></li>
-<li><p><strong>Docker Image</strong>: Specify container image (e.g., <code class="docutils literal notranslate"><span class="pre">cellularimagingcf/convert_zarr_to_tiff:1.14.0</span></code>)</p></li>
-<li><p><strong>Default Behavior</strong>: BIOMERO generates <code class="docutils literal notranslate"><span class="pre">zarr_to_tiff</span></code> converter automatically</p></li>
-</ul>
+<p><strong>Tracking Checkbox</strong>: Controls the BIOMERO eventsourcing system</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p><strong>Manual Integration Required</strong>: Custom converters require additional script modifications:</p>
-<ol class="arabic simple">
-<li><p>Modify Slurm Workflow script to use custom conversion</p></li>
-<li><p>Update Run Workflow script for user selection</p></li>
-<li><p>Ensure Slurm Remote Conversion script handles custom converter</p></li>
-</ol>
+<p>Disabling tracking will break progress monitoring and result displays in the web interface.</p>
+</div>
+</section>
+<section id="converters-settings">
+<h3>Converters Settings<a class="headerlink" href="#converters-settings" title="Permalink to this heading"></a></h3>
+<p><strong>For Advanced Users Only</strong></p>
+<p><strong>Add Converter Button</strong>: Click to add custom data converters</p>
+<p><strong>Name Field</strong>: Use <code class="docutils literal notranslate"><span class="pre">X_to_Y</span></code> format (e.g., <code class="docutils literal notranslate"><span class="pre">zarr_to_tiff</span></code>)</p>
+<p><strong>Docker Image Field</strong>: Specify the container image URL</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Custom converters require additional integration work. Most users should rely on built-in converters.</p>
 </div>
 </section>
 <section id="models-settings-workflows">
-<h3>5. Models Settings (Workflows)<a class="headerlink" href="#models-settings-workflows" title="Permalink to this heading"></a></h3>
-<p><strong>Primary Function</strong>: Manage available workflows in BIOMERO</p>
+<h3>Models Settings (Workflows)<a class="headerlink" href="#models-settings-workflows" title="Permalink to this heading"></a></h3>
+<p><strong>Purpose</strong>: Add and manage analysis workflows available to users</p>
 <section id="adding-new-workflows">
 <h4>Adding New Workflows<a class="headerlink" href="#adding-new-workflows" title="Permalink to this heading"></a></h4>
-<p>Click “Add Model” and configure:</p>
-<p><strong>Name</strong>: No spaces (becomes folder name on Slurm)
-<strong>GitHub Repository</strong>: Versioned URL (e.g., <code class="docutils literal notranslate"><span class="pre">https://github.com/user/repo/tree/v1.0.0</span></code>)
-<strong>Slurm Job Script</strong>: Usually <code class="docutils literal notranslate"><span class="pre">jobs/&lt;name&gt;.sh</span></code> (auto-generated default)
-<strong>Additional Slurm Parameters</strong>: SBATCH options specific to this workflow</p>
+<ol class="arabic simple">
+<li><p><strong>Click “Add Model”</strong> to create a new workflow entry</p></li>
+<li><p><strong>Configure Fields</strong>:</p>
+<ul class="simple">
+<li><p><strong>Name</strong>: Workflow identifier (no spaces)</p></li>
+<li><p><strong>GitHub Repository</strong>: Versioned URL to workflow code</p></li>
+<li><p><strong>Slurm Job Script</strong>: Job script path (usually auto-generated)</p></li>
+<li><p><strong>Additional Slurm Parameters</strong>: Custom SBATCH options for this workflow</p></li>
+</ul>
+</li>
+<li><p><strong>Save Settings</strong> to store the configuration</p></li>
+</ol>
 </section>
 <section id="common-sbatch-parameters">
 <h4>Common SBATCH Parameters<a class="headerlink" href="#common-sbatch-parameters" title="Permalink to this heading"></a></h4>
-<p>Add as <code class="docutils literal notranslate"><span class="pre">&lt;key&gt;=&lt;value&gt;</span></code> format (without <code class="docutils literal notranslate"><span class="pre">--</span></code> prefix):</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span># GPU allocation
-gres=gpu:1g.10gb:1
-
-# Partition selection
-partition=luna-gpu-short
-
-# Memory allocation
-mem=15GB
-
-# Time limits (d-hh:mm:ss)
-time=08:00:00
-</pre></div>
-</div>
+<p><strong>Format</strong>: Enter as <code class="docutils literal notranslate"><span class="pre">key=value</span></code> pairs (without <code class="docutils literal notranslate"><span class="pre">--</span></code> prefix)</p>
+<p><strong>Examples</strong>:</p>
+<ul class="simple">
+<li><p><strong>GPU allocation</strong>: <code class="docutils literal notranslate"><span class="pre">gres=gpu:1g.10gb:1</span></code></p></li>
+<li><p><strong>Partition selection</strong>: <code class="docutils literal notranslate"><span class="pre">partition=luna-gpu-short</span></code></p></li>
+<li><p><strong>Memory allocation</strong>: <code class="docutils literal notranslate"><span class="pre">mem=15GB</span></code></p></li>
+<li><p><strong>Time limits</strong>: <code class="docutils literal notranslate"><span class="pre">time=08:00:00</span></code> (d-hh:mm:ss format)</p></li>
+</ul>
 </section>
 <section id="editing-existing-workflows">
 <h4>Editing Existing Workflows<a class="headerlink" href="#editing-existing-workflows" title="Permalink to this heading"></a></h4>
-<p><strong>Edit Model</strong>: Click pencil icon to modify settings
-<strong>Version Updates</strong>: Change GitHub Repository URL version
-<strong>Parameter Management</strong>: Add/edit/delete Additional Slurm Parameters
-<strong>Reset</strong>: “Reset values” button undos changes to specific model
-<strong>Remove</strong>: “Delete model” button removes workflow entirely</p>
-<p><strong>Save Requirement</strong>: Click “Save Settings” after modifications</p>
+<p><strong>Edit Model</strong>: Click the pencil icon next to a workflow to modify its settings</p>
+<p><strong>Version Updates</strong>: Change the GitHub Repository URL to update workflow versions</p>
+<p><strong>Parameter Management</strong>: Add, edit, or delete Additional Slurm Parameters</p>
+<p><strong>Reset Changes</strong>: Use “Reset values” button to undo modifications to a specific workflow</p>
+<p><strong>Remove Workflow</strong>: Click “Delete model” to remove a workflow entirely</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Always click “Save Settings” after making any modifications.</p>
+</div>
 </section>
 <section id="required-follow-up-actions">
 <h4>Required Follow-up Actions<a class="headerlink" href="#required-follow-up-actions" title="Permalink to this heading"></a></h4>
@@ -698,25 +771,19 @@ finished cellpose v1.3.1
 - <code class="docutils literal notranslate"><span class="pre">starting/finished</span></code> - Normal download process</p>
 </section>
 </section>
-<section id="security-considerations">
-<h2>Security Considerations<a class="headerlink" href="#security-considerations" title="Permalink to this heading"></a></h2>
-<p><strong>Configuration Files</strong>: Ensure proper file permissions for mounted configuration files
-<strong>SSH Access</strong>: Verify SSH aliases and key access for Slurm connectivity
-<strong>Database Access</strong>: Confirm BIOMERO worker can access shared configuration files</p>
-<p>For initial security setup including Metabase integration, see <a class="reference internal" href="../developer/containers/metabase.html"><span class="doc">Metabase Container</span></a>.</p>
-</section>
-<section id="troubleshooting">
-<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this heading"></a></h2>
-<p><strong>Changes Not Visible</strong>: Log out and back in instead of refreshing
-<strong>Slurm Connection Issues</strong>: Verify SSH alias configuration and key access
-<strong>Model Not Available</strong>: Run “Slurm Init” after adding/modifying workflows
-<strong>Permission Errors</strong>: Check file permissions on mounted configuration files</p>
+<section id="interface-troubleshooting">
+<h2>Interface Troubleshooting<a class="headerlink" href="#interface-troubleshooting" title="Permalink to this heading"></a></h2>
+<p><strong>Changes Not Visible</strong>: Log out and log back in instead of using browser refresh</p>
+<p><strong>Folder Selection Issues</strong>: Navigate to Import Images tab first to load subfolders, then return to Admin tab</p>
+<p><strong>Model Not Available After Adding</strong>: Run the “Slurm Init” script after saving new workflow configurations</p>
+<p>For SLURM connection, SSH, and deployment issues, see <a class="reference internal" href="slurm-integration.html"><span class="doc">BIOMERO.analyzer SLURM Integration for NL-BIOMERO</span></a>.</p>
 <p>For Metabase-specific troubleshooting (e.g., “Message seems corrupt” errors),
 see <a class="reference internal" href="../developer/containers/metabase.html"><span class="doc">Metabase Container</span></a>.</p>
 </section>
 <section id="related-documentation">
 <h2>Related Documentation<a class="headerlink" href="#related-documentation" title="Permalink to this heading"></a></h2>
 <ul class="simple">
+<li><p><a class="reference internal" href="slurm-integration.html"><span class="doc">BIOMERO.analyzer SLURM Integration for NL-BIOMERO</span></a> - SLURM cluster deployment, SSH setup, and system architecture</p></li>
 <li><p><a class="reference internal" href="../developer/containers/metabase.html"><span class="doc">Metabase Container</span></a> - Metabase container configuration and troubleshooting</p></li>
 <li><p><a class="reference internal" href="../developer/containers/omeroweb.html"><span class="doc">OMERO Web Container</span></a> - OMERO.web container setup</p></li>
 <li><p><a class="reference internal" href="deployment.html"><span class="doc">Deployment Guide</span></a> - Initial deployment configuration</p></li>
@@ -730,7 +797,7 @@ see <a class="reference internal" href="../developer/containers/metabase.html"><
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="deployment.html" class="btn btn-neutral float-left" title="Deployment Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="slurm-integration.html" class="btn btn-neutral float-right" title="SLURM Integration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="metabase-admin.html" class="btn btn-neutral float-right" title="Metabase Administration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

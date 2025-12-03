@@ -1,7 +1,10 @@
 Metabase Container
 ==================
 
-The Metabase container provides analytics and visualization dashboards for OMERO and BIOMERO data.
+The Metabase container provides analytics and visualization dashboards for OMERO and BIOMERO data. This page covers technical development and integration aspects.
+
+.. note::
+   For administrative setup, security configuration, and deployment procedures, see :doc:`../../sysadmin/metabase-admin`.
 
 
 Why Metabase?
@@ -77,49 +80,6 @@ Managing database connections
   - Sync new schemas and re-scan field values
 * Dashboards run real-time queries against these connections.
 
-Initial Security Setup
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. warning::
-   When deploying NL-BIOMERO in any environment, you must change the default Metabase admin password 
-   immediately. The default credentials in NL-BIOMERO are publicly documented in the project 
-   repository and should never be used in production environments.
-
-**After first deployment, follow these security setup steps:**
-
-1. **Change admin password**
-   
-   - Go to your metabase URL in a browser (e.g. localhost:3000)
-   - Log in with the default credentials: ``admin@biomero.com`` / ``b1omero``
-   - Go to Settings > Account settings > Password
-   - Change to a secure password and save
-
-2. **Update database connection passwords**
-   
-   - Go to Settings > Admin settings > Databases
-   - For each database (BIOMERO and OMERO):
-     
-     - Click on the database name
-     - Change the password to match your environment's database passwords
-     - Update host/port if different from defaults
-     - Click "Save changes"
-     - Click "Sync database schema now" and "Re-scan field values now"
-
-3. **Regenerate embedding key**
-   
-   - Go to Settings > Admin settings > Embedding
-   - Click "Manage" on the Static embedding card
-   - Click "Regenerate key"
-   - Update your ``.env`` file with the new ``METABASE_SECRET_KEY``
-   - Restart OMERO.web to pick up the new key
-
-4. **Update dashboard URL redirects**
-   
-   - Open the sidebar (Ctrl + .), click on "BIOMERO.importer" dashboard
-   - Click "Edit dashboard" (pen icon)
-   - Hover over the "Upload Status" table and click "Click behavior"
-   - Update all "GO TO CUSTOM DESTINATION" URLs to match your environment
-   - Repeat for the "BIOMERO Analytics" dashboard
 
 User account and password
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -158,11 +118,11 @@ Upgrade Scenario 1: Replace Database
 
 **Step 2: Reconfigure environment settings**
 
-Now you need to reconfigure all security settings for your environment. This is essentially the same process as the initial setup described in the `Initial Security Setup`_ section above, with the difference that you'll be using default credentials to log in:
+Now you need to reconfigure all security settings for your environment. This is essentially the same process as the initial setup described in the :doc:`../../sysadmin/metabase-admin` guide, with the difference that you'll be using default credentials to log in:
 
 - Go to your metabase URL in a browser (e.g. localhost:3000 or whatever you mapped it to with your reverse proxy)
 - Log in with the default login credentials (e.g. see the .env in our latest GitHub release), not with your changed credentials
-- Follow steps 2-4 from the `Initial Security Setup`_ section to update database connections, regenerate the embedding key, and update URL redirects
+- Follow the security setup steps from :doc:`../../sysadmin/metabase-admin` to update database connections, regenerate the embedding key, and update URL redirects
 - Change your admin password: Settings > Account settings > Password
 
 **Step 3: Restart OMERO.web**
@@ -222,6 +182,7 @@ Alternatively, you can regenerate a new embedding key in Metabase (step 2 above:
 Related Documentation
 ---------------------
 
+* :doc:`../../sysadmin/metabase-admin` - Administrative setup and security configuration
 * :doc:`../../sysadmin/omero-biomero-admin` - OMERO.biomero plugin administration guide
 * :doc:`omeroweb` - Web interface integration
 * :doc:`../architecture` - System architecture

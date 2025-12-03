@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SLURM Integration &mdash; NL-BIOMERO 1.0.0 documentation</title>
+  <title>BIOMERO.analyzer SLURM Integration for NL-BIOMERO &mdash; NL-BIOMERO 1.0.0 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,11 +14,376 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
+        <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs"></script>
+        <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.2.0/dist/mermaid-layout-elk.esm.min.mjs"></script>
+        <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.2.0/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+        <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+        <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+const defaultStyle = document.createElement('style');
+defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+`;
+document.head.appendChild(defaultStyle);
+
+const fullscreenStyle = document.createElement('style');
+fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+document.head.appendChild(fullscreenStyle);
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        return brightness < 128;
+    }
+    return false;
+};
+
+const load = async () => {
+    await mermaid.run();
+
+    const all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(load, 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(load, 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(load, 200);
+        return;
+    }
+
+    const darkTheme = isDarkTheme();
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    const modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    const modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    let previousScrollOffset = [window.scrollX, window.scrollY];
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    const allButtons = [];
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+
+        container.appendChild(fullscreenBtn);
+        allButtons.push(fullscreenBtn);
+    });
+
+    // Update theme classes when theme changes
+    const updateTheme = () => {
+        const dark = isDarkTheme();
+        allButtons.forEach(btn => {
+            if (dark) {
+                btn.classList.add('dark-theme');
+            } else {
+                btn.classList.remove('dark-theme');
+            }
+        });
+        if (dark) {
+            modal.classList.add('dark-theme');
+            modalContent.classList.add('dark-theme');
+            closeBtn.classList.add('dark-theme');
+        } else {
+            modal.classList.remove('dark-theme');
+            modalContent.classList.remove('dark-theme');
+            closeBtn.classList.remove('dark-theme');
+        }
+    };
+
+    // Watch for theme changes
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    observer.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style']
+    });
+};
+
+window.addEventListener("load", load);
+</script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Docker Compose Scenarios" href="docker-compose-scenarios.html" />
-    <link rel="prev" title="OMERO.biomero Plugin Administration" href="omero-biomero-admin.html" /> 
+    <link rel="prev" title="Metabase Administration" href="metabase-admin.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -67,16 +432,16 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#analyzer-admin-configuration">Analyzer Admin Configuration</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#overview">Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#configuration-file-sharing">Configuration File Sharing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#configuration-management">Configuration Management</a></li>
 <li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#settings-interface-usage">Settings Interface Usage</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#settings-categories">Settings Categories</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#ssh-settings">1. SSH Settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#slurm-settings">2. Slurm Settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#analytics-settings">3. Analytics Settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#converters-settings">4. Converters Settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#models-settings-workflows">5. Models Settings (Workflows)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#ssh-settings">SSH Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#slurm-settings">SLURM Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#analytics-settings">Analytics Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#converters-settings">Converters Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#models-settings-workflows">Models Settings (Workflows)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#adding-new-workflows">Adding New Workflows</a></li>
 <li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#common-sbatch-parameters">Common SBATCH Parameters</a></li>
 <li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#editing-existing-workflows">Editing Existing Workflows</a></li>
@@ -86,39 +451,102 @@
 <li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#slurm-check-setup-output">Slurm Check Setup Output</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#security-considerations">Security Considerations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#interface-troubleshooting">Interface Troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#related-documentation">Related Documentation</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">SLURM Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#basic-configuration">Basic Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#container-environment-configuration">Container Environment Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#workflow-definitions">Workflow Definitions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#analytics-and-monitoring">Analytics and Monitoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metabase-admin.html">Metabase Administration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#initial-security-setup">Initial Security Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#after-first-deployment">After First Deployment</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#deployment-considerations">Deployment Considerations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#database-connection-management">Database Connection Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#adding-database-connections">Adding Database Connections</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#testing-connections">Testing Connections</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#dashboard-management">Dashboard Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#standard-dashboards">Standard Dashboards</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#embedding-configuration">Embedding Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#editing-dashboards">Editing Dashboards</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#user-account-management">User Account Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#admin-account">Admin Account</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#additional-users">Additional Users</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#backup-and-migration">Backup and Migration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#database-file-management">Database File Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#upgrading-dashboards">Upgrading Dashboards</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#environment-configuration">Environment Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#docker-compose-setup">Docker Compose Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#integration-with-omero-web">Integration with OMERO.web</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#security-considerations">Security Considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#network-access">Network Access</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#data-protection">Data Protection</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#common-issues">Common Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metabase-admin.html#performance-issues">Performance Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">BIOMERO.analyzer SLURM Integration for NL-BIOMERO</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ssh-key-management-for-container-deployment">SSH Key Management for Container Deployment</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#development-docker-compose-setup">Development/Docker Compose Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#production-podman-deployment-with-secrets">Production/Podman Deployment with Secrets</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-files">Configuration Files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#container-file-sharing-setup">Container File Sharing Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-content-structure">Configuration Content Structure</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ssh-configuration">SSH Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#directory-structure">Directory Structure</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#permissions-and-access">Permissions and Access</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#slurm-environment-setup">SLURM Environment Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#web-based-configuration-recommended">Web-Based Configuration (Recommended)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#manual-slurm-cluster-setup">Manual SLURM Cluster Setup</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#security-considerations">Security Considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#file-permissions">File Permissions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ssh-access-security">SSH Access Security</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#database-access">Database Access</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#manual-verification">Manual Verification</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#network-security">Network Security</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#required-network-access">Required Network Access</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#firewall-configuration">Firewall Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#service-account-architecture">Service Account Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#single-service-account">Single Service Account</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#account-requirements">Account Requirements</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#deployment-specific-examples">Deployment-Specific Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#local-development-docker-compose">Local Development (docker-compose)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#production-podman-with-secrets">Production (Podman with Secrets)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#common-issues">Common Issues</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#debug-commands">Debug Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ssh-connection-issues">SSH Connection Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#slurm-job-issues">SLURM Job Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-validation">Configuration Validation</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#performance-tuning">Performance Tuning</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#resource-allocation">Resource Allocation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#queue-management">Queue Management</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#monitoring-and-analytics">Monitoring and Analytics</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#security-considerations">Security Considerations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#further-reading">Further Reading</a></li>
 </ul>
 </li>
@@ -238,6 +666,31 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../developer/workflow-development.html">Adding Your Workflow to BIOMERO</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#getting-started">Getting Started</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#core-documentation">Core Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#workflow-types-tutorials">Workflow Types &amp; Tutorials</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#cellprofiler-workflows">CellProfiler Workflows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#python-workflows">Python Workflows</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#fair-workflow-packaging">FAIR Workflow Packaging</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#workshop-materials">Workshop Materials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#real-world-example-stardist-workflow">Real-World Example: Stardist Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#additional-resources">Additional Resources</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#biaflows-integration">BIAFLOWS Integration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#development-workflow">Development Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#next-steps">Next Steps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#community-support">Community Support</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../developer/architecture.html">Architecture Overview</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../developer/architecture.html#container-architecture">Container Architecture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/architecture.html#network-architecture">Network Architecture</a></li>
@@ -349,7 +802,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/metabase.html#adding-a-new-dashboard">Adding a new dashboard</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/metabase.html#browse-attached-databases">Browse attached databases</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/metabase.html#managing-database-connections">Managing database connections</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../developer/containers/metabase.html#initial-security-setup">Initial Security Setup</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/metabase.html#user-account-and-password">User account and password</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/metabase.html#versioning-and-migration">Versioning and migration</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/metabase.html#upgrading-metabase-dashboards">Upgrading Metabase Dashboards</a></li>
@@ -458,9 +910,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">SLURM Integration</li>
+      <li class="breadcrumb-item active">BIOMERO.analyzer SLURM Integration for NL-BIOMERO</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/sysadmin/slurm-integration.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/sysadmin/slurm-integration.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -468,255 +920,368 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="slurm-integration">
-<h1>SLURM Integration<a class="headerlink" href="#slurm-integration" title="Permalink to this heading"></a></h1>
-<p>NL-BIOMERO integrates with High-Performance Computing (HPC) clusters using SLURM for scalable bioimage analysis workflows.</p>
+  <section id="biomero-analyzer-slurm-integration-for-nl-biomero">
+<h1>BIOMERO.analyzer SLURM Integration for NL-BIOMERO<a class="headerlink" href="#biomero-analyzer-slurm-integration-for-nl-biomero" title="Permalink to this heading"></a></h1>
+<p>This guide covers deploying <strong>BIOMERO.analyzer</strong> with SLURM cluster integration within your NL-BIOMERO infrastructure. For detailed workflow configuration and usage, see the <a class="reference external" href="https://nl-bioimaging.github.io/biomero/readme_link.html#using-the-gpu-on-slurm">BIOMERO.analyzer SLURM documentation</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>TL;DR for System Administrators:</strong></p>
+<ul class="simple">
+<li><p>BIOMERO.analyzer can offload compute-intensive workflows to SLURM clusters via SSH</p></li>
+<li><p>Requires one-way SSH access from <code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code> container to your SLURM cluster</p></li>
+<li><p>Uses existing SSH keys mounted into the container (see deployment examples)</p></li>
+<li><p>Main config files: <code class="docutils literal notranslate"><span class="pre">web/slurm-config.ini</span></code> and <code class="docutils literal notranslate"><span class="pre">biomeroworker/slurm-config.ini</span></code></p></li>
+<li><p>SLURM environment is auto-configured via OMERO admin script <code class="docutils literal notranslate"><span class="pre">SLURM_Init_environment.py</span></code></p></li>
+<li><p>Links to <a class="reference external" href="https://nl-bioimaging.github.io/biomero/">full BIOMERO.analyzer documentation</a> for workflow details</p></li>
+</ul>
+</div>
 <section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
-<p>The SLURM integration allows you to:</p>
+<p>BIOMERO.analyzer integrates with High-Performance Computing (HPC) clusters using SLURM to execute computationally intensive bioimage analysis workflows. This integration allows you to:</p>
 <ul class="simple">
-<li><p>Execute computationally intensive workflows on HPC clusters</p></li>
-<li><p>Scale analysis across multiple compute nodes</p></li>
-<li><p>Leverage specialized hardware (GPUs, high-memory nodes)</p></li>
-<li><p>Manage workflow queuing and resource allocation</p></li>
+<li><p><strong>Offload heavy computation</strong> from your NL-BIOMERO containers to dedicated HPC resources</p></li>
+<li><p><strong>Scale analysis</strong> across multiple compute nodes with GPUs and high-memory systems</p></li>
+<li><p><strong>Queue and manage</strong> long-running workflows without blocking the web interface</p></li>
+<li><p><strong>Leverage institutional HPC</strong> infrastructure for bioimage analysis workflows</p></li>
 </ul>
+<p>All communication is <strong>one-way</strong> from NL-BIOMERO to SLURM cluster via SSH/SCP.</p>
 </section>
 <section id="architecture">
 <h2>Architecture<a class="headerlink" href="#architecture" title="Permalink to this heading"></a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   OMERO Web     │    │  BIOMERO Worker │    │  SLURM Cluster  │
-│                 │    │                 │    │                 │
-│ ┌─────────────┐ │    │ ┌─────────────┐ │    │ ┌─────────────┐ │
-│ │ User submits│ │───▶│ │ Workflow    │ │───▶│ │ Job Queue   │ │
-│ │ workflow    │ │    │ │ Manager     │ │    │ │             │ │
-│ └─────────────┘ │    │ └─────────────┘ │    │ └─────────────┘ │
-│                 │    │        │        │    │        │        │
-│ ┌─────────────┐ │    │        ▼        │    │        ▼        │
-│ │ Results     │ │◀───│ ┌─────────────┐ │    │ ┌─────────────┐ │
-│ │ Display     │ │    │ │ Progress    │ │◀───│ │ Compute     │ │
-│ └─────────────┘ │    │ │ Tracking    │ │    │ │ Nodes       │ │
-└─────────────────┘    │ └─────────────┘ │    │ └─────────────┘ │
-                       └─────────────────┘    └─────────────────┘
+<pre  class="mermaid">
+        flowchart LR
+    subgraph &quot; &quot;
+        direction TB
+        subgraph omero_web[&quot;OMERO Web&quot;]
+            direction TB
+            submit_workflow(&quot;User submits workflow&quot;)
+            results_display(&quot;Results Display&quot;)
+        end
+
+        subgraph biomero_worker[&quot;BIOMERO Worker&quot;]
+            direction TB
+            workflow_manager(&quot;Workflow Manager&quot;)
+            progress_tracking(&quot;Progress Tracking&quot;)
+        end
+
+        subgraph slurm_cluster[&quot;SLURM Cluster&quot;]
+            direction TB
+            job_queue(&quot;Job Queue&quot;)
+            compute_nodes(&quot;Compute Nodes&quot;)
+        end
+    end
+
+    submit_workflow --&gt; workflow_manager
+    progress_tracking --&gt; results_display
+    
+    workflow_manager --&gt; progress_tracking
+    workflow_manager --&gt; job_queue
+
+    job_queue --&gt; compute_nodes
+    compute_nodes --&gt; progress_tracking
+    </pre></section>
+<section id="ssh-key-management-for-container-deployment">
+<h2>SSH Key Management for Container Deployment<a class="headerlink" href="#ssh-key-management-for-container-deployment" title="Permalink to this heading"></a></h2>
+<section id="development-docker-compose-setup">
+<h3>Development/Docker Compose Setup<a class="headerlink" href="#development-docker-compose-setup" title="Permalink to this heading"></a></h3>
+<p>For development environments, SSH keys are mounted from your host system:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># In docker-compose.yml</span>
+<span class="nt">services</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">biomeroworker</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="c1"># Mount your existing SSH setup</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$HOME/.ssh:/tmp/.ssh:ro</span>
+<span class="w">      </span><span class="c1"># Startup script handles SSH key positioning</span>
+<span class="w">    </span><span class="nt">build</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">context</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./biomeroworker</span>
 </pre></div>
 </div>
-</section>
-<section id="configuration">
-<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this heading"></a></h2>
-<p>SLURM integration is configured through <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code> files located in:</p>
-<ul class="simple">
-<li><p><strong>Web interface</strong>: <code class="docutils literal notranslate"><span class="pre">/NL-BIOMERO/web/slurm-config.ini</span></code></p></li>
-<li><p><strong>Worker service</strong>: <code class="docutils literal notranslate"><span class="pre">/NL-BIOMERO/biomeroworker/slurm-config.ini</span></code></p></li>
-</ul>
-<section id="basic-configuration">
-<h3>Basic Configuration<a class="headerlink" href="#basic-configuration" title="Permalink to this heading"></a></h3>
-<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[SSH]</span>
-<span class="c1"># SLURM cluster connection</span>
-<span class="na">host</span><span class="o">=</span><span class="s">localslurm</span>
-
-<span class="k">[SLURM]</span>
-<span class="c1"># Storage paths on SLURM cluster</span>
-<span class="na">slurm_data_path</span><span class="o">=</span><span class="s">/data/my-scratch/data</span>
-<span class="na">slurm_images_path</span><span class="o">=</span><span class="s">/data/my-scratch/singularity_images/workflows</span>
-<span class="na">slurm_converters_path</span><span class="o">=</span><span class="s">/data/my-scratch/singularity_images/converters</span>
-<span class="na">slurm_script_path</span><span class="o">=</span><span class="s">/data/my-scratch/slurm-scripts</span>
-</pre></div>
-</div>
-</section>
-<section id="container-environment-configuration">
-<h3>Container Environment Configuration<a class="headerlink" href="#container-environment-configuration" title="Permalink to this heading"></a></h3>
-<p>For environments requiring explicit container path binding:</p>
-<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[SLURM]</span>
-<span class="c1"># Required when containers need explicit path binding</span>
-<span class="c1"># Sets APPTAINER_BINDPATH environment variable</span>
-<span class="na">slurm_data_bind_path</span><span class="o">=</span><span class="s">/data/my-scratch/data</span>
-
-<span class="c1"># Optional: specify partition for conversion jobs</span>
-<span class="na">slurm_conversion_partition</span><span class="o">=</span><span class="s">cpu-short</span>
+<p>The container’s <code class="docutils literal notranslate"><span class="pre">10-mount-ssh.sh</span></code> entrypoint script automatically copies and sets proper permissions:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Automatically handled by container startup</span>
+cp<span class="w"> </span>-R<span class="w"> </span>/tmp/.ssh<span class="w"> </span>/opt/omero/server/.ssh
+chmod<span class="w"> </span><span class="m">700</span><span class="w"> </span>/opt/omero/server/.ssh
+chmod<span class="w"> </span><span class="m">600</span><span class="w"> </span>/opt/omero/server/.ssh/*
 </pre></div>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Configure <code class="docutils literal notranslate"><span class="pre">slurm_data_bind_path</span></code> only when your HPC administrator requires setting the <code class="docutils literal notranslate"><span class="pre">APPTAINER_BINDPATH</span></code> environment variable.</p>
+<p><strong>Linux SSH Keys:</strong> Mounted SSH files need open permissions for container startup. The startup script automatically secures them internally. See below for a more secure approach.</p>
 </div>
 </section>
-<section id="workflow-definitions">
-<h3>Workflow Definitions<a class="headerlink" href="#workflow-definitions" title="Permalink to this heading"></a></h3>
-<p>Available workflows are defined in the <code class="docutils literal notranslate"><span class="pre">[MODELS]</span></code> section:</p>
-<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[MODELS]</span>
-<span class="c1"># Cellpose segmentation workflow</span>
-<span class="na">cellpose</span><span class="o">=</span><span class="s">cellpose</span>
-<span class="na">cellpose_repo</span><span class="o">=</span><span class="s">https://github.com/TorecLuik/W_NucleiSegmentation-Cellpose/tree/v1.4.0</span>
-<span class="na">cellpose_job</span><span class="o">=</span><span class="s">jobs/cellpose.sh</span>
-<span class="na">cellpose_job_mem</span><span class="o">=</span><span class="s">4GB</span>
+<section id="production-podman-deployment-with-secrets">
+<h3>Production/Podman Deployment with Secrets<a class="headerlink" href="#production-podman-deployment-with-secrets" title="Permalink to this heading"></a></h3>
+<p>For production deployments, use container secrets for better security:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create podman secrets (from deployment examples)</span>
+podman<span class="w"> </span>secret<span class="w"> </span>create<span class="w"> </span>ssh-config<span class="w"> </span>~/.ssh/config
+podman<span class="w"> </span>secret<span class="w"> </span>create<span class="w"> </span>ssh-key<span class="w"> </span>~/.ssh/id_rsa
+podman<span class="w"> </span>secret<span class="w"> </span>create<span class="w"> </span>ssh-pubkey<span class="w"> </span>~/.ssh/id_rsa.pub
+podman<span class="w"> </span>secret<span class="w"> </span>create<span class="w"> </span>ssh-known_hosts<span class="w"> </span>~/.ssh/known_hosts
 
-<span class="c1"># StarDist segmentation workflow</span>
-<span class="na">stardist</span><span class="o">=</span><span class="s">stardist</span>
-<span class="na">stardist_repo</span><span class="o">=</span><span class="s">https://github.com/Neubias-WG5/W_NucleiSegmentation-Stardist/tree/v1.3.2</span>
-<span class="na">stardist_job</span><span class="o">=</span><span class="s">jobs/stardist.sh</span>
+<span class="c1"># Mount secrets in container</span>
+podman<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>--name<span class="w"> </span>biomeroworker<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--secret<span class="w"> </span>ssh-config,target<span class="o">=</span>/tmp/.ssh/config<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--secret<span class="w"> </span>ssh-key,target<span class="o">=</span>/tmp/.ssh/id_rsa<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--secret<span class="w"> </span>ssh-pubkey,target<span class="o">=</span>/tmp/.ssh/id_rsa.pub<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--secret<span class="w"> </span>ssh-known_hosts,target<span class="o">=</span>/tmp/.ssh/known_hosts<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>cellularimagingcf/biomero:my-version
 </pre></div>
 </div>
-</section>
-<section id="analytics-and-monitoring">
-<h3>Analytics and Monitoring<a class="headerlink" href="#analytics-and-monitoring" title="Permalink to this heading"></a></h3>
-<p>Enable workflow tracking and analytics:</p>
-<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[ANALYTICS]</span>
-<span class="c1"># Enable workflow tracking</span>
-<span class="na">track_workflows</span><span class="o">=</span><span class="s">True</span>
-
-<span class="c1"># Enable specific monitoring features</span>
-<span class="na">enable_job_accounting</span><span class="o">=</span><span class="s">True</span>
-<span class="na">enable_job_progress</span><span class="o">=</span><span class="s">True</span>
-<span class="na">enable_workflow_analytics</span><span class="o">=</span><span class="s">True</span>
-</pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Security Note:</strong> All SSH access uses a single service account on SLURM cluster shared by all OMERO users. Individual user authentication happens through OMERO, not SLURM accounts.</p>
 </div>
 </section>
 </section>
-<section id="deployment-considerations">
-<h2>Deployment Considerations<a class="headerlink" href="#deployment-considerations" title="Permalink to this heading"></a></h2>
+<section id="configuration-files">
+<h2>Configuration Files<a class="headerlink" href="#configuration-files" title="Permalink to this heading"></a></h2>
+<p>SLURM configuration uses shared <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code> files managed through the <strong>OMERO.biomero Admin interface</strong>.</p>
+<section id="container-file-sharing-setup">
+<h3>Container File Sharing Setup<a class="headerlink" href="#container-file-sharing-setup" title="Permalink to this heading"></a></h3>
+<p><strong>Critical Requirement:</strong> Mount the same <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code> file into both containers:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Mount same config file to both containers</span>
+<span class="nt">volumes</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># Web container - Admin interface reads/writes configuration</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw&quot;</span>
+<span class="w">  </span><span class="c1"># Worker container - Reads configuration for job execution  </span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw&quot;</span>
+</pre></div>
+</div>
+<p>This allows the web interface to write configuration changes that the worker container can immediately read.</p>
+</section>
+<section id="configuration-content-structure">
+<h3>Configuration Content Structure<a class="headerlink" href="#configuration-content-structure" title="Permalink to this heading"></a></h3>
+<p><strong>Sample <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code> with key sections:</strong></p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[SSH]</span>
+<span class="c1"># SSH alias (must match your ~/.ssh/config)</span>
+<span class="na">host</span><span class="o">=</span><span class="s">localslurm</span>
+
+<span class="k">[SLURM]</span>
+<span class="c1"># Cluster paths - managed via Admin interface</span>
+<span class="na">slurm_data_path</span><span class="o">=</span><span class="s">/data/my-scratch/data</span>
+<span class="na">slurm_images_path</span><span class="o">=</span><span class="s">/data/my-scratch/singularity_images/workflows</span>
+<span class="na">slurm_converters_path</span><span class="o">=</span><span class="s">/data/my-scratch/singularity_images/converters</span>
+<span class="na">slurm_script_path</span><span class="o">=</span><span class="s">/data/my-scratch/slurm-scripts</span>
+
+<span class="c1"># HPC-specific settings (consult your HPC admin)</span>
+<span class="na">slurm_data_bind_path</span><span class="o">=</span><span class="s">/data/my-scratch/data</span><span class="w">  </span><span class="c1"># Only if required by HPC admin</span>
+<span class="na">slurm_conversion_partition</span><span class="o">=</span><span class="s">cpu-short</span><span class="w">       </span><span class="c1"># For preprocessing jobs</span>
+
+<span class="c1"># Workflow and model settings - managed via Admin interface</span>
+<span class="c1"># [MODELS] and [CONVERTERS] sections auto-generated by web interface</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Managed via Web Interface:</strong> Use the <strong>OMERO.biomero plugin → Analyze → Admin</strong> screen to configure all SLURM-related settings. Manual INI editing is possible but the web interface is recommended.</p>
+<p>For a complete walkthrough of the Admin interface, see <a class="reference internal" href="omero-biomero-admin.html#omero-biomero-plugin-administration"><span class="std std-ref">OMERO.biomero Plugin Administration</span></a>.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Important:</strong> The <code class="docutils literal notranslate"><span class="pre">host</span></code> parameter is an SSH alias, not a hostname. Configure the actual connection details in your SSH config file.</p>
+</div>
+</section>
 <section id="ssh-configuration">
 <h3>SSH Configuration<a class="headerlink" href="#ssh-configuration" title="Permalink to this heading"></a></h3>
-<p>Configure SSH access to your SLURM cluster:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># In ~/.ssh/config</span>
+<p>Configure your SSH connection in <code class="docutils literal notranslate"><span class="pre">~/.ssh/config</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># For development with local Slurm cluster</span>
 Host<span class="w"> </span>localslurm
+<span class="w">    </span>HostName<span class="w"> </span>host.docker.internal
+<span class="w">    </span>User<span class="w"> </span>slurm
+<span class="w">    </span>Port<span class="w"> </span><span class="m">2222</span>
+<span class="w">    </span>IdentityFile<span class="w"> </span>~/.ssh/id_rsa
+<span class="w">    </span>StrictHostKeyChecking<span class="w"> </span>no
+
+<span class="c1"># For production HPC cluster</span>
+Host<span class="w"> </span>production-slurm
 <span class="w">    </span>HostName<span class="w"> </span>your-slurm-cluster.example.com
-<span class="w">    </span>User<span class="w"> </span>your-username
-<span class="w">    </span>IdentityFile<span class="w"> </span>~/.ssh/id_rsa_slurm
+<span class="w">    </span>User<span class="w"> </span>biomero-service
 <span class="w">    </span>Port<span class="w"> </span><span class="m">22</span>
+<span class="w">    </span>IdentityFile<span class="w"> </span>~/.ssh/id_rsa
 </pre></div>
 </div>
 </section>
-<section id="directory-structure">
-<h3>Directory Structure<a class="headerlink" href="#directory-structure" title="Permalink to this heading"></a></h3>
-<p>Ensure required directories exist on the SLURM cluster:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create directory structure</span>
-mkdir<span class="w"> </span>-p<span class="w"> </span>/data/my-scratch/<span class="o">{</span>data,singularity_images/<span class="o">{</span>workflows,converters<span class="o">}</span>,slurm-scripts<span class="o">}</span>
-</pre></div>
+</section>
+<section id="slurm-environment-setup">
+<h2>SLURM Environment Setup<a class="headerlink" href="#slurm-environment-setup" title="Permalink to this heading"></a></h2>
+<section id="web-based-configuration-recommended">
+<h3>Web-Based Configuration (Recommended)<a class="headerlink" href="#web-based-configuration-recommended" title="Permalink to this heading"></a></h3>
+<p><strong>Use the OMERO.biomero Admin Interface</strong> for all SLURM configuration. For a detailed UI guide, see <a class="reference internal" href="omero-biomero-admin.html#omero-biomero-plugin-administration"><span class="std std-ref">OMERO.biomero Plugin Administration</span></a>.</p>
+<p><strong>Quick Setup Steps:</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Access OMERO.web</strong> as administrator</p></li>
+<li><p><strong>OMERO.biomero</strong> → <strong>Admin</strong> tab → <strong>Analyzer</strong> section</p></li>
+<li><p><strong>Configure settings</strong> (SSH, SLURM paths, workflows, job parameters)</p></li>
+<li><p><strong>Save Settings</strong> - automatically updates shared <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code></p></li>
+<li><p><strong>Run SLURM Init</strong> script - deploys configuration to cluster</p></li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>No Server Access Required:</strong> All configuration is done through the web interface, which manages the shared <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code> file between containers.</p>
+<p>For detailed interface usage, workflow management, and troubleshooting, see <a class="reference internal" href="omero-biomero-admin.html#omero-biomero-plugin-administration"><span class="std std-ref">OMERO.biomero Plugin Administration</span></a>.</p>
 </div>
 </section>
-<section id="permissions-and-access">
-<h3>Permissions and Access<a class="headerlink" href="#permissions-and-access" title="Permalink to this heading"></a></h3>
+<section id="manual-slurm-cluster-setup">
+<h3>Manual SLURM Cluster Setup<a class="headerlink" href="#manual-slurm-cluster-setup" title="Permalink to this heading"></a></h3>
+<p>After configuring via Admin interface, initialize the SLURM environment:</p>
+<p><strong>Run Scripts</strong> → <strong>Admin</strong> → <strong>SLURM Init environment</strong></p>
+<p>This script:</p>
 <ul class="simple">
-<li><p>Verify the BIOMERO worker can SSH to the SLURM cluster</p></li>
-<li><p>Ensure read/write access to configured directories</p></li>
-<li><p>Check SLURM account permissions and quotas</p></li>
+<li><p>Creates directory structure on SLURM cluster</p></li>
+<li><p>Downloads workflow containers (Singularity images)</p></li>
+<li><p>Sets up job scripts and templates</p></li>
+<li><p>Configures analytics and monitoring</p></li>
 </ul>
-</section>
-</section>
-<section id="troubleshooting">
-<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this heading"></a></h2>
-<section id="common-issues">
-<h3>Common Issues<a class="headerlink" href="#common-issues" title="Permalink to this heading"></a></h3>
-<p><strong>Container Access Errors</strong></p>
-<p>If workflows fail with file access errors:</p>
-<ol class="arabic">
-<li><p>Configure explicit path binding:</p>
-<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[SLURM]</span>
-<span class="na">slurm_data_bind_path</span><span class="o">=</span><span class="s">/data/my-scratch/data</span>
-</pre></div>
-</div>
-</li>
-<li><p>Verify directory permissions on the SLURM cluster</p></li>
-<li><p>Check if Singularity/Apptainer can access the data directory</p></li>
-</ol>
-<p><strong>SSH Connection Failures</strong></p>
-<p>If the worker cannot connect to SLURM:</p>
-<ol class="arabic simple">
-<li><p>Test SSH connection manually from the worker container</p></li>
-<li><p>Verify SSH key authentication</p></li>
-<li><p>Check network connectivity and firewall rules</p></li>
-</ol>
-<p><strong>Job Submission Issues</strong></p>
-<p>If jobs fail to submit:</p>
-<ol class="arabic simple">
-<li><p>Verify SLURM account and partition access</p></li>
-<li><p>Check resource request limits (memory, GPU, etc.)</p></li>
-<li><p>Review SLURM queue policies and restrictions</p></li>
-</ol>
-<p><strong>Workflow Execution Failures</strong></p>
-<p>If submitted jobs fail during execution:</p>
-<ol class="arabic simple">
-<li><p>Check SLURM job logs for errors</p></li>
-<li><p>Verify container images are accessible</p></li>
-<li><p>Ensure input data is properly transferred</p></li>
-</ol>
-</section>
-<section id="debug-commands">
-<h3>Debug Commands<a class="headerlink" href="#debug-commands" title="Permalink to this heading"></a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Test SSH connection</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm
-
-<span class="c1"># Check SLURM status</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;squeue -u </span><span class="nv">$USER</span><span class="s2">&quot;</span>
-
-<span class="c1"># View job details</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;scontrol show job JOBID&quot;</span>
-
-<span class="c1"># Check directory permissions</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;ls -la /data/my-scratch/&quot;</span>
-</pre></div>
-</div>
-</section>
-</section>
-<section id="performance-tuning">
-<h2>Performance Tuning<a class="headerlink" href="#performance-tuning" title="Permalink to this heading"></a></h2>
-<section id="resource-allocation">
-<h3>Resource Allocation<a class="headerlink" href="#resource-allocation" title="Permalink to this heading"></a></h3>
-<p>Optimize resource requests for different workflow types:</p>
-<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[MODELS]</span>
-<span class="c1"># CPU-intensive workflow</span>
-<span class="na">cellprofiler_job_mem</span><span class="o">=</span><span class="s">32GB</span>
-<span class="na">cellprofiler_job_time</span><span class="o">=</span><span class="s">02:00:00</span>
-
-<span class="c1"># GPU workflow</span>
-<span class="na">cellpose_job_gres</span><span class="o">=</span><span class="s">gpu:1g.10gb:1</span>
-<span class="na">cellpose_job_partition</span><span class="o">=</span><span class="s">gpu-partition</span>
-
-<span class="c1"># Memory-intensive workflow</span>
-<span class="na">stardist_job_mem</span><span class="o">=</span><span class="s">64GB</span>
-<span class="na">stardist_job_partition</span><span class="o">=</span><span class="s">himem</span>
-</pre></div>
-</div>
-</section>
-<section id="queue-management">
-<h3>Queue Management<a class="headerlink" href="#queue-management" title="Permalink to this heading"></a></h3>
-<ul class="simple">
-<li><p>Use appropriate partitions for different workflow types</p></li>
-<li><p>Configure job time limits based on expected runtime</p></li>
-<li><p>Consider using job arrays for batch processing</p></li>
-</ul>
-</section>
-<section id="monitoring-and-analytics">
-<h3>Monitoring and Analytics<a class="headerlink" href="#monitoring-and-analytics" title="Permalink to this heading"></a></h3>
-<p>Enable comprehensive monitoring:</p>
-<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[ANALYTICS]</span>
-<span class="na">track_workflows</span><span class="o">=</span><span class="s">True</span>
-<span class="na">enable_job_accounting</span><span class="o">=</span><span class="s">True</span>
-<span class="na">enable_job_progress</span><span class="o">=</span><span class="s">True</span>
-<span class="na">enable_workflow_analytics</span><span class="o">=</span><span class="s">True</span>
-
-<span class="c1"># Optional: specify analytics database</span>
-<span class="na">sqlalchemy_url</span><span class="o">=</span><span class="s">postgresql://user:pass@db:5432/analytics</span>
-</pre></div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Always Run After Changes:</strong> SLURM_Init must be executed whenever you add workflows, modify containers, or change cluster paths via the Admin interface.</p>
 </div>
 </section>
 </section>
 <section id="security-considerations">
 <h2>Security Considerations<a class="headerlink" href="#security-considerations" title="Permalink to this heading"></a></h2>
+<section id="file-permissions">
+<h3>File Permissions<a class="headerlink" href="#file-permissions" title="Permalink to this heading"></a></h3>
+<p><strong>Configuration Files</strong>: Ensure the container user has proper read/write access to mounted configuration files:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set proper ownership for mounted config files</span>
+chown<span class="w"> </span><span class="m">1000</span>:1000<span class="w"> </span>./web/slurm-config.ini<span class="w"> </span>./web/biomero-config.json
+chmod<span class="w"> </span><span class="m">644</span><span class="w"> </span>./web/slurm-config.ini<span class="w"> </span>./web/biomero-config.json
+</pre></div>
+</div>
+</section>
+<section id="ssh-access-security">
+<h3>SSH Access Security<a class="headerlink" href="#ssh-access-security" title="Permalink to this heading"></a></h3>
+<p><strong>SSH Key Management</strong>: Use dedicated service account keys with restricted permissions on SLURM cluster.</p>
+<p><strong>Network Access</strong>: Configure firewall rules to allow only necessary SSH traffic from NL-BIOMERO to SLURM cluster.</p>
+</section>
+<section id="database-access">
+<h3>Database Access<a class="headerlink" href="#database-access" title="Permalink to this heading"></a></h3>
+<p><strong>Worker Configuration</strong>: Confirm BIOMERO worker container can access shared configuration files and has proper database connectivity.</p>
+<p>For Metabase-specific security setup, see <a class="reference internal" href="../developer/containers/metabase.html"><span class="doc">Metabase Container</span></a>.</p>
+</section>
+<section id="manual-verification">
+<h3>Manual Verification<a class="headerlink" href="#manual-verification" title="Permalink to this heading"></a></h3>
+<p>Test the SSH connection from your deployment:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Test connection from biomeroworker container</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;sinfo&quot;</span>
+
+<span class="c1"># OR for production deployment</span>
+podman<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>production-slurm<span class="w"> </span><span class="s2">&quot;squeue&quot;</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="network-security">
+<h2>Network Security<a class="headerlink" href="#network-security" title="Permalink to this heading"></a></h2>
+<section id="required-network-access">
+<h3>Required Network Access<a class="headerlink" href="#required-network-access" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p>Use SSH key authentication instead of passwords</p></li>
-<li><p>Restrict SSH access to specific users and commands</p></li>
-<li><p>Configure firewall rules to limit network access</p></li>
-<li><p>Regularly rotate SSH keys and credentials</p></li>
-<li><p>Monitor access logs for suspicious activity</p></li>
+<li><p><strong>SSH Port (22)</strong>: One-way from NL-BIOMERO to SLURM cluster</p></li>
+<li><p><strong>No inbound connections</strong>: SLURM cluster doesn’t initiate connections to NL-BIOMERO</p></li>
+<li><p><strong>SCP/SFTP</strong>: For data transfer (uses same SSH connection)</p></li>
 </ul>
+</section>
+<section id="firewall-configuration">
+<h3>Firewall Configuration<a class="headerlink" href="#firewall-configuration" title="Permalink to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Allow SSH from NL-BIOMERO deployment to SLURM cluster</span>
+<span class="c1"># Example iptables rule on SLURM cluster:</span>
+iptables<span class="w"> </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-p<span class="w"> </span>tcp<span class="w"> </span>--dport<span class="w"> </span><span class="m">22</span><span class="w"> </span>-s<span class="w"> </span>YOUR_NL_BIOMERO_IP<span class="w"> </span>-j<span class="w"> </span>ACCEPT
+</pre></div>
+</div>
+</section>
+</section>
+<section id="service-account-architecture">
+<h2>Service Account Architecture<a class="headerlink" href="#service-account-architecture" title="Permalink to this heading"></a></h2>
+<section id="single-service-account">
+<h3>Single Service Account<a class="headerlink" href="#single-service-account" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>One SLURM account</strong> for all NL-BIOMERO workflows</p></li>
+<li><p><strong>User authentication</strong> handled by OMERO, not SLURM</p></li>
+<li><p><strong>Resource sharing</strong> across all OMERO users</p></li>
+<li><p><strong>Centralized billing</strong> on single SLURM account</p></li>
+</ul>
+</section>
+<section id="account-requirements">
+<h3>Account Requirements<a class="headerlink" href="#account-requirements" title="Permalink to this heading"></a></h3>
+<p>Your SLURM service account needs:</p>
+<ul class="simple">
+<li><p>SSH access to submit jobs (<code class="docutils literal notranslate"><span class="pre">sbatch</span></code>, <code class="docutils literal notranslate"><span class="pre">squeue</span></code>, <code class="docutils literal notranslate"><span class="pre">scancel</span></code>)</p></li>
+<li><p>Read/write access to configured storage paths</p></li>
+<li><p>Appropriate SLURM resource allocations (CPU, GPU, memory)</p></li>
+</ul>
+</section>
+</section>
+<section id="deployment-specific-examples">
+<h2>Deployment-Specific Examples<a class="headerlink" href="#deployment-specific-examples" title="Permalink to this heading"></a></h2>
+<section id="local-development-docker-compose">
+<h3>Local Development (docker-compose)<a class="headerlink" href="#local-development-docker-compose" title="Permalink to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Clone and setup as per main README</span>
+git<span class="w"> </span>clone<span class="w"> </span>--recursive<span class="w"> </span>https://github.com/NL-BioImaging/NL-BIOMERO.git
+<span class="nb">cd</span><span class="w"> </span>NL-BIOMERO
+
+<span class="c1"># Setup local Slurm cluster for testing</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm
+<span class="nb">cd</span><span class="w"> </span>NL-BIOMERO-Local-Slurm
+cp<span class="w"> </span>~/.ssh/id_rsa.pub<span class="w"> </span>.
+docker-compose<span class="w"> </span>-f<span class="w"> </span>docker-compose-from-dockerhub.yml<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>--build
+
+<span class="c1"># Back to NL-BIOMERO</span>
+<span class="nb">cd</span><span class="w"> </span>../NL-BIOMERO
+cp<span class="w"> </span>ssh.config.example<span class="w"> </span>~/.ssh/config
+docker-compose<span class="w"> </span>up<span class="w"> </span>-d
+</pre></div>
+</div>
+</section>
+<section id="production-podman-with-secrets">
+<h3>Production (Podman with Secrets)<a class="headerlink" href="#production-podman-with-secrets" title="Permalink to this heading"></a></h3>
+<p>We suggest to use Podman on RHEL SELinux for complete production setup with secret management and daemon service restarting.
+Alternatively, take our Docker Compose setups as a starting point and use these as inspiration for your production environment.</p>
+</section>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this heading"></a></h2>
+<section id="ssh-connection-issues">
+<h3>SSH Connection Issues<a class="headerlink" href="#ssh-connection-issues" title="Permalink to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Test SSH from container</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>-v<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;echo &#39;SSH working&#39;&quot;</span>
+
+<span class="c1"># Check SSH key permissions in container</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>~/.ssh/
+</pre></div>
+</div>
+</section>
+<section id="slurm-job-issues">
+<h3>SLURM Job Issues<a class="headerlink" href="#slurm-job-issues" title="Permalink to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Check SLURM cluster status</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;sinfo&quot;</span>
+
+<span class="c1"># View recent jobs</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;squeue -u </span><span class="nv">$USER</span><span class="s2">&quot;</span>
+
+<span class="c1"># Check job details</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;scontrol show job JOBID&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="configuration-validation">
+<h3>Configuration Validation<a class="headerlink" href="#configuration-validation" title="Permalink to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Verify slurm-config.ini is properly mounted</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>cat<span class="w"> </span>/opt/omero/server/slurm-config.ini
+
+<span class="c1"># Test SLURM environment initialization</span>
+<span class="c1"># Run SLURM Init script from OMERO.web admin interface</span>
+</pre></div>
+</div>
+</section>
 </section>
 <section id="further-reading">
 <h2>Further Reading<a class="headerlink" href="#further-reading" title="Permalink to this heading"></a></h2>
 <ul class="simple">
-<li><p><a class="reference internal" href="../developer/containers/biomeroworker.html"><span class="doc">BIOMERO Worker Container</span></a> - Worker container details</p></li>
-<li><p><a class="reference internal" href="omero-biomero-admin.html"><span class="doc">OMERO.biomero Plugin Administration</span></a> - Administrative procedures</p></li>
-<li><p><a class="reference external" href="https://slurm.schedmd.com/documentation.html">SLURM Documentation</a></p></li>
-<li><p><a class="reference external" href="https://docs.sylabs.io/guides/latest/user-guide/">Singularity User Guide</a></p></li>
+<li><p><a class="reference internal" href="omero-biomero-admin.html#omero-biomero-plugin-administration"><span class="std std-ref">OMERO.biomero Plugin Administration</span></a> – Complete OMERO.biomero Admin interface guide (SLURM configuration, workflows, troubleshooting)</p></li>
+<li><p><a class="reference external" href="https://nl-bioimaging.github.io/biomero/readme_link.html#using-the-gpu-on-slurm">BIOMERO.analyzer SLURM Documentation</a> – Workflow usage and GPU support</p></li>
+<li><p><a class="reference external" href="https://github.com/NL-BioImaging/NL-BIOMERO/blob/master/README.md">NL-BIOMERO Main README</a> – Complete deployment guide</p></li>
+<li><p><a class="reference internal" href="linux-deployment.html"><span class="doc">Linux/Ubuntu Deployment</span></a> – Linux-specific deployment instructions</p></li>
+<li><p><a class="reference external" href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm">Local SLURM Setup</a> – Development cluster setup</p></li>
+<li><p><a class="reference internal" href="../developer/containers/biomeroworker.html"><span class="doc">BIOMERO Worker Container</span></a> – BIOMERO worker container details</p></li>
 </ul>
 </section>
 </section>
@@ -725,7 +1290,7 @@ docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </spa
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="omero-biomero-admin.html" class="btn btn-neutral float-left" title="OMERO.biomero Plugin Administration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="metabase-admin.html" class="btn btn-neutral float-left" title="Metabase Administration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="docker-compose-scenarios.html" class="btn btn-neutral float-right" title="Docker Compose Scenarios" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
