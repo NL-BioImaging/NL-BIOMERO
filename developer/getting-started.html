@@ -58,6 +58,10 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/ui-customization.html">UI Customization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/ui-customization.html#login-page-branding">Login Page Branding</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html">OMERO.biomero Plugin Administration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#accessing-admin-interfaces">Accessing Admin Interfaces</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#importer-admin-configuration">Importer Admin Configuration</a><ul>
@@ -902,18 +906,21 @@ docker-compose<span class="w"> </span><span class="nb">exec</span><span class="w
 <p>The previous codename “CANVAS” has been replaced by the official name OMERO.biomero.</p>
 <section id="custom-institution-branding">
 <h5>Custom Institution Branding<a class="headerlink" href="#custom-institution-branding" title="Permalink to this heading"></a></h5>
-<p>Add your institution’s logo to the login page:</p>
-<ol class="arabic simple">
-<li><p>Place logo files in: <code class="docutils literal notranslate"><span class="pre">web/local_omeroweb_edits/pretty_login/login_page_images/</span></code></p></li>
-<li><p>And just mount the file over the current image, e.g.</p></li>
-</ol>
-<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span>volumes:
-      - &quot;./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw&quot;
-      - &quot;./web/local_omeroweb_edits/pretty_login/login_page_images/bioimaging.png:/opt/omero/web/venv3/lib/python3.9/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/AmsterdamUMC-logo.png:ro&quot;
-      - &quot;./web/L-Drive:/data:rw&quot;
-
+<p>By default, BIOMERO 2.0 uses NL-BioImaging branding. To customize:</p>
+<p><strong>Change banner logo:</strong> Mount your logo over the banner image</p>
+<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span>- &quot;./your-logo.png:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/nl-bioimaging-banner.png:ro&quot;
 </pre></div>
 </div>
+<p><strong>Change footer logo:</strong> Mount your logo over the footer image</p>
+<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span>- &quot;./your-logo.png:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/NL-BIoImaging-logo.jpg:ro&quot;
+</pre></div>
+</div>
+<p><strong>Change footer text/colors/design:</strong> Create custom <code class="docutils literal notranslate"><span class="pre">login.html</span></code> template with inline CSS and mount it</p>
+<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span>- &quot;./custom-login.html:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/templates/webclient/login.html:ro&quot;
+</pre></div>
+</div>
+<p>Restart container after changes: <code class="docutils literal notranslate"><span class="pre">docker-compose</span> <span class="pre">down</span> <span class="pre">omeroweb</span> <span class="pre">&amp;&amp;</span> <span class="pre">docker-compose</span> <span class="pre">up</span> <span class="pre">-d</span> <span class="pre">omeroweb</span></code></p>
+<p>See <code class="docutils literal notranslate"><span class="pre">web/local_omeroweb_edits/pretty_login/login-amsterdamumc.html</span></code> for complete template example.</p>
 <p>More details in <a class="reference internal" href="#web/README.md"><span class="xref myst">web/README.md</span></a>.</p>
 </section>
 </section>

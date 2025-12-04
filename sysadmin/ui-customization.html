@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Backup and Restore &mdash; NL-BIOMERO 1.0.0 documentation</title>
+  <title>UI Customization &mdash; NL-BIOMERO 1.0.0 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -17,8 +17,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Developer Getting Started" href="../developer/getting-started.html" />
-    <link rel="prev" title="Development &amp; Demo Setup" href="development-setup.html" /> 
+    <link rel="next" title="OMERO.biomero Plugin Administration" href="omero-biomero-admin.html" />
+    <link rel="prev" title="Deployment Guide" href="deployment.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -58,8 +58,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="ui-customization.html">UI Customization</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="ui-customization.html#login-page-branding">Login Page Branding</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">UI Customization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#login-page-branding">Login Page Branding</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="omero-biomero-admin.html">OMERO.biomero Plugin Administration</a><ul>
@@ -256,29 +256,29 @@
 <li class="toctree-l2"><a class="reference internal" href="development-setup.html#biomero-101-installation-guide">BIOMERO 101 Installation Guide</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Backup and Restore</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#nl-biomero-backup-restore-scripts">NL-BIOMERO Backup &amp; Restore Scripts</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#key-features">Key Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#quick-start">Quick Start</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#master-backup-recommended">Master Backup (Recommended)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#common-options">Common Options</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#typical-backup-workflow">Typical Backup Workflow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#typical-restore-workflow">Typical Restore Workflow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="backup-restore.html">Backup and Restore</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="backup-restore.html#nl-biomero-backup-restore-scripts">NL-BIOMERO Backup &amp; Restore Scripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="backup-restore.html#key-features">Key Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backup-restore.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="backup-restore.html#master-backup-recommended">Master Backup (Recommended)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="backup-restore.html#common-options">Common Options</a></li>
+<li class="toctree-l4"><a class="reference internal" href="backup-restore.html#typical-backup-workflow">Typical Backup Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="backup-restore.html#typical-restore-workflow">Typical Restore Workflow</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#individual-script-usage">Individual Script Usage</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#database-backup">Database Backup</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#server-backup">Server Backup</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#metabase-backup">Metabase Backup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backup-restore.html#individual-script-usage">Individual Script Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="backup-restore.html#database-backup">Database Backup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="backup-restore.html#server-backup">Server Backup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="backup-restore.html#metabase-backup">Metabase Backup</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#restore-scripts">Restore Scripts</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#omero-configuration-hierarchy">OMERO Configuration Hierarchy</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#example-backup-omero-from-host-folder">Example: Backup OMERO from Host Folder</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#example-backup-metabase-from-host-folder">Example: Backup Metabase from Host Folder</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#requirements">Requirements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#help">Help</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backup-restore.html#restore-scripts">Restore Scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backup-restore.html#omero-configuration-hierarchy">OMERO Configuration Hierarchy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backup-restore.html#example-backup-omero-from-host-folder">Example: Backup OMERO from Host Folder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backup-restore.html#example-backup-metabase-from-host-folder">Example: Backup Metabase from Host Folder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backup-restore.html#requirements">Requirements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backup-restore.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backup-restore.html#help">Help</a></li>
 </ul>
 </li>
 </ul>
@@ -549,9 +549,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Backup and Restore</li>
+      <li class="breadcrumb-item active">UI Customization</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/sysadmin/backup-restore.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/sysadmin/ui-customization.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -559,198 +559,30 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="backup-and-restore">
-<h1>Backup and Restore<a class="headerlink" href="#backup-and-restore" title="Permalink to this heading"></a></h1>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p>The backup and restore scripts and flows included here are examples for inspiration. They are not recommendations and should be reviewed, tested, and adapted to your environment and policies.</p>
-</div>
-<section id="nl-biomero-backup-restore-scripts">
-<h2>NL-BIOMERO Backup &amp; Restore Scripts<a class="headerlink" href="#nl-biomero-backup-restore-scripts" title="Permalink to this heading"></a></h2>
-<p><strong>One-command backup and restore for NL-BIOMERO PostgreSQL databases, OMERO server data/config, and Metabase dashboards.</strong></p>
-<blockquote>
-<div><p>Important: The scripts and approaches described here are examples for inspiration, not prescriptive recommendations. Always review, test, and adapt to your specific environment, security policies, and operational requirements.</p>
-</div></blockquote>
-<section id="key-features">
-<h3>Key Features<a class="headerlink" href="#key-features" title="Permalink to this heading"></a></h3>
-<ul class="simple">
-<li><p><strong>Synchronized backups:</strong> All components use a single timestamp for consistency.</p></li>
-<li><p><strong>Flexible targets:</strong> Backup/restore to Docker volumes or local folders.</p></li>
-<li><p><strong>Cross-platform:</strong> Bash (Linux/macOS, Docker/Podman) and PowerShell (Windows).</p></li>
-<li><p><strong>Zero configuration:</strong> Reads from <code class="docutils literal notranslate"><span class="pre">.env</span></code>, auto-detects containers.</p></li>
-<li><p><strong>Production ready:</strong> Error handling, validation, cleanup.</p></li>
-<li><p><strong>Config hierarchy:</strong> OMERO config can be restored/overridden in multiple ways.</p></li>
-<li><p><strong>Metabase/OMERO folder backup:</strong> Can backup OMERO or Metabase directly from a host folder (no container needed).</p></li>
-</ul>
-</section>
-<hr class="docutils" />
-<section id="quick-start">
-<h3>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this heading"></a></h3>
-<section id="master-backup-recommended">
-<h4>Master Backup (Recommended)<a class="headerlink" href="#master-backup-recommended" title="Permalink to this heading"></a></h4>
-<p>Backs up OMERO DB, BIOMERO DB, OMERO server (data/config), and Metabase with a single timestamp.</p>
-<p><strong>Linux/macOS:</strong></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./backup_and_restore/backup/backup_master.sh
+  <section id="ui-customization">
+<h1>UI Customization<a class="headerlink" href="#ui-customization" title="Permalink to this heading"></a></h1>
+<section id="login-page-branding">
+<h2>Login Page Branding<a class="headerlink" href="#login-page-branding" title="Permalink to this heading"></a></h2>
+<p>BIOMERO uses NL-BioImaging branding by default. To customize for your institution:</p>
+<p><strong>Simple logo replacement:</strong></p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">services</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">omeroweb</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./your-logo.png:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/nl-bioimaging-banner.png:ro&quot;</span>
 </pre></div>
 </div>
-<p><strong>Windows:</strong></p>
-<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="p">.\</span><span class="n">backup_and_restore</span><span class="p">\</span><span class="n">backup</span><span class="p">\</span><span class="n">backup_master</span><span class="p">.</span><span class="n">ps1</span>
+<p><strong>Complete branding (text, colors, footer):</strong></p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">services</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">omeroweb</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./custom-login.html:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/templates/webclient/login.html:ro&quot;</span>
 </pre></div>
 </div>
-<p><strong>Creates:</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">omero.{timestamp}.pg_dump</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">biomero.{timestamp}.pg_dump</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">omero-server.{timestamp}.tar.gz</span></code> (unless <code class="docutils literal notranslate"><span class="pre">--skip-server-data</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">metabase.{timestamp}.tar.gz</span></code></p></li>
-</ul>
-<p>All files are placed in a timestamped subfolder under <code class="docutils literal notranslate"><span class="pre">./backup_and_restore/backups/</span></code>.</p>
-</section>
-<hr class="docutils" />
-<section id="common-options">
-<h4>Common Options<a class="headerlink" href="#common-options" title="Permalink to this heading"></a></h4>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--skip-database</span></code> / <code class="docutils literal notranslate"><span class="pre">-skipDatabase</span></code>: Skip both OMERO and BIOMERO DB backup.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--skip-server</span></code> / <code class="docutils literal notranslate"><span class="pre">-skipServer</span></code>: Skip OMERO server backup.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--skip-metabase</span></code> / <code class="docutils literal notranslate"><span class="pre">-skipMetabase</span></code>: Skip Metabase backup.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--skip-server-data</span></code> / <code class="docutils literal notranslate"><span class="pre">-skipServerData</span></code>: Only backup OMERO config (no data tar).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--skip-server-config</span></code> / <code class="docutils literal notranslate"><span class="pre">-skipServerConfig</span></code>: Only backup OMERO data (no config export).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--output-directory</span> <span class="pre">&lt;dir&gt;</span></code> / <code class="docutils literal notranslate"><span class="pre">-outputDirectory</span> <span class="pre">&lt;dir&gt;</span></code>: Custom backup location.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--omero-folder</span> <span class="pre">&lt;path&gt;</span></code> / <code class="docutils literal notranslate"><span class="pre">-omeroFolder</span> <span class="pre">&lt;path&gt;</span></code>: Backup OMERO data directly from a host folder (no container needed).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--metabase-folder</span> <span class="pre">&lt;path&gt;</span></code> / <code class="docutils literal notranslate"><span class="pre">-metabaseFolder</span> <span class="pre">&lt;path&gt;</span></code>: Backup Metabase directly from a host folder.</p></li>
-</ul>
-</section>
-<hr class="docutils" />
-<section id="typical-backup-workflow">
-<h4>Typical Backup Workflow<a class="headerlink" href="#typical-backup-workflow" title="Permalink to this heading"></a></h4>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 1. Stop user-facing containers (optional for consistency)</span>
-docker-compose<span class="w"> </span>stop<span class="w"> </span>omeroweb<span class="w"> </span>metabase<span class="w"> </span>biomero-importer
-
-<span class="c1"># 2. Run master backup</span>
-./backup_and_restore/backup/backup_master.sh
-
-<span class="c1"># 3. Restart services</span>
-docker-compose<span class="w"> </span>up<span class="w"> </span>-d
+<p>Create a custom login template with inline CSS styling. See <code class="docutils literal notranslate"><span class="pre">web/local_omeroweb_edits/pretty_login/login-amsterdamumc.html</span></code> for a complete example.</p>
+<p>After changes, restart the web container:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker-compose<span class="w"> </span>down<span class="w"> </span>omeroweb<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>docker-compose<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>omeroweb
 </pre></div>
 </div>
-</section>
-<hr class="docutils" />
-<section id="typical-restore-workflow">
-<h4>Typical Restore Workflow<a class="headerlink" href="#typical-restore-workflow" title="Permalink to this heading"></a></h4>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 1. Stop all services</span>
-docker-compose<span class="w"> </span>down
-
-<span class="c1"># 2. Restore databases</span>
-./backup_and_restore/restore/restore_db.sh
-
-<span class="c1"># 3. Restore OMERO server data/config</span>
-./backup_and_restore/restore/restore_server.sh
-
-<span class="c1"># 4. Restore Metabase dashboards</span>
-./backup_and_restore/restore/restore_metabase.sh
-
-<span class="c1"># 5. Update docker-compose.yml to use restored volumes/folders</span>
-<span class="c1"># 6. Start all services</span>
-docker-compose<span class="w"> </span>up<span class="w"> </span>-d
-</pre></div>
-</div>
-</section>
-</section>
-<hr class="docutils" />
-<section id="individual-script-usage">
-<h3>Individual Script Usage<a class="headerlink" href="#individual-script-usage" title="Permalink to this heading"></a></h3>
-<section id="database-backup">
-<h4>Database Backup<a class="headerlink" href="#database-backup" title="Permalink to this heading"></a></h4>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./backup_and_restore/backup/backup_db.sh
-</pre></div>
-</div>
-<ul class="simple">
-<li><p>Backs up OMERO and BIOMERO DBs from containers.</p></li>
-<li><p>Output: <code class="docutils literal notranslate"><span class="pre">omero.{timestamp}.pg_dump</span></code>, <code class="docutils literal notranslate"><span class="pre">biomero.{timestamp}.pg_dump</span></code></p></li>
-</ul>
-</section>
-<section id="server-backup">
-<h4>Server Backup<a class="headerlink" href="#server-backup" title="Permalink to this heading"></a></h4>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./backup_and_restore/backup/backup_server.sh
-</pre></div>
-</div>
-<ul class="simple">
-<li><p>Backs up OMERO server data/config from container or host folder.</p></li>
-<li><p>Output: <code class="docutils literal notranslate"><span class="pre">omero-server.{timestamp}.tar.gz</span></code></p></li>
-<li><p>Use <code class="docutils literal notranslate"><span class="pre">--omero-folder</span> <span class="pre">&lt;path&gt;</span></code> to backup from a host folder (no container needed).</p></li>
-</ul>
-</section>
-<section id="metabase-backup">
-<h4>Metabase Backup<a class="headerlink" href="#metabase-backup" title="Permalink to this heading"></a></h4>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./backup_and_restore/backup/backup_metabase.sh
-</pre></div>
-</div>
-<ul class="simple">
-<li><p>Backs up Metabase folder (H2 DB, configs, plugins).</p></li>
-<li><p>Output: <code class="docutils literal notranslate"><span class="pre">metabase.{timestamp}.tar.gz</span></code></p></li>
-<li><p>Use <code class="docutils literal notranslate"><span class="pre">--metabase-folder</span> <span class="pre">&lt;path&gt;</span></code> to specify a custom folder.</p></li>
-</ul>
-</section>
-</section>
-<hr class="docutils" />
-<section id="restore-scripts">
-<h3>Restore Scripts<a class="headerlink" href="#restore-scripts" title="Permalink to this heading"></a></h3>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">restore/restore_db.sh</span></code> / <code class="docutils literal notranslate"><span class="pre">restore/restore_db.ps1</span></code>: Restore OMERO/BIOMERO DBs to containers or local folders.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">restore/restore_server.sh</span></code> / <code class="docutils literal notranslate"><span class="pre">restore/restore_server.ps1</span></code>: Restore OMERO server data/config to volume or folder.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">restore/restore_metabase.sh</span></code> / <code class="docutils literal notranslate"><span class="pre">restore/restore_metabase.ps1</span></code>: Restore Metabase dashboards/configs to folder.</p></li>
-</ul>
-</section>
-<hr class="docutils" />
-<section id="omero-configuration-hierarchy">
-<h3>OMERO Configuration Hierarchy<a class="headerlink" href="#omero-configuration-hierarchy" title="Permalink to this heading"></a></h3>
-<ol class="arabic simple">
-<li><p><strong>Backup config</strong>: <code class="docutils literal notranslate"><span class="pre">/OMERO/backup/omero.config</span></code> (restored automatically)</p></li>
-<li><p><strong>Custom config files</strong>: <code class="docutils literal notranslate"><span class="pre">/opt/omero/server/config/*.omero</span></code> (mount in docker-compose)</p></li>
-<li><p><strong>Environment variables</strong>: <code class="docutils literal notranslate"><span class="pre">CONFIG_omero_*</span></code> (override everything)</p></li>
-</ol>
-</section>
-<hr class="docutils" />
-<section id="example-backup-omero-from-host-folder">
-<h3>Example: Backup OMERO from Host Folder<a class="headerlink" href="#example-backup-omero-from-host-folder" title="Permalink to this heading"></a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./backup_and_restore/backup/backup_server.sh<span class="w"> </span>--omero-folder<span class="w"> </span><span class="s2">&quot;/srv/omero&quot;</span>
-</pre></div>
-</div>
-</section>
-<section id="example-backup-metabase-from-host-folder">
-<h3>Example: Backup Metabase from Host Folder<a class="headerlink" href="#example-backup-metabase-from-host-folder" title="Permalink to this heading"></a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./backup_and_restore/backup/backup_metabase.sh<span class="w"> </span>--metabase-folder<span class="w"> </span><span class="s2">&quot;/srv/metabase&quot;</span>
-</pre></div>
-</div>
-</section>
-<hr class="docutils" />
-<section id="requirements">
-<h3>Requirements<a class="headerlink" href="#requirements" title="Permalink to this heading"></a></h3>
-<ul class="simple">
-<li><p><strong>Linux/macOS:</strong> Docker or Podman, Bash 4+</p></li>
-<li><p><strong>Windows:</strong> Docker Desktop, PowerShell 5.1+</p></li>
-<li><p><strong>For backup:</strong> Running NL-BIOMERO containers (unless using folder mode)</p></li>
-<li><p><strong>For restore:</strong> Internet access to pull images</p></li>
-</ul>
-</section>
-<hr class="docutils" />
-<section id="troubleshooting">
-<h3>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this heading"></a></h3>
-<ul class="simple">
-<li><p><strong>Container not found:</strong> Check <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">ps</span></code> or <code class="docutils literal notranslate"><span class="pre">podman</span> <span class="pre">ps</span></code></p></li>
-<li><p><strong>Permission denied:</strong> Ensure backup location is writable</p></li>
-<li><p><strong>Small backup file:</strong> Check container names and credentials</p></li>
-<li><p><strong>Restore failed:</strong> Check logs with <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">logs</span> <span class="pre">&lt;container&gt;</span></code></p></li>
-<li><p><strong>Config not loading:</strong> Check <code class="docutils literal notranslate"><span class="pre">/OMERO/backup/omero.config</span></code> exists in restored volume/folder</p></li>
-</ul>
-</section>
-<hr class="docutils" />
-<section id="help">
-<h3>Help<a class="headerlink" href="#help" title="Permalink to this heading"></a></h3>
-<p>All scripts support <code class="docutils literal notranslate"><span class="pre">--help</span></code> or <code class="docutils literal notranslate"><span class="pre">-help</span></code> for usage and options.</p>
-<hr class="docutils" />
-<p><strong>For more details, see comments in each script or contact the NL-BIOMERO team.</strong></p>
-</section>
 </section>
 </section>
 
@@ -758,8 +590,8 @@ docker-compose<span class="w"> </span>up<span class="w"> </span>-d
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="development-setup.html" class="btn btn-neutral float-left" title="Development &amp; Demo Setup" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../developer/getting-started.html" class="btn btn-neutral float-right" title="Developer Getting Started" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="deployment.html" class="btn btn-neutral float-left" title="Deployment Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="omero-biomero-admin.html" class="btn btn-neutral float-right" title="OMERO.biomero Plugin Administration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
