@@ -20,6 +20,7 @@ ADD server/01-ldap-config.omero /opt/omero/server/config/
 #     git clone --depth 1 --branch master --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero
 
 # Clone specific release version
+# We don't need the example scripts
 RUN cd /opt/omero/server/OMERO.server/lib/scripts/ && \
     git clone --depth 1 --branch ${BIOMERO_VERSION} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
     rm -f biomero/admin/Example_Minimal_Slurm_Script.py && \

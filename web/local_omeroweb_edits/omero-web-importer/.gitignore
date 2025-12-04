@@ -1,9 +1,0 @@
-db.sqlite3
-django
-*.pyc
-.DS_Store
-dist
-omero_webtest.egg-info
-.omero
-*.egg
-*.egg-info/

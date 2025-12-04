@@ -4,6 +4,7 @@
    :maxdepth: 2
 
    sysadmin/deployment
+   sysadmin/ui-customization
    sysadmin/omero-biomero-admin
    sysadmin/metabase-admin
    sysadmin/slurm-integration

@@ -6,8 +6,8 @@ USER root
 
 ENV VIRTUAL_ENV=/opt/omero/server/venv3
 ENV PATH=/opt/ice-3.6.5-0.3.0/bin:$VIRTUAL_ENV/bin/:$PATH
-RUN python3 -m venv $VIRTUAL_ENV
-RUN python -m pip install scikit-image scipy
+# Use existing venv and install packages
+RUN $VIRTUAL_ENV/bin/python -m pip install scikit-image scipy
 
 # Replace the default startup scripts
 RUN rm /startup/60-database.sh

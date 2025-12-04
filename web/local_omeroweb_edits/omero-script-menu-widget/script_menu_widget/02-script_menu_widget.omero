@@ -1,5 +1,0 @@
-# OMERO.web configuration extension of script_menu_widget
-
-# Script Menu Widget
-config append -- omero.web.apps '"script_menu_widget"'
-config append -- omero.web.ui.right_plugins '["", "scriptmenu/webclient_plugins/script_menu_widget.html", "scripts menu"]'

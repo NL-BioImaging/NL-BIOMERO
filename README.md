@@ -262,18 +262,27 @@ The previous codename "CANVAS" has been replaced by the official name OMERO.biom
 
 
 ### Custom Institution Branding
-Add your institution's logo to the login page:
 
-1. Place logo files in: `web/local_omeroweb_edits/pretty_login/login_page_images/`
-2. And just mount the file over the current image, e.g. 
+By default, BIOMERO 2.0 uses NL-BioImaging branding. To customize:
 
+**Change banner logo:** Mount your logo over the banner image
 ```yml
-volumes:
-      - "./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
-      - "./web/local_omeroweb_edits/pretty_login/login_page_images/bioimaging.png:/opt/omero/web/venv3/lib/python3.9/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/AmsterdamUMC-logo.png:ro"
-      - "./web/L-Drive:/data:rw"
+- "./your-logo.png:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/nl-bioimaging-banner.png:ro"
+```
 
-``` 
+**Change footer logo:** Mount your logo over the footer image  
+```yml
+- "./your-logo.png:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/NL-BIoImaging-logo.jpg:ro"
+```
+
+**Change footer text/colors/design:** Create custom `login.html` template with inline CSS and mount it
+```yml
+- "./custom-login.html:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/templates/webclient/login.html:ro"
+```
+
+Restart container after changes: `docker-compose down omeroweb && docker-compose up -d omeroweb`
+
+See `web/local_omeroweb_edits/pretty_login/login-amsterdamumc.html` for complete template example.
 
 More details in [web/README.md](web/README.md).
 

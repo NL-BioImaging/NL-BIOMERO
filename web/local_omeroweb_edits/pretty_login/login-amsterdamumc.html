@@ -25,6 +25,69 @@
     {{ block.super }}
     <link rel="stylesheet" href="{% static "webclient/css/layout.css"|add:url_suffix %}" type="text/css" />
     <link rel="stylesheet" href="{% static "webgateway/css/ome.login.css"|add:url_suffix %}" type="text/css" />
+    
+    <!-- Amsterdam UMC Custom Styling -->
+    <style>
+        /* Amsterdam UMC Blue and Orange Branding */
+        body {
+            background-color: #004d87 !important; /* Amsterdam UMC Blue */
+        }
+        
+        #login {
+            background: rgba(255, 102, 0, 0.9) !important; /* Bright orange background */
+            border-radius: 15px !important;
+            border: 5px solid #ff6600 !important;
+            box-shadow: 0 8px 16px rgba(255, 102, 0, 0.5) !important;
+            padding: 30px !important;
+        }
+        
+        .button.omero-feature {
+            background-color: #ff6600 !important;
+            border: 1px solid #e55a00 !important;
+            color: white !important;
+        }
+        
+        .button.omero-feature:hover {
+            background-color: #e55a00 !important;
+        }
+        
+        .banner-container {
+            text-align: center;
+            padding: 20px 0;
+            background: rgba(255, 255, 255, 0.9);
+            margin-bottom: 20px;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .banner-image {
+            max-width: 300px;
+            height: auto;
+        }
+        
+        .footer-content {
+            background: rgba(0, 77, 135, 0.9) !important;
+            border-radius: 0 0 10px 10px;
+        }
+        
+        .footer-section {
+            color: white !important;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .footer-section:hover {
+            background: rgba(255, 102, 0, 0.1) !important;
+        }
+        
+        input[type="text"], input[type="password"] {
+            border: 2px solid #004d87;
+            border-radius: 5px;
+        }
+        
+        input[type="text"]:focus, input[type="password"]:focus {
+            border-color: #ff6600;
+            box-shadow: 0 0 5px rgba(255, 102, 0, 0.3);
+        }
+    </style>
 {% endblock %}
 
 {% block title %}
@@ -58,42 +121,43 @@
 
 <script>
     /*
-    TLDR: do not remove the 'Image Array Placeholder'
-    This placeholder is used by the get_images_for_login_page.py script to insert an array of image paths.
-    The script scans a specified directory for image files, generates a JavaScript array of paths to these images,
-    and replaces this placeholder with that array.
+     * Function to alternate between background images for the login
+     *
+     * Some notes: static folder and image names must be hard-coded for js to access.
+     *             Images names are hard coded, and defined in the template. 
+     *             If you want to change the images, modify the template file.
+     */
 
-    The array is used by the JavaScript code below to dynamically change the source of the image with the id 'dynamic-image'.
-    The image source is changed every 5 seconds to the next image path in the array, creating a slideshow effect.
+    // Array of images - ORIGINAL AMSTERDAM UMC IMAGES
+    const images = [
+        '/static/webclient/image/login_page_images/AFM_and_beads.jpg',
+        '/static/webclient/image/login_page_images/Duolink_new.png',
+        '/static/webclient/image/login_page_images/GFP_neurons.jpg'
+    ];
 
-    To use the script, run it with the image directory and the path to this HTML file as command line arguments.
-    For example: python get_images_for_login_page.py /path/to/images /path/to/this/file.html
-    */
-
-    // Image Array Placeholder
-
-    var currentImageIndex = 0;
+    let currentImageIndex = 0;
 
     function changeImage() {
-        // Change the image source
-        document.getElementById('dynamic-image').src = images[currentImageIndex];
-
-        // Update the index to point to the next image
         currentImageIndex = (currentImageIndex + 1) % images.length;
+        document.body.style.backgroundImage = `url('${images[currentImageIndex]}')`;
     }
-
-    // Change image every 5 seconds
-    setInterval(changeImage, 5000);
-
-    // Initialize with the first image
-    if(images.length > 0) {
+    
+    // Set the initial background image
+    document.addEventListener('DOMContentLoaded', function() {
+        document.body.style.backgroundImage = `url('${images[0]}')`;
+        // Change image every 5 seconds
+        setInterval(changeImage, 5000);
+    });
+    
+    // for the sake of debugging - this function shows the next image immediately
+    function doChangeImage() {
         changeImage();
     }
 </script>
 
-<!-- Add the banner here -->
+<!-- Amsterdam UMC Banner -->
 <div class="banner-container">
-    <img src="{% static 'webclient/image/login_page_images/nl-bioimaging-banner.png' %}" alt="NL-BioImaging Logo" class="banner-image">
+    <img src="{% static 'webclient/image/login_page_images/AmsterdamUMC-logo.png' %}" alt="Amsterdam UMC Logo" class="banner-image">
 </div>
 
 <div id="login">
@@ -121,8 +185,8 @@
 			
 			<div>
 				{% trans form.password.label_tag %}
-				<!--{% if form.password.field.required %}*{% endif %}-->
-	            {{ form.password }}
+				<!--{% if form.password.field.required %}*{% endif %} -->
+				{{ form.password }}
 				<!-- Form Error -->
 				{% if form.password.errors %}
                   {% for error in form.password.errors %}
@@ -130,33 +194,20 @@
                   {% endfor %}
 				{% endif %}
 			</div>
-
-        	<input type="submit" value="Login" />
-
-            <div>
-                <p style="min-height: 15px">
-		    {% if show_forgot_password %}
-		        <a href="{% url 'waforgottenpassword' %}">Forgot your password?</a>
-		    {% endif %}
-                </p>
-            </div>
-
-            {% if public_enabled %}
-                <hr class="login-divider"/>
-                <div class="login-link">
-                    <a class="login-link-text" href="{{ public_login_redirect }}">Log in as public user</a>
-                </div>
-            {% endif %}
+			<div class="login-action">
+				<input type="submit" class="button omero-feature" value="{% trans "Login" %}" />
+			</div>
 
     </form>
 
     {% endblock %}
 </div>
 
+<!-- Amsterdam UMC Footer -->
 <div class="footer-content">
-    <a href="https://github.com/NL-BioImaging" class="footer-section custom-banner" target="_blank" rel="noopener noreferrer">
-        <img src="{% static 'webclient/image/login_page_images/NL-BIoImaging-logo.jpg' %}" alt="NL-BioImaging Icon" class="section-icon">
-        <p class="section-text">NL-BioImaging AM <br> Distributed research infrastructure for <br> cutting-edge microscopy technologies</p>
+    <a href="https://www.amsterdamumc.org" class="footer-section custom-banner" target="_blank" rel="noopener noreferrer">
+        <img src="{% static 'webclient/image/login_page_images/AmsterdamUMC-logo.png' %}" alt="Amsterdam UMC" class="section-icon">
+        <p class="section-text">Amsterdam UMC <br> Academic Medical Center <br> Advanced microscopy facility</p>
     </a>
     <a href="https://arxiv.org/abs/2511.13611" class="footer-section uploader-section" target="_blank" rel="noopener noreferrer">
         <img src="{% static 'webclient/image/login_page_images/biomero-logo.svg' %}" alt="BIOMERO 2.0 Paper" class="section-icon">
