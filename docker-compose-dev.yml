@@ -32,8 +32,6 @@ services:
     # Define named network to communicate with other containers
     networks:
       - omero
-    ports:
-      - "55432:5432" # Expose postgres on port 55432
     # Define named volumes to persist data on host after shutdown
     volumes:
       - "database-biomero:/var/lib/postgresql/data"
