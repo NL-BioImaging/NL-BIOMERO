@@ -15,9 +15,9 @@ ADD server/00-restore-config.sh* /startup/
 ADD server/01-ldap-config.omero /opt/omero/server/config/
 
 # Development versions:
-ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/master" latest_comm
+ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/fix_concurrency" latest_comm
 RUN cd $OMERO_DIST/lib/scripts/ && \
-    git clone --depth 1 --branch master --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero
+    git clone --depth 1 --branch fix_concurrency --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero
 
 # Clone specific release version
 # We don't need the example scripts
