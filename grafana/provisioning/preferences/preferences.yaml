@@ -1,0 +1,10 @@
+apiVersion: 1
+
+# Default preferences for the organization
+preferences:
+  # Set the BIOMERO dashboard as the home dashboard
+  home_dashboard_uid: "biomero-logs"
+  # Set timezone
+  timezone: "browser"
+  # Set theme
+  theme: "dark"

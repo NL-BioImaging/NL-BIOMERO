@@ -1,0 +1,9 @@
+apiVersion: 1
+
+providers:
+  - name: 'BIOMERO Dashboards'
+    type: file
+    folder: 'BIOMERO'
+    folderUid: 'biomero-folder'
+    options:
+      path: /var/lib/grafana/dashboards

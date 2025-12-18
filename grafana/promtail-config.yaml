@@ -1,0 +1,64 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: biomero-worker
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: biomero
+          service: biomeroworker
+          __path__: /logs/biomeroworker/*
+          
+  - job_name: biomero-importer
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: biomero
+          service: importer
+          __path__: /logs/biomero-importer/*
+          
+  - job_name: omero-server
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: biomero
+          service: omeroserver
+          __path__: /logs/omeroserver/*
+          
+  - job_name: omero-worker-1
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: biomero
+          service: omeroworker-1
+          __path__: /logs/omeroworker-1/*
+          
+  - job_name: omero-web
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: biomero
+          service: omeroweb
+          __path__: /logs/omeroweb/*
+          
+  - job_name: nginx
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: biomero
+          service: nginx
+          __path__: /logs/nginx/*
