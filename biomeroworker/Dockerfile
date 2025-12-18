@@ -38,21 +38,20 @@ ENV PATH="$PATH:/opt/bioformats2raw-0.11.0/bin"
 ## Add BIOMERO Omero Slurm Client
 RUN yum -y install ack
 
-# Use existing virtual environment and install ALL packages in it
-# Development version from main branch:
-# ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/main" /latest_commit_biomero
-# RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
-#     && wget https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
-#     && $VIRTUAL_ENV/bin/python -m pip install zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
-#     && rm zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
-#     && $VIRTUAL_ENV/bin/python -m pip install git+https://github.com/NL-BioImaging/biomero.git@main#egg=biomero[full]
-
-# Release version install:
+# Development version from fix_concurrency branch:
+ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/fix_concurrency" /latest_commit_biomero
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && wget https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
     && $VIRTUAL_ENV/bin/python -m pip install zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
     && rm zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
-    && $VIRTUAL_ENV/bin/python -m pip install biomero[full]==${BIOMERO_VERSION}
+    && $VIRTUAL_ENV/bin/python -m pip install git+https://github.com/NL-BioImaging/biomero.git@fix_concurrency#egg=biomero[full]
+
+# Release version install (commented out for testing):
+# RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
+#     && wget https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
+#     && $VIRTUAL_ENV/bin/python -m pip install zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
+#     && rm zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
+#     && $VIRTUAL_ENV/bin/python -m pip install biomero[full]==${BIOMERO_VERSION}
 
 ## Adjust processor code with BIOMERO Processor
 # This version forwards HTTP(S) PROXY environment variables to the subprocesses (scripts)
