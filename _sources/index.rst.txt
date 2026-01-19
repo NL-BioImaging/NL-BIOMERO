@@ -35,7 +35,10 @@ Choose your path forward:
    <div style="background: #e7f3ff; border: 1px solid #b3d9ff; padding: 20px; border-radius: 8px; text-align: center;">
    <h4 style="margin: 0 0 10px 0; color: #0066cc;">🆕 New Installation</h4>
    <p style="margin: 0 0 15px 0; font-size: 14px;">Fresh deployment on your infrastructure</p>
-   <a href="sysadmin/deployment.html#scenario-1-fresh-deployment-no-existing-data" target="_blank" style="background: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-weight: bold;">Start Here →</a>
+   <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+   <a href="sysadmin/development-setup.html" style="background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-weight: bold;">📒 Dev/Demo Setup →</a>
+   <a href="sysadmin/deployment.html#scenario-1-fresh-deployment-no-existing-data" target="_blank" style="background: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-weight: bold;">🚀 Production →</a>
+   </div>
    </div>
    
    <div style="background: #fff3e0; border: 1px solid #ffcc80; padding: 20px; border-radius: 8px; text-align: center;">
@@ -48,6 +51,7 @@ Choose your path forward:
    <h4 style="margin: 0 0 10px 0; color: #7b1fa2;">⚡ Development</h4>
    <p style="margin: 0 0 15px 0; font-size: 14px;">Extend the platform or add your workflows</p>
    <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+   <a href="developer/architecture.html" style="background: #673ab7; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 12px;">🏗️ Architecture</a>
    <a href="developer/getting-started.html" target="_blank" style="background: #9c27b0; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 12px;">Dev Setup</a>
    <a href="developer/workflow-development.html" target="_blank" style="background: #4caf50; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 12px;">Add Workflows</a>
    </div>

@@ -3,24 +3,24 @@
    :caption: System Administration
    :maxdepth: 2
 
+   sysadmin/development-setup
    sysadmin/deployment
+   sysadmin/docker-compose-scenarios
+   sysadmin/linux-deployment
+   sysadmin/backup-restore
    sysadmin/ui-customization
    sysadmin/omero-biomero-admin
    sysadmin/metabase-admin
    sysadmin/slurm-integration
-   sysadmin/docker-compose-scenarios
-   sysadmin/linux-deployment
-   sysadmin/development-setup
-   sysadmin/backup-restore
 
 .. toctree::
    :hidden:
    :caption: Developer Guide  
    :maxdepth: 2
 
+   developer/architecture
    developer/getting-started
    developer/workflow-development
-   developer/architecture
    developer/containers/index
 
 .. toctree::
