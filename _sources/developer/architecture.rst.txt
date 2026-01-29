@@ -2,6 +2,9 @@ Architecture Overview
 =====================
 
 .. note::
+   🎥 **New to BIOMERO?** Watch our :doc:`../overview` video for a comprehensive introduction to BIOMERO architecture and workflows.
+
+.. note::
    Looking for deployment instructions? See :doc:`../sysadmin/quickstart` for step-by-step setup guidance.
 
 NL-BIOMERO transforms OMERO into a comprehensive FAIR (Findable, Accessible, Interoperable, Reusable) platform for bioimage data management and analysis. This page provides a detailed technical overview of the system architecture.
