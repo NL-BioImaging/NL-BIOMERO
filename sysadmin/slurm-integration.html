@@ -1269,8 +1269,8 @@ Host<span class="w"> </span>production-slurm
 <h3>File Permissions<a class="headerlink" href="#file-permissions" title="Permalink to this heading"></a></h3>
 <p><strong>Configuration Files</strong>: Ensure the container user has proper read/write access to mounted configuration files:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set proper ownership for mounted config files</span>
-chown<span class="w"> </span><span class="m">1000</span>:1000<span class="w"> </span>./web/slurm-config.ini<span class="w"> </span>./web/biomero-config.json
-chmod<span class="w"> </span><span class="m">644</span><span class="w"> </span>./web/slurm-config.ini<span class="w"> </span>./web/biomero-config.json
+chown<span class="w"> </span><span class="m">1000</span>:1000<span class="w"> </span>./web/slurm-config.ini<span class="w"> </span>./web/importer-config.json<span class="w"> </span>./web/group-mappings.json
+chmod<span class="w"> </span><span class="m">666</span><span class="w"> </span>./web/slurm-config.ini<span class="w"> </span>./web/importer-config.json<span class="w"> </span>./web/group-mappings.json
 </pre></div>
 </div>
 </section>
