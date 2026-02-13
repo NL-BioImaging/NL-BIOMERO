@@ -159,7 +159,8 @@ services:
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
       CONFIG_omero_scripts_timeout: 604800000
       ENV: TEST
-      OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
+      OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/importer-config.json
+      OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
       METABASE_SITE_URL: ${METABASE_SITE_URL}
       METABASE_SECRET_KEY: ${METABASE_SECRET_KEY}
       METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID: ${METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID}
@@ -178,7 +179,8 @@ services:
       - "4080:4080"
     volumes:
       - "./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
-      - "./web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
+      - "./web/importer-config.json:/opt/omero/web/OMERO.web/var/importer-config.json:rw"
+      - "./web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
       - "./web/L-Drive:/data:rw"
       - "./logs/omeroweb:/opt/omero/web/OMERO.web/var/log"
     logging:
