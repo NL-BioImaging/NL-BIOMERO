@@ -127,6 +127,7 @@ services:
       CONFIG_omero_scripts_timeout: 604800000
       PERSISTENCE_MODULE: eventsourcing_sqlalchemy
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
+      INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
     # Named network to communicate with other containers
     networks:
       - omero
@@ -137,6 +138,8 @@ services:
       - "~/.ssh:/tmp/.ssh:ro"
       - "./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
       - "./web/L-Drive:/data"
+      - "./config/biomero-importer:/opt/omero/server/config-importer:ro"
+      - "./web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
       - "./logs/biomeroworker:/opt/omero/server/OMERO.server/var/log"
     logging:
       driver: "json-file"
@@ -225,7 +228,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "./web/L-Drive:/data"
-      - "./config/biomero-importer/groups_list.json:/auto-importer/config/groups_list.json"
+      - "./config/biomero-importer:/auto-importer/config:ro"
       - "./logs/biomero-importer:/auto-importer/logs"
     logging:
       driver: "json-file"

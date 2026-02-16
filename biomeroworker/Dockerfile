@@ -30,10 +30,10 @@ RUN yum install -y blosc-devel
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-11.0.23.0.9-3.el9.x86_64
 RUN export JAVA_HOME
 
-RUN wget https://github.com/glencoesoftware/bioformats2raw/releases/download/v0.11.0/bioformats2raw-0.11.0.zip \
-    ; unzip -d /opt bioformats2raw-0.11.0.zip \
-    && rm bioformats2raw-0.11.0.zip
-ENV PATH="$PATH:/opt/bioformats2raw-0.11.0/bin"
+RUN wget https://github.com/glencoesoftware/bioformats2raw/releases/download/v0.12.0-rc1/bioformats2raw-0.12.0-rc1.zip \
+    ; unzip -d /opt bioformats2raw-0.12.0-rc1.zip \
+    && rm bioformats2raw-0.12.0-rc1.zip
+ENV PATH="$PATH:/opt/bioformats2raw-0.12.0-rc1/bin"
 
 ## Add BIOMERO Omero Slurm Client
 RUN yum -y install ack
@@ -45,6 +45,10 @@ RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && rm zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
     && $VIRTUAL_ENV/bin/python -m pip install biomero[full]==${BIOMERO_VERSION}
 
+# Install biomero-importer separately for better caching
+RUN $VIRTUAL_ENV/bin/python -m pip install biomero-importer==1.3.0a1
+
+RUN $VIRTUAL_ENV/bin/python -m pip install zarr==2.18.3
 # Development version from main branch (commented out for release):
 # ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/main" /latest_commit_biomero
 # RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
@@ -52,6 +56,9 @@ RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
 #     && $VIRTUAL_ENV/bin/python -m pip install zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
 #     && rm zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
 #     && $VIRTUAL_ENV/bin/python -m pip install git+https://github.com/NL-BioImaging/biomero.git@main#egg=biomero[full]
+#
+# # Install biomero-importer separately for better caching
+# RUN $VIRTUAL_ENV/bin/python -m pip install biomero-importer
 
 ## Adjust processor code with BIOMERO Processor
 # This version forwards HTTP(S) PROXY environment variables to the subprocesses (scripts)

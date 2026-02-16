@@ -161,7 +161,8 @@ class ProcessI(omero.grid.Process, omero.util.SimpleServant):
             "HTTPS_PROXY",
             "FTP_PROXY",
             "PERSISTENCE_MODULE",
-            "SQLALCHEMY_URL"
+            "SQLALCHEMY_URL",
+            "INGEST_TRACKING_DB_URL",
         )
 
         # Since we know the location of our OMERO, we're going to
