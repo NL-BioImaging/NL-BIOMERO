@@ -1,8 +1,5 @@
 # Brings up all OMERO nodes on _one_ host computer, but multiple containers
 
-# Version 3 is the newest version of the Compose file format
-version: "3"
-
 # Define all the services: database, omero server, omero web
 services:
   # Name of our database, referenced in omero_db_host
@@ -171,6 +168,7 @@ services:
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
+      STARDIST_SERVICE_URL: http://stardist:5000
     # Named network to communicate with other containers
     networks:
       - omero
@@ -244,6 +242,22 @@ services:
         max-size: "10m"
         max-file: "5"
 
+  # StarDist prediction microservice
+  stardist:
+    build:
+      context: ./stardist-service
+      dockerfile: ./Dockerfile
+    environment:
+      MODELS_DIR: /models
+    networks:
+      - omero
+    volumes:
+      - "./models:/models:rw"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
 # Define the network(s) to communicate between containers
 networks:

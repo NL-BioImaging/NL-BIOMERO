@@ -1,0 +1,8 @@
+flask>=2.3
+gunicorn>=21.2
+numpy>=1.24
+Pillow>=10.0
+stardist>=0.8
+tensorflow>=2.12
+csbdeep>=0.7
+tifffile>=2023.7
