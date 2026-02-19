@@ -163,6 +163,7 @@ class ProcessI(omero.grid.Process, omero.util.SimpleServant):
             "PERSISTENCE_MODULE",
             "SQLALCHEMY_URL",
             "INGEST_TRACKING_DB_URL",
+            "IMPORTER_ENABLED",
         )
 
         # Since we know the location of our OMERO, we're going to
