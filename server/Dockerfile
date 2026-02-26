@@ -16,15 +16,10 @@ ADD server/01-ldap-config.omero /opt/omero/server/config/
 
 # Clone specific release version
 # We don't need the example scripts
-# RUN cd /opt/omero/server/OMERO.server/lib/scripts/ && \
-#     git clone --depth 1 --branch ${BIOMERO_VERSION} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
-#     rm -f biomero/admin/Example_Minimal_Slurm_Script.py && \
-#     rm -f biomero/__workflows/SLURM_CellPose_Segmentation.py
-
-# Development versions (commented out for release):
-ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/import_results" latest_comm
 RUN cd $OMERO_DIST/lib/scripts/ && \
-    git clone --depth 1 --branch import_results --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero
+    git clone --depth 1 --branch ${BIOMERO_VERSION} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
+    rm -f biomero/admin/Example_Minimal_Slurm_Script.py && \
+    rm -f biomero/__workflows/SLURM_CellPose_Segmentation.py
 
 # Install the Figure-to-PDF script for OMERO.figure plugin
 RUN curl -o $OMERO_DIST/lib/scripts/omero/figure_scripts/Figure_To_Pdf.py \

@@ -117,6 +117,7 @@ services:
       dockerfile: ./biomeroworker/Dockerfile
       args:
         BIOMERO_VERSION: ${BIOMERO_VERSION}
+        BIOMERO_IMPORTER_VERSION: ${BIOMERO_IMPORTER_VERSION}
     # Define variables for use in the container.
     # WORKER_NAME is used in the omero/ice node description
     # logging_level doesn't work, but should increase logging

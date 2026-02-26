@@ -1,6 +1,7 @@
 FROM openmicroscopy/omero-server:5.6.17
 
 ARG BIOMERO_VERSION
+ARG BIOMERO_IMPORTER_VERSION
 
 USER root
 
@@ -39,24 +40,10 @@ ENV PATH="$PATH:/opt/bioformats2raw-0.12.0-rc1/bin"
 RUN yum -y install ack
 
 # Release version install:
+# force zarr < 3 for compatibility w/ omero-cli-zarr by installing biomero AFTER the importer
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
-    && wget https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
-    && $VIRTUAL_ENV/bin/python -m pip install zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
-    && rm zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
+    && $VIRTUAL_ENV/bin/python -m pip install --ignore-requires-python biomero-importer==${BIOMERO_IMPORTER_VERSION} \
     && $VIRTUAL_ENV/bin/python -m pip install biomero[full]==${BIOMERO_VERSION}
-
-# Install biomero-importer separately for better caching, force zarr < 3 for compatibility w/ omero-cli-zarr
-RUN $VIRTUAL_ENV/bin/python -m pip install --ignore-requires-python biomero-importer==1.2.1 \
-    && $VIRTUAL_ENV/bin/python -m pip install zarr==2.18.3
-
-# Development version from main branch (commented out for release):
-# ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/main" /latest_commit_biomero
-# RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
-#     && wget https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
-#     && $VIRTUAL_ENV/bin/python -m pip install zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
-#     && rm zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
-#     && $VIRTUAL_ENV/bin/python -m pip install git+https://github.com/NL-BioImaging/biomero.git@main#egg=biomero[full]
-
 
 ## Adjust processor code with BIOMERO Processor
 # This version forwards HTTP(S) PROXY environment variables to the subprocesses (scripts)
