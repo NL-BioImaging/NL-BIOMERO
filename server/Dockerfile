@@ -7,7 +7,8 @@ ENV OMERO_DIST=/opt/omero/server/OMERO.server
 # Upload scripts for omero-server user
 # COPY --chown=omero-server:omero-server scripts/slurm/* /opt/omero/server/OMERO.server/lib/scripts/slurm/
 USER root
-RUN yum -y install git 
+RUN echo 'skip_if_unavailable=True' >> /etc/dnf/dnf.conf
+RUN yum -y install git
 USER omero-server
 
 # Configuration files - use shell script for restore

@@ -7,7 +7,8 @@ USER root
 ## Default Python environment
 ENV VIRTUAL_ENV=/opt/omero/server/venv3
 ENV PATH=/opt/ice-3.6.5-0.3.0/bin:$VIRTUAL_ENV/bin/:$PATH
-RUN yum -y install git 
+RUN echo 'skip_if_unavailable=True' >> /etc/dnf/dnf.conf
+RUN yum -y install git
 
 ## Replace the default configuration files
 COPY biomeroworker/ice.config biomeroworker/worker.cfg /opt/omero/server/OMERO.server/etc/templates/
