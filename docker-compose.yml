@@ -156,7 +156,6 @@ services:
       context: ./
       dockerfile: ./web/Dockerfile
       args:
-        BIOMERO_VERSION: ${BIOMERO_VERSION}
         OMERO_BIOMERO_VERSION: ${OMERO_BIOMERO_VERSION}
         OMERO_FORMS_VERSION: ${OMERO_FORMS_VERSION}
     environment:
