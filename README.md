@@ -38,13 +38,13 @@ Follow the **Quickstart** section below for Windows deployment with Docker Deskt
 
 ### Ubuntu/Linux
 For Ubuntu/Linux deployments (with SSL support), see our dedicated guide:
-📖 **[Ubuntu/Linux Deployment Guide](README.linux.md)**
+📖 **[Ubuntu/Linux Deployment Guide](https://nl-bioimaging.github.io/NL-BIOMERO/latest/sysadmin/linux-deployment.html)**
 
 ---
 
 ## Quickstart (Windows)
 
-**Note**: This quickstart is based on Windows Docker Desktop and uses `host.docker.internal` to communicate between local clusters. Linux users should refer to the [Ubuntu/Linux guide](README.linux.md).
+**Note**: This quickstart is based on Windows Docker Desktop and uses `host.docker.internal` to communicate between local clusters. Linux users should refer to the [Ubuntu/Linux guide](https://nl-bioimaging.github.io/NL-BIOMERO/latest/sysadmin/linux-deployment.html).
 
 ### 0. Prerequisites
 
@@ -253,7 +253,7 @@ See <a href="https://nl-bioimaging.github.io/biomero/" target="_blank" rel="noop
 ### Linux Considerations
 - SSH permissions: `chmod -R 777 ~/.ssh` before deployment
 - Use `postgres:16-alpine` for better compatibility
-- See [Ubuntu/Linux guide](README.linux.md) for detailed instructions
+- See [Ubuntu/Linux guide](https://nl-bioimaging.github.io/NL-BIOMERO/latest/sysadmin/linux-deployment.html) for detailed instructions
 
 ---
 
@@ -297,9 +297,27 @@ More details in [web/README.md](web/README.md).
 
 ---
 
-## 📚 Additional Resources
+## � Development
 
-- 📖 **[Ubuntu/Linux Deployment](README.linux.md)** - Production deployment guide
+### Building Documentation
+To rebuild the versioned documentation locally:
+
+```powershell
+cd "NL-BIOMERO\docs"
+Remove-Item -Recurse -Force _build -ErrorAction SilentlyContinue
+.\venv\Scripts\sphinx-multiversion.exe . _build
+Copy-Item assets/gh-pages-redirect.html _build/index.html
+$latestTag = (git tag -l "v*.*.*" | Where-Object { $_ -match "^v[0-9]+\.[0-9]+\.[0-9]+$" } | Sort-Object {[version]($_ -replace '^v','')} -Descending | Select-Object -First 1)
+if ($latestTag) { Copy-Item "_build/$latestTag" "_build/latest" -Recurse; Write-Host "Created latest directory pointing to $latestTag" }
+```
+
+This builds all version branches/tags plus creates a `latest` directory pointing to the newest release.
+
+---
+
+## 📚� Additional Resources
+
+- 📖 **[Ubuntu/Linux Deployment](https://nl-bioimaging.github.io/NL-BIOMERO/latest/sysadmin/linux-deployment.html)** - Production deployment guide
 - 🧬 **<a href="https://nl-bioimaging.github.io/biomero/" target="_blank" rel="noopener noreferrer">BIOMERO Documentation</a>** - Analysis workflows
 - 🏗️ **<a href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">Local Slurm Cluster</a>** - Testing environment
 - 🔬 **<a href="https://omero.readthedocs.io/" target="_blank" rel="noopener noreferrer">OMERO Documentation</a>** - Core platform docs
