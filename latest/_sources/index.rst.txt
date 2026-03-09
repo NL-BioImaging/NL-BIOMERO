@@ -101,6 +101,7 @@ This documentation serves as your **main gateway** to the BIOMERO 2.0 ecosystem.
    <a href="https://github.com/NL-BioImaging/biomero?tab=readme-ov-file#readme" target="_blank" style="background: #6c757d; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(108,117,125,0.3);">📖 README</a>
    <a href="developer/workflow-development.html" target="_blank" style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(23,162,184,0.3);">👨‍💻 Dev Guide</a>
    <a href="sysadmin/slurm-integration.html" target="_blank" style="background: #28a745; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 6px rgba(40,167,69,0.4);">⚙️ Admin Guide</a>
+   <a href="sysadmin/analyzer-importer-admin.html" target="_blank" style="background: #6f42c1; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 6px rgba(111,66,193,0.4);">🔗 Analyzer+Importer</a>
    </div>
    </div>
    
@@ -144,6 +145,7 @@ This documentation serves as your **main gateway** to the BIOMERO 2.0 ecosystem.
    <p style="margin: 0 0 15px 0; font-size: 14px; opacity: 0.9;">User-friendly data import workflows for in-place importing - keep your raw data where it belongs!</p>
    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
    <a href="https://github.com/NL-BioImaging/BIOMERO.importer?tab=readme-ov-file#readme" target="_blank" style="background: #6c757d; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(108,117,125,0.3);">📖 README</a>
+   <a href="sysadmin/analyzer-importer-admin.html" target="_blank" style="background: #6f42c1; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 6px rgba(111,66,193,0.4);">🔗 Analyzer+Importer</a>
    </div>
    </div>
    

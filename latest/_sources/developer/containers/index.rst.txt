@@ -12,4 +12,5 @@ Detailed development information for each NL-BIOMERO container.
    database
    metabase
    biomero-importer
+   analyzer-importer-integration
    releases
