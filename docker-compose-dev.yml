@@ -169,6 +169,8 @@ services:
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
       STARDIST_SERVICE_URL: http://stardist:5000
+      UPLOADER_CHUNKS_DIR: /data/uploader_chunks
+      UPLOADER_DESTINATION_DIR: /data/uploader_destination
     # Named network to communicate with other containers
     networks:
       - omero
