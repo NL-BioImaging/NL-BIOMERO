@@ -43,6 +43,8 @@ RUN curl -o $OMERO_DIST/lib/scripts/omero/util_scripts/Labels2Rois.py \
 RUN wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/com/github/ben-manes/caffeine/caffeine/3.1.8/caffeine-3.1.8.jar
 RUN wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/dev/zarr/jzarr/0.4.2/jzarr-0.4.2.jar
 RUN wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/org/lasersonlab/s3fs/2.2.3/s3fs-2.2.3.jar
+RUN wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-core/1.12.659/aws-java-sdk-core-1.12.659.jar
 RUN wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-s3/1.12.659/aws-java-sdk-s3-1.12.659.jar
+RUN wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/org/apache/tika/tika-core/1.28.5/tika-core-1.28.5.jar
 # Main ZARR pixel buffer plugin for remote ZARR file rendering
 RUN wget --no-hsts -O $OMERO_DIST/lib/server/omero-zarr-pixel-buffer.jar https://artifacts.glencoesoftware.com:443/artifactory/gs-omero-snapshots-local/com/glencoesoftware/omero/omero-zarr-pixel-buffer/0.6.1/omero-zarr-pixel-buffer-0.6.1.jar
