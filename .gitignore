@@ -22,5 +22,4 @@ logs
 docs/_build/
 docs/venv/
 db.mv.db
-uploader
-uploader/*
+web/L-Drive/*
