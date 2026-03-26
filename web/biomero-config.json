@@ -3,6 +3,10 @@
     "experiment.db",
     ".xlef"
   ],
+  "UPLOADER_NESTED_FILE_EXTENSIONS": [
+    ".lif",
+    ".lof"
+  ],
   "PREPROCESSING_EXTENSION_MAP": {
     ".lif": "dataset_leica_uuid",
     ".xlef": "dataset_leica_uuid",

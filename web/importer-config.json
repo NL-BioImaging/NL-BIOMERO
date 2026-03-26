@@ -1,5 +1,6 @@
 {
   "UPLOADER": {
-    "enabled": true
+    "enabled": true,
+    "upload_to_group_folder": true
   }
 }
