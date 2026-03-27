@@ -244,10 +244,10 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  # StarDist prediction microservice
-  stardist:
+  # Prediction microservice
+  prediction:
     build:
-      context: ./stardist-service
+      context: ./prediction-service
       dockerfile: ./Dockerfile
     environment:
       MODELS_DIR: /models
