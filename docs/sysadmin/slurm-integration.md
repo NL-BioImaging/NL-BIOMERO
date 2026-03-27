@@ -236,8 +236,8 @@ This script:
 
 ```bash
 # Set proper ownership for mounted config files
-chown 1000:1000 ./web/slurm-config.ini ./web/importer-config.json ./web/group-mappings.json
-chmod 666 ./web/slurm-config.ini ./web/importer-config.json ./web/group-mappings.json
+chown 1000:1000 ./web/slurm-config.ini ./web/uploader-settings.json ./web/group-mappings.json
+chmod 666 ./web/slurm-config.ini ./web/uploader-settings.json ./web/group-mappings.json
 ```
 
 ### SSH Access Security
