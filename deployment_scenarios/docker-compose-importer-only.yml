@@ -29,6 +29,7 @@ services:
       ROOTPASS: ${EXTERNAL_OMERO_PASSWORD}
       IMPORTER_ENABLED: "TRUE"
       ANALYZER_ENABLED: "FALSE"
+      TRAINER_ENABLED: "FALSE"
     networks:
       - importer-network
     ports:

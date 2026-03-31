@@ -72,6 +72,7 @@ First, customize your environment file `.env`:
 # Toggle UI components (both default to TRUE):
 # IMPORTER_ENABLED=TRUE   # Enables the BIOMERO.importer UI module
 # ANALYZER_ENABLED=TRUE   # Enables the BIOMERO.analyzer UI module
+# TRAINER_ENABLED=TRUE    # Enables the BIOMERO.trainer UI module
 # Set either to FALSE to hide that module from OMERO.web without removing containers
 ```
 

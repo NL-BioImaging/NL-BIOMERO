@@ -194,8 +194,10 @@ IMPORTER_ENABLED=TRUE  # set FALSE to hide importer UI
 
 # BIOMERO.analyzer workflows UI
 ANALYZER_ENABLED=TRUE  # set FALSE to hide BIOMERO UI
-```
 
+# BIOMERO.trainer UI
+TRAINER_ENABLED=TRUE  # set FALSE to hide trainer UI
+```
 Setting either variable to `FALSE` removes only the corresponding frontend elements in OMERO.web; backend containers can still run if present.
 
 ### Environment Customization

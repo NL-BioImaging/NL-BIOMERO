@@ -55,6 +55,7 @@ services:
       ROOTPASS: ${EXTERNAL_OMERO_PASSWORD}
       IMPORTER_ENABLED: "FALSE"
       ANALYZER_ENABLED: "TRUE"
+      TRAINER_ENABLED: "TRUE"
     networks:
       - biomero
     ports:

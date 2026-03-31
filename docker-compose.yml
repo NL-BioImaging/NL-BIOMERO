@@ -171,6 +171,7 @@ services:
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
+      TRAINER_ENABLED: ${TRAINER_ENABLED}
     # Named network to communicate with other containers
     networks:
       - omero
