@@ -12,14 +12,14 @@ services:
     networks:
       - omero
     ports:
-      - "4080:4080"    # HTTP for omeroweb
-      - "4443:4443"    # HTTPS for omeroweb
-      - "3000:3000"    # HTTP for metabase
-      - "3443:3443"    # HTTPS for metabase
+      - "4080:4080" # HTTP for omeroweb
+      - "4443:4443" # HTTPS for omeroweb
+      - "3000:3000" # HTTP for metabase
+      - "3443:3443" # HTTPS for metabase
     volumes:
       - "../nginx/nginx.conf:/etc/nginx/nginx.conf:ro" # TODO: Make sure to have SSL certs match the location in nginx.conf, and change the server URL in the nginx.conf
-      - "/etc/letsencrypt/:/etc/letsencrypt:ro"   # TODO: Make sure to have SSL certs in this folder
-    
+      - "/etc/letsencrypt/:/etc/letsencrypt:ro" # TODO: Make sure to have SSL certs in this folder
+
   # Name of our database, referenced in omero_db_host
   database:
     # Define a prebuilt Postgres image with a version
@@ -160,6 +160,8 @@ services:
       IMPORT_MOUNT_PATH: /data
       FORMS_MASTER_USER: ${FORMS_MASTER_USER}
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
+      OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
+      OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
     # Named network to communicate with other containers
     networks:
       - omero
@@ -169,6 +171,8 @@ services:
     #  - "4080:4080"
     volumes:
       - "../web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
+      - "../web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
+      - "../web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
       - "../web/local_omeroweb_edits/pretty_login/login_page_images/bioimaging.png:/opt/omero/web/venv3/lib/python3.9/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/AmsterdamUMC-logo.png:ro"
       - "../web/L-Drive:/data:rw"
 

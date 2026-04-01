@@ -1,4 +1,8 @@
 {
+  "UPLOADER": {
+    "enabled": true,
+    "upload_to_group_folder": true
+  },
   "FILE_OR_EXTENSION_PATTERNS_EXCLUSIVE": [
     "experiment.db",
     ".xlef"

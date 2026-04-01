@@ -39,7 +39,7 @@ services:
     image: "cellularimagingcf/omeroserver:${NL_BIOMERO_VERSION:-latest}"
     # Define environment variables for use in the container.
     # 'nodedescriptors' assigns roles to all the containers
-    # 'omero_db_*' are same as in 'database' description. 
+    # 'omero_db_*' are same as in 'database' description.
     environment:
       CONFIG_omero_db_host: database
       CONFIG_omero_db_user: ${POSTGRES_USER}
@@ -65,7 +65,7 @@ services:
       - "omero:/OMERO"
       - "../web/L-Drive:/data"
 
-  # Name of our worker node, can be anything 
+  # Name of our worker node, can be anything
   omeroworker-1:
     image: "cellularimagingcf/omeroworker:${NL_BIOMERO_VERSION:-latest}"
     # Define variables for use in the container.
@@ -116,7 +116,8 @@ services:
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
       CONFIG_omero_web_login__logo: "https://cembo.eu/wp-content/uploads/2021/04/Amsterdam-UMC.png"
       CONFIG_omero_scripts_timeout: 604800000
-      ENV: TEST
+      OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
+      OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
       METABASE_SITE_URL: ${METABASE_SITE_URL}
       METABASE_SECRET_KEY: ${METABASE_SECRET_KEY}
       METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID: ${METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID}
@@ -133,6 +134,8 @@ services:
       - "4080:4080"
     volumes:
       - "../web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
+      - "../web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
+      - "../web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
       - "../web/local_omeroweb_edits/pretty_login/login_page_images/bioimaging.png:/opt/omero/web/venv3/lib/python3.9/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/AmsterdamUMC-logo.png:ro"
       - "../web/L-Drive:/data:rw"
 
