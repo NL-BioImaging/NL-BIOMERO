@@ -72,6 +72,7 @@ services:
       - "omero:/OMERO"
       - "./web/L-Drive:/data"
       - "./logs/omeroserver:/opt/omero/server/OMERO.server/var/log"
+      - "../biomero-scripts/:/opt/omero/server/OMERO.server/lib/scripts/biomero"
     logging:
       driver: "json-file"
       options:
@@ -122,6 +123,9 @@ services:
       CONFIG_omero_scripts_timeout: 604800000
       PERSISTENCE_MODULE: eventsourcing_sqlalchemy
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
+    # Resolve host.docker.internal on Linux (needed for SSH to local SLURM)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # Named network to communicate with other containers
     networks:
       - omero
@@ -133,6 +137,7 @@ services:
       - "./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
       - "./web/L-Drive:/data"
       - "./logs/biomeroworker:/opt/omero/server/OMERO.server/var/log"
+      - "../biomero/:/opt/omero/server/biomero"
     logging:
       driver: "json-file"
       options:
@@ -186,6 +191,7 @@ services:
       - "./web/L-Drive:/data:rw"
       - "../OMERO.biomero/:/opt/omero/web/OMERO.biomero"
       - "../OMERO.forms/:/opt/omero/web/OMERO.forms"
+      - "../omero_annotate_ai/:/opt/omero/web/omero_annotate_ai"
       - "./web/importer-config.json:/opt/omero/web/OMERO.web/var/importer-config.json:rw"
       - "./web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
       - "./logs/omeroweb:/opt/omero/web/OMERO.web/var/log"
