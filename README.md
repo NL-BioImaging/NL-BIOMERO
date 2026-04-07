@@ -300,7 +300,24 @@ More details in [web/README.md](web/README.md).
 ## � Development
 
 ### Building Documentation
-To rebuild the versioned documentation locally:
+
+#### Quick local preview (working directory)
+
+To preview your **uncommitted changes** instantly:
+
+```powershell
+cd "NL-BIOMERO\docs"
+.\venv\Scripts\sphinx-build.exe -b html . _build_local
+```
+
+Then open `docs/_build_local/sysadmin/omero-biomero-admin.html` (or any page) in a browser.
+
+> **Note**: `sphinx-multiversion` builds from **git commits only** — it will not pick up
+> uncommitted edits. Always use `sphinx-build` for a quick preview while authoring.
+
+#### Full versioned build (all tags + branches)
+
+Once your changes are committed, rebuild the complete versioned site:
 
 ```powershell
 cd "NL-BIOMERO\docs"
@@ -311,7 +328,7 @@ $latestTag = (git tag -l "v*.*.*" | Where-Object { $_ -match "^v[0-9]+\.[0-9]+\.
 if ($latestTag) { Copy-Item "_build/$latestTag" "_build/latest" -Recurse; Write-Host "Created latest directory pointing to $latestTag" }
 ```
 
-This builds all version branches/tags plus creates a `latest` directory pointing to the newest release.
+This builds all tagged versions and branches, then creates a `latest/` directory pointing to the newest release tag.
 
 ---
 

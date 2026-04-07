@@ -16,6 +16,7 @@ logs
 
 # Sphinx documentation
 docs/_build/
+docs/_build_local/
 docs/venv/
 
 .analyzed
