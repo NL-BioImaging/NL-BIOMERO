@@ -1,8 +1,11 @@
 FROM openmicroscopy/omero-server:5.6.17
 
 ARG BIOMERO_VERSION
+ARG OMERO_ZARR_PIXEL_BUFFER_VERSION
 
 ENV OMERO_DIST=/opt/omero/server/OMERO.server
+ENV OMERO_ZARR_PIXEL_BUFFER_REPO=https://artifacts.glencoesoftware.com:443/artifactory/gs-omero-snapshots-local/com/glencoesoftware/omero/omero-zarr-pixel-buffer
+ENV OMERO_ZARR_PIXEL_BUFFER_POM=/tmp/omero-zarr-pixel-buffer.pom
 
 # Upload scripts for omero-server user
 # COPY --chown=omero-server:omero-server scripts/slurm/* /opt/omero/server/OMERO.server/lib/scripts/slurm/
@@ -38,13 +41,16 @@ RUN curl -o $OMERO_DIST/lib/scripts/omero/util_scripts/Labels2Rois.py \
 # entrypoint from omero-server dockerfile: 
 # run all /startup/* scripts in alphabetic/numerical order.
 
-# Install ZARR support dependencies for BIOMERO.importer remote ZARR file rendering
-# Dependencies required for omero-zarr-pixel-buffer functionality
-RUN wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/com/github/ben-manes/caffeine/caffeine/3.1.8/caffeine-3.1.8.jar
-RUN wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/dev/zarr/jzarr/0.4.2/jzarr-0.4.2.jar
-RUN wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/org/lasersonlab/s3fs/2.2.3/s3fs-2.2.3.jar
-RUN wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-core/1.12.659/aws-java-sdk-core-1.12.659.jar
-RUN wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-s3/1.12.659/aws-java-sdk-s3-1.12.659.jar
-RUN wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/org/apache/tika/tika-core/1.28.5/tika-core-1.28.5.jar
-# Main ZARR pixel buffer plugin for remote ZARR file rendering
-RUN wget --no-hsts -O $OMERO_DIST/lib/server/omero-zarr-pixel-buffer.jar https://artifacts.glencoesoftware.com:443/artifactory/gs-omero-snapshots-local/com/glencoesoftware/omero/omero-zarr-pixel-buffer/0.6.1/omero-zarr-pixel-buffer-0.6.1.jar
+# Install ZARR support dependencies for BIOMERO.importer remote ZARR file rendering.
+# The dependency versions are read from the selected omero-zarr-pixel-buffer POM so
+# upgrading OMERO_ZARR_PIXEL_BUFFER_VERSION also upgrades the matching runtime jars.
+RUN test -n "$OMERO_ZARR_PIXEL_BUFFER_VERSION" || (echo "OMERO_ZARR_PIXEL_BUFFER_VERSION build arg is required" >&2; exit 1)
+RUN wget --no-hsts -O $OMERO_ZARR_PIXEL_BUFFER_POM $OMERO_ZARR_PIXEL_BUFFER_REPO/$OMERO_ZARR_PIXEL_BUFFER_VERSION/omero-zarr-pixel-buffer-$OMERO_ZARR_PIXEL_BUFFER_VERSION.pom
+RUN version="$(awk '/<artifactId>caffeine<\/artifactId>/{getline; gsub(/.*<version>|<\/version>.*/, ""); print; exit}' $OMERO_ZARR_PIXEL_BUFFER_POM)" && wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/com/github/ben-manes/caffeine/caffeine/$version/caffeine-$version.jar
+RUN version="$(awk '/<artifactId>jzarr<\/artifactId>/{getline; gsub(/.*<version>|<\/version>.*/, ""); print; exit}' $OMERO_ZARR_PIXEL_BUFFER_POM)" && wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/dev/zarr/jzarr/$version/jzarr-$version.jar
+RUN version="$(awk '/<artifactId>s3fs<\/artifactId>/{getline; gsub(/.*<version>|<\/version>.*/, ""); print; exit}' $OMERO_ZARR_PIXEL_BUFFER_POM)" && wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/org/lasersonlab/s3fs/$version/s3fs-$version.jar
+RUN version="$(awk '/<artifactId>aws-java-sdk-s3<\/artifactId>/{getline; gsub(/.*<version>|<\/version>.*/, ""); print; exit}' $OMERO_ZARR_PIXEL_BUFFER_POM)" && wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-core/$version/aws-java-sdk-core-$version.jar
+RUN version="$(awk '/<artifactId>aws-java-sdk-s3<\/artifactId>/{getline; gsub(/.*<version>|<\/version>.*/, ""); print; exit}' $OMERO_ZARR_PIXEL_BUFFER_POM)" && wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-s3/$version/aws-java-sdk-s3-$version.jar
+RUN version="$(awk '/<artifactId>tika-core<\/artifactId>/{getline; gsub(/.*<version>|<\/version>.*/, ""); print; exit}' $OMERO_ZARR_PIXEL_BUFFER_POM)" && wget --no-hsts -P $OMERO_DIST/lib/server https://repo1.maven.org/maven2/org/apache/tika/tika-core/$version/tika-core-$version.jar
+RUN wget --no-hsts -O $OMERO_DIST/lib/server/omero-zarr-pixel-buffer.jar $OMERO_ZARR_PIXEL_BUFFER_REPO/$OMERO_ZARR_PIXEL_BUFFER_VERSION/omero-zarr-pixel-buffer-$OMERO_ZARR_PIXEL_BUFFER_VERSION.jar
+RUN rm -f $OMERO_ZARR_PIXEL_BUFFER_POM

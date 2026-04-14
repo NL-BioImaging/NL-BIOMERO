@@ -72,6 +72,7 @@ jobs:
           labels: ${{ steps.meta-server.outputs.labels }}
           build-args: |
             BIOMERO_VERSION=${{ env.BIOMERO_VERSION }}
+            OMERO_ZARR_PIXEL_BUFFER_VERSION=${{ env.OMERO_ZARR_PIXEL_BUFFER_VERSION }}
       -
         name: Docker meta BIOMERO
         id: meta-biomero

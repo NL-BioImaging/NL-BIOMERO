@@ -47,6 +47,7 @@ services:
       dockerfile: ./server/Dockerfile
       args:
         BIOMERO_VERSION: ${BIOMERO_VERSION}
+        OMERO_ZARR_PIXEL_BUFFER_VERSION: ${OMERO_ZARR_PIXEL_BUFFER_VERSION}
     # Define environment variables for use in the container.
     # 'nodedescriptors' assigns roles to all the containers
     # 'omero_db_*' are same as in 'database' description.
