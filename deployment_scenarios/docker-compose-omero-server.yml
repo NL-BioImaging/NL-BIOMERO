@@ -8,6 +8,7 @@ services:
       dockerfile: ./server/Dockerfile
       args:
         BIOMERO_VERSION: ${BIOMERO_VERSION}
+        OMERO_ZARR_PIXEL_BUFFER_VERSION: ${OMERO_ZARR_PIXEL_BUFFER_VERSION}
     environment:
       # Connect to external database via host
       CONFIG_omero_db_host: host.docker.internal
