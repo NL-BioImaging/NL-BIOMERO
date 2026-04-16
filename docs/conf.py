@@ -194,6 +194,14 @@ def setup_dynamic_rst_prolog(app):
 .. |omero_biomero_badge| image:: https://img.shields.io/badge/OMERO.biomero-{clean_omero_biomero}-red?style=flat-square
    :alt: OMERO Biomero Version
    :target: https://github.com/NL-BioImaging/OMERO.biomero/releases/tag/{tag_omero_biomero}
+
+.. |biomero_icon| raw:: html
+
+   <img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" style="height:1em; width:auto; vertical-align:middle; display:inline-block; margin:0 2px;">
+
+.. |biomero_2_0| raw:: html
+
+   <span style="white-space:nowrap"><img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" style="height:1em; width:auto; vertical-align:middle; display:inline-block; margin:0 2px;"> BIOMERO 2.0</span>
 """
 
 # Intersphinx mapping
