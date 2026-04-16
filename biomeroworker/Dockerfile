@@ -40,11 +40,13 @@ ENV PATH="$PATH:/opt/bioformats2raw-0.12.0-rc1/bin"
 ## Add BIOMERO Omero Slurm Client
 RUN yum -y install ack
 
-# Release version install:
+# Main branch install:
+# Cache breaker: busts Docker cache when new commits are pushed to main
+ADD https://api.github.com/repos/NL-BioImaging/biomero/git/refs/heads/main /dev/null
 # force zarr < 3 for compatibility w/ omero-cli-zarr by installing biomero AFTER the importer
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && $VIRTUAL_ENV/bin/python -m pip install --ignore-requires-python biomero-importer==${BIOMERO_IMPORTER_VERSION} \
-    && $VIRTUAL_ENV/bin/python -m pip install biomero[full]==${BIOMERO_VERSION}
+    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@main"
 
 ## Adjust processor code with BIOMERO Processor
 # This version forwards HTTP(S) PROXY environment variables to the subprocesses (scripts)

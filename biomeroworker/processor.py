@@ -164,6 +164,8 @@ class ProcessI(omero.grid.Process, omero.util.SimpleServant):
             "SQLALCHEMY_URL",
             "INGEST_TRACKING_DB_URL",
             "IMPORTER_ENABLED",
+            "BIOMERO_SACCT_START_DAYS_AGO",
+            "BIOMERO_SACCT_START_TIME"
         )
 
         # Since we know the location of our OMERO, we're going to

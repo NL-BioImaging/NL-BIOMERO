@@ -123,6 +123,7 @@ services:
     # logging_level doesn't work, but should increase logging
     environment:
       CONFIG_omero_master_host: omeroserver
+      BIOMERO_SACCT_START_DAYS_AGO: 7
       OMERO_WORKER_NAME: biomeroworker
       CONFIG_omero_logging_level: 10
       CONFIG_omero_scripts_timeout: 604800000
