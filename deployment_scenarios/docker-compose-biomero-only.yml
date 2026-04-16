@@ -21,10 +21,13 @@ services:
       CONFIG_omero_master_host: ${EXTERNAL_OMERO_HOST}
       CONFIG_omero_master_port: ${EXTERNAL_OMERO_PORT:-4064}
       OMERO_WORKER_NAME: biomeroworker
-      CONFIG_omero_logging_level: 10
-      CONFIG_omero_scripts_timeout: 604800000
+      CONFIG_omero_logging_level: ${OMERO_LOGGING_LEVEL}
+      CONFIG_omero_sessions_timeout: ${OMERO_SESSIONS_TIMEOUT}
+      CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
       PERSISTENCE_MODULE: eventsourcing_sqlalchemy
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
+      INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
+      IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       # External OMERO credentials
       OMERO_USER: ${EXTERNAL_OMERO_USER:-root}
       OMERO_PASSWORD: ${EXTERNAL_OMERO_PASSWORD}
@@ -34,6 +37,8 @@ services:
       - "~/.ssh:/tmp/.ssh:ro"
       - "../web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
       - "../web/L-Drive:/data"
+      - "../config/biomero-importer:/opt/omero/server/config-importer:ro"
+      - "../web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
 
   omeroweb:
     image: "cellularimagingcf/omeroweb:${NL_BIOMERO_VERSION:-latest}"
@@ -41,14 +46,17 @@ services:
       OMEROHOST: ${EXTERNAL_OMERO_HOST}
       OMEROPORT: ${EXTERNAL_OMERO_PORT:-4064}
       CONFIG_omero_web_login__logo: "https://cembo.eu/wp-content/uploads/2021/04/Amsterdam-UMC.png"
-      CONFIG_omero_scripts_timeout: 604800000
-      ENV: TEST
+      CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
+      CONFIG_omero_web_session__expire__at__browser__close: "${OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE}"
+      CONFIG_omero_web_session__cookie__age: ${OMERO_WEB_SESSION_COOKIE_AGE}
+      ENV: ${OMERO_WEB_ENV}
+      OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
       METABASE_SITE_URL: ${METABASE_SITE_URL}
       METABASE_SECRET_KEY: ${METABASE_SECRET_KEY}
       METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID: ${METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID}
       METABASE_WORKFLOWS_DB_PAGE_DASHBOARD_ID: ${METABASE_WORKFLOWS_DB_PAGE_DASHBOARD_ID}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
-      IMPORT_MOUNT_PATH: /data
+      IMPORT_MOUNT_PATH: ${IMPORT_MOUNT_PATH}
       FORMS_MASTER_USER: ${FORMS_MASTER_USER}
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       # External OMERO credentials
@@ -61,6 +69,7 @@ services:
       - "4080:4080"
     volumes:
       - "../web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
+      - "../web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
       - "../web/L-Drive:/data:rw"
 
   metabase:

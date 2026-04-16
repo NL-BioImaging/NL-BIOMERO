@@ -70,8 +70,9 @@ services:
         omeroworker-1:Tables-0,Indexer-0,PixelData-0,DropBox,MonitorServer,FileServer,Storm
         biomeroworker:Processor-0
       CONFIG_omero_master_host: omeroserver
-      CONFIG_omero_scripts_timeout: 604800000
-      CONFIG_omero_logging_level: 10
+      CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
+      CONFIG_omero_sessions_timeout: ${OMERO_SESSIONS_TIMEOUT}
+      CONFIG_omero_logging_level: ${OMERO_LOGGING_LEVEL}
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
     # Define named network to communicate with other containers
     networks:
@@ -98,7 +99,7 @@ services:
     environment:
       CONFIG_omero_master_host: omeroserver
       OMERO_WORKER_NAME: omeroworker-1
-      CONFIG_omero_scripts_timeout: 604800000
+      CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
     # Named network to communicate with other containers
     networks:
       - omero
@@ -121,10 +122,13 @@ services:
     environment:
       CONFIG_omero_master_host: omeroserver
       OMERO_WORKER_NAME: biomeroworker
-      CONFIG_omero_logging_level: 10
-      CONFIG_omero_scripts_timeout: 604800000
+      CONFIG_omero_logging_level: ${OMERO_LOGGING_LEVEL}
+      CONFIG_omero_sessions_timeout: ${OMERO_SESSIONS_TIMEOUT}
+      CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
       PERSISTENCE_MODULE: eventsourcing_sqlalchemy
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
+      INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
+      IMPORTER_ENABLED: ${IMPORTER_ENABLED}
     # Named network to communicate with other containers
     networks:
       - omero
@@ -135,6 +139,8 @@ services:
       - "/opt/omero/.ssh:/tmp/.ssh:ro" # TODO: Make sure to open permissions on the host e.g. chmod -R 777 /opt/omero/.ssh
       - "../web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
       - "../web/L-Drive:/data"
+      - "../config/biomero-importer:/opt/omero/server/config-importer:ro"
+      - "../web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
 
   # Service for the omero.web UI
   omeroweb:
@@ -150,16 +156,21 @@ services:
       OMEROHOST: omeroserver
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
       CONFIG_omero_web_login__logo: "https://cembo.eu/wp-content/uploads/2021/04/Amsterdam-UMC.png"
-      CONFIG_omero_scripts_timeout: 604800000
-      ENV: TEST
+      CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
+      CONFIG_omero_web_session__expire__at__browser__close: "${OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE}"
+      CONFIG_omero_web_session__cookie__age: ${OMERO_WEB_SESSION_COOKIE_AGE}
+      ENV: ${OMERO_WEB_ENV}
+      OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
       METABASE_SITE_URL: ${METABASE_SITE_URL}
       METABASE_SECRET_KEY: ${METABASE_SECRET_KEY}
       METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID: ${METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID}
       METABASE_WORKFLOWS_DB_PAGE_DASHBOARD_ID: ${METABASE_WORKFLOWS_DB_PAGE_DASHBOARD_ID}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
-      IMPORT_MOUNT_PATH: /data
+      IMPORT_MOUNT_PATH: ${IMPORT_MOUNT_PATH}
       FORMS_MASTER_USER: ${FORMS_MASTER_USER}
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
+      IMPORTER_ENABLED: ${IMPORTER_ENABLED}
+      ANALYZER_ENABLED: ${ANALYZER_ENABLED}
     # Named network to communicate with other containers
     networks:
       - omero
@@ -169,6 +180,7 @@ services:
     #  - "4080:4080"
     volumes:
       - "../web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
+      - "../web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
       - "../web/local_omeroweb_edits/pretty_login/login_page_images/bioimaging.png:/opt/omero/web/venv3/lib/python3.9/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/AmsterdamUMC-logo.png:ro"
       - "../web/L-Drive:/data:rw"
 
@@ -191,26 +203,33 @@ services:
   biomero-importer:
     image: "cellularimagingcf/biomero-importer:${BIOMERO_IMPORTER_VERSION:-latest}"
     privileged: true
+    profiles:
+      - "IMPORTER_ENABLED"
     devices:
       - "/dev/fuse:/dev/fuse"
     security_opt:
       - "label=disable"
     environment:
       OMERO_HOST: omeroserver
-      OMERO_USER: root
+      OMERO_USER: ${OMERO_IMPORTER_USER}
       OMERO_PASSWORD: ${OMERO_ROOT_PASSWORD}
-      OMERO_PORT: 4064
+      OMERO_PORT: ${OMERO_PORT}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
-      ADI_RUN_MIGRATIONS: "1"
+      ADI_RUN_MIGRATIONS: ${ADI_RUN_MIGRATIONS}
       PODMAN_USERNS_MODE: keep-id
     networks:
       - omero
     volumes:
       - "omero:/OMERO"
       - "../web/L-Drive:/data" # TODO: Make sure to open permissions on the host e.g. chmod -R 777 ./web/L-Drive
-      - "../config/biomero-importer/settings.yml:/auto-importer/config/settings.yml"
-      - "../config/biomero-importer/groups_list.json:/auto-importer/config/groups_list.json"
-    user: "1000:1000"
+      - "../config/biomero-importer:/auto-importer/config:ro"
+      - "../logs/biomero-importer:/auto-importer/logs"
+    user: "${OMERO_CONTAINER_USER}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
 # Define the network(s) to communicate between containers
 networks:

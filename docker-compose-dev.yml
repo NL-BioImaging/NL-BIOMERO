@@ -56,13 +56,14 @@ services:
       CONFIG_omero_db_user: ${POSTGRES_USER}
       CONFIG_omero_db_pass: ${POSTGRES_PASSWORD}
       CONFIG_omero_db_name: ${POSTGRES_DB}
-      CONFIG_omero_scripts_timeout: 604800000
-      CONFIG_omero_logging_level: 10
+      CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
+      CONFIG_omero_logging_level: ${OMERO_LOGGING_LEVEL}
       CONFIG_omero_server_nodedescriptors: >-
         master:Blitz-0
         omeroworker-1:Tables-0,Indexer-0,PixelData-0,DropBox,MonitorServer,FileServer,Storm
         biomeroworker:Processor-0
       CONFIG_omero_master_host: omeroserver
+      CONFIG_omero_sessions_timeout: ${OMERO_SESSIONS_TIMEOUT}
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
     # Define named network to communicate with other containers
     networks:
@@ -91,7 +92,7 @@ services:
     environment:
       CONFIG_omero_master_host: omeroserver
       OMERO_WORKER_NAME: omeroworker-1
-      CONFIG_omero_scripts_timeout: 604800000
+      CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
     # Named network to communicate with other containers
     networks:
       - omero
@@ -123,8 +124,9 @@ services:
     environment:
       CONFIG_omero_master_host: omeroserver
       OMERO_WORKER_NAME: biomeroworker
-      CONFIG_omero_logging_level: 10
-      CONFIG_omero_scripts_timeout: 604800000
+      CONFIG_omero_logging_level: ${OMERO_LOGGING_LEVEL}
+      CONFIG_omero_sessions_timeout: ${OMERO_SESSIONS_TIMEOUT}
+      CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
       PERSISTENCE_MODULE: eventsourcing_sqlalchemy
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
@@ -162,15 +164,17 @@ services:
     environment:
       OMEROHOST: omeroserver
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
-      CONFIG_omero_scripts_timeout: 604800000
-      ENV: TEST
+      CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
+      CONFIG_omero_web_session__expire__at__browser__close: "${OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE}"
+      CONFIG_omero_web_session__cookie__age: ${OMERO_WEB_SESSION_COOKIE_AGE}
+      ENV: ${OMERO_WEB_ENV}
       OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
       METABASE_SITE_URL: ${METABASE_SITE_URL}
       METABASE_SECRET_KEY: ${METABASE_SECRET_KEY}
       METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID: ${METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID}
       METABASE_WORKFLOWS_DB_PAGE_DASHBOARD_ID: ${METABASE_WORKFLOWS_DB_PAGE_DASHBOARD_ID}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
-      IMPORT_MOUNT_PATH: /data
+      IMPORT_MOUNT_PATH: ${IMPORT_MOUNT_PATH}
       FORMS_MASTER_USER: ${FORMS_MASTER_USER}
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
@@ -226,11 +230,11 @@ services:
       - "label=disable"
     environment:
       OMERO_HOST: omeroserver
-      OMERO_USER: root
+      OMERO_USER: ${OMERO_IMPORTER_USER}
       OMERO_PASSWORD: ${OMERO_ROOT_PASSWORD}
-      OMERO_PORT: 4064
+      OMERO_PORT: ${OMERO_PORT}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
-      ADI_RUN_MIGRATIONS: "1"
+      ADI_RUN_MIGRATIONS: ${ADI_RUN_MIGRATIONS}
     networks:
       - omero
     volumes:
@@ -240,7 +244,7 @@ services:
       - "./biomero-importer/config:/auto-importer/config"
       - "./biomero-importer/biomero_importer:/auto-importer/biomero_importer"
       - "./logs/biomero-importer:/auto-importer/logs"
-    user: "1000:1000"
+    user: "${OMERO_CONTAINER_USER}"
     logging:
       driver: "json-file"
       options:

@@ -16,8 +16,9 @@ services:
       CONFIG_omero_db_user: ${POSTGRES_USER}
       CONFIG_omero_db_pass: ${POSTGRES_PASSWORD}
       CONFIG_omero_db_name: ${POSTGRES_DB}
-      CONFIG_omero_scripts_timeout: 604800000
-      CONFIG_omero_logging_level: 10
+      CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
+      CONFIG_omero_sessions_timeout: ${OMERO_SESSIONS_TIMEOUT}
+      CONFIG_omero_logging_level: ${OMERO_LOGGING_LEVEL}
       CONFIG_omero_server_nodedescriptors: >-
         master:Blitz-0
         omeroworker-1:Tables-0,Indexer-0,PixelData-0,DropBox,MonitorServer,FileServer,Storm
@@ -42,7 +43,7 @@ services:
     environment:
       CONFIG_omero_master_host: omeroserver
       OMERO_WORKER_NAME: omeroworker-1
-      CONFIG_omero_scripts_timeout: 604800000
+      CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
     volumes:
       - "${HOST_OMERO_DATA_PATH}:/OMERO"  # Same host-mounted shared storage
       - "${HOST_L_DRIVE_PATH}:/data"
