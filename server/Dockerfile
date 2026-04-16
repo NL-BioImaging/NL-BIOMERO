@@ -16,7 +16,8 @@ USER omero-server
 
 # Configuration files - use shell script for restore
 ADD server/00-restore-config.sh* /startup/
-ADD server/01-ldap-config.omero /opt/omero/server/config/
+# LDAP configuration - add with correct values
+# ADD server/01-ldap-config.omero /opt/omero/server/config/
 
 # Clone specific release version
 # We don't need the example scripts
