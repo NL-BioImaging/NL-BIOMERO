@@ -15,6 +15,22 @@ administrator (sometimes on port **4080**).
    for login details. Administrators must change default passwords immediately after
    first login — see :doc:`../sysadmin/metabase-admin` for the security setup.
 
+.. warning::
+   **Do not log out of OMERO while a job is running.**
+
+   Logging out, or closing the browser without the session being kept alive, will
+   terminate your active OMERO session. Any running import or analysis jobs that
+   were started under that session may fail or become orphaned.
+
+   - **After closing the browser**, a session remains active for the configured
+     session timeout period (default: 7 days). Jobs submitted before closing will
+     continue to run.
+   - **Logging out immediately ends the session**, regardless of running jobs.
+     If you need to step away, simply close the browser tab instead of logging out.
+
+   Administrators can adjust the session timeout via ``CONFIG_omero_sessions_timeout``
+   in the deployment ``.env`` file.
+
 OMERO.biomero Interface
 -----------------------
 
