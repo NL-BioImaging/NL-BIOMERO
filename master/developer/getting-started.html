@@ -189,6 +189,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#required-follow-up-actions">Required Follow-up Actions</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#zarr-and-plate-workflow-types">Zarr and Plate Workflow Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#zarr-workflow">Zarr Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#zarr-plate-workflow">Zarr Plate Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#biaflows-descriptors-and-zarr-auto-detection">BIAFLOWS descriptors and Zarr auto-detection</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#slurm-check-setup-output">Slurm Check Setup Output</a></li>
 </ul>
 </li>
@@ -308,6 +314,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#non-docker-deployments">Non-Docker deployments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#validating-the-setup">Validating the setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#zarr-workflow-support">Zarr Workflow Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#troubleshooting">Troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#related-documentation">Related documentation</a></li>
 </ul>
@@ -404,6 +411,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="workflow-development.html#additional-resources">Additional Resources</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="workflow-development.html#biaflows-integration">BIAFLOWS Integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="workflow-development.html#zarr-workflow-types-biomero-2-4-0">Zarr Workflow Types (BIOMERO ≥ 2.4.0)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="workflow-development.html#development-workflow">Development Workflow</a></li>
@@ -624,11 +632,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../user/getting-started.html">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#first-steps-with-nl-biomero">First Steps with NL-BIOMERO</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#access-the-platform">Access the Platform</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#default-login">Default Login</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#omero-biomero-interface">OMERO.biomero Interface</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#platform-overview">Platform Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#platform-overview-from-the-readme">Platform Overview from the README</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#biomero-bioimage-analysis"><img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="22" align="center"> BIOMERO - BioImage Analysis</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../user/getting-started.html#quick-workflow-example">Quick Workflow Example:</a></li>
 </ul>
@@ -1054,7 +1064,22 @@ docker-compose<span class="w"> </span><span class="nb">exec</span><span class="w
 <h4>� Development<a class="headerlink" href="#development" title="Permalink to this heading"></a></h4>
 <section id="building-documentation">
 <h5>Building Documentation<a class="headerlink" href="#building-documentation" title="Permalink to this heading"></a></h5>
-<p>To rebuild the versioned documentation locally:</p>
+<section id="quick-local-preview-working-directory">
+<h6>Quick local preview (working directory)<a class="headerlink" href="#quick-local-preview-working-directory" title="Permalink to this heading"></a></h6>
+<p>To preview your <strong>uncommitted changes</strong> instantly:</p>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd </span><span class="s2">&quot;NL-BIOMERO\docs&quot;</span>
+<span class="p">.\</span><span class="n">venv</span><span class="p">\</span><span class="n">Scripts</span><span class="p">\</span><span class="n">sphinx-build</span><span class="p">.</span><span class="n">exe</span> <span class="n">-b</span> <span class="n">html</span> <span class="p">.</span> <span class="n">_build_local</span>
+</pre></div>
+</div>
+<p>Then open <code class="docutils literal notranslate"><span class="pre">docs/_build_local/sysadmin/omero-biomero-admin.html</span></code> (or any page) in a browser.</p>
+<blockquote>
+<div><p><strong>Note</strong>: <code class="docutils literal notranslate"><span class="pre">sphinx-multiversion</span></code> builds from <strong>git commits only</strong> — it will not pick up
+uncommitted edits. Always use <code class="docutils literal notranslate"><span class="pre">sphinx-build</span></code> for a quick preview while authoring.</p>
+</div></blockquote>
+</section>
+<section id="full-versioned-build-all-tags-branches">
+<h6>Full versioned build (all tags + branches)<a class="headerlink" href="#full-versioned-build-all-tags-branches" title="Permalink to this heading"></a></h6>
+<p>Once your changes are committed, rebuild the complete versioned site:</p>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd </span><span class="s2">&quot;NL-BIOMERO\docs&quot;</span>
 <span class="nb">Remove-Item</span> <span class="n">-Recurse</span> <span class="n">-Force</span> <span class="n">_build</span> <span class="n">-ErrorAction</span> <span class="n">SilentlyContinue</span>
 <span class="p">.\</span><span class="n">venv</span><span class="p">\</span><span class="n">Scripts</span><span class="p">\</span><span class="n">sphinx-multiversion</span><span class="p">.</span><span class="n">exe</span> <span class="p">.</span> <span class="n">_build</span>
@@ -1063,7 +1088,8 @@ docker-compose<span class="w"> </span><span class="nb">exec</span><span class="w
 <span class="k">if</span> <span class="p">(</span><span class="nv">$latestTag</span><span class="p">)</span> <span class="p">{</span> <span class="nb">Copy-Item</span> <span class="s2">&quot;_build/$latestTag&quot;</span> <span class="s2">&quot;_build/latest&quot;</span> <span class="n">-Recurse</span><span class="p">;</span> <span class="nb">Write-Host</span> <span class="s2">&quot;Created latest directory pointing to $latestTag&quot;</span> <span class="p">}</span>
 </pre></div>
 </div>
-<p>This builds all version branches/tags plus creates a <code class="docutils literal notranslate"><span class="pre">latest</span></code> directory pointing to the newest release.</p>
+<p>This builds all tagged versions and branches, then creates a <code class="docutils literal notranslate"><span class="pre">latest/</span></code> directory pointing to the newest release tag.</p>
+</section>
 </section>
 </section>
 <hr class="docutils" />

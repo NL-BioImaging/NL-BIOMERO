@@ -189,6 +189,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#required-follow-up-actions">Required Follow-up Actions</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#zarr-and-plate-workflow-types">Zarr and Plate Workflow Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#zarr-workflow">Zarr Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#zarr-plate-workflow">Zarr Plate Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#biaflows-descriptors-and-zarr-auto-detection">BIAFLOWS descriptors and Zarr auto-detection</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#slurm-check-setup-output">Slurm Check Setup Output</a></li>
 </ul>
 </li>
@@ -308,6 +314,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#non-docker-deployments">Non-Docker deployments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#validating-the-setup">Validating the setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#zarr-workflow-support">Zarr Workflow Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#troubleshooting">Troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#related-documentation">Related documentation</a></li>
 </ul>
@@ -404,6 +411,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#additional-resources">Additional Resources</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#biaflows-integration">BIAFLOWS Integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#zarr-workflow-types-biomero-2-4-0">Zarr Workflow Types (BIOMERO ≥ 2.4.0)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#development-workflow">Development Workflow</a></li>
@@ -624,11 +632,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../user/getting-started.html">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#first-steps-with-nl-biomero">First Steps with NL-BIOMERO</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#access-the-platform">Access the Platform</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#default-login">Default Login</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#omero-biomero-interface">OMERO.biomero Interface</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#platform-overview">Platform Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#platform-overview-from-the-readme">Platform Overview from the README</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#biomero-bioimage-analysis"><img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="22" align="center"> BIOMERO - BioImage Analysis</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../user/getting-started.html#quick-workflow-example">Quick Workflow Example:</a></li>
 </ul>
@@ -752,6 +762,35 @@
 <p style="margin: 0 0 15px 0; font-size: 14px;">Comprehensive documentation for BIAFLOWS workflow development and integration</p>
 <a href="http://biaflows-doc.neubias.org/" target="_blank" style="background: #9c27b0; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-weight: bold;">📚 BIAFLOWS Docs →</a>
 </div></section>
+<section id="zarr-workflow-types-biomero-2-4-0">
+<h3>Zarr Workflow Types (BIOMERO ≥ 2.4.0)<a class="headerlink" href="#zarr-workflow-types-biomero-2-4-0" title="Permalink to this heading"></a></h3>
+<p>From BIOMERO v2.4.0 / NL-BIOMERO v1.5.0 onward, workflows can be configured to
+receive <strong>Zarr</strong> input instead of the default flat folder of TIFF images. This is
+set by a system administrator in the Analyzer Admin UI — it is not part of the
+workflow descriptor itself.</p>
+<p>Two modes exist:</p>
+<dl class="simple">
+<dt><strong>Zarr Workflow</strong></dt><dd><p>The workflow receives a single Zarr file exported from OMERO. BIOMERO skips
+the TIFF conversion step and passes the Zarr directly to the SLURM job.</p>
+</dd>
+<dt><strong>Zarr Plate Workflow</strong></dt><dd><p>The workflow receives an entire plate packaged as a single Zarr,
+preserving well and acquisition structure. Only plates can be submitted as
+input. These workflows appear under the dedicated <strong>Plate Workflows</strong> tab in
+the analyzer UI.</p>
+</dd>
+</dl>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Standard BIAFLOWS workflows — which read a flat folder of TIFF images — are
+<strong>not</strong> compatible with either Zarr mode. A workflow must be specifically
+written to read Zarr input (or Zarr plate structure) in order to work with
+these options.</p>
+</div>
+<p>For the full explanation of how this interacts with the BIAFLOWS descriptor
+format, why auto-detection is not currently possible, and plans for CWL-based
+descriptor support, see <a class="reference internal" href="../sysadmin/omero-biomero-admin.html#biaflows-descriptor-note"><span class="std std-ref">BIAFLOWS descriptors and Zarr auto-detection</span></a> in
+<a class="reference internal" href="../sysadmin/omero-biomero-admin.html"><span class="doc">OMERO.biomero Plugin Administration</span></a>.</p>
+</section>
 </section>
 <section id="development-workflow">
 <h2>Development Workflow<a class="headerlink" href="#development-workflow" title="Permalink to this heading"></a></h2>

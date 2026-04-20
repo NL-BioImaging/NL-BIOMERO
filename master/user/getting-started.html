@@ -188,6 +188,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#required-follow-up-actions">Required Follow-up Actions</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#zarr-and-plate-workflow-types">Zarr and Plate Workflow Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#zarr-workflow">Zarr Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#zarr-plate-workflow">Zarr Plate Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#biaflows-descriptors-and-zarr-auto-detection">BIAFLOWS descriptors and Zarr auto-detection</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#slurm-check-setup-output">Slurm Check Setup Output</a></li>
 </ul>
 </li>
@@ -307,6 +313,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#non-docker-deployments">Non-Docker deployments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#validating-the-setup">Validating the setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#zarr-workflow-support">Zarr Workflow Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#troubleshooting">Troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#related-documentation">Related documentation</a></li>
 </ul>
@@ -403,6 +410,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#additional-resources">Additional Resources</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#biaflows-integration">BIAFLOWS Integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#zarr-workflow-types-biomero-2-4-0">Zarr Workflow Types (BIOMERO ≥ 2.4.0)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#development-workflow">Development Workflow</a></li>
@@ -623,11 +631,13 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#first-steps-with-nl-biomero">First Steps with NL-BIOMERO</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#access-the-platform">Access the Platform</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#default-login">Default Login</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#omero-biomero-interface">OMERO.biomero Interface</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#next-steps">Next Steps</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#platform-overview">Platform Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#platform-overview-from-the-readme">Platform Overview from the README</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#biomero-bioimage-analysis"><img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="22" align="center"> BIOMERO - BioImage Analysis</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#quick-workflow-example">Quick Workflow Example:</a></li>
 </ul>
@@ -682,39 +692,85 @@
 <h2>First Steps with NL-BIOMERO<a class="headerlink" href="#first-steps-with-nl-biomero" title="Permalink to this heading"></a></h2>
 <section id="access-the-platform">
 <h3>Access the Platform<a class="headerlink" href="#access-the-platform" title="Permalink to this heading"></a></h3>
-<p>After deployment, access these interfaces:</p>
+<p>After deployment, open OMERO.web at the address provided by your system
+administrator (sometimes on port <strong>4080</strong>).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Default credentials are set during deployment. Contact your system administrator
+for login details. Administrators must change default passwords immediately after
+first login — see <a class="reference internal" href="../sysadmin/metabase-admin.html"><span class="doc">Metabase Administration</span></a> for the security setup.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>Do not log out of OMERO while a job is running.</strong></p>
+<p>Logging out, or closing the browser without the session being kept alive, will
+terminate your active OMERO session. Any running import or analysis jobs that
+were started under that session may fail or become orphaned.</p>
 <ul class="simple">
-<li><p><strong>OMERO.web</strong>: <a class="reference external" href="http://localhost:4080">http://localhost:4080</a>
-- Login: <code class="docutils literal notranslate"><span class="pre">root</span></code> / <code class="docutils literal notranslate"><span class="pre">omero</span></code> (change default password)</p></li>
-<li><p><strong>Metabase</strong>: <a class="reference external" href="http://localhost:3000">http://localhost:3000</a>
-- Login: <code class="docutils literal notranslate"><span class="pre">admin&#64;biomero.com</span></code> / <code class="docutils literal notranslate"><span class="pre">b1omero</span></code> (change default password)</p></li>
+<li><p><strong>After closing the browser</strong>, a session remains active for the configured
+session timeout period (default: 7 days). Jobs submitted before closing will
+continue to run.</p></li>
+<li><p><strong>Logging out immediately ends the session</strong>, regardless of running jobs.
+If you need to step away, simply close the browser tab instead of logging out.</p></li>
 </ul>
-</section>
-<section id="default-login">
-<h3>Default Login<a class="headerlink" href="#default-login" title="Permalink to this heading"></a></h3>
-<p>Use the default credentials to get started:</p>
-<ul class="simple">
-<li><p><strong>Username</strong>: <code class="docutils literal notranslate"><span class="pre">root</span></code></p></li>
-<li><p><strong>Password</strong>: <code class="docutils literal notranslate"><span class="pre">omero</span></code></p></li>
-</ul>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p><strong>For System Administrators</strong>: Change default passwords immediately after deployment.
-See <a class="reference internal" href="../sysadmin/metabase-admin.html"><span class="doc">Metabase Administration</span></a> for complete security setup procedures.</p>
+<p>Administrators can adjust the session timeout via <code class="docutils literal notranslate"><span class="pre">CONFIG_omero_sessions_timeout</span></code>
+in the deployment <code class="docutils literal notranslate"><span class="pre">.env</span></code> file.</p>
 </div>
 </section>
+</section>
+<section id="omero-biomero-interface">
+<h2>OMERO.biomero Interface<a class="headerlink" href="#omero-biomero-interface" title="Permalink to this heading"></a></h2>
+<p>OMERO.biomero is a plugin inside OMERO.web that provides a unified interface for
+importing and analyzing imaging data. After logging in to OMERO.web, open the
+<cite>BIOMERO</cite> panel from the top navigation bar.</p>
+<p>The interface has the following main areas:</p>
+<dl>
+<dt><strong>Import</strong></dt><dd><p>The Import section has subtabs:</p>
+<dl class="simple">
+<dt><em>Import Images</em></dt><dd><p>Browse your current group’s remote shared storage and start an in-place import to bring
+your data into OMERO without duplicating files on disk.</p>
+</dd>
+<dt><em>Monitor</em></dt><dd><p>Track the progress of your import orders. An embedded Metabase dashboard shows
+all active and completed imports for your group. Each import order is identified
+by a <strong>UUID</strong> shown in the table — use this UUID to find your imported data back
+in OMERO.web.</p>
+</dd>
+</dl>
+</dd>
+<dt><strong>Analyze</strong></dt><dd><p>The Analyze section has subtabs:</p>
+<dl class="simple">
+<dt><em>Run</em></dt><dd><p>Submit analysis jobs to the HPC cluster. The Run subtab itself has two sub-sections:</p>
+<ul class="simple">
+<li><p><strong>Image Workflows</strong> <em>(default)</em> — choose a workflow, select datasets or individual images from OMERO
+as input, configure workflow parameters, and submit.</p></li>
+<li><p><strong>Plate Workflows</strong> <em>(BIOMERO ≥ 2.4.0)</em> — plate-aware analysis that sends the
+entire plate as a single Zarr, preserving well and acquisition structure.
+Only plates can be selected as input. Only workflows configured as
+<em>Zarr Plate Workflows</em> by your administrator appear here.</p></li>
+</ul>
+</dd>
+<dt><em>Status</em></dt><dd><p>Track your submitted jobs and see their current state (queued, running,
+finished, failed). Each job is identified by a <strong>Workflow ID (UUID)</strong> shown in
+the dashboard. Once a job finishes, search for that UUID in OMERO.web to find
+your result images, which are imported automatically with full provenance
+metadata.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 <section id="next-steps">
 <h3>Next Steps<a class="headerlink" href="#next-steps" title="Permalink to this heading"></a></h3>
 <ol class="arabic simple">
-<li><p><strong>Import Data</strong> - See <span class="xref std std-doc">data-import</span> for uploading images</p></li>
-<li><p><strong>Run Analysis</strong> - See <span class="xref std std-doc">biomero-workflows</span> for bioimage analysis</p></li>
-<li><p><strong>View Results</strong> - Use the web interface to explore results</p></li>
-<li><p><strong>Analytics</strong> - Use Metabase for advanced visualization</p></li>
+<li><p><strong>Import Data</strong> — Use the <strong>Import → Import Images</strong> tab to bring your microscopy data into OMERO</p></li>
+<li><p><strong>Run Analysis</strong> — Open <strong>Analyze → Run → Image Workflows</strong> (or <strong>Plate Workflows</strong> for plates), choose a workflow, and submit</p></li>
+<li><p><strong>Track Progress</strong> — Check <strong>Analyze → Status</strong> to monitor running jobs; note the Workflow UUID for later</p></li>
+<li><p><strong>View Results</strong> — Search for the Workflow UUID in OMERO.web to find your imported result images</p></li>
+<li><p><strong>Analytics</strong> — Use <strong>Import → Monitor</strong> or Metabase to explore import and workflow statistics</p></li>
 </ol>
 </section>
 </section>
-<section id="platform-overview">
-<h2>Platform Overview<a class="headerlink" href="#platform-overview" title="Permalink to this heading"></a></h2>
+<section id="platform-overview-from-the-readme">
+<h2>Platform Overview from the README<a class="headerlink" href="#platform-overview-from-the-readme" title="Permalink to this heading"></a></h2>
 <p>To get started with data:</p>
 <ol class="arabic simple">
 <li><p><strong>Web Import</strong>: Use the Importer tab in OMERO.biomero at http://localhost:4080/omero_biomero/biomero/</p></li>

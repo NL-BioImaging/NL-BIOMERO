@@ -189,6 +189,12 @@
 <li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#required-follow-up-actions">Required Follow-up Actions</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#zarr-and-plate-workflow-types">Zarr and Plate Workflow Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#zarr-workflow">Zarr Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#zarr-plate-workflow">Zarr Plate Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#biaflows-descriptors-and-zarr-auto-detection">BIAFLOWS descriptors and Zarr auto-detection</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#slurm-check-setup-output">Slurm Check Setup Output</a></li>
 </ul>
 </li>
@@ -308,6 +314,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#non-docker-deployments">Non-Docker deployments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#validating-the-setup">Validating the setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#zarr-workflow-support">Zarr Workflow Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#related-documentation">Related documentation</a></li>
 </ul>
@@ -404,6 +411,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#additional-resources">Additional Resources</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#biaflows-integration">BIAFLOWS Integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#zarr-workflow-types-biomero-2-4-0">Zarr Workflow Types (BIOMERO ≥ 2.4.0)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#development-workflow">Development Workflow</a></li>
@@ -624,11 +632,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../user/getting-started.html">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#first-steps-with-nl-biomero">First Steps with NL-BIOMERO</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#access-the-platform">Access the Platform</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#default-login">Default Login</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#omero-biomero-interface">OMERO.biomero Interface</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#platform-overview">Platform Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#platform-overview-from-the-readme">Platform Overview from the README</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#biomero-bioimage-analysis"><img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="22" align="center"> BIOMERO - BioImage Analysis</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../user/getting-started.html#quick-workflow-example">Quick Workflow Example:</a></li>
 </ul>
@@ -688,6 +698,8 @@
 <li><p><cite>biomeroworker</cite> needs <strong>two extra volume mounts</strong> and <strong>two extra env vars</strong> — see <a class="reference internal" href="#required-config"><span class="std std-ref">Required configuration changes</span></a></p></li>
 <li><p>The <cite>biomeroworker</cite> needs <strong>write permission</strong> on group folders in the mounted storage</p></li>
 <li><p>From BIOMERO v2.3.0 / NL-BIOMERO v1.3.0 onward</p></li>
+<li><p>This integration is also a <strong>prerequisite</strong> for Zarr workflow support (BIOMERO ≥ 2.4.0) —
+see <a class="reference internal" href="omero-biomero-admin.html#zarr-workflow-types"><span class="std std-ref">Zarr and Plate Workflow Types</span></a> in <a class="reference internal" href="omero-biomero-admin.html"><span class="doc">OMERO.biomero Plugin Administration</span></a></p></li>
 </ul>
 </div>
 <p>This guide covers connecting BIOMERO.analyzer’s SLURM result import to BIOMERO.importer so that
@@ -884,6 +896,17 @@ deployment prerequisites.</p></li>
 <li><p>The imported images have Fileset Info in OMERO with info about <cite>Imported with: –transfer=ln_s</cite> <cite>Imported from:`</cite> and <cite>Paths on server:</cite>.</p></li>
 </ul>
 </section>
+<section id="zarr-workflow-support">
+<h2>Zarr Workflow Support<a class="headerlink" href="#zarr-workflow-support" title="Permalink to this heading"></a></h2>
+<p>From BIOMERO v2.4.0 / NL-BIOMERO v1.4.0 onward, this integration is also a <strong>prerequisite</strong>
+for Zarr-based analysis workflows (both regular Zarr workflows and Zarr plate workflows).
+BIOMERO uses the same shared remote storage pathway to stage Zarr input data for SLURM jobs
+and to retrieve results.</p>
+<p>Without <code class="docutils literal notranslate"><span class="pre">IMPORTER_ENABLED=true</span></code>, the Zarr workflow type toggles in the Analyzer Admin UI
+have no effect and workflows will fall back to standard TIFF-based processing.</p>
+<p>For per-workflow configuration of Zarr types, see <a class="reference internal" href="omero-biomero-admin.html#zarr-workflow-types"><span class="std std-ref">Zarr and Plate Workflow Types</span></a>
+in <a class="reference internal" href="omero-biomero-admin.html"><span class="doc">OMERO.biomero Plugin Administration</span></a>.</p>
+</section>
 <section id="troubleshooting">
 <h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this heading"></a></h2>
 <dl class="simple">
@@ -910,6 +933,7 @@ the paths in docker-compose are consistent.</p>
 <li><p><a class="reference internal" href="../developer/containers/analyzer-importer-integration.html"><span class="doc">Analyzer → Importer Integration</span></a> — technical deep-dive</p></li>
 <li><p><a class="reference internal" href="../developer/containers/biomero-importer.html"><span class="doc">BIOMERO.importer Container</span></a> — BIOMERO.importer container reference</p></li>
 <li><p><a class="reference internal" href="../developer/containers/biomeroworker.html"><span class="doc">BIOMERO Worker Container</span></a> — biomeroworker container reference</p></li>
+<li><p><a class="reference internal" href="omero-biomero-admin.html"><span class="doc">OMERO.biomero Plugin Administration</span></a> — Zarr workflow type configuration in the Analyzer Admin UI</p></li>
 </ul>
 </section>
 </section>

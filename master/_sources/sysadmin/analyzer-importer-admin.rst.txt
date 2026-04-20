@@ -9,6 +9,8 @@ BIOMERO.analyzer + BIOMERO.importer Integration
    - `biomeroworker` needs **two extra volume mounts** and **two extra env vars** — see :ref:`required-config`
    - The `biomeroworker` needs **write permission** on group folders in the mounted storage
    - From BIOMERO v2.3.0 / NL-BIOMERO v1.3.0 onward
+   - This integration is also a **prerequisite** for Zarr workflow support (BIOMERO ≥ 2.4.0) —
+     see :ref:`zarr-workflow-types` in :doc:`omero-biomero-admin`
 
 This guide covers connecting BIOMERO.analyzer's SLURM result import to BIOMERO.importer so that
 analysis results land on your managed **remote storage** rather than on OMERO server storage.
@@ -214,6 +216,20 @@ Run a test analysis workflow. Afterwards check:
 * You can find the imported images in OMERO.web using either UUID from the importer or analyzer.
 * The imported images have Fileset Info in OMERO with info about `Imported with: --transfer=ln_s` `Imported from:`` and `Paths on server:`.
 
+Zarr Workflow Support
+---------------------
+
+From BIOMERO v2.4.0 / NL-BIOMERO v1.4.0 onward, this integration is also a **prerequisite**
+for Zarr-based analysis workflows (both regular Zarr workflows and Zarr plate workflows).
+BIOMERO uses the same shared remote storage pathway to stage Zarr input data for SLURM jobs
+and to retrieve results.
+
+Without ``IMPORTER_ENABLED=true``, the Zarr workflow type toggles in the Analyzer Admin UI
+have no effect and workflows will fall back to standard TIFF-based processing.
+
+For per-workflow configuration of Zarr types, see :ref:`zarr-workflow-types`
+in :doc:`omero-biomero-admin`.
+
 Troubleshooting
 ---------------
 
@@ -243,3 +259,4 @@ Related documentation
 * :doc:`../developer/containers/analyzer-importer-integration` — technical deep-dive
 * :doc:`../developer/containers/biomero-importer` — BIOMERO.importer container reference
 * :doc:`../developer/containers/biomeroworker` — biomeroworker container reference
+* :doc:`omero-biomero-admin` — Zarr workflow type configuration in the Analyzer Admin UI

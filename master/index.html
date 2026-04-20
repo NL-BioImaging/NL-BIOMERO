@@ -188,6 +188,12 @@
 <li class="toctree-l4"><a class="reference internal" href="sysadmin/omero-biomero-admin.html#required-follow-up-actions">Required Follow-up Actions</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="sysadmin/omero-biomero-admin.html#zarr-and-plate-workflow-types">Zarr and Plate Workflow Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sysadmin/omero-biomero-admin.html#zarr-workflow">Zarr Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sysadmin/omero-biomero-admin.html#zarr-plate-workflow">Zarr Plate Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sysadmin/omero-biomero-admin.html#biaflows-descriptors-and-zarr-auto-detection">BIAFLOWS descriptors and Zarr auto-detection</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="sysadmin/omero-biomero-admin.html#slurm-check-setup-output">Slurm Check Setup Output</a></li>
 </ul>
 </li>
@@ -307,6 +313,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html#non-docker-deployments">Non-Docker deployments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html#validating-the-setup">Validating the setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html#zarr-workflow-support">Zarr Workflow Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html#troubleshooting">Troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html#related-documentation">Related documentation</a></li>
 </ul>
@@ -403,6 +410,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="developer/workflow-development.html#additional-resources">Additional Resources</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="developer/workflow-development.html#biaflows-integration">BIAFLOWS Integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="developer/workflow-development.html#zarr-workflow-types-biomero-2-4-0">Zarr Workflow Types (BIOMERO ≥ 2.4.0)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="developer/workflow-development.html#development-workflow">Development Workflow</a></li>
@@ -623,11 +631,13 @@
 <li class="toctree-l1"><a class="reference internal" href="user/getting-started.html">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="user/getting-started.html#first-steps-with-nl-biomero">First Steps with NL-BIOMERO</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="user/getting-started.html#access-the-platform">Access the Platform</a></li>
-<li class="toctree-l3"><a class="reference internal" href="user/getting-started.html#default-login">Default Login</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="user/getting-started.html#omero-biomero-interface">OMERO.biomero Interface</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="user/getting-started.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="user/getting-started.html#platform-overview">Platform Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user/getting-started.html#platform-overview-from-the-readme">Platform Overview from the README</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="user/getting-started.html#biomero-bioimage-analysis"><img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="22" align="center"> BIOMERO - BioImage Analysis</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="user/getting-started.html#quick-workflow-example">Quick Workflow Example:</a></li>
 </ul>
@@ -678,7 +688,7 @@
 
   <section id="welcome-to-nl-biomero-s-documentation">
 <h1>Welcome to NL-BIOMERO’s documentation!<a class="headerlink" href="#welcome-to-nl-biomero-s-documentation" title="Permalink to this heading"></a></h1>
-<p><a class="reference external" href="https://github.com/NL-BioImaging/biomero/releases/tag/v2.3.0"><img alt="BIOMERO Version  " src="https://img.shields.io/badge/BIOMERO.analyzer-2.3.0-purple?style=flat-square" /></a> <a class="reference external" href="https://github.com/NL-BioImaging/BIOMERO.importer/releases/tag/v1.2.1"><img alt="BIOMERO Importer Version" src="https://img.shields.io/badge/BIOMERO.importer-1.2.1-green?style=flat-square" /></a> <a class="reference external" href="https://github.com/NL-BioImaging/OMERO.biomero/releases/tag/v1.2.1"><img alt="OMERO Biomero Version" src="https://img.shields.io/badge/OMERO.biomero-1.2.1-red?style=flat-square" /></a> <a class="reference external" href="https://github.com/NL-BioImaging/OMERO.forms/releases/tag/v2.2.0"><img alt="OMERO Forms Version" src="https://img.shields.io/badge/OMERO.forms-2.2.0-orange?style=flat-square" /></a></p>
+<p><a class="reference external" href="https://github.com/NL-BioImaging/biomero/releases/tag/v2.5.0"><img alt="BIOMERO Version  " src="https://img.shields.io/badge/BIOMERO.analyzer-2.5.0-purple?style=flat-square" /></a> <a class="reference external" href="https://github.com/NL-BioImaging/BIOMERO.importer/releases/tag/v1.2.1"><img alt="BIOMERO Importer Version" src="https://img.shields.io/badge/BIOMERO.importer-1.2.1-green?style=flat-square" /></a> <a class="reference external" href="https://github.com/NL-BioImaging/OMERO.biomero/releases/tag/v1.3.0"><img alt="OMERO Biomero Version" src="https://img.shields.io/badge/OMERO.biomero-1.3.0-red?style=flat-square" /></a> <a class="reference external" href="https://github.com/NL-BioImaging/OMERO.forms/releases/tag/v2.2.0"><img alt="OMERO Forms Version" src="https://img.shields.io/badge/OMERO.forms-2.2.0-orange?style=flat-square" /></a></p>
 <p><strong>NL-BIOMERO</strong> delivers a complete FAIR-oriented bioimaging infrastructure built on OMERO and <span style="white-space:nowrap"><img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" style="height:1em; width:auto; vertical-align:middle; display:inline-block; margin:0 2px;"> BIOMERO 2.0</span>.</p>
 <div style="display: flex; gap: 15px; margin: 20px 0; flex-wrap: wrap;">
 

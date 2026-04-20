@@ -189,6 +189,12 @@
 <li class="toctree-l4"><a class="reference internal" href="#required-follow-up-actions">Required Follow-up Actions</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#zarr-and-plate-workflow-types">Zarr and Plate Workflow Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#zarr-workflow">Zarr Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#zarr-plate-workflow">Zarr Plate Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#biaflows-descriptors-and-zarr-auto-detection">BIAFLOWS descriptors and Zarr auto-detection</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#slurm-check-setup-output">Slurm Check Setup Output</a></li>
 </ul>
 </li>
@@ -308,6 +314,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="analyzer-importer-admin.html#non-docker-deployments">Non-Docker deployments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="analyzer-importer-admin.html#validating-the-setup">Validating the setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="analyzer-importer-admin.html#zarr-workflow-support">Zarr Workflow Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="analyzer-importer-admin.html#troubleshooting">Troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="analyzer-importer-admin.html#related-documentation">Related documentation</a></li>
 </ul>
@@ -404,6 +411,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#additional-resources">Additional Resources</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#biaflows-integration">BIAFLOWS Integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#zarr-workflow-types-biomero-2-4-0">Zarr Workflow Types (BIOMERO ≥ 2.4.0)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#development-workflow">Development Workflow</a></li>
@@ -624,11 +632,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../user/getting-started.html">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#first-steps-with-nl-biomero">First Steps with NL-BIOMERO</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#access-the-platform">Access the Platform</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#default-login">Default Login</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#omero-biomero-interface">OMERO.biomero Interface</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#platform-overview">Platform Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#platform-overview-from-the-readme">Platform Overview from the README</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#biomero-bioimage-analysis"><img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="22" align="center"> BIOMERO - BioImage Analysis</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../user/getting-started.html#quick-workflow-example">Quick Workflow Example:</a></li>
 </ul>
@@ -752,11 +762,21 @@ and security configuration, see <a class="reference internal" href="metabase-adm
 </section>
 <section id="analyzer-admin-configuration">
 <h2>Analyzer Admin Configuration<a class="headerlink" href="#analyzer-admin-configuration" title="Permalink to this heading"></a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Zarr workflow support</strong> (see <a class="reference internal" href="#zarr-workflow-types"><span class="std std-ref">Zarr and Plate Workflow Types</span></a> below) requires BIOMERO ≥ 2.4.0
+and biomero.scripts ≥ 2.4.0, and depends on the <a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a>
+integration being enabled first (<code class="docutils literal notranslate"><span class="pre">IMPORTER_ENABLED=true</span></code>).</p>
+</div>
 <p>The Analyzer Admin screen is split into two sections: BIOMERO.analyzer settings (left) and OMERO scripts (right).</p>
 <section id="overview">
 <h3>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h3>
-<p><strong>Left Side</strong>: All BIOMERO settings in UI form
-<strong>Right Side</strong>: OMERO scripts, organized with admin scripts “Slurm Init” and “Slurm Check Setup” shown by default</p>
+<dl class="simple">
+<dt><strong>Left Side</strong></dt><dd><p>All BIOMERO settings in UI form</p>
+</dd>
+<dt><strong>Right Side</strong></dt><dd><p>OMERO scripts, organized with admin scripts “Slurm Init” and “Slurm Check Setup” shown by default</p>
+</dd>
+</dl>
 <p><strong>Important Workflow</strong>: Major changes (like adding new workflows) require:</p>
 <ol class="arabic simple">
 <li><p>Save settings in the left panel</p></li>
@@ -770,9 +790,14 @@ and security configuration, see <a class="reference internal" href="metabase-adm
 </section>
 <section id="settings-interface-usage">
 <h3>Settings Interface Usage<a class="headerlink" href="#settings-interface-usage" title="Permalink to this heading"></a></h3>
-<p><strong>Edit Mode</strong>: Click the pencil icon to make fields editable
-<strong>Saving</strong>: Click “Save Settings” to write changes to disk via Django API
-<strong>Undo</strong>: Use “Undo All Changes” to reset current modifications</p>
+<dl class="simple">
+<dt><strong>Edit Mode</strong></dt><dd><p>Click the pencil icon to make fields editable</p>
+</dd>
+<dt><strong>Saving</strong></dt><dd><p>Click “Save Settings” to write changes to disk via Django API</p>
+</dd>
+<dt><strong>Undo</strong></dt><dd><p>Use “Undo All Changes” to reset current modifications</p>
+</dd>
+</dl>
 </section>
 </section>
 <section id="settings-categories">
@@ -832,6 +857,14 @@ and security configuration, see <a class="reference internal" href="metabase-adm
 <li><p><strong>GitHub Repository</strong>: Versioned URL to workflow code</p></li>
 <li><p><strong>Slurm Job Script</strong>: Job script path (usually auto-generated)</p></li>
 <li><p><strong>Additional Slurm Parameters</strong>: Custom SBATCH options for this workflow</p></li>
+<li><p><strong>Zarr Workflow</strong> <em>(BIOMERO ≥ 2.4.0)</em>: Toggle on if the workflow expects a Zarr
+file as input. BIOMERO skips the usual TIFF conversion and passes the Zarr
+directly to the SLURM job. Requires the <a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a>
+integration to be enabled.</p></li>
+<li><p><strong>Zarr Plate Workflow</strong> <em>(BIOMERO ≥ 2.4.0)</em>: Toggle on if the workflow expects
+an entire plate as a single Zarr. Only plates can be submitted as input (no
+datasets). Enables the dedicated <strong>Plate Workflows</strong> tab in the analyzer UI.
+Requires the <a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a> integration to be enabled.</p></li>
 </ul>
 </li>
 <li><p><strong>Save Settings</strong> to store the configuration</p></li>
@@ -862,12 +895,98 @@ and security configuration, see <a class="reference internal" href="metabase-adm
 </section>
 <section id="required-follow-up-actions">
 <h4>Required Follow-up Actions<a class="headerlink" href="#required-follow-up-actions" title="Permalink to this heading"></a></h4>
-<p>After model changes (except Additional Slurm Parameters):</p>
+<p>After model changes (except Additional Slurm Parameters and Zarr toggles):</p>
 <ol class="arabic simple">
 <li><p><strong>Save Settings</strong> first</p></li>
 <li><p><strong>Run “Slurm Init” script</strong> - installs changes on Slurm cluster</p></li>
 <li><p><strong>Verify with “Slurm Check Setup”</strong> - shows available/pending models</p></li>
 </ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <strong>Zarr Workflow</strong> and <strong>Zarr Plate Workflow</strong> toggles take effect immediately
+after saving — they control BIOMERO’s input preparation on the web side and do
+not require a Slurm Init run.</p>
+</div>
+</section>
+</section>
+<section id="zarr-and-plate-workflow-types">
+<span id="zarr-workflow-types"></span><h3>Zarr and Plate Workflow Types<a class="headerlink" href="#zarr-and-plate-workflow-types" title="Permalink to this heading"></a></h3>
+<p>From BIOMERO v2.4.0 onward (requires biomero.scripts ≥ 2.4.0 and the
+<a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a> integration enabled), each workflow in the Admin
+can be toggled as a Zarr-based workflow. This changes how BIOMERO prepares input
+data and which UI options users see.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Both Zarr options require the <a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a> integration
+(<code class="docutils literal notranslate"><span class="pre">IMPORTER_ENABLED=true</span></code>). Without it, enabling these toggles has no effect.</p>
+</div>
+<section id="zarr-workflow">
+<h4>Zarr Workflow<a class="headerlink" href="#zarr-workflow" title="Permalink to this heading"></a></h4>
+<p>When <strong>Zarr Workflow</strong> is enabled for a model:</p>
+<ul class="simple">
+<li><p>The user’s input images are exported from OMERO as a Zarr file.</p></li>
+<li><p>BIOMERO <strong>skips</strong> the usual TIFF conversion step — no converter runs.</p></li>
+<li><p>The Zarr is placed in the SLURM job’s input directory as-is.</p></li>
+</ul>
+<p>Use this for workflows written to consume Zarr input directly rather than a flat
+folder of TIFF images. Standard BIAFLOWS workflows (which expect a folder of
+TIFFs) are <strong>not compatible</strong> with this option.</p>
+</section>
+<section id="zarr-plate-workflow">
+<h4>Zarr Plate Workflow<a class="headerlink" href="#zarr-plate-workflow" title="Permalink to this heading"></a></h4>
+<p>When <strong>Zarr Plate Workflow</strong> is enabled for a model:</p>
+<ul class="simple">
+<li><p>The workflow can only be submitted with <strong>plates</strong> as input (no datasets).</p></li>
+<li><p>The entire plate is packaged as a <strong>single Zarr</strong> that preserves the full plate
+structure: wells, fields inside the wells, and metadata.</p></li>
+<li><p>No conversion is performed; the plate Zarr is passed directly to the SLURM job.</p></li>
+<li><p>The (image) output is expected to be a Zarr plate as well, which BIOMERO will import back into OMERO while preserving plate structure
+- specifically the labels subdirectory ( <a class="reference external" href="https://ngff.openmicroscopy.org/0.5/#labels-md">https://ngff.openmicroscopy.org/0.5/#labels-md</a> ) images will be in-place imported (if available)</p></li>
+</ul>
+<p><strong>Why this matters</strong>: Previously, submitting a plate for analysis caused BIOMERO to
+treat it as a dataset — a flat folder of individual images, losing all plate
+structure (wells, etc.). Zarr plate mode preserves the complete hierarchy, enabling
+workflows that need to reason about well positions or plate-level metadata.</p>
+<p><strong>Dedicated UI tab</strong>: Zarr plate workflows appear under a separate <strong>Plate Workflows</strong>
+tab in the analyzer interface, distinct from the standard dataset-based workflow
+tab. The submission dialog for plate workflows only allows selecting plates as input
+and output targets — datasets are not shown.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Zarr plate workflows are <strong>not compatible</strong> with standard BIAFLOWS workflows.
+Those workflows read a flat folder of TIFF images and have no awareness of the
+Zarr plate format. A workflow must be specifically written to read the Zarr plate
+structure (wells, acquisitions) in order to work with this option.</p>
+</div>
+</section>
+<section id="biaflows-descriptors-and-zarr-auto-detection">
+<span id="biaflows-descriptor-note"></span><h4>BIAFLOWS descriptors and Zarr auto-detection<a class="headerlink" href="#biaflows-descriptors-and-zarr-auto-detection" title="Permalink to this heading"></a></h4>
+<p>BIAFLOWS workflows do <strong>not</strong> support Zarr natively. By design, a BIAFLOWS workflow
+consumes a flat folder of TIFF images as input. This is an implicit convention of the
+BIAFLOWS / cytomine-0.1 descriptor format — the
+<a class="reference external" href="https://web.archive.org/web/20250208125315/https://doc.uliege.cytomine.org/dev-guide/algorithms/descriptor-reference#name-name">descriptor specification</a>
+does not carry any file-type constraint field.</p>
+<p>This has two practical consequences:</p>
+<ol class="arabic simple">
+<li><p><strong>No auto-detection</strong>: BIOMERO cannot read a BIAFLOWS <code class="docutils literal notranslate"><span class="pre">descriptor.json</span></code> and
+automatically determine whether a workflow expects TIFF or Zarr input. The Zarr
+toggles in the Admin UI therefore exist as an explicit, manual configuration choice
+made by the administrator - not something inferred from the descriptor.</p></li>
+<li><p><strong>Full descriptor compatibility</strong>: The cytomine-0.1 descriptor format <em>is</em> read and
+understood by BIOMERO for everything else (parameters, metadata, versioning). Marking
+a workflow as Zarr in the Admin UI simply overrides how BIOMERO stages input data
+before submitting the SLURM job; it does not require any changes to the descriptor
+itself.</p></li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Future direction</strong>: BIOMERO is investigating support for a second descriptor schema
+- most likely a subset of <a class="reference external" href="https://www.commonwl.org/">CWL (Common Workflow Language)</a>
+- that <em>does</em> explicitly declare accepted file types and formats. When this is
+available, BIOMERO will be able to auto-detect and validate Zarr compatibility from
+the descriptor, removing the need for the manual toggles. This is a work in
+progress (TBC).</p>
+</div>
 </section>
 </section>
 <section id="slurm-check-setup-output">
@@ -906,6 +1025,7 @@ see <a class="reference internal" href="../developer/containers/metabase.html"><
 <h2>Related Documentation<a class="headerlink" href="#related-documentation" title="Permalink to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="slurm-integration.html"><span class="doc">BIOMERO.analyzer SLURM Integration for NL-BIOMERO</span></a> - SLURM cluster deployment, SSH setup, and system architecture</p></li>
+<li><p><a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a> - Analyzer + Importer integration (prerequisite for Zarr workflows)</p></li>
 <li><p><a class="reference internal" href="../developer/containers/metabase.html"><span class="doc">Metabase Container</span></a> - Metabase container configuration and troubleshooting</p></li>
 <li><p><a class="reference internal" href="../developer/containers/omeroweb.html"><span class="doc">OMERO Web Container</span></a> - OMERO.web container setup</p></li>
 <li><p><a class="reference internal" href="deployment.html"><span class="doc">Advanced Deployment Guide</span></a> - Initial deployment configuration</p></li>
