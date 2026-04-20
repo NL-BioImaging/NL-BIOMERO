@@ -40,17 +40,11 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 COPY biomeroworker/slurm-config.ini /etc/slurm-config.ini
 
 ### Install OMERO.biomero first ###
-### BIOMERO.importer will be installed as a dependency of OMERO.biomero ###
-
-# Install OMERO.biomero from GitHub branch and run setup
-ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/zarr_ui" /latest_commit_biomero
-RUN git clone -b zarr_ui https://github.com/NL-BioImaging/OMERO.biomero.git /opt/omero/web/OMERO.biomero \
-    && /opt/omero/web/venv3/bin/pip install -e /opt/omero/web/OMERO.biomero \
-    && /opt/omero/web/venv3/bin/omero-biomero-setup
+### BIOMERO.importer and BIOMERO.analyzer will be installed as a dependency of OMERO.biomero ###
 
 # Install released OMERO.biomero from PyPI and run setup
-# RUN /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
-#     && /opt/omero/web/venv3/bin/omero-biomero-setup
+RUN /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
+    && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 # Install OMERO.biomero from main branch on GitHub (commented out for release):
 # ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/main" /latest_commit_biomero
