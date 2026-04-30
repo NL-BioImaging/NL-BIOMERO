@@ -21,8 +21,9 @@ ADD server/00-restore-config.sh* /startup/
 
 # Clone specific release version
 # We don't need the example scripts
+ADD https://api.github.com/repos/nl-bioimaging/biomero-scripts/commits?sha=master&per_page=1 /tmp/biomero_branch_commits
 RUN cd $OMERO_DIST/lib/scripts/ && \
-    git clone --depth 1 --branch ${BIOMERO_VERSION} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
+    git clone --depth 1 --branch master --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
     rm -f biomero/admin/Example_Minimal_Slurm_Script.py && \
     rm -f biomero/__workflows/SLURM_CellPose_Segmentation.py
 
