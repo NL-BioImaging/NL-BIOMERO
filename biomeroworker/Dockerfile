@@ -41,9 +41,11 @@ ENV PATH="$PATH:/opt/bioformats2raw-0.12.0-rc1/bin"
 RUN yum -y install ack
 
 # force zarr < 3 for compatibility w/ omero-cli-zarr by installing biomero AFTER the importer
+# Cache bust when new commits are pushed to dev-bilayers
+ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/dev-bilayers" /latest_commit_biomero
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && $VIRTUAL_ENV/bin/python -m pip install --ignore-requires-python biomero-importer==${BIOMERO_IMPORTER_VERSION} \
-    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full]==${BIOMERO_VERSION}"
+    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@dev-bilayers"
 
 ## Adjust processor code with BIOMERO Processor
 # This version forwards HTTP(S) PROXY environment variables to the subprocesses (scripts)
