@@ -237,8 +237,8 @@ This script:
 **Configuration Files**: Ensure the container user has proper read/write access to mounted configuration files:
 
 ```bash
-# Set proper ownership for mounted config files
-chown 1000:1000 ./web/slurm-config.ini ./web/biomero-config.json ./web/group-mappings.json
+# The OMERO.biomero admin UI writes these bind-mounted files from the
+# omeroweb container. Keep them writable by the container user.
 chmod 666 ./web/slurm-config.ini ./web/biomero-config.json ./web/group-mappings.json
 ```
 

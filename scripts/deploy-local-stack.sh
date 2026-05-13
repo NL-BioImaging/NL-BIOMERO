@@ -11,6 +11,7 @@ LDRIVE_DIR="${PROJECT_ROOT_DIR}/web/L-Drive"
 SLURM_CONFIG_PATH="${PROJECT_ROOT_DIR}/web/slurm-config.ini"
 SLURM_TEMPLATE_PATH="${PROJECT_ROOT_DIR}/web/slurm-config-template.ini"
 BIOMERO_CONFIG_PATH="${PROJECT_ROOT_DIR}/web/biomero-config.json"
+GROUP_MAPPINGS_CONFIG_PATH="${PROJECT_ROOT_DIR}/web/group-mappings.json"
 MOUNT_SSH_SCRIPT_PATH="${PROJECT_ROOT_DIR}/biomeroworker/10-mount-ssh.sh"
 IMPORTER_DIR="${PROJECT_ROOT_DIR}/biomero-importer"
 IMPORTER_DOCKERFILE_PATH="${IMPORTER_DIR}/Dockerfile"
@@ -212,7 +213,7 @@ chmod -R 777 "${LDRIVE_DIR}" "${PROJECT_ROOT_DIR}/logs"
 # OMERO.biomero writes these bind-mounted files from inside the web container.
 # Keep them host-writable for uid 999 (omero-web), even after git checkout,
 # template rendering, or rebuilds recreate them with normal 0644 permissions.
-chmod 666 "${SLURM_CONFIG_PATH}" "${BIOMERO_CONFIG_PATH}"
+chmod 666 "${SLURM_CONFIG_PATH}" "${BIOMERO_CONFIG_PATH}" "${GROUP_MAPPINGS_CONFIG_PATH}"
 
 chmod 700 "${HOME_SSH_DIR}"
 chmod 600 "${HOME_SSH_DIR}/id_rsa"
