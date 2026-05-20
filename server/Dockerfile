@@ -1,4 +1,4 @@
-FROM openmicroscopy/omero-server:5.6.17
+FROM openmicroscopy/omero-server:5.6.18
 
 ARG BIOMERO_VERSION
 ARG OMERO_ZARR_PIXEL_BUFFER_VERSION

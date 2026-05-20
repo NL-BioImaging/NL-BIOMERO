@@ -29,6 +29,7 @@
    developer/architecture
    developer/getting-started
    developer/workflow-development
+   developer/bilayers-workflows
    developer/containers/index
 
 .. toctree::
