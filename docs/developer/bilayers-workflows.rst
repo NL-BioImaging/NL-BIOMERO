@@ -116,7 +116,7 @@ However, you can also just git a ``cli_tag`` to an output entry. Both methods wo
        cli_tag: "--savedir"
        optional: True
 
-BIOMERO will call the workflow with ``--savedir "$DATA_PATH/data/out"`` and will import
+BIOMERO will call the workflow with ``--savedir="$DATA_PATH/data/out"`` and will import
 results from that path.  The parameter is hidden from the OMERO UI
 (``set-by-server: true`` in the intermediate schema) so users cannot accidentally
 override it.
@@ -211,7 +211,7 @@ input, one output, and one user-facing parameter:
        optional: True
        mode: beginner
 
-BIOMERO will generate ``--input "$DATA_PATH/data/in" --output "$DATA_PATH/data/out"``
+BIOMERO will generate ``--input="$DATA_PATH/data/in" --output="$DATA_PATH/data/out"``
 automatically and expose only ``threshold`` to the user in the OMERO UI.
 
 Adding a Bilayers Workflow to Your BIOMERO Instance
@@ -230,3 +230,50 @@ parse it, and make it available in the script UI without any further
 configuration.
 
 See also: :doc:`workflow-development` for the full workflow packaging guide.
+
+Bilayers Features Not Supported by BIOMERO
+--------------------------------------------
+
+The Bilayers spec includes several features that BIOMERO does not currently support or
+intentionally handles differently.  Write your ``config.yaml`` with these constraints
+in mind.
+
+**Argument ordering** (``cli_order``)
+
+Bilayers allows you to fix positional argument order via ``cli_order``.  BIOMERO does
+not use ordering information — all parameters are emitted as named ``--flag=value``
+pairs and order is therefore irrelevant.  Do not rely on ``cli_order`` in descriptors
+intended for BIOMERO.
+
+**``hidden_args``**
+
+Bilayers ``hidden_args`` allow embedding fixed CLI arguments that are invisible to the
+user.  BIOMERO does not parse or apply ``hidden_args``.  The equivalent in BIOMERO is
+to declare a parameter with ``set-by-server: true`` in a biomero-schema descriptor, but
+this cannot be set from a Bilayers ``config.yaml`` at the moment.  If your workflow
+needs a fixed hidden argument, hardcode it in the container's entry-point script
+instead.
+
+**``append_value`` on checkboxes**
+
+Bilayers lets you control whether a boolean flag is emitted as ``--flag True`` /
+``--flag False`` or as a presence/absence flag via ``append_value``.  BIOMERO always
+emits booleans as ``--flag="True"`` or ``--flag="False"``; ``append_value`` is ignored.
+Design your workflow's CLI to accept the ``--flag=True`` / ``--flag=False`` form.
+
+**Extra file inputs** (model weights, CSVs, …)
+
+As described in the I/O section above, BIOMERO currently only sends images to
+``data/in``.  Non-image files referenced as ``inputs`` entries (model weights, CSV
+files, etc.) are not forwarded to the HPC job.  Bundle such files in the container
+image or have the workflow download them at runtime.  User-selectable file inputs are
+planned for a future release.
+
+**``exec_function`` / ``cli_command``**
+
+Bilayers uses ``exec_function.cli_command`` to specify the command that runs inside the
+container (e.g. ``python -m myworkflow``).  BIOMERO does not read or use this field.
+The container image is invoked directly via its default entrypoint; the ``cli_command``
+should therefore match what the container already executes on startup.  If your
+algorithm requires a specific command, bake it into the container's ``ENTRYPOINT`` or
+``CMD``.
