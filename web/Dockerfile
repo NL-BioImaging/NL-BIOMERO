@@ -46,10 +46,8 @@ COPY biomeroworker/slurm-config.ini /etc/slurm-config.ini
 # RUN /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
 #     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
-# Install OMERO.biomero from dev-bilayers branch on GitHub
-# Cache bust when new commits are pushed to dev-bilayers
-ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/dev-bilayers" /latest_commit_omero_biomero
-RUN /opt/omero/web/venv3/bin/pip install "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@dev-bilayers" \
+# Install OMERO.biomero from PyPI
+RUN /opt/omero/web/venv3/bin/pip install omero-biomero==1.5.0b1 \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 ### Install OMERO.forms ###
