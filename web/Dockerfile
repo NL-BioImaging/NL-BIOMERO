@@ -47,7 +47,7 @@ COPY biomeroworker/slurm-config.ini /etc/slurm-config.ini
 #     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 # Install OMERO.biomero from PyPI
-RUN /opt/omero/web/venv3/bin/pip install omero-biomero==1.5.0b1 \
+RUN /opt/omero/web/venv3/bin/pip install omero-biomero==1.5.0b2 \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 ### Install OMERO.forms ###
