@@ -1,6 +1,6 @@
-# <img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="28" align="absmiddle"> Containerized OMERO with BIOMERO
+# <img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="28" style="height:28px; width:auto; vertical-align:middle;"> Containerized OMERO with BIOMERO
 
-NL‑BIOMERO delivers a full containerized stack to run **OMERO** together with the **<img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="16" align="absmiddle"> BIOMERO 2.0** framework. It provides Docker/Podman configurations and Compose files to deploy OMERO + BIOMERO subsystems (importer, analyzer, OMERO.web plugin, databases, and auxiliary services) — the recommended starting point for a FAIR‑oriented bioimaging setup.
+NL‑BIOMERO delivers a full containerized stack to run **OMERO** together with the **<img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="16" style="height:16px; width:auto; vertical-align:middle;"> BIOMERO 2.0** framework. It provides Docker/Podman configurations and Compose files to deploy OMERO + BIOMERO subsystems (importer, analyzer, OMERO.web plugin, databases, and auxiliary services) — the recommended starting point for a FAIR‑oriented bioimaging setup.
 
 BIOMERO 2.0 is described in our preprint: [“BIOMERO 2.0: end-to-end FAIR infrastructure for bioimaging data import, analysis, and provenance”](https://arxiv.org/abs/2511.13611). It transforms OMERO into a provenance‑aware, FAIR (findable, accessible, interoperable, reusable) platform by combining:
 - containerized data import and preprocessing (importer subsystem),  
@@ -9,7 +9,7 @@ BIOMERO 2.0 is described in our preprint: [“BIOMERO 2.0: end-to-end FAIR infr
 - integrated workflow monitoring and dashboards.
 
 🎥 **Introduction video**  
-👉 https://nl-bioimaging.github.io/NL-BIOMERO/overview.html
+👉 https://nl-bioimaging.github.io/NL-BIOMERO/latest/overview.html
 
 Using NL‑BIOMERO yields a unified environment where image data import, preprocessing, analysis, and provenance tracking are managed end-to-end — from raw data to processed results — in a reproducible, shareable, FAIR‑compliant infrastructure.
 
@@ -176,7 +176,7 @@ To get started with data:
 
 ---
 
-## <img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="22" align="center"> BIOMERO - BioImage Analysis
+## <img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="22" style="height:22px; width:auto; vertical-align:middle;"> BIOMERO - BioImage Analysis
 
 Checkout the <a href="https://nl-bioimaging.github.io/biomero/" target="_blank" rel="noopener noreferrer">BIOMERO documentation</a> for detailed usage instructions.
 
