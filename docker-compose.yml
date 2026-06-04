@@ -21,7 +21,6 @@ services:
     volumes:
       - "database:/var/lib/postgresql/data"
       # - .\backup_and_restore\omero-2025-07-24-14-06-06-pg16:/var/lib/postgresql/data
-       
 
   database-biomero:
     # Define a prebuilt Postgres image with a version
@@ -169,6 +168,7 @@ services:
       CONFIG_omero_web_session__cookie__age: ${OMERO_WEB_SESSION_COOKIE_AGE}
       ENV: ${OMERO_WEB_ENV}
       OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
+      OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
       METABASE_SITE_URL: ${METABASE_SITE_URL}
       METABASE_SECRET_KEY: ${METABASE_SECRET_KEY}
       METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID: ${METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID}
@@ -188,6 +188,7 @@ services:
     volumes:
       - "./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
       - "./web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
+      - "./web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
       - "./web/L-Drive:/data:rw"
       - "./logs/omeroweb:/opt/omero/web/OMERO.web/var/log"
     logging:
@@ -242,7 +243,6 @@ services:
         max-size: "10m"
         max-file: "5"
     user: "${OMERO_CONTAINER_USER}"
-
 
 # Define the network(s) to communicate between containers
 networks:

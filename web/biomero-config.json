@@ -1,7 +1,15 @@
 {
+  "UPLOADER": {
+    "enabled": true,
+    "upload_to_group_folder": true
+  },
   "FILE_OR_EXTENSION_PATTERNS_EXCLUSIVE": [
     "experiment.db",
     ".xlef"
+  ],
+  "UPLOADER_NESTED_FILE_EXTENSIONS": [
+    ".lif",
+    ".lof"
   ],
   "PREPROCESSING_EXTENSION_MAP": {
     ".lif": "dataset_leica_uuid",
@@ -24,16 +32,6 @@
       "extra_params": {
         "image_uuid": "{UUID}"
       }
-    }
-  },
-  "group_mappings": {
-    "53": {
-      "folder": "Project A",
-      "groupName": "torectest"
-    },
-    "456": {
-      "folder": "SharedData",
-      "groupName": "Research"
     }
   }
 }

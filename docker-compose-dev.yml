@@ -1,8 +1,5 @@
 # Brings up all OMERO nodes on _one_ host computer, but multiple containers
 
-# Version 3 is the newest version of the Compose file format
-version: "3"
-
 # Define all the services: database, omero server, omero web
 services:
   # Name of our database, referenced in omero_db_host
@@ -169,6 +166,7 @@ services:
       CONFIG_omero_web_session__cookie__age: ${OMERO_WEB_SESSION_COOKIE_AGE}
       ENV: ${OMERO_WEB_ENV}
       OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
+      OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
       METABASE_SITE_URL: ${METABASE_SITE_URL}
       METABASE_SECRET_KEY: ${METABASE_SECRET_KEY}
       METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID: ${METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID}
@@ -179,6 +177,8 @@ services:
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
+      UPLOADER_CHUNKS_DIR: /data/uploader_chunks
+      UPLOADER_DESTINATION_DIR: /data/uploader_destination
     # Named network to communicate with other containers
     networks:
       - omero
@@ -194,6 +194,7 @@ services:
       - "../OMERO.biomero/:/opt/omero/web/OMERO.biomero"
       - "../OMERO.forms/:/opt/omero/web/OMERO.forms"
       - "./web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
+      - "./web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
       - "./logs/omeroweb:/opt/omero/web/OMERO.web/var/log"
       - "./logs/nginx:/var/log/nginx"
     logging:
@@ -250,7 +251,6 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
-
 
 # Define the network(s) to communicate between containers
 networks:
