@@ -1,4 +1,4 @@
-FROM openmicroscopy/omero-server:5.6.17
+FROM openmicroscopy/omero-server:5.6.18
 
 ARG BIOMERO_VERSION
 ARG BIOMERO_IMPORTER_VERSION
@@ -41,7 +41,10 @@ ENV PATH="$PATH:/opt/bioformats2raw-0.12.0-rc1/bin"
 RUN yum -y install ack
 
 # force zarr < 3 for compatibility w/ omero-cli-zarr by installing biomero AFTER the importer
-RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
+# Cache bust when new commits are pushed to dev-bilayers
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/dev-bilayers" /latest_commit_biomero
+RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1) \
+    && $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && $VIRTUAL_ENV/bin/python -m pip install --ignore-requires-python biomero-importer==${BIOMERO_IMPORTER_VERSION} \
     && $VIRTUAL_ENV/bin/python -m pip install "biomero[full]==${BIOMERO_VERSION}"
 

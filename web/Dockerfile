@@ -1,4 +1,4 @@
-FROM openmicroscopy/omero-web-standalone:5.31.0
+FROM openmicroscopy/omero-web-standalone:5.31.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
@@ -42,8 +42,13 @@ COPY biomeroworker/slurm-config.ini /etc/slurm-config.ini
 ### Install OMERO.biomero first ###
 ### BIOMERO.importer and BIOMERO.analyzer will be installed as a dependency of OMERO.biomero ###
 
-# Install released OMERO.biomero from PyPI
-RUN /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
+# Install released OMERO.biomero from PyPI and run setup (commented out for dev branch):
+# RUN /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
+#     && /opt/omero/web/venv3/bin/omero-biomero-setup
+
+# Install OMERO.biomero from PyPI
+RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1) \
+    && /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 ### Install OMERO.forms ###

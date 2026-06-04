@@ -1,4 +1,4 @@
-FROM openmicroscopy/omero-server:5.6.17
+FROM openmicroscopy/omero-server:5.6.18
 
 ARG BIOMERO_VERSION
 ARG OMERO_ZARR_PIXEL_BUFFER_VERSION
@@ -19,8 +19,11 @@ ADD server/00-restore-config.sh* /startup/
 # LDAP configuration - add with correct values
 # ADD server/01-ldap-config.omero /opt/omero/server/config/
 
-# Clone specific release version
+# Clone branch
+# Cache bust when new commits are pushed to branch
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/dev-bilayers" /latest_commit_biomero_scripts
 # We don't need the example scripts
+RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
 RUN cd $OMERO_DIST/lib/scripts/ && \
     git clone --depth 1 --branch $BIOMERO_VERSION --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
     rm -f biomero/admin/Example_Minimal_Slurm_Script.py && \

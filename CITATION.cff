@@ -1,0 +1,94 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  BIOMERO 2.0: End-to-end FAIR infrastructure for bioimaging
+  data import, analysis, and provenance
+message: >-
+  If you use this software, please cite the article from
+  preferred-citation
+type: software
+authors:
+  - given-names: Torec Tom
+    family-names: Luik
+    email: t.t.luik@amsterdamumc.nl
+    affiliation: Amsterdam UMC
+    orcid: 'https://orcid.org/0009-0007-9361-0586'
+  - given-names: Joost
+    name-particle: de
+    family-names: Folter
+    affiliation: Amsterdam UMC
+  - given-names: Rodrigo
+    family-names: Rosas-Bertolini
+    affiliation: Amsterdam UMC
+  - given-names: Eric A.J.
+    family-names: Reits
+    affiliation: Amsterdam UMC
+  - given-names: Ron A.
+    family-names: Hoebe
+    affiliation: Amsterdam UMC
+  - given-names: Przemek M.
+    family-names: Krawczyk
+    affiliation: Amsterdam UMC
+identifiers:
+  - type: doi
+    value: 10.1111/jmi.70114
+    description: Published paper in Journal of Microscopy
+repository-code: 'https://github.com/NL-BioImaging/NL-BIOMERO'
+url: 'https://nl-bioimaging.github.io/NL-BIOMERO/'
+repository-artifact: 'https://hub.docker.com/u/cellularimagingcf'
+abstract: >-
+  We present BIOMERO 2.0, a major evolution of the BIOMERO
+  framework that transforms OMERO into a FAIR-compliant
+  (findable, accessible, interoperable, and reusable),
+  provenance-aware bioimaging platform. BIOMERO 2.0
+  integrates data import, preprocessing, analysis, and
+  workflow monitoring through an OMERO.web plugin and
+  containerised components. The importer subsystem
+  facilitates in-place import using containerised
+  preprocessing and metadata enrichment via forms, while the
+  analyser subsystem coordinates and tracks containerised
+  analyses on high-performance computing systems via the
+  BIOMERO Python library. All imports and analyses are
+  recorded with parameters, versions, and results, ensuring
+  real-time provenance accessible through integrated
+  dashboards. This dual approach places OMERO at the heart
+  of the bioimaging analysis process: the importer ensures
+  provenance from image acquisition through preprocessing
+  and import into OMERO, while the analyser records it for
+  downstream processing. These integrated layers enhance
+  OMERO's FAIRification, supporting traceable, reusable
+  workflows for image analysis that bridge the gap between
+  data import, analysis, and sharing.
+keywords:
+  - omero
+  - high-performance-computing
+  - fair
+  - fair-workflows
+  - image-analysis
+  - bioimaging
+  - biomero
+license: BSD-2-Clause
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Luik
+      given-names: Torec T.
+      orcid: 'https://orcid.org/0009-0007-9361-0586'
+    - family-names: de Folter
+      given-names: Joost
+    - family-names: Rosas-Bertolini
+      given-names: Rodrigo
+    - family-names: Reits
+      given-names: Eric A.J.
+    - family-names: Hoebe
+      given-names: Ron A.
+    - family-names: Krawczyk
+      given-names: Przemek M.
+  title: 'BIOMERO 2.0: End-to-end FAIR infrastructure for bioimaging data import, analysis, and provenance'
+  journal: Journal of Microscopy
+  doi: 10.1111/jmi.70114
+  url: 'https://doi.org/10.1111/jmi.70114'
+  publisher:
+    name: Wiley
