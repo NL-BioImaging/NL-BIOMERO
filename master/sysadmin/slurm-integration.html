@@ -567,6 +567,26 @@ window.addEventListener("load", load);
 <li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#related-documentation">Related Documentation</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="resumable-uploader.html">Resumable Web Uploader</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="resumable-uploader.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="resumable-uploader.html#administrative-configuration">Administrative Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="resumable-uploader.html#enabling-the-uploader">Enabling the Uploader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="resumable-uploader.html#storage-configuration">Storage Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="resumable-uploader.html#infrastructure-requirements">Infrastructure Requirements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="resumable-uploader.html#nginx-configuration">Nginx Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="resumable-uploader.html#file-system-permissions">File System Permissions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="resumable-uploader.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="resumable-uploader.html#upload-hangs-or-resets">Upload Hangs or Resets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="resumable-uploader.html#import-not-triggered">Import Not Triggered</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="resumable-uploader.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="metabase-admin.html">Metabase Administration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="metabase-admin.html#initial-security-setup">Initial Security Setup</a><ul>
@@ -1105,7 +1125,7 @@ window.addEventListener("load", load);
 
     submit_workflow --&gt; workflow_manager
     progress_tracking --&gt; results_display
-    
+
     workflow_manager --&gt; progress_tracking
     workflow_manager --&gt; job_queue
 
@@ -1174,7 +1194,7 @@ podman<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </sp
 <span class="nt">volumes</span><span class="p">:</span>
 <span class="w">  </span><span class="c1"># Web container - Admin interface reads/writes configuration</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw&quot;</span>
-<span class="w">  </span><span class="c1"># Worker container - Reads configuration for job execution  </span>
+<span class="w">  </span><span class="c1"># Worker container - Reads configuration for job execution</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw&quot;</span>
 </pre></div>
 </div>
@@ -1275,8 +1295,8 @@ Host<span class="w"> </span>production-slurm
 <h3>File Permissions<a class="headerlink" href="#file-permissions" title="Permalink to this heading"></a></h3>
 <p><strong>Configuration Files</strong>: Ensure the container user has proper read/write access to mounted configuration files:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set proper ownership for mounted config files</span>
-chown<span class="w"> </span><span class="m">1000</span>:1000<span class="w"> </span>./web/slurm-config.ini<span class="w"> </span>./web/biomero-config.json
-chmod<span class="w"> </span><span class="m">644</span><span class="w"> </span>./web/slurm-config.ini<span class="w"> </span>./web/biomero-config.json
+chown<span class="w"> </span><span class="m">1000</span>:1000<span class="w"> </span>./web/slurm-config.ini<span class="w"> </span>./web/biomero-config.json<span class="w"> </span>./web/group-mappings.json
+chmod<span class="w"> </span><span class="m">666</span><span class="w"> </span>./web/slurm-config.ini<span class="w"> </span>./web/biomero-config.json<span class="w"> </span>./web/group-mappings.json
 </pre></div>
 </div>
 </section>

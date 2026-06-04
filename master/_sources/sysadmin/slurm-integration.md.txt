@@ -56,7 +56,7 @@ flowchart LR
 
     submit_workflow --> workflow_manager
     progress_tracking --> results_display
-    
+
     workflow_manager --> progress_tracking
     workflow_manager --> job_queue
 
@@ -132,7 +132,7 @@ SLURM configuration uses shared `slurm-config.ini` files managed through the **O
 volumes:
   # Web container - Admin interface reads/writes configuration
   - "./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
-  # Worker container - Reads configuration for job execution  
+  # Worker container - Reads configuration for job execution
   - "./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
 ```
 
@@ -200,6 +200,7 @@ Host production-slurm
 **Use the OMERO.biomero Admin Interface** for all SLURM configuration. For a detailed UI guide, see {ref}`OMERO.biomero Plugin Administration <omero-biomero-plugin-administration>`.
 
 **Quick Setup Steps:**
+
 1. **Access OMERO.web** as administrator
 2. **OMERO.biomero** → **Admin** tab → **Analyzer** section
 3. **Configure settings** (SSH, SLURM paths, workflows, job parameters)
@@ -219,6 +220,7 @@ After configuring via Admin interface, initialize the SLURM environment:
 **Run Scripts** → **Admin** → **SLURM Init environment**
 
 This script:
+
 - Creates directory structure on SLURM cluster
 - Downloads workflow containers (Singularity images)
 - Sets up job scripts and templates
@@ -236,8 +238,8 @@ This script:
 
 ```bash
 # Set proper ownership for mounted config files
-chown 1000:1000 ./web/slurm-config.ini ./web/biomero-config.json
-chmod 644 ./web/slurm-config.ini ./web/biomero-config.json
+chown 1000:1000 ./web/slurm-config.ini ./web/biomero-config.json ./web/group-mappings.json
+chmod 666 ./web/slurm-config.ini ./web/biomero-config.json ./web/group-mappings.json
 ```
 
 ### SSH Access Security
@@ -292,6 +294,7 @@ iptables -A INPUT -p tcp --dport 22 -s YOUR_NL_BIOMERO_IP -j ACCEPT
 ### Account Requirements
 
 Your SLURM service account needs:
+
 - SSH access to submit jobs (`sbatch`, `squeue`, `scancel`)
 - Read/write access to configured storage paths
 - Appropriate SLURM resource allocations (CPU, GPU, memory)
@@ -319,8 +322,8 @@ docker-compose up -d
 
 ### Production (Podman with Secrets)
 
-We suggest to use Podman on RHEL SELinux for complete production setup with secret management and daemon service restarting. 
-Alternatively, take our Docker Compose setups as a starting point and use these as inspiration for your production environment. 
+We suggest to use Podman on RHEL SELinux for complete production setup with secret management and daemon service restarting.
+Alternatively, take our Docker Compose setups as a starting point and use these as inspiration for your production environment.
 
 ## Troubleshooting
 
@@ -360,7 +363,7 @@ docker exec biomeroworker cat /opt/omero/server/slurm-config.ini
 ## Further Reading
 
 - {ref}`OMERO.biomero Plugin Administration <omero-biomero-plugin-administration>` – Complete OMERO.biomero Admin interface guide (SLURM configuration, workflows, troubleshooting)
-- [BIOMERO.analyzer SLURM Documentation](https://nl-bioimaging.github.io/biomero/readme_link.html#using-the-gpu-on-slurm) – Workflow usage and GPU support  
+- [BIOMERO.analyzer SLURM Documentation](https://nl-bioimaging.github.io/biomero/readme_link.html#using-the-gpu-on-slurm) – Workflow usage and GPU support
 - [NL-BIOMERO Main README](https://github.com/NL-BioImaging/NL-BIOMERO/blob/master/README.md) – Complete deployment guide
 - {doc}`linux-deployment` – Linux-specific deployment instructions
 - [Local SLURM Setup](https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm) – Development cluster setup
