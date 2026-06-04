@@ -20,6 +20,7 @@
    sysadmin/resumable-uploader
    sysadmin/metabase-admin
    sysadmin/slurm-integration
+   sysadmin/analyzer-importer-admin
 
 .. toctree::
    :hidden:

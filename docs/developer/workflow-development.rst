@@ -105,6 +105,37 @@ For workflows that are part of the BIAFLOWS ecosystem:
    <a href="http://biaflows-doc.neubias.org/" target="_blank" style="background: #9c27b0; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-weight: bold;">📚 BIAFLOWS Docs →</a>
    </div>
 
+Zarr Workflow Types (BIOMERO ≥ 2.4.0)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+From BIOMERO v2.4.0 / NL-BIOMERO v1.5.0 onward, workflows can be configured to
+receive **Zarr** input instead of the default flat folder of TIFF images. This is
+set by a system administrator in the Analyzer Admin UI — it is not part of the
+workflow descriptor itself.
+
+Two modes exist:
+
+**Zarr Workflow**
+   The workflow receives a single Zarr file exported from OMERO. BIOMERO skips
+   the TIFF conversion step and passes the Zarr directly to the SLURM job.
+
+**Zarr Plate Workflow**
+   The workflow receives an entire plate packaged as a single Zarr,
+   preserving well and acquisition structure. Only plates can be submitted as
+   input. These workflows appear under the dedicated **Plate Workflows** tab in
+   the analyzer UI.
+
+.. important::
+   Standard BIAFLOWS workflows — which read a flat folder of TIFF images — are
+   **not** compatible with either Zarr mode. A workflow must be specifically
+   written to read Zarr input (or Zarr plate structure) in order to work with
+   these options.
+
+For the full explanation of how this interacts with the BIAFLOWS descriptor
+format, why auto-detection is not currently possible, and plans for CWL-based
+descriptor support, see :ref:`biaflows-descriptor-note` in
+:doc:`../sysadmin/omero-biomero-admin`.
+
 Development Workflow
 --------------------
 

@@ -1,0 +1,43 @@
+{%- if current_version %}
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: {{ current_version.name.replace('.0', '') }}
+    <span class="fa fa-caret-down"></span>
+  </span>
+  <div class="rst-other-versions">
+    {%- if versions.tags %}
+    <dl>
+      <dt>Tags</dt>
+      {%- set sorted_tags = versions.tags | sort(attribute='name', reverse=true) %}
+      {%- for item in sorted_tags %}
+      {%- set clean_name = item.name.replace('.0', '') %}
+      <dd><a href="{{ item.url }}">{{ clean_name }}{% if loop.first %} (Latest){% endif %}</a></dd>
+      {%- endfor %}
+    </dl>
+    {%- endif %}
+    {%- if versions.branches %}
+    <dl>
+      <dt>Branches</dt>
+      {%- for item in versions.branches %}
+      <dd><a href="{{ item.url }}">{{ item.name }}</a></dd>
+      {%- endfor %}
+    </dl>
+    {%- endif %}
+  </div>
+</div>
+
+{%- if versions.tags and versions.tags|length > 1 %}
+  {%- set sorted_tags = versions.tags | sort(attribute='name', reverse=true) %}
+  {%- set latest_version = sorted_tags[0] %}
+  {%- set current_clean = current_version.name.replace('.0', '') %}
+  {%- set latest_clean = latest_version.name.replace('.0', '') %}
+  {%- if current_clean != latest_clean %}
+<div class="admonition warning" style="margin-top: 1em;">
+    <p class="admonition-title">📋 You're viewing older documentation</p>
+    <p>This is documentation for <strong>{{ current_clean }}</strong>. 
+       <a href="{{ latest_version.url }}">Click here for the latest version ({{ latest_clean }})</a></p>
+</div>
+  {%- endif %}
+{%- endif %}
+{%- endif %}

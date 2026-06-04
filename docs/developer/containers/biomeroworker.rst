@@ -471,6 +471,8 @@ Related Documentation
 * :doc:`omeroserver` - Server container and script installation
 * :doc:`../architecture` - Overall system architecture  
 * :doc:`releases` - Container release process
+* :doc:`analyzer-importer-integration` - Analyzer + Importer integration (technical)
+* `BIOMERO.analyzer + Importer Admin Guide <../../sysadmin/analyzer-importer-admin.html>`_ - Deployment guide
 * `BIOMERO Documentation <https://github.com/NL-BioImaging/biomero>`_
 * `OMERO.grid Documentation <https://omero.readthedocs.io/en/stable/sysadmins/grid.html>`_
 * `Slurm Documentation <https://slurm.schedmd.com/documentation.html>`_

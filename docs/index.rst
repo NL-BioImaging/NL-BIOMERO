@@ -1,18 +1,18 @@
 .. NL-BIOMERO documentation master file
 
 Welcome to NL-BIOMERO's documentation!
-======================================
+=======================================
 
 |biomero_badge| |biomero_importer_badge| |omero_biomero_badge| |omero_forms_badge|
 
-**NL-BIOMERO** delivers a complete FAIR-oriented bioimaging infrastructure built on OMERO and BIOMERO 2.0.
+**NL-BIOMERO** delivers a complete FAIR-oriented bioimaging infrastructure built on OMERO and |biomero_2_0|.
 
 .. raw:: html
 
    <div style="display: flex; gap: 15px; margin: 20px 0; flex-wrap: wrap;">
    
    <div style="flex: 1; min-width: 300px; background: #f8f9fa; border-left: 4px solid #007bff; padding: 15px; border-radius: 5px;">
-   <h4 style="margin: 0 0 10px 0; color: #007bff;">🔬 What is BIOMERO 2.0?</h4>
+   <h4 style="margin: 0 0 10px 0; color: #007bff;"><img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" style="height:1em; width:auto; vertical-align:middle; margin-right:3px;"> What is BIOMERO 2.0?</h4>
    <p style="margin: 0; font-size: 14px;">An end-to-end platform that transforms OMERO into a provenance-aware system for bioimage data import, analysis, and sharing. <a href="https://arxiv.org/abs/2511.13611" target="_blank">📄 Read our preprint</a></p>
    </div>
    
@@ -101,6 +101,7 @@ This documentation serves as your **main gateway** to the BIOMERO 2.0 ecosystem.
    <a href="https://github.com/NL-BioImaging/biomero?tab=readme-ov-file#readme" target="_blank" style="background: #6c757d; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(108,117,125,0.3);">📖 README</a>
    <a href="developer/workflow-development.html" target="_blank" style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(23,162,184,0.3);">👨‍💻 Dev Guide</a>
    <a href="sysadmin/slurm-integration.html" target="_blank" style="background: #28a745; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 6px rgba(40,167,69,0.4);">⚙️ Admin Guide</a>
+   <a href="sysadmin/analyzer-importer-admin.html" target="_blank" style="background: #6f42c1; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 6px rgba(111,66,193,0.4);">🔗 Analyzer+Importer</a>
    </div>
    </div>
    
@@ -144,6 +145,7 @@ This documentation serves as your **main gateway** to the BIOMERO 2.0 ecosystem.
    <p style="margin: 0 0 15px 0; font-size: 14px; opacity: 0.9;">User-friendly data import workflows for in-place importing - keep your raw data where it belongs!</p>
    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
    <a href="https://github.com/NL-BioImaging/BIOMERO.importer?tab=readme-ov-file#readme" target="_blank" style="background: #6c757d; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(108,117,125,0.3);">📖 README</a>
+   <a href="sysadmin/analyzer-importer-admin.html" target="_blank" style="background: #6f42c1; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 6px rgba(111,66,193,0.4);">🔗 Analyzer+Importer</a>
    </div>
    </div>
    

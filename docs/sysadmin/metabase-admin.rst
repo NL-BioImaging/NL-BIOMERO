@@ -88,6 +88,33 @@ After adding databases:
 3. Use "Re-scan field values now" to update filter options
 4. Verify tables are visible in the Data Model section
 
+Database Connection Encryption
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. important::
+   **Enable Database Connection Encryption for Production**
+   
+   Metabase can encrypt database connection details at rest using AES256 + SHA512 encryption to prevent unauthorized access if someone gains access to the Metabase application database.
+
+**Setup Instructions**
+
+For complete setup instructions, configuration options, and troubleshooting, see the official Metabase documentation:
+
+`Encrypting Database Details at Rest <https://www.metabase.com/docs/latest/databases/encrypting-details-at-rest>`_
+
+**Quick Start**:
+
+1. Set ``MB_ENCRYPTION_SECRET_KEY`` environment variable in your Docker Compose configuration
+2. Restart Metabase
+3. Re-save existing database connections to encrypt them
+
+.. code-block:: yaml
+
+   services:
+     metabase:
+       environment:
+         MB_ENCRYPTION_SECRET_KEY: your-secure-32-character-key-here
+
 Dashboard Management
 --------------------
 
@@ -206,6 +233,7 @@ Essential environment variables for Metabase container:
        environment:
          MB_DB_TYPE: h2
          MB_DB_FILE: /metabase-data/metabase.db
+         MB_ENCRYPTION_SECRET_KEY: your-32-character-secret-key-here  # Enable database connection encryption
          JAVA_TIMEZONE: UTC
        volumes:
          - "./metabase:/metabase-data:rw"
@@ -239,6 +267,8 @@ Data Protection
 * **Regular backups**: Automate Metabase database file backups
 * **Access logging**: Monitor dashboard access and admin activities
 * **Environment separation**: Use different credentials for dev/staging/production
+* **Database connection encryption**: Enable ``MB_ENCRYPTION_SECRET_KEY`` to encrypt stored database credentials with AES256 + SHA512 (see `Database Connection Encryption`_ for setup details)
+* **Secure key management**: Store encryption keys securely and ensure they are included in backup procedures
 
 Troubleshooting
 ---------------

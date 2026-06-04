@@ -47,7 +47,6 @@ jobs:
           tags: ${{ steps.meta-web.outputs.tags }}
           labels: ${{ steps.meta-web.outputs.labels }}
           build-args: |
-            BIOMERO_VERSION=${{ env.BIOMERO_VERSION }}
             OMERO_BIOMERO_VERSION=${{ env.OMERO_BIOMERO_VERSION }}
             OMERO_FORMS_VERSION=${{ env.OMERO_FORMS_VERSION }}
       -
@@ -73,6 +72,7 @@ jobs:
           labels: ${{ steps.meta-server.outputs.labels }}
           build-args: |
             BIOMERO_VERSION=${{ env.BIOMERO_VERSION }}
+            OMERO_ZARR_PIXEL_BUFFER_VERSION=${{ env.OMERO_ZARR_PIXEL_BUFFER_VERSION }}
       -
         name: Docker meta BIOMERO
         id: meta-biomero
@@ -96,6 +96,7 @@ jobs:
           labels: ${{ steps.meta-biomero.outputs.labels }}
           build-args: |
             BIOMERO_VERSION=${{ env.BIOMERO_VERSION }}
+            BIOMERO_IMPORTER_VERSION=${{ env.BIOMERO_IMPORTER_VERSION }}
       -
         name: Docker meta WORKER
         id: meta-worker

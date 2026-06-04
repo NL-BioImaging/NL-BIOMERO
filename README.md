@@ -1,6 +1,6 @@
-# Containerized OMERO with BIOMERO
+# <img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="28" style="height:28px; width:auto; vertical-align:middle;"> Containerized OMERO with BIOMERO
 
-NL‑BIOMERO delivers a full containerized stack to run **OMERO** together with the **BIOMERO 2.0** framework. It provides Docker/Podman configurations and Compose files to deploy OMERO + BIOMERO subsystems (importer, analyzer, OMERO.web plugin, databases, and auxiliary services) — the recommended starting point for a FAIR‑oriented bioimaging setup.
+NL‑BIOMERO delivers a full containerized stack to run **OMERO** together with the **<img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="16" style="height:16px; width:auto; vertical-align:middle;"> BIOMERO 2.0** framework. It provides Docker/Podman configurations and Compose files to deploy OMERO + BIOMERO subsystems (importer, analyzer, OMERO.web plugin, databases, and auxiliary services) — the recommended starting point for a FAIR‑oriented bioimaging setup.
 
 BIOMERO 2.0 is described in our preprint: [“BIOMERO 2.0: end-to-end FAIR infrastructure for bioimaging data import, analysis, and provenance”](https://arxiv.org/abs/2511.13611). It transforms OMERO into a provenance‑aware, FAIR (findable, accessible, interoperable, reusable) platform by combining:
 - containerized data import and preprocessing (importer subsystem),  
@@ -38,13 +38,13 @@ Follow the **Quickstart** section below for Windows deployment with Docker Deskt
 
 ### Ubuntu/Linux
 For Ubuntu/Linux deployments (with SSL support), see our dedicated guide:
-📖 **[Ubuntu/Linux Deployment Guide](README.linux.md)**
+📖 **[Ubuntu/Linux Deployment Guide](https://nl-bioimaging.github.io/NL-BIOMERO/latest/sysadmin/linux-deployment.html)**
 
 ---
 
 ## Quickstart (Windows)
 
-**Note**: This quickstart is based on Windows Docker Desktop and uses `host.docker.internal` to communicate between local clusters. Linux users should refer to the [Ubuntu/Linux guide](README.linux.md).
+**Note**: This quickstart is based on Windows Docker Desktop and uses `host.docker.internal` to communicate between local clusters. Linux users should refer to the [Ubuntu/Linux guide](https://nl-bioimaging.github.io/NL-BIOMERO/latest/sysadmin/linux-deployment.html).
 
 ### 0. Prerequisites
 
@@ -176,7 +176,7 @@ To get started with data:
 
 ---
 
-## 🧬 BIOMERO - BioImage Analysis
+## <img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="22" style="height:22px; width:auto; vertical-align:middle;"> BIOMERO - BioImage Analysis
 
 Checkout the <a href="https://nl-bioimaging.github.io/biomero/" target="_blank" rel="noopener noreferrer">BIOMERO documentation</a> for detailed usage instructions.
 
@@ -253,7 +253,7 @@ See <a href="https://nl-bioimaging.github.io/biomero/" target="_blank" rel="noop
 ### Linux Considerations
 - SSH permissions: `chmod -R 777 ~/.ssh` before deployment
 - Use `postgres:16-alpine` for better compatibility
-- See [Ubuntu/Linux guide](README.linux.md) for detailed instructions
+- See [Ubuntu/Linux guide](https://nl-bioimaging.github.io/NL-BIOMERO/latest/sysadmin/linux-deployment.html) for detailed instructions
 
 ---
 
@@ -297,9 +297,44 @@ More details in [web/README.md](web/README.md).
 
 ---
 
-## 📚 Additional Resources
+## � Development
 
-- 📖 **[Ubuntu/Linux Deployment](README.linux.md)** - Production deployment guide
+### Building Documentation
+
+#### Quick local preview (working directory)
+
+To preview your **uncommitted changes** instantly:
+
+```powershell
+cd "NL-BIOMERO\docs"
+.\venv\Scripts\sphinx-build.exe -b html . _build_local
+```
+
+Then open `docs/_build_local/sysadmin/omero-biomero-admin.html` (or any page) in a browser.
+
+> **Note**: `sphinx-multiversion` builds from **git commits only** — it will not pick up
+> uncommitted edits. Always use `sphinx-build` for a quick preview while authoring.
+
+#### Full versioned build (all tags + branches)
+
+Once your changes are committed, rebuild the complete versioned site:
+
+```powershell
+cd "NL-BIOMERO\docs"
+Remove-Item -Recurse -Force _build -ErrorAction SilentlyContinue
+.\venv\Scripts\sphinx-multiversion.exe . _build
+Copy-Item assets/gh-pages-redirect.html _build/index.html
+$latestTag = (git tag -l "v*.*.*" | Where-Object { $_ -match "^v[0-9]+\.[0-9]+\.[0-9]+$" } | Sort-Object {[version]($_ -replace '^v','')} -Descending | Select-Object -First 1)
+if ($latestTag) { Copy-Item "_build/$latestTag" "_build/latest" -Recurse; Write-Host "Created latest directory pointing to $latestTag" }
+```
+
+This builds all tagged versions and branches, then creates a `latest/` directory pointing to the newest release tag.
+
+---
+
+## 📚� Additional Resources
+
+- 📖 **[Ubuntu/Linux Deployment](https://nl-bioimaging.github.io/NL-BIOMERO/latest/sysadmin/linux-deployment.html)** - Production deployment guide
 - 🧬 **<a href="https://nl-bioimaging.github.io/biomero/" target="_blank" rel="noopener noreferrer">BIOMERO Documentation</a>** - Analysis workflows
 - 🏗️ **<a href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">Local Slurm Cluster</a>** - Testing environment
 - 🔬 **<a href="https://omero.readthedocs.io/" target="_blank" rel="noopener noreferrer">OMERO Documentation</a>** - Core platform docs

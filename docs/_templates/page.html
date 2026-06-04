@@ -1,0 +1,22 @@
+{% extends "!page.html" %}
+{% block body %}
+{% if current_version and latest_version and current_version != latest_version %}
+{%- set current_clean = current_version.name.replace('.0', '') %}
+{%- set latest_clean = latest_version.name.replace('.0', '') %}
+<div class="admonition warning" style="margin-bottom: 1em;">
+  <p class="admonition-title">📋 Documentation Version Notice</p>
+  <p>
+    <strong>
+      {% if current_version.is_released %}
+      You're reading documentation for <strong>{{ current_clean }}</strong>, which is an older version.
+      For up-to-date information, please have a look at <a href="{{ vpathto(latest_version.name) }}">{{ latest_clean }} (Latest)</a>.
+      {% else %}
+      You're reading the documentation for a development version (<strong>{{ current_clean }}</strong>).
+      For the latest released version, please have a look at <a href="{{ vpathto(latest_version.name) }}">{{ latest_clean }}</a>.
+      {% endif %}
+    </strong>
+  </p>
+</div>
+{% endif %}
+{{ super() }}
+{% endblock %}

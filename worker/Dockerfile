@@ -1,4 +1,4 @@
-FROM openmicroscopy/omero-server:5.6.16
+FROM openmicroscopy/omero-server:5.6.17
 
 COPY ice.config worker.cfg /opt/omero/server/OMERO.server/etc/templates/
 

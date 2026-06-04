@@ -128,4 +128,6 @@ Related Documentation
 * :doc:`omeroserver` - Server integration
 * :doc:`omeroweb` - Web interface integration
 * :doc:`metabase` - Analytics and DB browsing
+* :doc:`analyzer-importer-integration` - Analyzer + Importer integration (technical)
+* `BIOMERO.analyzer + Importer Admin Guide <../../sysadmin/analyzer-importer-admin.html>`_ - Deployment guide
 * `BIOMERO.importer Repository <https://github.com/Cellular-Imaging-Amsterdam-UMC/BIOMERO.importer>`_

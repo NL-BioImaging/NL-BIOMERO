@@ -78,13 +78,21 @@ Configuration File Management
 Analyzer Admin Configuration
 ----------------------------
 
+.. note::
+   **Zarr workflow support** (see :ref:`zarr-workflow-types` below) requires BIOMERO ≥ 2.4.0
+   and biomero.scripts ≥ 2.4.0, and depends on the :doc:`analyzer-importer-admin`
+   integration being enabled first (``IMPORTER_ENABLED=true``).
+
 The Analyzer Admin screen is split into two sections: BIOMERO.analyzer settings (left) and OMERO scripts (right).
 
 Overview
 ~~~~~~~~
 
-**Left Side**: All BIOMERO settings in UI form
-**Right Side**: OMERO scripts, organized with admin scripts "Slurm Init" and "Slurm Check Setup" shown by default
+**Left Side**
+   All BIOMERO settings in UI form
+
+**Right Side**
+   OMERO scripts, organized with admin scripts "Slurm Init" and "Slurm Check Setup" shown by default
 
 **Important Workflow**: Major changes (like adding new workflows) require:
 
@@ -101,9 +109,14 @@ For container mounting and file sharing setup, see :doc:`slurm-integration`.
 Settings Interface Usage
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Edit Mode**: Click the pencil icon to make fields editable
-**Saving**: Click "Save Settings" to write changes to disk via Django API
-**Undo**: Use "Undo All Changes" to reset current modifications
+**Edit Mode**
+   Click the pencil icon to make fields editable
+
+**Saving**
+   Click "Save Settings" to write changes to disk via Django API
+
+**Undo**
+   Use "Undo All Changes" to reset current modifications
 
 Settings Categories
 -------------------
@@ -171,6 +184,14 @@ Adding New Workflows
    - **GitHub Repository**: Versioned URL to workflow code
    - **Slurm Job Script**: Job script path (usually auto-generated)
    - **Additional Slurm Parameters**: Custom SBATCH options for this workflow
+   - **Zarr Workflow** *(BIOMERO ≥ 2.4.0)*: Toggle on if the workflow expects a Zarr
+     file as input. BIOMERO skips the usual TIFF conversion and passes the Zarr
+     directly to the SLURM job. Requires the :doc:`analyzer-importer-admin`
+     integration to be enabled.
+   - **Zarr Plate Workflow** *(BIOMERO ≥ 2.4.0)*: Toggle on if the workflow expects
+     an entire plate as a single Zarr. Only plates can be submitted as input (no
+     datasets). Enables the dedicated **Plate Workflows** tab in the analyzer UI.
+     Requires the :doc:`analyzer-importer-admin` integration to be enabled.
 
 3. **Save Settings** to store the configuration
 
@@ -205,11 +226,103 @@ Editing Existing Workflows
 Required Follow-up Actions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-After model changes (except Additional Slurm Parameters):
+After model changes (except Additional Slurm Parameters and Zarr toggles):
 
 1. **Save Settings** first
 2. **Run "Slurm Init" script** - installs changes on Slurm cluster
 3. **Verify with "Slurm Check Setup"** - shows available/pending models
+
+.. note::
+   The **Zarr Workflow** and **Zarr Plate Workflow** toggles take effect immediately
+   after saving — they control BIOMERO's input preparation on the web side and do
+   not require a Slurm Init run.
+
+.. _zarr-workflow-types:
+
+Zarr and Plate Workflow Types
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+From BIOMERO v2.4.0 onward (requires biomero.scripts ≥ 2.4.0 and the
+:doc:`analyzer-importer-admin` integration enabled), each workflow in the Admin
+can be toggled as a Zarr-based workflow. This changes how BIOMERO prepares input
+data and which UI options users see.
+
+.. important::
+   Both Zarr options require the :doc:`analyzer-importer-admin` integration
+   (``IMPORTER_ENABLED=true``). Without it, enabling these toggles has no effect.
+
+Zarr Workflow
+^^^^^^^^^^^^^
+
+When **Zarr Workflow** is enabled for a model:
+
+- The user's input images are exported from OMERO as a Zarr file.
+- BIOMERO **skips** the usual TIFF conversion step — no converter runs.
+- The Zarr is placed in the SLURM job's input directory as-is.
+
+Use this for workflows written to consume Zarr input directly rather than a flat
+folder of TIFF images. Standard BIAFLOWS workflows (which expect a folder of
+TIFFs) are **not compatible** with this option.
+
+Zarr Plate Workflow
+^^^^^^^^^^^^^^^^^^^
+
+When **Zarr Plate Workflow** is enabled for a model:
+
+- The workflow can only be submitted with **plates** as input (no datasets).
+- The entire plate is packaged as a **single Zarr** that preserves the full plate
+  structure: wells, fields inside the wells, and metadata.
+- No conversion is performed; the plate Zarr is passed directly to the SLURM job.
+- The (image) output is expected to be a Zarr plate as well, which BIOMERO will import back into OMERO while preserving plate structure 
+  - specifically the labels subdirectory ( https://ngff.openmicroscopy.org/0.5/#labels-md ) images will be in-place imported (if available)
+
+**Why this matters**: Previously, submitting a plate for analysis caused BIOMERO to
+treat it as a dataset — a flat folder of individual images, losing all plate
+structure (wells, etc.). Zarr plate mode preserves the complete hierarchy, enabling
+workflows that need to reason about well positions or plate-level metadata.
+
+**Dedicated UI tab**: Zarr plate workflows appear under a separate **Plate Workflows**
+tab in the analyzer interface, distinct from the standard dataset-based workflow
+tab. The submission dialog for plate workflows only allows selecting plates as input
+and output targets — datasets are not shown.
+
+.. warning::
+   Zarr plate workflows are **not compatible** with standard BIAFLOWS workflows.
+   Those workflows read a flat folder of TIFF images and have no awareness of the
+   Zarr plate format. A workflow must be specifically written to read the Zarr plate
+   structure (wells, acquisitions) in order to work with this option.
+
+.. _biaflows-descriptor-note:
+
+BIAFLOWS descriptors and Zarr auto-detection
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+BIAFLOWS workflows do **not** support Zarr natively. By design, a BIAFLOWS workflow
+consumes a flat folder of TIFF images as input. This is an implicit convention of the
+BIAFLOWS / cytomine-0.1 descriptor format — the
+`descriptor specification <https://web.archive.org/web/20250208125315/https://doc.uliege.cytomine.org/dev-guide/algorithms/descriptor-reference#name-name>`_
+does not carry any file-type constraint field.
+
+This has two practical consequences:
+
+1. **No auto-detection**: BIOMERO cannot read a BIAFLOWS ``descriptor.json`` and
+   automatically determine whether a workflow expects TIFF or Zarr input. The Zarr
+   toggles in the Admin UI therefore exist as an explicit, manual configuration choice
+   made by the administrator - not something inferred from the descriptor.
+
+2. **Full descriptor compatibility**: The cytomine-0.1 descriptor format *is* read and
+   understood by BIOMERO for everything else (parameters, metadata, versioning). Marking
+   a workflow as Zarr in the Admin UI simply overrides how BIOMERO stages input data
+   before submitting the SLURM job; it does not require any changes to the descriptor
+   itself.
+
+.. note::
+   **Future direction**: BIOMERO is investigating support for a second descriptor schema
+   - most likely a subset of `CWL (Common Workflow Language) <https://www.commonwl.org/>`_
+   - that *does* explicitly declare accepted file types and formats. When this is
+   available, BIOMERO will be able to auto-detect and validate Zarr compatibility from
+   the descriptor, removing the need for the manual toggles. This is a work in
+   progress (TBC).
 
 Slurm Check Setup Output
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -256,6 +369,7 @@ Related Documentation
 ---------------------
 
 * :doc:`slurm-integration` - SLURM cluster deployment, SSH setup, and system architecture
+* :doc:`analyzer-importer-admin` - Analyzer + Importer integration (prerequisite for Zarr workflows)
 * :doc:`../developer/containers/metabase` - Metabase container configuration and troubleshooting
 * :doc:`../developer/containers/omeroweb` - OMERO.web container setup
 * :doc:`deployment` - Initial deployment configuration
