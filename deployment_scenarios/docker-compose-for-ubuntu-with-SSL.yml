@@ -85,6 +85,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "../web/L-Drive:/data"
+      - "tus-destination:/data/tus_destination"
 
   # Name of our worker node, can be anything
   omeroworker-1:
@@ -107,6 +108,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "../web/L-Drive:/data"
+      - "tus-destination:/data/tus_destination"
 
   # Define our processor worker
   biomeroworker:
@@ -139,6 +141,7 @@ services:
       - "/opt/omero/.ssh:/tmp/.ssh:ro" # TODO: Make sure to open permissions on the host e.g. chmod -R 777 /opt/omero/.ssh
       - "../web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
       - "../web/L-Drive:/data"
+      - "tus-destination:/data/tus_destination"
       - "../config/biomero-importer:/opt/omero/server/config-importer:ro"
       - "../web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
 
@@ -186,6 +189,7 @@ services:
       - "../web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
       - "../web/local_omeroweb_edits/pretty_login/login_page_images/bioimaging.png:/opt/omero/web/venv3/lib/python3.9/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/AmsterdamUMC-logo.png:ro"
       - "../web/L-Drive:/data:rw"
+      - "tus-destination:/data/tus_destination"
 
   metabase:
     image: metabase/metabase@sha256:f7b5dc52c21aaa2dca910a450e7e6119a975090ce9fc80726aa0742882ca176c
@@ -225,6 +229,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "../web/L-Drive:/data" # TODO: Make sure to open permissions on the host e.g. chmod -R 777 ./web/L-Drive
+      - "tus-destination:/data/tus_destination"
       - "../config/biomero-importer:/auto-importer/config:ro"
       - "../logs/biomero-importer:/auto-importer/logs"
     user: "${OMERO_CONTAINER_USER}"
@@ -243,3 +248,4 @@ volumes:
   database:
   database-biomero:
   omero:
+  tus-destination:

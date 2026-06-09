@@ -73,6 +73,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "./web/L-Drive:/data"
+      - "tus-destination:/data/tus_destination"
       - "./logs/omeroserver:/opt/omero/server/OMERO.server/var/log"
     logging:
       driver: "json-file"
@@ -97,6 +98,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "./web/L-Drive:/data"
+      - "tus-destination:/data/tus_destination"
       - "./logs/omeroworker-1:/opt/omero/server/OMERO.server/var/log"
     logging:
       driver: "json-file"
@@ -138,6 +140,7 @@ services:
       - "~/.ssh:/tmp/.ssh:ro"
       - "./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
       - "./web/L-Drive:/data"
+      - "tus-destination:/data/tus_destination"
       - "./config/biomero-importer:/opt/omero/server/config-importer:ro"
       - "./web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
       - "./logs/biomeroworker:/opt/omero/server/OMERO.server/var/log"
@@ -177,7 +180,7 @@ services:
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
-      UPLOADER_DESTINATION_DIR: /data/uploader_destination
+      UPLOADER_DESTINATION_DIR: /data/tus_destination
     # Named network to communicate with other containers
     networks:
       - omero
@@ -190,6 +193,7 @@ services:
     volumes:
       - "./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
       - "./web/L-Drive:/data:rw"
+      - "tus-destination:/data/tus_destination"
       - "../OMERO.biomero/:/opt/omero/web/OMERO.biomero"
       - "../OMERO.forms/:/opt/omero/web/OMERO.forms"
       - "./web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
@@ -240,6 +244,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "./web/L-Drive:/data"
+      - "tus-destination:/data/tus_destination"
       - "./biomero-importer/logs:/auto-importer/logs"
       - "./biomero-importer/config:/auto-importer/config"
       - "./biomero-importer/biomero_importer:/auto-importer/biomero_importer"
@@ -260,3 +265,4 @@ volumes:
   database:
   database-biomero:
   omero:
+  tus-destination:

@@ -37,12 +37,12 @@ Storage Configuration
 
 The uploader uses a two-stage storage process:
 
-1. **Temporary Storage**: Chunks are stored in a temporary directory while the upload is in progress.
-2. **Final Destination**: Once fully assembled, the file is moved to a permanent storage directory on the BIOMERO filesystem.
+1. **Temporary Storage (Chunks)**: Chunks are stored in a temporary directory while the upload is in progress (Default: ``/tmp/omero_biomero_tus_upload`` inside the container, which is internal and doesn't require mapping).
+2. **Final Destination**: Once fully assembled, the file is moved to a permanent/assembled storage directory on the BIOMERO filesystem (Default: ``/data/tus_destination``).
 
 These paths are configured via environment variables:
 
-- ``UPLOADER_CHUNKS_DIR``: Path for temporary chunks (Default: ``/data/tus_upload``).
+- ``UPLOADER_CHUNKS_DIR``: Path for temporary chunks.
 - ``UPLOADER_DESTINATION_DIR``: Path for assembled files (Default: ``/data/tus_destination``).
 
 .. note::
@@ -68,15 +68,34 @@ In the containerized deployment, this is controlled by the ``CONFIG_nginx_client
 File System Permissions
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The user running the OMERO.web process (usually ``omero-web``) must have read/write permissions for both the temporary chunk directory and the final destination directories.
+To prevent ownership and permission conflicts between different container processes (e.g., ``omero-web`` writing the uploaded files, and ``biomero-importer`` or ``omeroserver`` reading and importing them), the default configuration maps the assembled files directory (``/data/tus_destination``) to a shared Docker named volume named ``tus-destination``.
 
-In Docker Compose, ensure the mounted volumes have the correct ownership:
+Since this volume is managed directly by Docker inside the Linux container environment, it bypasses host-level ownership translation issues. 
+
+In Docker Compose, this is set up by mounting the shared volume in all relevant services:
+
+.. code-block:: yaml
+
+   services:
+     omeroweb:
+       volumes:
+         - tus-destination:/data/tus_destination
+     omeroserver:
+       volumes:
+         - tus-destination:/data/tus_destination
+     biomero-importer:
+       volumes:
+         - tus-destination:/data/tus_destination
+
+   volumes:
+     tus-destination:
+
+If you are uploading directly to group folders (e.g., ``/data/uploads/username/group_folder/``), make sure the host paths have the correct permissions so the containers can read and write:
 
 .. code-block:: bash
 
    # Example on the host machine
-   chown -R 1000:1000 ./web/L-Drive/tus_upload
-   chown -R 1000:1000 ./web/L-Drive/tus_destination
+   chown -R 1000:1000 ./web/L-Drive/uploads
 
 Troubleshooting
 ---------------

@@ -77,6 +77,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "./web/L-Drive:/data"
+      - "tus-destination:/data/tus_destination"
       - "./logs/omeroserver:/opt/omero/server/OMERO.server/var/log"
     logging:
       driver: "json-file"
@@ -101,6 +102,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "./web/L-Drive:/data"
+      - "tus-destination:/data/tus_destination"
       - "./logs/omeroworker-1:/opt/omero/server/OMERO.server/var/log"
     logging:
       driver: "json-file"
@@ -142,6 +144,7 @@ services:
       - "~/.ssh:/tmp/.ssh:ro"
       - "./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
       - "./web/L-Drive:/data"
+      - "tus-destination:/data/tus_destination"
       - "./config/biomero-importer:/opt/omero/server/config-importer:ro"
       - "./web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
       - "./logs/biomeroworker:/opt/omero/server/OMERO.server/var/log"
@@ -190,6 +193,7 @@ services:
       - "./web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
       - "./web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
       - "./web/L-Drive:/data:rw"
+      - "tus-destination:/data/tus_destination"
       - "./logs/omeroweb:/opt/omero/web/OMERO.web/var/log"
     logging:
       driver: "json-file"
@@ -235,6 +239,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "./web/L-Drive:/data"
+      - "tus-destination:/data/tus_destination"
       - "./config/biomero-importer:/auto-importer/config:ro"
       - "./logs/biomero-importer:/auto-importer/logs"
     logging:
@@ -260,3 +265,4 @@ volumes:
   omero:
     # external: true
     # name: omero-server-2025-07-29_12-09-40-UTC #  Restored data
+  tus-destination:
