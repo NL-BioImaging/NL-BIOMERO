@@ -5,7 +5,8 @@
   },
   "FILE_OR_EXTENSION_PATTERNS_EXCLUSIVE": [
     "experiment.db",
-    ".xlef"
+    ".xlef",
+    ".icarch"
   ],
   "UPLOADER_NESTED_FILE_EXTENSIONS": [
     ".lif",
@@ -15,7 +16,8 @@
     ".lif": "dataset_leica_uuid",
     ".xlef": "dataset_leica_uuid",
     ".lof": "dataset_leica_uuid",
-    ".db": "screen_db"
+    ".db": "screen_db",
+    ".icarch": "incucyte_archive"
   },
   "PREPROCESSING_CONFIG": {
     "screen_db": {
@@ -32,6 +34,9 @@
       "extra_params": {
         "image_uuid": "{UUID}"
       }
+    },
+    "incucyte_archive": {
+      "container": "cellularimagingcf/biomero-converter:latest"
     }
   }
 }
