@@ -170,10 +170,6 @@ services:
       ENV: ${OMERO_WEB_ENV}
       OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
       OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
-      METABASE_SITE_URL: ${METABASE_SITE_URL}
-      METABASE_SECRET_KEY: ${METABASE_SECRET_KEY}
-      METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID: ${METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID}
-      METABASE_WORKFLOWS_DB_PAGE_DASHBOARD_ID: ${METABASE_WORKFLOWS_DB_PAGE_DASHBOARD_ID}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       IMPORT_MOUNT_PATH: ${IMPORT_MOUNT_PATH}
       FORMS_MASTER_USER: ${FORMS_MASTER_USER}
@@ -206,22 +202,6 @@ services:
         max-size: "10m"
         max-file: "5"
     entrypoint: ["sh", "-c", "tail -f /dev/null"]
-
-  # New Metabase service
-  metabase:
-    image: metabase/metabase@sha256:f7b5dc52c21aaa2dca910a450e7e6119a975090ce9fc80726aa0742882ca176c
-    container_name: metabase
-    hostname: metabase
-    environment:
-      MB_DB_FILE: /metabase-data/metabase.db
-      MB_USER: ${METABASE_USER}
-      MB_PASSWORD: ${METABASE_PASSWORD}
-    networks:
-      - omero
-    ports:
-      - "3000:3000" # Expose Metabase on port 3000
-    volumes:
-      - "./metabase:/metabase-data" # Mount existing H2 db
 
   biomero-importer:
     build:
