@@ -749,12 +749,12 @@
 <h3>Storage Configuration<a class="headerlink" href="#storage-configuration" title="Permalink to this heading"></a></h3>
 <p>The uploader uses a two-stage storage process:</p>
 <ol class="arabic simple">
-<li><p><strong>Temporary Storage</strong>: Chunks are stored in a temporary directory while the upload is in progress.</p></li>
-<li><p><strong>Final Destination</strong>: Once fully assembled, the file is moved to a permanent storage directory on the BIOMERO filesystem.</p></li>
+<li><p><strong>Temporary Storage (Chunks)</strong>: Chunks are stored in a temporary directory while the upload is in progress (Default: <code class="docutils literal notranslate"><span class="pre">/tmp/omero_biomero_tus_upload</span></code> inside the container, which is internal and doesn’t require mapping).</p></li>
+<li><p><strong>Final Destination</strong>: Once fully assembled, the file is moved to a permanent/assembled storage directory on the BIOMERO filesystem (Default: <code class="docutils literal notranslate"><span class="pre">/data/tus_destination</span></code>).</p></li>
 </ol>
 <p>These paths are configured via environment variables:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">UPLOADER_CHUNKS_DIR</span></code>: Path for temporary chunks (Default: <code class="docutils literal notranslate"><span class="pre">/data/tus_upload</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UPLOADER_CHUNKS_DIR</span></code>: Path for temporary chunks.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">UPLOADER_DESTINATION_DIR</span></code>: Path for assembled files (Default: <code class="docutils literal notranslate"><span class="pre">/data/tus_destination</span></code>).</p></li>
 </ul>
 <div class="admonition note">
@@ -778,11 +778,27 @@
 </section>
 <section id="file-system-permissions">
 <h3>File System Permissions<a class="headerlink" href="#file-system-permissions" title="Permalink to this heading"></a></h3>
-<p>The user running the OMERO.web process (usually <code class="docutils literal notranslate"><span class="pre">omero-web</span></code>) must have read/write permissions for both the temporary chunk directory and the final destination directories.</p>
-<p>In Docker Compose, ensure the mounted volumes have the correct ownership:</p>
+<p>To prevent ownership and permission conflicts between different container processes (e.g., <code class="docutils literal notranslate"><span class="pre">omero-web</span></code> writing the uploaded files, and <code class="docutils literal notranslate"><span class="pre">biomero-importer</span></code> or <code class="docutils literal notranslate"><span class="pre">omeroserver</span></code> reading and importing them), the default configuration maps the assembled files directory (<code class="docutils literal notranslate"><span class="pre">/data/tus_destination</span></code>) to a shared Docker named volume named <code class="docutils literal notranslate"><span class="pre">tus-destination</span></code>.</p>
+<p>Since this volume is managed directly by Docker inside the Linux container environment, it bypasses host-level ownership translation issues.</p>
+<p>In Docker Compose, this is set up by mounting the shared volume in all relevant services:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">services</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">omeroweb</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tus-destination:/data/tus_destination</span>
+<span class="w">  </span><span class="nt">omeroserver</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tus-destination:/data/tus_destination</span>
+<span class="w">  </span><span class="nt">biomero-importer</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tus-destination:/data/tus_destination</span>
+
+<span class="nt">volumes</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">tus-destination</span><span class="p">:</span>
+</pre></div>
+</div>
+<p>If you are uploading directly to group folders (e.g., <code class="docutils literal notranslate"><span class="pre">/data/uploads/username/group_folder/</span></code>), make sure the host paths have the correct permissions so the containers can read and write:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example on the host machine</span>
-chown<span class="w"> </span>-R<span class="w"> </span><span class="m">1000</span>:1000<span class="w"> </span>./web/L-Drive/tus_upload
-chown<span class="w"> </span>-R<span class="w"> </span><span class="m">1000</span>:1000<span class="w"> </span>./web/L-Drive/tus_destination
+chown<span class="w"> </span>-R<span class="w"> </span><span class="m">1000</span>:1000<span class="w"> </span>./web/L-Drive/uploads
 </pre></div>
 </div>
 </section>
