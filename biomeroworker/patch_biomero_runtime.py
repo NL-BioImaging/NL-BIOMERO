@@ -28,6 +28,10 @@ Why this exists:
   scripts for CellExpansion, Stardist5d or BIOMERO's generic conversion array script, while
   our config exposes those workflows and uses conversion. We add those scripts
   during Slurm script setup so exposed workflows have matching sbatch targets.
+- BIOMERO starts all Singularity pulls in parallel and lets Apptainer use the
+  login node /tmp for build work. On Spider this can exhaust /tmp and still log
+  "finished" because the command is backgrounded. Pulls now run sequentially,
+  use project storage for Apptainer temp/cache directories, and return failures.
 
 Remove this when upstream BIOMERO includes these compatibility fixes.
 """
@@ -208,6 +212,26 @@ PY"""
             sbatch_env["CONVERSION_PARTITION"] = f"\\"{self.slurm_conversion_partition}\\""
 """,
         "optional conversion partition export",
+    )
+
+    # Keep remote image initialization bounded by project storage instead of
+    # Spider's small login-node /tmp. Run pulls in the foreground so failures
+    # propagate to BIOMERO and the UI does not wait on orphaned background work.
+    source = _replace_required(
+        source,
+        '''                    pull_template = "echo 'starting $path $version' >> sing.log\\nnohup sh -c \\"singularity pull --disable-cache --dir $path docker://$image:$version; echo 'finished $path $version'\\" >> sing.log 2>&1 & disown"
+''',
+        '''                    pull_template = "echo 'starting $path $version' >> sing.log\\nmkdir -p .apptainer_tmp .apptainer_cache $path\\nAPPTAINER_TMPDIR=$$PWD/.apptainer_tmp SINGULARITY_TMPDIR=$$PWD/.apptainer_tmp APPTAINER_CACHEDIR=$$PWD/.apptainer_cache SINGULARITY_CACHEDIR=$$PWD/.apptainer_cache singularity pull --force --disable-cache --dir $path docker://$image:$version >> sing.log 2>&1\\nrc=$$?\\nif [ $$rc -eq 0 ]; then echo 'finished $path $version' >> sing.log; else echo 'failed $path $version exit='$$rc >> sing.log; exit $$rc; fi"
+''',
+        "foreground workflow Singularity pull using project storage",
+    )
+    source = _replace_required(
+        source,
+        '''                    pull_template = "echo 'starting $path $version' >> sing.log\\nnohup sh -c \\"singularity pull --force --disable-cache $conv_name docker://$image:$version; echo 'finished $path $version'\\" >> sing.log 2>&1 & disown"
+''',
+        '''                    pull_template = "echo 'starting $path $version' >> sing.log\\nmkdir -p .apptainer_tmp .apptainer_cache\\nAPPTAINER_TMPDIR=$$PWD/.apptainer_tmp SINGULARITY_TMPDIR=$$PWD/.apptainer_tmp APPTAINER_CACHEDIR=$$PWD/.apptainer_cache SINGULARITY_CACHEDIR=$$PWD/.apptainer_cache singularity pull --force --disable-cache $conv_name docker://$image:$version >> sing.log 2>&1\\nrc=$$?\\nif [ $$rc -eq 0 ]; then echo 'finished $path $version' >> sing.log; else echo 'failed $path $version exit='$$rc >> sing.log; exit $$rc; fi"
+''',
+        "foreground converter Singularity pull using project storage",
     )
     source = _replace_required(
         source,
