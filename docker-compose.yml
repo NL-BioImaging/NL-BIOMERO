@@ -21,6 +21,7 @@ services:
     volumes:
       - "database:/var/lib/postgresql/data"
       # - .\backup_and_restore\omero-2025-07-24-14-06-06-pg16:/var/lib/postgresql/data
+       
 
   database-biomero:
     # Define a prebuilt Postgres image with a version
@@ -77,7 +78,6 @@ services:
     volumes:
       - "omero:/OMERO"
       - "./web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
       - "./logs/omeroserver:/opt/omero/server/OMERO.server/var/log"
     logging:
       driver: "json-file"
@@ -102,7 +102,6 @@ services:
     volumes:
       - "omero:/OMERO"
       - "./web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
       - "./logs/omeroworker-1:/opt/omero/server/OMERO.server/var/log"
     logging:
       driver: "json-file"
@@ -134,6 +133,14 @@ services:
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
+      # Keep BIOMERO's default multi-day sacct range narrow enough for the
+      # target Slurm cluster; pass the
+      # narrowed query window into subprocess-launched OMERO scripts.
+      BIOMERO_SACCT_START_TIME: ${BIOMERO_SACCT_START_TIME}
+      # Used by the runtime BIOMERO patch. The partition is applied to all
+      # submissions; GRES is applied only when `use_gpu=true`.
+      BIOMERO_SLURM_PARTITION: ${BIOMERO_SLURM_PARTITION}
+      BIOMERO_GPU_GRES: ${BIOMERO_GPU_GRES}
     # Named network to communicate with other containers
     networks:
       - omero
@@ -141,10 +148,9 @@ services:
     # Forward host SSH setup to container
     volumes:
       - "omero:/OMERO"
-      - "~/.ssh:/tmp/.ssh:ro"
+      - "./.ssh:/tmp/.ssh:ro"
       - "./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
       - "./web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
       - "./config/biomero-importer:/opt/omero/server/config-importer:ro"
       - "./web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
       - "./logs/biomeroworker:/opt/omero/server/OMERO.server/var/log"
@@ -171,7 +177,6 @@ services:
       CONFIG_omero_web_session__cookie__age: ${OMERO_WEB_SESSION_COOKIE_AGE}
       ENV: ${OMERO_WEB_ENV}
       OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
-      OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
       METABASE_SITE_URL: ${METABASE_SITE_URL}
       METABASE_SECRET_KEY: ${METABASE_SECRET_KEY}
       METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID: ${METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID}
@@ -182,6 +187,10 @@ services:
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
+      CONFIG_omero_web_csrf__trusted__origins: ${OMERO_CSRF_TRUSTED_ORIGINS}
+      # Keep analyzer status/job accounting aligned with the worker-side
+      # sacct range override.
+      BIOMERO_SACCT_START_TIME: ${BIOMERO_SACCT_START_TIME}
     # Named network to communicate with other containers
     networks:
       - omero
@@ -191,9 +200,7 @@ services:
     volumes:
       - "./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
       - "./web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
-      - "./web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
       - "./web/L-Drive:/data:rw"
-      - "tus-destination:/data/tus_destination"
       - "./logs/omeroweb:/opt/omero/web/OMERO.web/var/log"
     logging:
       driver: "json-file"
@@ -209,6 +216,10 @@ services:
       MB_DB_FILE: /metabase-data/metabase.db
       MB_USER: ${METABASE_USER}
       MB_PASSWORD: ${METABASE_PASSWORD}
+      MB_SITE_URL: ${METABASE_SITE_URL}
+      MB_ENABLE_EMBEDDING: "true"
+      MB_ENABLE_EMBEDDING_STATIC: "true"
+      MB_EMBEDDING_SECRET_KEY: ${METABASE_SECRET_KEY}
     networks:
       - omero
     ports:
@@ -239,7 +250,6 @@ services:
     volumes:
       - "omero:/OMERO"
       - "./web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
       - "./config/biomero-importer:/auto-importer/config:ro"
       - "./logs/biomero-importer:/auto-importer/logs"
     logging:
@@ -248,6 +258,7 @@ services:
         max-size: "10m"
         max-file: "5"
     user: "${OMERO_CONTAINER_USER}"
+
 
 # Define the network(s) to communicate between containers
 networks:
@@ -265,4 +276,3 @@ volumes:
   omero:
     # external: true
     # name: omero-server-2025-07-29_12-09-40-UTC #  Restored data
-  tus-destination:
