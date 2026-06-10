@@ -31,7 +31,8 @@ Why this exists:
 - BIOMERO starts all Singularity pulls in parallel and lets Apptainer use the
   login node /tmp for build work. On Spider this can exhaust /tmp and still log
   "finished" because the command is backgrounded. Pulls now run sequentially,
-  use project storage for Apptainer temp/cache directories, and return failures.
+  use project storage for Apptainer temp/cache directories, return failures, and
+  are submitted to Slurm instead of running on the login node.
 
 Remove this when upstream BIOMERO includes these compatibility fixes.
 """
@@ -232,6 +233,32 @@ PY"""
         '''                    pull_template = "echo 'starting $path $version' >> sing.log\\nmkdir -p .apptainer_tmp .apptainer_cache\\nAPPTAINER_TMPDIR=$$PWD/.apptainer_tmp SINGULARITY_TMPDIR=$$PWD/.apptainer_tmp APPTAINER_CACHEDIR=$$PWD/.apptainer_cache SINGULARITY_CACHEDIR=$$PWD/.apptainer_cache singularity pull --force --disable-cache $conv_name docker://$image:$version >> sing.log 2>&1\\nrc=$$?\\nif [ $$rc -eq 0 ]; then echo 'finished $path $version' >> sing.log; else echo 'failed $path $version exit='$$rc >> sing.log; exit $$rc; fi"
 ''',
         "foreground converter Singularity pull using project storage",
+    )
+    source = _replace_required(
+        source,
+        '''                cmd = f"time sh {script_name}"
+                r = self.run_commands([cmd])
+''',
+        '''                slurm_partition = os.getenv("BIOMERO_SLURM_PARTITION", "gpu_a100_22c")
+                partition_param = f" --partition={slurm_partition}" if slurm_partition else ""
+                cmd = f"sbatch --parsable --job-name=biomero-pull-images{partition_param} --output=pull_images-%j.log {script_name}"
+                r = self.run_commands([cmd])
+''',
+        "submit workflow image initialization through Slurm",
+    )
+    source = _replace_required(
+        source,
+        '''            cmd = f"time sh {script_name}"
+            with self.cd(self.slurm_converters_path):
+                r = self.run_commands([cmd])
+''',
+        '''            slurm_partition = os.getenv("BIOMERO_SLURM_PARTITION", "gpu_a100_22c")
+            partition_param = f" --partition={slurm_partition}" if slurm_partition else ""
+            cmd = f"sbatch --parsable --job-name=biomero-pull-converters{partition_param} --output=pull_converters-%j.log {script_name}"
+            with self.cd(self.slurm_converters_path):
+                r = self.run_commands([cmd])
+''',
+        "submit configured converter image initialization through Slurm",
     )
     source = _replace_required(
         source,
