@@ -24,6 +24,10 @@ Why this exists:
   and patched Slurm job scripts source it before launching containers.
   This must be applied to both Git-cloned scripts and BIOMERO descriptor-
   generated scripts.
+- Some upstream workflow scripts can print a Python traceback from inside the
+  container but still exit zero and leave `data/out` empty. Patched scripts now
+  fail on command errors and verify that output files were produced before
+  BIOMERO enters the import stage.
 - The upstream slurm-scripts repository used here does not include BIOMERO job
   scripts for CellExpansion, Stardist5d or BIOMERO's generic conversion array script, while
   our config exposes those workflows and uses conversion. We add those scripts

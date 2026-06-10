@@ -17,6 +17,11 @@ import sys
 CONVERT_JOB_ARRAY = ""
 GENERATED_JOBS = {}
 
+OLD_OUTPUT_CHECK_RE = re.compile(
+    r"\n_nl_biomero_verify_outputs\(\) \{\n.*?\n\}\n_nl_biomero_verify_outputs\n?",
+    re.DOTALL,
+)
+
 
 def _insert_env_loader(source: str) -> str:
     if "BIOMERO_ENV_FILE" in source:
@@ -35,6 +40,19 @@ def _insert_env_loader(source: str) -> str:
         if line.startswith("#SBATCH"):
             insert_at = idx + 1
     lines.insert(insert_at, env_loader)
+    return "".join(lines)
+
+
+def _insert_strict_mode(source: str) -> str:
+    if "set -eo pipefail" in source:
+        return source
+
+    lines = source.splitlines(keepends=True)
+    insert_at = 1 if lines and lines[0].startswith("#!") else 0
+    for idx, line in enumerate(lines):
+        if line.startswith("#SBATCH"):
+            insert_at = idx + 1
+    lines.insert(insert_at, "set -eo pipefail\n")
     return "".join(lines)
 
 
@@ -59,16 +77,41 @@ def _make_gpu_optional(source: str) -> str:
     )
 
 
+def _append_output_check(source: str) -> str:
+    source = OLD_OUTPUT_CHECK_RE.sub("\n", source)
+
+    if 'nl_biomero_verify_outputs' in source:
+        return source
+
+    source = source.rstrip()
+    success_echo = 'echo "Job completed successfully."'
+    has_success_echo = source.endswith(success_echo)
+    if has_success_echo:
+        source = source[: -len(success_echo)].rstrip()
+
+    output_check = (
+        "\n"
+        '. "$(dirname "$0")/biomero_job_helpers.sh"\n'
+        "nl_biomero_verify_outputs\n"
+    )
+    if has_success_echo:
+        output_check += success_echo + "\n"
+
+    return source + output_check
+
+
 def _normalize_job_script(source: str) -> str:
     '''Apply remote Slurm compatibility edits to one repository-provided job script.'''
     source = re.sub(r"^#SBATCH --gres=.*\n", "", source, flags=re.MULTILINE)
+    source = _insert_strict_mode(source)
     source = _insert_env_loader(source)
     source = _make_gpu_optional(source)
-    return re.sub(
+    source = re.sub(
         r'echo "Running ([^"]*?)(?<! Job) w/',
         r'echo "Running \1 Job w/',
         source,
     )
+    return _append_output_check(source)
 
 
 def _ensure_local_scripts(repo: Path) -> Path:
@@ -95,7 +138,11 @@ def main() -> None:
     repo = Path(sys.argv[1])
     jobs_dir = _ensure_local_scripts(repo)
 
-    jobs = sorted(jobs_dir.glob("*.sh"))
+    jobs = sorted(
+        script
+        for script in jobs_dir.glob("*.sh")
+        if script.name != "biomero_job_helpers.sh"
+    )
     if not jobs:
         raise SystemExit(0)
 
