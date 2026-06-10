@@ -13,8 +13,9 @@ Why this exists:
   static sbatch parameters and some upstream Slurm scripts hard-code GPU
   requests. This patch removes hard-coded GPU requests from freshly cloned job
   scripts, toggles Singularity `--nv` from USE_GPU, submits all jobs to the
-  configured Spider GPU partition, and injects GPU GRES only when a workflow
-  sets `use_gpu=true`.
+  configured Spider GPU partition, forces `use_gpu=true` for selected GPU-native
+  workflows unless the request explicitly disables it, and injects GPU GRES only
+  when the effective `use_gpu` value is true.
 - `slurm_data_bind_path` is required so Apptainer can see the same
   BIOMERO data path that jobs receive. A blank value used to be exported as
   APPTAINER_BINDPATH="", which can make Apptainer complain about `/ as sandbox
@@ -181,7 +182,25 @@ PY"""
         # grab only the image name, not the group/creator
 """,
         """        job_params = list(self.slurm_model_jobs_params[workflow.lower()])
+        force_gpu_workflows = {
+            item.strip().lower()
+            for item in os.getenv(
+                "BIOMERO_FORCE_GPU_WORKFLOWS",
+                "cellpose,stardist,stardist5d,fractal-cellpose-sam-biaflows,deconvolve_plate",
+            ).split(",")
+            if item.strip()
+        }
         use_gpu_value = kwargs.get("use_gpu")
+        if (
+            workflow.lower() in force_gpu_workflows
+            and (
+                "use_gpu" not in kwargs
+                or use_gpu_value is None
+                or str(use_gpu_value).strip() == ""
+            )
+        ):
+            kwargs["use_gpu"] = "true"
+            use_gpu_value = kwargs["use_gpu"]
         use_gpu = str(use_gpu_value).lower() in ("true", "1", "yes", "y", "on")
         slurm_partition = os.getenv("BIOMERO_SLURM_PARTITION", "gpu_a100_22c")
         if slurm_partition and not any(param.startswith(" --partition=") for param in job_params):
