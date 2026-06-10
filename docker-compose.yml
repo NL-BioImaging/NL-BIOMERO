@@ -141,6 +141,8 @@ services:
       # submissions; GRES is applied only when `use_gpu=true`.
       BIOMERO_SLURM_PARTITION: ${BIOMERO_SLURM_PARTITION}
       BIOMERO_GPU_GRES: ${BIOMERO_GPU_GRES}
+      BIOMERO_PULL_CPUS: ${BIOMERO_PULL_CPUS}
+      BIOMERO_PULL_MEM: ${BIOMERO_PULL_MEM}
     # Named network to communicate with other containers
     networks:
       - omero

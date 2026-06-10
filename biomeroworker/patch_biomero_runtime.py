@@ -222,7 +222,7 @@ PY"""
         source,
         '''                    pull_template = "echo 'starting $path $version' >> sing.log\\nnohup sh -c \\"singularity pull --disable-cache --dir $path docker://$image:$version; echo 'finished $path $version'\\" >> sing.log 2>&1 & disown"
 ''',
-        '''                    pull_template = "echo 'starting $path $version' >> sing.log\\nmkdir -p .apptainer_tmp .apptainer_cache $path\\nAPPTAINER_TMPDIR=$$PWD/.apptainer_tmp SINGULARITY_TMPDIR=$$PWD/.apptainer_tmp APPTAINER_CACHEDIR=$$PWD/.apptainer_cache SINGULARITY_CACHEDIR=$$PWD/.apptainer_cache singularity pull --force --disable-cache --dir $path docker://$image:$version >> sing.log 2>&1\\nrc=$$?\\nif [ $$rc -eq 0 ]; then echo 'finished $path $version' >> sing.log; else echo 'failed $path $version exit='$$rc >> sing.log; exit $$rc; fi"
+        '''                    pull_template = "echo 'starting $path $version' >> sing.log\\nmkdir -p .apptainer_tmp .apptainer_cache $path\\nimage_name=$$(basename \\"$image\\")\\noutput=\\"$path/$${image_name}_$version.sif\\"\\nif [ -s \\"$$output\\" ]; then echo 'skipping $path $version; SIF already exists' >> sing.log; else APPTAINER_TMPDIR=$$PWD/.apptainer_tmp SINGULARITY_TMPDIR=$$PWD/.apptainer_tmp APPTAINER_CACHEDIR=$$PWD/.apptainer_cache SINGULARITY_CACHEDIR=$$PWD/.apptainer_cache singularity build --force --disable-cache --mksquashfs-args \\"-processors $${BIOMERO_PULL_CPUS:-8}\\" \\"$$output\\" docker://$image:$version >> sing.log 2>&1; fi\\nrc=$$?\\nif [ $$rc -eq 0 ]; then echo 'finished $path $version' >> sing.log; else echo 'failed $path $version exit='$$rc >> sing.log; exit $$rc; fi"
 ''',
         "foreground workflow Singularity pull using project storage",
     )
@@ -230,7 +230,7 @@ PY"""
         source,
         '''                    pull_template = "echo 'starting $path $version' >> sing.log\\nnohup sh -c \\"singularity pull --force --disable-cache $conv_name docker://$image:$version; echo 'finished $path $version'\\" >> sing.log 2>&1 & disown"
 ''',
-        '''                    pull_template = "echo 'starting $path $version' >> sing.log\\nmkdir -p .apptainer_tmp .apptainer_cache\\nAPPTAINER_TMPDIR=$$PWD/.apptainer_tmp SINGULARITY_TMPDIR=$$PWD/.apptainer_tmp APPTAINER_CACHEDIR=$$PWD/.apptainer_cache SINGULARITY_CACHEDIR=$$PWD/.apptainer_cache singularity pull --force --disable-cache $conv_name docker://$image:$version >> sing.log 2>&1\\nrc=$$?\\nif [ $$rc -eq 0 ]; then echo 'finished $path $version' >> sing.log; else echo 'failed $path $version exit='$$rc >> sing.log; exit $$rc; fi"
+        '''                    pull_template = "echo 'starting $path $version' >> sing.log\\nmkdir -p .apptainer_tmp .apptainer_cache\\nif [ -s \\"$conv_name\\" ]; then echo 'skipping $path $version; SIF already exists' >> sing.log; else APPTAINER_TMPDIR=$$PWD/.apptainer_tmp SINGULARITY_TMPDIR=$$PWD/.apptainer_tmp APPTAINER_CACHEDIR=$$PWD/.apptainer_cache SINGULARITY_CACHEDIR=$$PWD/.apptainer_cache singularity build --force --disable-cache --mksquashfs-args \\"-processors $${BIOMERO_PULL_CPUS:-8}\\" $conv_name docker://$image:$version >> sing.log 2>&1; fi\\nrc=$$?\\nif [ $$rc -eq 0 ]; then echo 'finished $path $version' >> sing.log; else echo 'failed $path $version exit='$$rc >> sing.log; exit $$rc; fi"
 ''',
         "foreground converter Singularity pull using project storage",
     )
@@ -241,7 +241,10 @@ PY"""
 ''',
         '''                slurm_partition = os.getenv("BIOMERO_SLURM_PARTITION", "gpu_a100_22c")
                 partition_param = f" --partition={slurm_partition}" if slurm_partition else ""
-                cmd = f"sbatch --parsable --job-name=biomero-pull-images{partition_param} --output=pull_images-%j.log {script_name}"
+                pull_cpus = os.getenv("BIOMERO_PULL_CPUS", "8")
+                pull_mem = os.getenv("BIOMERO_PULL_MEM", "32G")
+                resource_params = f" --cpus-per-task={pull_cpus} --mem={pull_mem} --export=ALL,BIOMERO_PULL_CPUS={pull_cpus}"
+                cmd = f"sbatch --parsable --job-name=biomero-pull-images{partition_param}{resource_params} --output=pull_images-%j.log {script_name}"
                 r = self.run_commands([cmd])
 ''',
         "submit workflow image initialization through Slurm",
@@ -254,7 +257,10 @@ PY"""
 ''',
         '''            slurm_partition = os.getenv("BIOMERO_SLURM_PARTITION", "gpu_a100_22c")
             partition_param = f" --partition={slurm_partition}" if slurm_partition else ""
-            cmd = f"sbatch --parsable --job-name=biomero-pull-converters{partition_param} --output=pull_converters-%j.log {script_name}"
+            pull_cpus = os.getenv("BIOMERO_PULL_CPUS", "8")
+            pull_mem = os.getenv("BIOMERO_PULL_MEM", "32G")
+            resource_params = f" --cpus-per-task={pull_cpus} --mem={pull_mem} --export=ALL,BIOMERO_PULL_CPUS={pull_cpus}"
+            cmd = f"sbatch --parsable --job-name=biomero-pull-converters{partition_param}{resource_params} --output=pull_converters-%j.log {script_name}"
             with self.cd(self.slurm_converters_path):
                 r = self.run_commands([cmd])
 ''',
