@@ -17,11 +17,6 @@ import sys
 CONVERT_JOB_ARRAY = ""
 GENERATED_JOBS = {}
 
-OLD_OUTPUT_CHECK_RE = re.compile(
-    r"\n_nl_biomero_verify_outputs\(\) \{\n.*?\n\}\n_nl_biomero_verify_outputs\n?",
-    re.DOTALL,
-)
-
 
 def _insert_env_loader(source: str) -> str:
     if "BIOMERO_ENV_FILE" in source:
@@ -78,12 +73,6 @@ def _make_gpu_optional(source: str) -> str:
 
 
 def _append_output_check(source: str) -> str:
-    source = OLD_OUTPUT_CHECK_RE.sub("\n", source)
-    source = source.replace(
-        '. "$(dirname "$0")/biomero_job_helpers.sh"',
-        '. "${SCRIPT_PATH:-$(dirname "$0")}/jobs/biomero_job_helpers.sh"',
-    )
-
     if 'nl_biomero_verify_outputs' in source:
         return source
 

@@ -126,10 +126,10 @@ def patch_slurm_client() -> None:
             r = self.run_commands([cleanup_first, cmd], env)
 """
     new_clone = f'''            cmd = 'git clone "$REPOSRC" "$LOCALREPO" 2> /dev/null'
-            patch_workflow_gpu = r"""python3 - "$LOCALREPO" <<'PY'
+            patch_slurm_scripts = r"""python3 - "$LOCALREPO" <<'PY'
 {remote_patch}
 PY"""
-            r = self.run_commands([cleanup_first, cmd, patch_workflow_gpu], env)
+            r = self.run_commands([cleanup_first, cmd, patch_slurm_scripts], env)
 '''
     source = _replace_required(
         source,
@@ -174,8 +174,8 @@ PY"""
         "remote result ZIP packaging",
     )
 
-    # Submit all jobs to the configured Spider GPU partition. Request an actual
-    # GPU device only when the workflow exposes and passes `use_gpu=true`.
+    # Request Spider GPU resources only for effective GPU jobs. CPU-only jobs
+    # omit --partition and use Spider's normal/default partition.
     source = _replace_required(
         source,
         """        job_params = self.slurm_model_jobs_params[workflow.lower()]
