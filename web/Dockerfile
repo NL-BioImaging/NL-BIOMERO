@@ -2,6 +2,8 @@ FROM openmicroscopy/omero-web-standalone:5.31.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
+ARG BIOMERO_VERSION
+ARG BIOMERO_IMPORTER_VERSION
 
 USER root
 
@@ -42,14 +44,27 @@ COPY biomeroworker/slurm-config.ini /etc/slurm-config.ini
 ### Install OMERO.biomero first ###
 ### BIOMERO.importer and BIOMERO.analyzer will be installed as a dependency of OMERO.biomero ###
 
-# Install released OMERO.biomero from PyPI and run setup (commented out for dev branch):
-# RUN /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
-#     && /opt/omero/web/venv3/bin/omero-biomero-setup
-
-# Install OMERO.biomero from PyPI
+# Install released OMERO.biomero from PyPI and keep its BIOMERO dependencies
+# aligned with the worker image.
 RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1) \
-    && /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
+    && test -n "$BIOMERO_IMPORTER_VERSION" || (echo "BIOMERO_IMPORTER_VERSION build arg is required" >&2; exit 1) \
+    && test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1) \
+    && /opt/omero/web/venv3/bin/pip install \
+        omero-biomero==${OMERO_BIOMERO_VERSION} \
+        biomero-importer==${BIOMERO_IMPORTER_VERSION} \
+        "biomero==${BIOMERO_VERSION}" \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
+
+# Keep proxied Metabase links inside the public OMERO origin.
+COPY web/patch_biomero_web_runtime.py /tmp/patch_biomero_web_runtime.py
+COPY web/patches /tmp/patches
+RUN /opt/omero/web/venv3/bin/python /tmp/patch_biomero_web_runtime.py
+
+# Install OMERO.biomero from main branch on GitHub (commented out for release):
+# ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/main" /latest_commit_biomero
+# RUN git clone -b main https://github.com/NL-BioImaging/OMERO.biomero.git /opt/omero/web/OMERO.biomero \
+#     && /opt/omero/web/venv3/bin/pip install -e /opt/omero/web/OMERO.biomero \
+#     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 ### Install OMERO.forms ###
 
@@ -81,4 +96,3 @@ ADD web/local_omeroweb_edits/script-text-play.svg ./webgateway/static/webgateway
 ### ###
 
 USER omero-web
-
