@@ -79,6 +79,10 @@ def _make_gpu_optional(source: str) -> str:
 
 def _append_output_check(source: str) -> str:
     source = OLD_OUTPUT_CHECK_RE.sub("\n", source)
+    source = source.replace(
+        '. "$(dirname "$0")/biomero_job_helpers.sh"',
+        '. "${SCRIPT_PATH:-$(dirname "$0")}/jobs/biomero_job_helpers.sh"',
+    )
 
     if 'nl_biomero_verify_outputs' in source:
         return source
@@ -91,7 +95,7 @@ def _append_output_check(source: str) -> str:
 
     output_check = (
         "\n"
-        '. "$(dirname "$0")/biomero_job_helpers.sh"\n'
+        '. "${SCRIPT_PATH:-$(dirname "$0")}/jobs/biomero_job_helpers.sh"\n'
         "nl_biomero_verify_outputs\n"
     )
     if has_success_echo:

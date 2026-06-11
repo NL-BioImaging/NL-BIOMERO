@@ -23,5 +23,5 @@ singularity run $GPU_FLAG $IMAGE_PATH/$SINGULARITY_IMAGE \
     --nuclei-channel ${NUCLEI_CHANNEL:-0} \
     -nmc
 
-. "$(dirname "$0")/biomero_job_helpers.sh"
+. "${SCRIPT_PATH:-$(dirname "$0")}/jobs/biomero_job_helpers.sh"
 nl_biomero_verify_outputs

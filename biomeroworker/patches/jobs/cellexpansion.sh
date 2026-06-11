@@ -22,5 +22,5 @@ singularity run $GPU_FLAG $IMAGE_PATH/$SINGULARITY_IMAGE \
     --discard_cells_without_cytoplasm $DISCARD_CELLS_WITHOUT_CYTOPLASM \
     -nmc
 
-. "$(dirname "$0")/biomero_job_helpers.sh"
+. "${SCRIPT_PATH:-$(dirname "$0")}/jobs/biomero_job_helpers.sh"
 nl_biomero_verify_outputs
