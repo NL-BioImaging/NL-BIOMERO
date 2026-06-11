@@ -137,11 +137,10 @@ services:
       # target Slurm cluster; pass the
       # narrowed query window into subprocess-launched OMERO scripts.
       BIOMERO_SACCT_START_TIME: ${BIOMERO_SACCT_START_TIME}
-      # Used by the runtime BIOMERO patch. The partition is applied to all
-      # submissions; --gpus is applied only when `use_gpu=true`.
-      BIOMERO_SLURM_PARTITION: ${BIOMERO_SLURM_PARTITION}
+      # Used by the runtime BIOMERO patch for effective GPU jobs only. CPU-only
+      # jobs omit --partition and use Spider's normal/default partition.
+      BIOMERO_GPU_PARTITION: ${BIOMERO_GPU_PARTITION}
       BIOMERO_GPUS: ${BIOMERO_GPUS}
-      BIOMERO_GPU_GRES: ${BIOMERO_GPU_GRES}
       BIOMERO_FORCE_GPU_WORKFLOWS: ${BIOMERO_FORCE_GPU_WORKFLOWS}
       BIOMERO_PULL_CPUS: ${BIOMERO_PULL_CPUS}
       BIOMERO_PULL_MEM: ${BIOMERO_PULL_MEM}

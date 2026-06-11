@@ -12,10 +12,10 @@ Why this exists:
 - Workflows can expose a `use_gpu` parameter, but BIOMERO's config can only add
   static sbatch parameters and some upstream Slurm scripts hard-code GPU
   requests. This patch removes hard-coded GPU requests from freshly cloned job
-  scripts, toggles Singularity `--nv` from USE_GPU, submits all jobs to the
-  configured Spider GPU partition, forces `use_gpu=true` for selected GPU-native
-  workflows unless the request explicitly disables it, and injects a Slurm GPU
-  request only when the effective `use_gpu` value is true.
+  scripts, toggles Singularity `--nv` from USE_GPU, forces `use_gpu=true` for
+  selected GPU-native workflows unless the request explicitly disables it, and
+  injects the Spider GPU partition plus a Slurm GPU request only when the
+  effective `use_gpu` value is true.
 - `slurm_data_bind_path` is required so Apptainer can see the same
   BIOMERO data path that jobs receive. A blank value used to be exported as
   APPTAINER_BINDPATH="", which can make Apptainer complain about `/ as sandbox
@@ -202,20 +202,13 @@ PY"""
             kwargs["use_gpu"] = "true"
             use_gpu_value = kwargs["use_gpu"]
         use_gpu = str(use_gpu_value).lower() in ("true", "1", "yes", "y", "on")
-        slurm_partition = os.getenv("BIOMERO_SLURM_PARTITION", "gpu_a100_22c")
-        if slurm_partition and not any(param.startswith(" --partition=") for param in job_params):
-            job_params.append(f" --partition={slurm_partition}")
         if use_gpu:
+            gpu_partition = os.getenv("BIOMERO_GPU_PARTITION", "gpu_a100_22c")
+            if gpu_partition and not any(param.startswith(" --partition=") for param in job_params):
+                job_params.append(f" --partition={gpu_partition}")
             gpu_count = os.getenv("BIOMERO_GPUS", "1")
-            gpu_gres = os.getenv("BIOMERO_GPU_GRES", "")
-            has_gpu_request = any(
-                param.startswith(" --gpus=") or param.startswith(" --gres=")
-                for param in job_params
-            )
-            if gpu_count and not has_gpu_request:
+            if gpu_count and not any(param.startswith(" --gpus=") for param in job_params):
                 job_params.append(f" --gpus={gpu_count}")
-            elif gpu_gres and not has_gpu_request:
-                job_params.append(f" --gres={gpu_gres}")
         # grab only the image name, not the group/creator
 """,
         "per-workflow GPU sbatch parameters",
@@ -269,12 +262,10 @@ PY"""
         '''                cmd = f"time sh {script_name}"
                 r = self.run_commands([cmd])
 ''',
-        '''                slurm_partition = os.getenv("BIOMERO_SLURM_PARTITION", "gpu_a100_22c")
-                partition_param = f" --partition={slurm_partition}" if slurm_partition else ""
-                pull_cpus = os.getenv("BIOMERO_PULL_CPUS", "8")
+        '''                pull_cpus = os.getenv("BIOMERO_PULL_CPUS", "8")
                 pull_mem = os.getenv("BIOMERO_PULL_MEM", "32G")
                 resource_params = f" --cpus-per-task={pull_cpus} --mem={pull_mem} --export=ALL,BIOMERO_PULL_CPUS={pull_cpus}"
-                cmd = f"sbatch --parsable --job-name=biomero-pull-images{partition_param}{resource_params} --output=pull_images-%j.log {script_name}"
+                cmd = f"sbatch --parsable --job-name=biomero-pull-images{resource_params} --output=pull_images-%j.log {script_name}"
                 r = self.run_commands([cmd])
 ''',
         "submit workflow image initialization through Slurm",
@@ -285,12 +276,10 @@ PY"""
             with self.cd(self.slurm_converters_path):
                 r = self.run_commands([cmd])
 ''',
-        '''            slurm_partition = os.getenv("BIOMERO_SLURM_PARTITION", "gpu_a100_22c")
-            partition_param = f" --partition={slurm_partition}" if slurm_partition else ""
-            pull_cpus = os.getenv("BIOMERO_PULL_CPUS", "8")
+        '''            pull_cpus = os.getenv("BIOMERO_PULL_CPUS", "8")
             pull_mem = os.getenv("BIOMERO_PULL_MEM", "32G")
             resource_params = f" --cpus-per-task={pull_cpus} --mem={pull_mem} --export=ALL,BIOMERO_PULL_CPUS={pull_cpus}"
-            cmd = f"sbatch --parsable --job-name=biomero-pull-converters{partition_param}{resource_params} --output=pull_converters-%j.log {script_name}"
+            cmd = f"sbatch --parsable --job-name=biomero-pull-converters{resource_params} --output=pull_converters-%j.log {script_name}"
             with self.cd(self.slurm_converters_path):
                 r = self.run_commands([cmd])
 ''',
