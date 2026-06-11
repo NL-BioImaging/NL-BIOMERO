@@ -14,8 +14,8 @@ Why this exists:
   requests. This patch removes hard-coded GPU requests from freshly cloned job
   scripts, toggles Singularity `--nv` from USE_GPU, submits all jobs to the
   configured Spider GPU partition, forces `use_gpu=true` for selected GPU-native
-  workflows unless the request explicitly disables it, and injects GPU GRES only
-  when the effective `use_gpu` value is true.
+  workflows unless the request explicitly disables it, and injects a Slurm GPU
+  request only when the effective `use_gpu` value is true.
 - `slurm_data_bind_path` is required so Apptainer can see the same
   BIOMERO data path that jobs receive. A blank value used to be exported as
   APPTAINER_BINDPATH="", which can make Apptainer complain about `/ as sandbox
@@ -206,8 +206,15 @@ PY"""
         if slurm_partition and not any(param.startswith(" --partition=") for param in job_params):
             job_params.append(f" --partition={slurm_partition}")
         if use_gpu:
-            gpu_gres = os.getenv("BIOMERO_GPU_GRES", "gpu:a100:1")
-            if gpu_gres and not any(param.startswith(" --gres=") for param in job_params):
+            gpu_count = os.getenv("BIOMERO_GPUS", "1")
+            gpu_gres = os.getenv("BIOMERO_GPU_GRES", "")
+            has_gpu_request = any(
+                param.startswith(" --gpus=") or param.startswith(" --gres=")
+                for param in job_params
+            )
+            if gpu_count and not has_gpu_request:
+                job_params.append(f" --gpus={gpu_count}")
+            elif gpu_gres and not has_gpu_request:
                 job_params.append(f" --gres={gpu_gres}")
         # grab only the image name, not the group/creator
 """,
