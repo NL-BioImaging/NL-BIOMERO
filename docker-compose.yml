@@ -1,8 +1,5 @@
 # Brings up all OMERO nodes on _one_ host computer, but multiple containers
 
-# Version 3 is the newest version of the Compose file format
-version: "3"
-
 # Define all the services: database, omero server, omero web
 services:
   # Name of our database, referenced in omero_db_host
