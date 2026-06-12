@@ -6,12 +6,24 @@
 #SBATCH --output=omero-%4j.log
 set -eo pipefail
 
+BIOMERO_ENV_FILE="${1:-}"
+if [ -n "$BIOMERO_ENV_FILE" ] && [ -f "$BIOMERO_ENV_FILE" ]; then
+    . "$BIOMERO_ENV_FILE"
+fi
+
 echo "Running CellExpansionAdvanced w/ $IMAGE_PATH | $SINGULARITY_IMAGE | $DATA_PATH | $MAX_PIXELS $DISCARD_CELLS_WITHOUT_CYTOPLASM $NUCLEI_CHANNEL"
 
 GPU_FLAG=""
 case "${USE_GPU:-}" in
   true|True|TRUE|1|yes|Yes|YES|y|Y|on|On|ON) GPU_FLAG="--nv" ;;
 esac
+
+for mask in "$DATA_PATH"/data/in/*_nucmask*; do
+    [ -e "$mask" ] || continue
+    normalized="${mask/_nucmask/_nuclei_mask}"
+    [ "$normalized" = "$mask" ] && continue
+    [ -e "$normalized" ] || ln -s "$(basename "$mask")" "$normalized"
+done
 
 singularity run $GPU_FLAG $IMAGE_PATH/$SINGULARITY_IMAGE \
     --infolder $DATA_PATH/data/in \
