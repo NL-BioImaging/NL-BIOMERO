@@ -191,8 +191,10 @@ PY"""
             if item.strip()
         }
         use_gpu_value = kwargs.get("use_gpu")
+        device_value = str(kwargs.get("device", "")).strip().lower()
         if (
             workflow.lower() in force_gpu_workflows
+            and device_value != "cpu"
             and (
                 "use_gpu" not in kwargs
                 or use_gpu_value is None
