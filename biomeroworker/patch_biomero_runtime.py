@@ -10,29 +10,20 @@ Why this exists:
 - `mkdir -p` makes retries idempotent after a partially created workflow
   directory.
 - Workflows can expose a `use_gpu` parameter, but BIOMERO's config can only add
-  static sbatch parameters and some upstream Slurm scripts hard-code GPU
-  requests. This patch removes hard-coded GPU requests from freshly cloned job
-  scripts, toggles Singularity `--nv` from USE_GPU, forces `use_gpu=true` for
-  selected GPU-native workflows unless the request explicitly disables it, and
-  injects the Spider GPU partition plus a Slurm GPU request only when the
-  effective `use_gpu` value is true.
+  static sbatch parameters. This patch forces `use_gpu=true` for selected
+  GPU-native generated workflow scripts unless the request explicitly disables
+  it, and injects the Spider GPU partition plus a Slurm GPU request only when
+  the effective `use_gpu` value is true.
 - `slurm_data_bind_path` is required so Apptainer can see the same
   BIOMERO data path that jobs receive. A blank value used to be exported as
   APPTAINER_BINDPATH="", which can make Apptainer complain about `/ as sandbox
   is not authorized`; now it fails early with a clear config error.
 - Some Slurm clusters do not propagate ambient SSH shell environment variables into
   file-based `sbatch` jobs. Workflow submissions now write a per-job env file
-  and patched Slurm job scripts source it before launching containers.
-  This must be applied to both Git-cloned scripts and BIOMERO descriptor-
-  generated scripts.
-- Some upstream workflow scripts can print a Python traceback from inside the
-  container but still exit zero and leave `data/out` empty. Patched scripts now
-  fail on command errors and verify that output files were produced before
-  BIOMERO enters the import stage.
-- The upstream slurm-scripts repository used here does not include BIOMERO job
-  scripts for CellExpansion, Stardist5d or BIOMERO's generic conversion array script, while
-  our config exposes those workflows and uses conversion. We add those scripts
-  during Slurm script setup so exposed workflows have matching sbatch targets.
+  and generated Slurm job scripts source it before launching containers.
+- Some workflow containers can print a Python traceback but still exit zero and
+  leave `data/out` empty. Generated scripts now fail on command errors and
+  verify that output files were produced before BIOMERO enters the import stage.
 - BIOMERO starts all Singularity pulls in parallel and lets Apptainer use the
   login node /tmp for build work. On Spider this can exhaust /tmp and still log
   "finished" because the command is backgrounded. Pulls now run sequentially,
@@ -48,20 +39,12 @@ import sys
 
 
 PATCH_DIR = Path(__file__).resolve().parent / "patches"
-REMOTE_CONVERSION_MARKER = 'CONVERT_JOB_ARRAY = ""'
-REMOTE_GENERATED_JOBS_MARKER = "GENERATED_JOBS = {}"
 
 
 def _replace_required(source: str, old: str, new: str, description: str) -> str:
     if old not in source:
         raise RuntimeError(f"Could not patch BIOMERO slurm_client.py: {description}")
     return source.replace(old, new)
-
-
-def _replace_remote_marker(source: str, marker: str, replacement: str) -> str:
-    if marker not in source:
-        raise RuntimeError(f"Remote Slurm postprocess payload is missing marker: {marker}")
-    return source.replace(marker, replacement, 1)
 
 
 def _biomero_file(name: str) -> Path:
@@ -81,32 +64,9 @@ def _read_patch(path: str) -> str:
     return (PATCH_DIR / path).read_text(encoding="utf-8")
 
 
-def _render_remote_script_patch() -> str:
-    # Python code that runs on the Slurm login node after cloning the upstream Slurm script
-    # repository. It fills gaps and normalizes scripts before BIOMERO submits jobs.
-    generated_jobs = {
-        path.name: path.read_text(encoding="utf-8")
-        for path in sorted((PATCH_DIR / "jobs").glob("*.sh"))
-        if path.name != "convert_job_array.sh"
-    }
-    source = _read_patch("remote_script_postprocess.py")
-    source = _replace_remote_marker(
-        source,
-        REMOTE_CONVERSION_MARKER,
-        f'CONVERT_JOB_ARRAY = {_read_patch("jobs/convert_job_array.sh")!r}',
-    )
-    source = _replace_remote_marker(
-        source,
-        REMOTE_GENERATED_JOBS_MARKER,
-        f"GENERATED_JOBS = {generated_jobs!r}",
-    )
-    return source
-
-
 def patch_slurm_client() -> None:
     path = _biomero_file("slurm_client.py")
     source = path.read_text(encoding="utf-8")
-    remote_patch = _render_remote_script_patch()
     generated_job_helper = _read_patch("generated_job_postprocess.py")
 
     if "import shlex\n" not in source:
@@ -120,27 +80,10 @@ def patch_slurm_client() -> None:
             "generated Slurm job helper insertion",
         )
 
-    # Make fresh Slurm script setup self-healing: after BIOMERO clones the
-    # upstream repository, run our remote script normalization step too.
-    old_clone = """            cmd = 'git clone "$REPOSRC" "$LOCALREPO" 2> /dev/null'
-            r = self.run_commands([cleanup_first, cmd], env)
-"""
-    new_clone = f'''            cmd = 'git clone "$REPOSRC" "$LOCALREPO" 2> /dev/null'
-            patch_slurm_scripts = r"""python3 - "$LOCALREPO" <<'PY'
-{remote_patch}
-PY"""
-            r = self.run_commands([cleanup_first, cmd, patch_slurm_scripts], env)
-'''
-    source = _replace_required(
-        source,
-        old_clone,
-        new_clone,
-        "Slurm script repository setup hook",
-    )
-
-    # The clone hook above normalizes scripts from slurm_script_repo. When
-    # slurm_script_repo is empty BIOMERO generates scripts locally and uploads
-    # them directly, so normalize the generated script before upload too.
+    # When slurm_script_repo is empty, BIOMERO generates scripts locally and
+    # uploads them directly. Normalize that supported generated-script path.
+    # If an administrator supplies a custom Git repository, BIOMERO uses it as
+    # provided and NL-BIOMERO does not mutate that repository contract.
     source = _replace_required(
         source,
         """            job_script = src.safe_substitute(substitutes)

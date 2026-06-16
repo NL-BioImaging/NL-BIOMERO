@@ -3,9 +3,8 @@ def _nl_biomero_normalize_generated_job_script(job_script: str) -> str:
 
     This helper is injected into ``biomero.slurm_client`` and handles the path
     where BIOMERO builds a Slurm script directly from workflow descriptors
-    instead of cloning ``slurm_script_repo``. Keep it small: the repository-clone
-    path has its own self-contained remote payload in
-    ``patches/remote_script_postprocess.py``.
+    instead of cloning ``slurm_script_repo``. Keep it small: custom Git
+    repositories are used as provided and are not modified by NL-BIOMERO.
     """
     if "set -eo pipefail" not in job_script:
         lines = job_script.splitlines(keepends=True)
