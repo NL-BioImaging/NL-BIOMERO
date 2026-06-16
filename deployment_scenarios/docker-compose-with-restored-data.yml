@@ -31,6 +31,8 @@ services:
 
   # Name of our omero server, referenced in omero_master_host
   omeroserver:
+    security_opt:
+      - "label=level:s0"
     image: "cellularimagingcf/omeroserver:${NL_BIOMERO_VERSION:-latest}"
     environment:
       CONFIG_omero_db_host: database
@@ -55,9 +57,11 @@ services:
       # Uses external volume pointing to restored OMERO server data
       - "omero:/OMERO"
       - "../web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
 
   omeroworker-1:
+    security_opt:
+      - "label=level:s0"
     image: "cellularimagingcf/omeroworker:${NL_BIOMERO_VERSION:-latest}"
     environment:
       CONFIG_omero_master_host: omeroserver
@@ -68,9 +72,11 @@ services:
     volumes:
       - "omero:/OMERO"
       - "../web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
 
   biomeroworker:
+    security_opt:
+      - "label=level:s0"
     image: "cellularimagingcf/biomero:${NL_BIOMERO_VERSION:-latest}"
     environment:
       CONFIG_omero_master_host: omeroserver
@@ -89,11 +95,13 @@ services:
       - "~/.ssh:/tmp/.ssh:ro"
       - "../web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
       - "../web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
       - "../config/biomero-importer:/opt/omero/server/config-importer:ro"
       - "../web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
 
   omeroweb:
+    security_opt:
+      - "label=level:s0"
     image: "cellularimagingcf/omeroweb:${NL_BIOMERO_VERSION:-latest}"
     environment:
       OMEROHOST: omeroserver
@@ -116,6 +124,7 @@ services:
       OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
       OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
+      UPLOADER_DESTINATION_DIR: /tus_destination
     networks:
       - omero
     ports:
@@ -125,7 +134,7 @@ services:
       - "../web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
       - "../web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
       - "../web/L-Drive:/data:rw"
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
 
   metabase:
     image: metabase/metabase@sha256:f7b5dc52c21aaa2dca910a450e7e6119a975090ce9fc80726aa0742882ca176c
@@ -163,7 +172,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "../web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
       - "../config/biomero-importer:/auto-importer/config:ro"
       - "../logs/biomero-importer:/auto-importer/logs"
     user: "${OMERO_CONTAINER_USER}"

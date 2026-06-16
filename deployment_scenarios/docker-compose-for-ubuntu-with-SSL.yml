@@ -49,14 +49,15 @@ services:
 
   # Name of our omero server, referenced in omero_master_host
   omeroserver:
+    security_opt:
+      - "label=level:s0"
+      - "seccomp=unconfined"
     # This container uses the tag for the latest server release of OMERO 5
     # To upgrade to the next major release, increment the major version number
     image: "cellularimagingcf/omeroserver:${NL_BIOMERO_VERSION:-latest}"
     # Define environment variables for use in the container.
     # 'nodedescriptors' assigns roles to all the containers
     # 'omero_db_*' are same as in 'database' description.
-    security_opt:
-      - seccomp=unconfined
     ulimits:
       nproc: 2048
       stack: 16777216
@@ -85,7 +86,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "../web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
 
   # Name of our worker node, can be anything
   omeroworker-1:
@@ -93,7 +94,8 @@ services:
     # Define variables for use in the container.
     # WORKER_NAME is used in the omero/ice node description
     security_opt:
-      - seccomp=unconfined
+      - "label=level:s0"
+      - "seccomp=unconfined"
     ulimits:
       nproc: 2048
       stack: 16777216
@@ -108,7 +110,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "../web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
 
   # Define our processor worker
   biomeroworker:
@@ -117,7 +119,8 @@ services:
     # WORKER_NAME is used in the omero/ice node description
     # logging_level doesn't work, but should increase logging
     security_opt:
-      - seccomp=unconfined
+      - "label=level:s0"
+      - "seccomp=unconfined"
     ulimits:
       nproc: 2048
       stack: 16777216
@@ -141,7 +144,7 @@ services:
       - "/opt/omero/.ssh:/tmp/.ssh:ro" # TODO: Make sure to open permissions on the host e.g. chmod -R 777 /opt/omero/.ssh
       - "../web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
       - "../web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
       - "../config/biomero-importer:/opt/omero/server/config-importer:ro"
       - "../web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
 
@@ -151,7 +154,8 @@ services:
     # Environment variables for in the container
     # login__logo supplies a logo on the starting page of web UI
     security_opt:
-      - seccomp=unconfined
+      - "label=level:s0"
+      - "seccomp=unconfined"
     ulimits:
       nproc: 2048
       stack: 16777216
@@ -176,6 +180,7 @@ services:
       OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
+      UPLOADER_DESTINATION_DIR: /tus_destination
     # Named network to communicate with other containers
     networks:
       - omero
@@ -189,7 +194,7 @@ services:
       - "../web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
       - "../web/local_omeroweb_edits/pretty_login/login_page_images/bioimaging.png:/opt/omero/web/venv3/lib/python3.9/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/AmsterdamUMC-logo.png:ro"
       - "../web/L-Drive:/data:rw"
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
 
   metabase:
     image: metabase/metabase@sha256:f7b5dc52c21aaa2dca910a450e7e6119a975090ce9fc80726aa0742882ca176c
@@ -229,7 +234,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "../web/L-Drive:/data" # TODO: Make sure to open permissions on the host e.g. chmod -R 777 ./web/L-Drive
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
       - "../config/biomero-importer:/auto-importer/config:ro"
       - "../logs/biomero-importer:/auto-importer/logs"
     user: "${OMERO_CONTAINER_USER}"
