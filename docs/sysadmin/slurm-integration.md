@@ -138,6 +138,28 @@ volumes:
 
 This allows the web interface to write configuration changes that the worker container can immediately read.
 
+### Local Log Stack
+
+The local deployment helper starts the optional Loki/Grafana log stack from
+`logs-compose.yml` by default, so analyzer/importer failures can be inspected
+without restarting the core OMERO services.
+
+```bash
+./scripts/deploy-local-stack.sh
+```
+
+To skip the log stack on disk-constrained systems:
+
+```bash
+START_LOG_STACK=0 ./scripts/deploy-local-stack.sh
+```
+
+To start only the log stack later:
+
+```bash
+docker compose -f logs-compose.yml up -d
+```
+
 ### Configuration Content Structure
 
 **Sample `slurm-config.ini` with key sections:**

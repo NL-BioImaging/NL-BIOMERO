@@ -5,6 +5,7 @@ PROJECT_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOGIN_USER="${SUDO_USER:-${USER}}"
 LOGIN_HOME="$(getent passwd "${LOGIN_USER}" | cut -d: -f6)"
 ENV_PATH="${PROJECT_ROOT_DIR}/.env"
+START_LOG_STACK="${START_LOG_STACK:-1}"
 SSH_DIR="${PROJECT_ROOT_DIR}/.ssh"
 HOME_SSH_DIR="${LOGIN_HOME}/.ssh"
 LDRIVE_DIR="${PROJECT_ROOT_DIR}/web/L-Drive"
@@ -227,7 +228,13 @@ sudo chmod -R 775 "${PROJECT_ROOT_DIR}/logs/biomero-importer"
 # Bring up or refresh the full local stack. We keep --build here because
 # biomeroworker startup behavior lives in the image via 10-mount-ssh.sh.
 sudo docker compose up -d --build
+if [[ "${START_LOG_STACK}" != "0" && -f "${PROJECT_ROOT_DIR}/logs-compose.yml" ]]; then
+  sudo docker compose -f logs-compose.yml up -d
+fi
 sudo docker compose ps
+if [[ "${START_LOG_STACK}" != "0" && -f "${PROJECT_ROOT_DIR}/logs-compose.yml" ]]; then
+  sudo docker compose -f logs-compose.yml ps
+fi
 
 echo "Project-local Docker SSH copy: ${SSH_DIR}"
 echo "Locked-down manual SSH copy: ${HOME_SSH_DIR}"
