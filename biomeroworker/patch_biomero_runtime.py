@@ -75,8 +75,8 @@ def patch_slurm_client() -> None:
     if "_nl_biomero_normalize_generated_job_script" not in source:
         source = _replace_required(
             source,
-            "logger = logging.getLogger(__name__)\n\nclass SlurmJob:",
-            f"logger = logging.getLogger(__name__)\n\n{generated_job_helper}\n\nclass SlurmJob:",
+            "\nclass SlurmJob:",
+            f"\n{generated_job_helper}\n\nclass SlurmJob:",
             "generated Slurm job helper insertion",
         )
 
