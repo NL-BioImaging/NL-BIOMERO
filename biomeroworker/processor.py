@@ -164,8 +164,15 @@ class ProcessI(omero.grid.Process, omero.util.SimpleServant):
             "SQLALCHEMY_URL",
             "INGEST_TRACKING_DB_URL",
             "IMPORTER_ENABLED",
+            "BIOMERO_ENV_FILE_SUBMISSION",
+            "BIOMERO_INJECT_GPU_FLAG",
+            "BIOMERO_GPU_PARTITION",
+            "BIOMERO_GPU_GRES",
+            "BIOMERO_SLURM_ZIP_CMD",
             "BIOMERO_SACCT_START_DAYS_AGO",
-            "BIOMERO_SACCT_START_TIME"
+            "BIOMERO_SACCT_START_TIME",
+            "GPU_PARTITION",
+            "GPU_GRES",
         )
 
         # Since we know the location of our OMERO, we're going to

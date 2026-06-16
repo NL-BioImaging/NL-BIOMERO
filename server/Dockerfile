@@ -25,7 +25,7 @@ ADD server/00-restore-config.sh* /startup/
 # We don't need the example scripts
 RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
 RUN cd $OMERO_DIST/lib/scripts/ && \
-    git clone --depth 1 --branch $BIOMERO_VERSION --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
+    git clone --depth 1 --branch surf --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
     rm -f biomero/admin/Example_Minimal_Slurm_Script.py && \
     rm -f biomero/__workflows/SLURM_CellPose_Segmentation.py
 

@@ -46,9 +46,9 @@ COPY biomeroworker/slurm-config.ini /etc/slurm-config.ini
 # RUN /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
 #     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
-# Install OMERO.biomero from PyPI
-RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1) \
-    && /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
+# Install OMERO.biomero from surf branch
+ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/surf" /latest_commit_omero_biomero
+RUN /opt/omero/web/venv3/bin/pip install git+https://github.com/NL-BioImaging/OMERO.biomero.git@surf \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 ### Install OMERO.forms ###
