@@ -1,5 +1,9 @@
 biomeroworker/slurm-config.ini_*
 DevNotes.md
+.env
+.env.keys
+.ssh/
+web/slurm-config.ini
 metabase/metabase.db/metabase.db.trace.db
 metabase/metabase.db/metabase.db.mv.db
 metabase/metabase.db/metabase.db.mv.db.tempFile
