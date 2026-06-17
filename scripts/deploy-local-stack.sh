@@ -32,13 +32,13 @@ GENERATED_PROJECT_SSH_KEY=0
 # git clone https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO.git /opt/omero/NL-BIOMERO
 #
 # To open the UIs from your laptop, connect with:
-# ssh -L 4080:localhost:4080 -L 3000:localZhost:3000 <user>@<server>
+# ssh -L 4080:localhost:4080 -L 3000:localhost:3000 -L 5601:localhost:5601 <user>@<server>
 
 # Run all file operations relative to the repository root.
 cd "${PROJECT_ROOT_DIR}"
 
 echo "Reminder: access the web UIs via SSH port forwarding:"
-echo "  ssh -L 4080:localhost:4080 -L 3000:localhost:3000 <user>@<server>"
+echo "  ssh -L 4080:localhost:4080 -L 3000:localhost:3000 -L 5601:localhost:5601 <user>@<server>"
 
 # Ensure the clear-text deployment env exists. Compose keeps using normal .env;
 # Dotenvx is only used to regenerate that local file from committed encrypted
@@ -228,12 +228,12 @@ sudo chmod -R 775 "${PROJECT_ROOT_DIR}/logs/biomero-importer"
 # Bring up or refresh the full local stack. We keep --build here because
 # biomeroworker startup behavior lives in the image via 10-mount-ssh.sh.
 sudo docker compose up -d --build
-if [[ "${START_LOG_STACK}" != "0" && -f "${PROJECT_ROOT_DIR}/logs-compose.yml" ]]; then
-  sudo docker compose -f logs-compose.yml up -d
+if [[ "${START_LOG_STACK}" != "0" && -f "${PROJECT_ROOT_DIR}/opensearch-compose.yml" ]]; then
+  sudo docker compose -f opensearch-compose.yml up -d
 fi
 sudo docker compose ps
-if [[ "${START_LOG_STACK}" != "0" && -f "${PROJECT_ROOT_DIR}/logs-compose.yml" ]]; then
-  sudo docker compose -f logs-compose.yml ps
+if [[ "${START_LOG_STACK}" != "0" && -f "${PROJECT_ROOT_DIR}/opensearch-compose.yml" ]]; then
+  sudo docker compose -f opensearch-compose.yml ps
 fi
 
 echo "Project-local Docker SSH copy: ${SSH_DIR}"

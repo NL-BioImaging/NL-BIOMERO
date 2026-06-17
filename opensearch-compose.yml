@@ -64,7 +64,9 @@ services:
     environment:
       - OPENSEARCH_HOSTS=["http://opensearch:9200"]
       - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
-      - server.host=0.0.0.0
+      - SERVER_HOST=0.0.0.0
+      - SERVER_BASEPATH=/logs
+      - SERVER_REWRITEBASEPATH=true
     volumes:
       - opensearch-dashboards-data:/usr/share/opensearch-dashboards/data
 

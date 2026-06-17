@@ -140,9 +140,10 @@ This allows the web interface to write configuration changes that the worker con
 
 ### Local Log Stack
 
-The local deployment helper starts the optional Loki/Grafana log stack from
-`logs-compose.yml` by default, so analyzer/importer failures can be inspected
-without restarting the core OMERO services.
+The local deployment helper starts the optional OpenSearch log stack from
+`opensearch-compose.yml` by default, so analyzer/importer failures can be
+inspected without restarting the core OMERO services. The host nginx snippet
+serves OpenSearch Dashboards behind `/logs/`.
 
 ```bash
 ./scripts/deploy-local-stack.sh
@@ -157,7 +158,7 @@ START_LOG_STACK=0 ./scripts/deploy-local-stack.sh
 To start only the log stack later:
 
 ```bash
-docker compose -f logs-compose.yml up -d
+docker compose -f opensearch-compose.yml up -d
 ```
 
 ### Configuration Content Structure
