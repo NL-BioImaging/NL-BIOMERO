@@ -90,6 +90,35 @@ It also describes the opposite (backing up containers).
 
 ---
 
+## Upgrading BIOMERO Components
+
+When upgrading the BIOMERO analyzer version (e.g. bumping `BIOMERO_VERSION` in `.env`), the
+general process is:
+
+1. **Update the version** in your `.env` or compose file and pull/rebuild containers.
+2. **Check new configuration options** — review the release notes and/or 
+   [BIOMERO configuration reference](https://nl-bioimaging.github.io/biomero/configuration-reference.html)
+   for any newly introduced `slurm-config.ini` keys or environment variables. New options are
+   always opt-in with safe defaults, so the stack will still work without them, but you may
+   want to enable new features explicitly.
+3. **Restart the stack.**
+4. **Run Slurm Init** — navigate to **OMERO.biomero → Analyzer → Admin** and run the
+   `SLURM_Init_environment` script.
+
+   This step is required after any BIOMERO version upgrade because it regenerates the job
+   scripts deployed on your Slurm cluster. New BIOMERO releases may update the job template,
+   add new substitution variables, or change how env-file sourcing or GPU flags are injected.
+   Skipping it means the cluster is running stale scripts that may be incompatible with the
+   new worker behavior.
+
+
+```{note}
+The same **Run Slurm Init** step is required whenever you change SLURM paths, add or remove
+workflows, or modify the `slurm-config.ini` — not just on version upgrades.
+```
+
+---
+
 ## Next Steps
 
 - Want a quick install? → Start with Scenario 1.
