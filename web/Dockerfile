@@ -55,6 +55,12 @@ RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg i
         "biomero==${BIOMERO_VERSION}" \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
+# OMERO.biomero submits analyzer jobs from the web process, so the web image
+# needs the same BIOMERO Slurm compatibility patch as the worker image.
+COPY biomeroworker/patch_biomero_runtime.py /tmp/patch_biomero_runtime.py
+COPY biomeroworker/patches /tmp/patches
+RUN /opt/omero/web/venv3/bin/python /tmp/patch_biomero_runtime.py
+
 # Keep proxied Metabase links inside the public OMERO origin.
 COPY web/patch_biomero_web_runtime.py /tmp/patch_biomero_web_runtime.py
 COPY web/patches /tmp/patches

@@ -51,6 +51,11 @@ specific deployment policy.
 - The current runtime patch remains a compatibility shim for the pinned BIOMERO
   version. It should be retired when upstream BIOMERO supports these Slurm
   behaviors directly.
+- Apply the BIOMERO Slurm runtime patch in both `biomeroworker` and `omeroweb`.
+  The analyzer web process can submit Slurm jobs directly; if only the worker
+  image is patched, generated job scripts may exist but submissions can omit the
+  per-job env-file argument, causing empty workflow environment variables and
+  Apptainer errors such as `/ as sandbox is not authorized`.
 - StarDist/Cellpose channel limitations are workflow-container behavior, not
   Slurm integration behavior. The integration now surfaces those failures
   cleanly.
