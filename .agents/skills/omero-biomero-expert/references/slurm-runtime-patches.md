@@ -15,10 +15,12 @@ BIOMERO_GPU_PARTITION
 BIOMERO_GPUS
 BIOMERO_GPU_GRES
 BIOMERO_FORCE_GPU_WORKFLOWS
+BIOMERO_FORCE_GPU_ALL_WORKFLOWS
 ```
 
 For Spider, `slurm_conversion_partition` is intentionally blank. CPU-only workflows, conversions, and image-pull jobs should omit `--partition` so Spider routes them to the normal/default partition. Effective GPU jobs request global GPU defaults unless a workflow-specific override is configured.
 Per-workflow overrides use the uppercased workflow key with non-alphanumeric characters replaced by underscores, for example `BIOMERO_GPU_PARTITION_CELLPOSE` or `BIOMERO_GPU_GRES_FRACTAL_CELLPOSE_SAM_BIAFLOWS`.
+When a workflow is GPU-effective, env GPU policy is authoritative: stale static `--partition`, `--gres`, or `--gpus` values from `slurm-config.ini` are removed and rebuilt from the env policy.
 
 ## Runtime Patch File
 
@@ -92,10 +94,12 @@ BIOMERO_GPUS=
 BIOMERO_GPU_PARTITION_DECONVOLVE_PLATE=gpu_a100_22c
 BIOMERO_GPU_GRES_DECONVOLVE_PLATE=none
 BIOMERO_GPUS_DECONVOLVE_PLATE=1
+BIOMERO_FORCE_GPU_ALL_WORKFLOWS=false
 ```
 
 If a request explicitly sets device `cpu` or disables `use_gpu`, it should not receive GPU Slurm params. Otherwise GPU-native workflows default to `use_gpu=true`.
 When `BIOMERO_GPU_GRES...` is set, it is emitted as `--gres=...` instead of `--gpus=...`. Use `none`, `false`, or `off` on a workflow-specific `BIOMERO_GPU_GRES_<WORKFLOW_KEY>` to clear an inherited global GRES and fall back to that workflow's `BIOMERO_GPUS_<WORKFLOW_KEY>`. This keeps common GPU workflows on MIG while leaving heavier workflows, such as `deconvolve_plate`, on full A100.
+Set `BIOMERO_FORCE_GPU_ALL_WORKFLOWS=true` only as an emergency/admin override to request the global GPU default for every workflow. It is useful when a workflow internally detects GPUs but has no `use_gpu` parameter; it is wasteful for CPU-only work and still respects explicit `device=cpu` or `use_gpu=false`.
 
 ## Output Verification
 

@@ -33,6 +33,12 @@ specific deployment policy.
   `BIOMERO_GPU_GRES_DECONVOLVE_PLATE=none` and requests full A100 with
   `BIOMERO_GPU_PARTITION_DECONVOLVE_PLATE=gpu_a100_22c` plus
   `BIOMERO_GPUS_DECONVOLVE_PLATE=1`.
+- `BIOMERO_FORCE_GPU_ALL_WORKFLOWS=true` is an opt-in admin fallback that
+  requests the global GPU default for every workflow. Keep it off by default
+  because it is wasteful for CPU-only workflows.
+- Env GPU policy is authoritative for GPU-effective workflows: stale static
+  `--partition`, `--gres`, or `--gpus` values from `slurm-config.ini` are
+  stripped and replaced with the configured env policy.
 - CPU-only workflows, conversion jobs, and image-pull jobs omit `--partition` so
   Spider routes them to the normal/default partition.
 - `slurm_conversion_partition` is blank for Spider.

@@ -143,10 +143,17 @@ def patch_slurm_client() -> None:
             ).split(",")
             if item.strip()
         }
+        force_all_gpu = os.getenv("BIOMERO_FORCE_GPU_ALL_WORKFLOWS", "").strip().lower() in (
+            "true",
+            "1",
+            "yes",
+            "y",
+            "on",
+        )
         use_gpu_value = kwargs.get("use_gpu")
         device_value = str(kwargs.get("device", "")).strip().lower()
         if (
-            workflow.lower() in force_gpu_workflows
+            (force_all_gpu or workflow.lower() in force_gpu_workflows)
             and device_value != "cpu"
             and (
                 "use_gpu" not in kwargs
@@ -158,14 +165,23 @@ def patch_slurm_client() -> None:
             use_gpu_value = kwargs["use_gpu"]
         use_gpu = str(use_gpu_value).lower() in ("true", "1", "yes", "y", "on")
         if use_gpu:
+            job_params = [
+                param
+                for param in job_params
+                if not (
+                    param.startswith(" --partition=")
+                    or param.startswith(" --gres=")
+                    or param.startswith(" --gpus=")
+                )
+            ]
             gpu_partition = _gpu_env("BIOMERO_GPU_PARTITION", "gpu_a100_22c")
-            if gpu_partition and not any(param.startswith(" --partition=") for param in job_params):
+            if gpu_partition:
                 job_params.append(f" --partition={gpu_partition}")
             gpu_gres = _gpu_env("BIOMERO_GPU_GRES")
             gpu_count = _gpu_env("BIOMERO_GPUS", "1")
-            if gpu_gres and not any(param.startswith(" --gres=") for param in job_params):
+            if gpu_gres:
                 job_params.append(f" --gres={gpu_gres}")
-            elif gpu_count and not any(param.startswith(" --gpus=") for param in job_params):
+            elif gpu_count:
                 job_params.append(f" --gpus={gpu_count}")
         # grab only the image name, not the group/creator
 """,
