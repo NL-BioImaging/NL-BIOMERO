@@ -150,11 +150,32 @@ def patch_slurm_client() -> None:
             "y",
             "on",
         )
+        def _job_param_value(name):
+            prefix = f" --{name}="
+            for param in job_params:
+                if param.startswith(prefix):
+                    return param.split("=", 1)[1]
+            return ""
+        static_partition = _job_param_value("partition")
+        static_gres = _job_param_value("gres")
+        static_gpus = _job_param_value("gpus")
+        config_gpu_requested = bool(
+            static_gres
+            or static_gpus
+            or (static_partition and "gpu" in static_partition.lower())
+        )
         use_gpu_value = kwargs.get("use_gpu")
         device_value = str(kwargs.get("device", "")).strip().lower()
+        explicit_cpu = device_value == "cpu" or str(use_gpu_value).strip().lower() in (
+            "false",
+            "0",
+            "no",
+            "n",
+            "off",
+        )
         if (
             (force_all_gpu or workflow.lower() in force_gpu_workflows)
-            and device_value != "cpu"
+            and not explicit_cpu
             and (
                 "use_gpu" not in kwargs
                 or use_gpu_value is None
@@ -163,7 +184,10 @@ def patch_slurm_client() -> None:
         ):
             kwargs["use_gpu"] = "true"
             use_gpu_value = kwargs["use_gpu"]
-        use_gpu = str(use_gpu_value).lower() in ("true", "1", "yes", "y", "on")
+        use_gpu = (
+            str(use_gpu_value).lower() in ("true", "1", "yes", "y", "on")
+            or (config_gpu_requested and not explicit_cpu)
+        )
         if use_gpu:
             job_params = [
                 param
@@ -174,11 +198,19 @@ def patch_slurm_client() -> None:
                     or param.startswith(" --gpus=")
                 )
             ]
-            gpu_partition = _gpu_env("BIOMERO_GPU_PARTITION", "gpu_a100_22c")
+            gpu_partition = (
+                static_partition
+                if static_partition and "gpu" in static_partition.lower()
+                else _gpu_env("BIOMERO_GPU_PARTITION", "gpu_a100_22c")
+            )
             if gpu_partition:
                 job_params.append(f" --partition={gpu_partition}")
-            gpu_gres = _gpu_env("BIOMERO_GPU_GRES")
-            gpu_count = _gpu_env("BIOMERO_GPUS", "1")
+            gpu_gres = (
+                static_gres
+                if static_gres or static_gpus
+                else _gpu_env("BIOMERO_GPU_GRES")
+            )
+            gpu_count = static_gpus or _gpu_env("BIOMERO_GPUS", "1")
             if gpu_gres:
                 job_params.append(f" --gres={gpu_gres}")
             elif gpu_count:
