@@ -24,11 +24,15 @@ specific deployment policy.
 ## Spider-specific policy
 
 - SSH/rendering variables use `SPIDER_USER` and `SPIDER_PROJECT`.
-- Runtime Slurm paths point at `/project/surfadvisors/Share/biomero/...`.
+- Runtime Slurm paths point at `/project/biomero/Share/biomero/...`.
 - GPU-native workflows default to `use_gpu=true` through
   `BIOMERO_FORCE_GPU_WORKFLOWS`.
-- Effective GPU jobs request `--partition=${BIOMERO_GPU_PARTITION}` and
-  `--gpus=${BIOMERO_GPUS}`.
+- Effective GPU jobs default to `gpu_a100_mig` with
+  `BIOMERO_GPU_GRES=gpu:a100_3g.20gb:1`. Heavy workflows can override this,
+  for example `deconvolve_plate` clears inherited GRES with
+  `BIOMERO_GPU_GRES_DECONVOLVE_PLATE=none` and requests full A100 with
+  `BIOMERO_GPU_PARTITION_DECONVOLVE_PLATE=gpu_a100_22c` plus
+  `BIOMERO_GPUS_DECONVOLVE_PLATE=1`.
 - CPU-only workflows, conversion jobs, and image-pull jobs omit `--partition` so
   Spider routes them to the normal/default partition.
 - `slurm_conversion_partition` is blank for Spider.

@@ -50,10 +50,12 @@ which covers the Slurm/BIOMERO worker integration in more detail.
   `scripts/render-slurm-config.sh`, `scripts/deploy-local-stack.sh`, and
   `web/slurm-config-template.ini` currently assume `SPIDER_USER`,
   `SPIDER_PROJECT`, `spider.surf.nl`, and `/project/<project>/Share/biomero`.
-- Spider GPU policy: `BIOMERO_GPU_PARTITION`, `BIOMERO_GPUS`, and
-  `BIOMERO_FORCE_GPU_WORKFLOWS` encode the Spider rule that GPU workflows must
-  request `--gpus`, while CPU-only jobs should fall through to the normal
-  default partition.
+- Spider GPU policy: `BIOMERO_GPU_PARTITION`, `BIOMERO_GPUS`,
+  `BIOMERO_GPU_GRES`, and `BIOMERO_FORCE_GPU_WORKFLOWS` encode the Spider rule
+  that GPU workflows request GPU resources while CPU-only jobs fall through to
+  the normal default partition. GPU jobs default to a MIG slice, while
+  per-workflow overrides keep heavier jobs such as `deconvolve_plate` on full
+  A100.
 - SURF Research Cloud ingress: `nginx/omero-web.conf` is a host nginx location
   fragment for SURF-managed nginx, including `/metabase/` and `/logs` proxying.
   It is appropriate for this VM but not a generic standalone nginx config.

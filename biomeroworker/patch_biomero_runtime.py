@@ -12,8 +12,8 @@ Why this exists:
 - Workflows can expose a `use_gpu` parameter, but BIOMERO's config can only add
   static sbatch parameters. This patch forces `use_gpu=true` for selected
   GPU-native generated workflow scripts unless the request explicitly disables
-  it, and injects the Spider GPU partition plus a Slurm GPU request only when
-  the effective `use_gpu` value is true.
+  it, and injects workflow-specific Spider GPU resources only when the effective
+  `use_gpu` value is true.
 - `slurm_data_bind_path` is required so Apptainer can see the same
   BIOMERO data path that jobs receive. A blank value used to be exported as
   APPTAINER_BINDPATH="", which can make Apptainer complain about `/ as sandbox
@@ -125,6 +125,16 @@ def patch_slurm_client() -> None:
         # grab only the image name, not the group/creator
 """,
         """        job_params = list(self.slurm_model_jobs_params[workflow.lower()])
+        workflow_key = workflow.lower()
+        workflow_env_key = "".join(
+            char if char.isalnum() else "_"
+            for char in workflow_key.upper()
+        )
+        def _gpu_env(name, default=""):
+            workflow_value = os.getenv(f"{name}_{workflow_env_key}")
+            if workflow_value is not None:
+                return "" if workflow_value.strip().lower() in ("none", "false", "off") else workflow_value
+            return os.getenv(name, default)
         force_gpu_workflows = {
             item.strip().lower()
             for item in os.getenv(
@@ -148,11 +158,14 @@ def patch_slurm_client() -> None:
             use_gpu_value = kwargs["use_gpu"]
         use_gpu = str(use_gpu_value).lower() in ("true", "1", "yes", "y", "on")
         if use_gpu:
-            gpu_partition = os.getenv("BIOMERO_GPU_PARTITION", "gpu_a100_22c")
+            gpu_partition = _gpu_env("BIOMERO_GPU_PARTITION", "gpu_a100_22c")
             if gpu_partition and not any(param.startswith(" --partition=") for param in job_params):
                 job_params.append(f" --partition={gpu_partition}")
-            gpu_count = os.getenv("BIOMERO_GPUS", "1")
-            if gpu_count and not any(param.startswith(" --gpus=") for param in job_params):
+            gpu_gres = _gpu_env("BIOMERO_GPU_GRES")
+            gpu_count = _gpu_env("BIOMERO_GPUS", "1")
+            if gpu_gres and not any(param.startswith(" --gres=") for param in job_params):
+                job_params.append(f" --gres={gpu_gres}")
+            elif gpu_count and not any(param.startswith(" --gpus=") for param in job_params):
                 job_params.append(f" --gpus={gpu_count}")
         # grab only the image name, not the group/creator
 """,
