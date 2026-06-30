@@ -38,5 +38,23 @@
     "incucyte_archive": {
       "container": "cellularimagingcf/biomero-converter:latest"
     }
+  },
+  "group_mappings": {
+    "3": {
+      "folder": "amsterdam_umc",
+      "groupName": "Amsterdam"
+    },
+    "4": {
+      "folder": "leiden",
+      "groupName": "Leiden"
+    },
+    "5": {
+      "folder": "maastricht",
+      "groupName": "Maastricht"
+    },
+    "6": {
+      "folder": "groningen",
+      "groupName": "Groningen"
+    }
   }
 }

@@ -165,8 +165,12 @@ class ProcessI(omero.grid.Process, omero.util.SimpleServant):
             "INGEST_TRACKING_DB_URL",
             "IMPORTER_ENABLED",
             "BIOMERO_SACCT_START_DAYS_AGO",
-            "BIOMERO_SACCT_START_TIME"
+            "BIOMERO_SACCT_START_TIME",
         )
+
+        for key, value in os.environ.items():
+            if key.startswith("BIOMERO_"):
+                self.env.set(key, value)
 
         # Since we know the location of our OMERO, we're going to
         # force the value for OMERO_HOME. This is useful in scripts

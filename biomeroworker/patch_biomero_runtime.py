@@ -117,8 +117,8 @@ def patch_slurm_client() -> None:
         "remote result ZIP packaging",
     )
 
-    # Request Spider GPU resources only for effective GPU jobs. CPU-only jobs
-    # omit --partition and use Spider's normal/default partition.
+    # Route jobs without an explicit workflow partition to the configured
+    # default partition. GPU allocation is INI-only via *_job_gres/_job_gpus.
     source = _replace_required(
         source,
         """        job_params = self.slurm_model_jobs_params[workflow.lower()]
@@ -130,16 +130,11 @@ def patch_slurm_client() -> None:
             char if char.isalnum() else "_"
             for char in workflow_key.upper()
         )
-        def _gpu_env(name, default=""):
-            workflow_value = os.getenv(f"{name}_{workflow_env_key}")
-            if workflow_value is not None:
-                return "" if workflow_value.strip().lower() in ("none", "false", "off") else workflow_value
-            return os.getenv(name, default)
         force_gpu_workflows = {
             item.strip().lower()
             for item in os.getenv(
                 "BIOMERO_FORCE_GPU_WORKFLOWS",
-                "cellpose,stardist,stardist5d,fractal-cellpose-sam-biaflows,deconvolve_plate",
+                "",
             ).split(",")
             if item.strip()
         }
@@ -159,11 +154,10 @@ def patch_slurm_client() -> None:
         static_partition = _job_param_value("partition")
         static_gres = _job_param_value("gres")
         static_gpus = _job_param_value("gpus")
-        config_gpu_requested = bool(
-            static_gres
-            or static_gpus
-            or (static_partition and "gpu" in static_partition.lower())
-        )
+        config_gpu_requested = bool(static_gres or static_gpus)
+        default_partition = os.getenv("BIOMERO_DEFAULT_PARTITION", "").strip()
+        if default_partition and not static_partition:
+            job_params.append(f" --partition={default_partition}")
         use_gpu_value = kwargs.get("use_gpu")
         device_value = str(kwargs.get("device", "")).strip().lower()
         explicit_cpu = device_value == "cpu" or str(use_gpu_value).strip().lower() in (
@@ -187,7 +181,15 @@ def patch_slurm_client() -> None:
         use_gpu = (
             str(use_gpu_value).lower() in ("true", "1", "yes", "y", "on")
             or (config_gpu_requested and not explicit_cpu)
-        )
+        ) and config_gpu_requested
+        if use_gpu and (
+            "use_gpu" not in kwargs
+            or use_gpu_value is None
+            or str(use_gpu_value).strip() == ""
+        ):
+            kwargs["use_gpu"] = "true"
+        if not use_gpu and not config_gpu_requested:
+            kwargs["use_gpu"] = "false"
         if use_gpu:
             job_params = [
                 param
@@ -200,21 +202,15 @@ def patch_slurm_client() -> None:
             ]
             gpu_partition = (
                 static_partition
-                if static_partition and "gpu" in static_partition.lower()
-                else _gpu_env("BIOMERO_GPU_PARTITION", "gpu_a100_22c")
+                if static_partition
+                else default_partition
             )
             if gpu_partition:
                 job_params.append(f" --partition={gpu_partition}")
-            gpu_gres = (
-                static_gres
-                if static_gres or static_gpus
-                else _gpu_env("BIOMERO_GPU_GRES")
-            )
-            gpu_count = static_gpus or _gpu_env("BIOMERO_GPUS", "1")
-            if gpu_gres:
-                job_params.append(f" --gres={gpu_gres}")
-            elif gpu_count:
-                job_params.append(f" --gpus={gpu_count}")
+            if static_gres:
+                job_params.append(f" --gres={static_gres}")
+            elif static_gpus:
+                job_params.append(f" --gpus={static_gpus}")
         # grab only the image name, not the group/creator
 """,
         "per-workflow GPU sbatch parameters",

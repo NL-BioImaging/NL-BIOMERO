@@ -2,6 +2,29 @@
 
 This deployment carries compatibility patches for the pinned BIOMERO version and Spider/SURF Slurm behavior. Treat them as intentional runtime shims, not accidental local hacks.
 
+## Accessing Spider SSH
+
+You cannot SSH to Spider directly from the surfbiomero host. The SSH key and `spider` alias are inside the `biomeroworker` container. Always exec in first:
+
+```bash
+# On surfbiomero (prod host)
+sudo docker exec -it nl-biomero-biomeroworker-1 bash
+
+# Then inside the container:
+ssh spider 'squeue -u biomero-sloev'
+ssh spider 'sacct -j <JOBID> --format=JobID,JobName,Partition,Reservation,State,ExitCode -X'
+ssh spider 'sinfo -s'
+```
+
+Or run a one-liner without an interactive shell:
+
+```bash
+sudo docker exec nl-biomero-biomeroworker-1 ssh spider 'squeue -u biomero-sloev'
+sudo docker exec nl-biomero-biomeroworker-1 ssh spider 'sacct -j <JOBID> --format=JobID,Partition,Reservation,AllocTRES,State -X'
+```
+
+The `spider` alias resolves via the SSH config mounted into the biomeroworker container (`worker.cfg` / `10-mount-ssh.sh`).
+
 ## Spider Policy
 
 Spider/SURF-specific values are deployment policy, not generic BIOMERO defaults:
