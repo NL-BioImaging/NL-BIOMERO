@@ -21,7 +21,7 @@ ADD server/00-restore-config.sh* /startup/
 
 # Clone branch
 # Cache bust when new commits are pushed to branch
-# ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/dev-bilayers" /latest_commit_biomero_scripts
+ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/surf" /latest_commit_biomero_scripts
 # We don't need the example scripts
 RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
 RUN cd $OMERO_DIST/lib/scripts/ && \

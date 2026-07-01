@@ -138,7 +138,12 @@ services:
       BIOMERO_ENV_FILE_SUBMISSION: "true"
       BIOMERO_INJECT_GPU_FLAG: "true"
       BIOMERO_GPU_PARTITION: gpu
-      BIOMERO_GPU_GRES: gpu:1
+      BIOMERO_GPU_GPUS: "1"
+      BIOMERO_IMAGE_PULL_VIA_SBATCH: "true"
+      BIOMERO_PULL_CPUS: "4"
+      BIOMERO_PULL_MEM: "4G"
+      BIOMERO_APPTAINER_TMPDIR: "/data/my-scratch/.apptainer-tmp"
+      BIOMERO_APPTAINER_CACHEDIR: "/data/my-scratch/.apptainer-cache"
       BIOMERO_SLURM_ZIP_CMD: "7za"
     # Named network to communicate with other containers
     networks:
