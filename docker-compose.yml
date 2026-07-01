@@ -39,6 +39,8 @@ services:
 
   # Name of our omero server, referenced in omero_master_host
   omeroserver:
+    security_opt:
+      - "label=level:s0"
     # This container uses the tag for the latest server release of OMERO 5
     # To upgrade to the next major release, increment the major version number
     # image: "openmicroscopy/omero-server:5"
@@ -77,7 +79,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "./web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
       - "./logs/omeroserver:/opt/omero/server/OMERO.server/var/log"
     logging:
       driver: "json-file"
@@ -87,6 +89,8 @@ services:
 
   # Name of our worker node, can be anything
   omeroworker-1:
+    security_opt:
+      - "label=level:s0"
     # We build this image locally in the ./worker folder
     build: ./worker
     # Define variables for use in the container.
@@ -102,7 +106,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "./web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
       - "./logs/omeroworker-1:/opt/omero/server/OMERO.server/var/log"
     logging:
       driver: "json-file"
@@ -112,6 +116,8 @@ services:
 
   # Define our processor worker
   biomeroworker:
+    security_opt:
+      - "label=level:s0"
     # Build this image locally from current map './'
     # This way we can share file access from Dockerfile in './worker-gpu'
     # Uses args to provide variables from '.env' file to the Dockerfile
@@ -155,7 +161,7 @@ services:
       - "~/.ssh:/tmp/.ssh:ro"
       - "./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
       - "./web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
       - "./config/biomero-importer:/opt/omero/server/config-importer:ro"
       - "./web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
       - "./logs/biomeroworker:/opt/omero/server/OMERO.server/var/log"
@@ -167,6 +173,8 @@ services:
 
   # Service for the omero.web UI
   omeroweb:
+    security_opt:
+      - "label=level:s0"
     #image: "openmicroscopy/omero-web-standalone:5"
     build:
       context: ./
@@ -193,6 +201,7 @@ services:
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
+      UPLOADER_DESTINATION_DIR: /tus_destination
     # Named network to communicate with other containers
     networks:
       - omero
@@ -204,7 +213,7 @@ services:
       - "./web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
       - "./web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
       - "./web/L-Drive:/data:rw"
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
       - "./logs/omeroweb:/opt/omero/web/OMERO.web/var/log"
     logging:
       driver: "json-file"
@@ -250,7 +259,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "./web/L-Drive:/data"
-      - "tus-destination:/data/tus_destination"
+      - "tus-destination:/tus_destination"
       - "./config/biomero-importer:/auto-importer/config:ro"
       - "./logs/biomero-importer:/auto-importer/logs"
     logging:

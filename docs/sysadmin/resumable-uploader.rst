@@ -23,38 +23,47 @@ Features:
 Administrative Configuration
 ----------------------------
 
-Enabling the Uploader
-~~~~~~~~~~~~~~~~~~~~~
+Uploader Settings
+~~~~~~~~~~~~~~~~~
 
-The uploader can be toggled on or off via the **Import -> Admin** tab:
+The web uploader can be configured via the **Import -> Admin** tab under the **General Settings** section. These options are saved in the JSON configuration file (configured via the ``OMERO_BIOMERO_CONFIG_FILE`` environment variable, defaulting to ``~/.biomero/biomero-config.json``) inside the ``UPLOADER`` object:
 
-1. Navigate to the **Admin** sub-tab under **Import**.
-2. Locate the **General Settings** section.
-3. Toggle **Enable Web Uploader**.
+1. **Enable Web Uploader**: 
+   - **JSON Key**: ``enabled`` (bool, e.g., ``true`` or ``false``)
+   - **Description**: Toggles the visibility of the "Upload images" tab in the OMERO.biomero plugin UI for users.
+
+2. **Upload to group folder**: 
+   - **JSON Key**: ``upload_to_group_folder`` (bool, e.g., ``true`` or ``false``)
+   - **Description**: When enabled, completed uploads are assembled inside the active group's mapped folder under ``uploads/<username>/`` instead of the shared destination.
+   - **Fallback**: If no group mapping exists for the group, it falls back to the default uploader destination subdirectory.
+
+3. **Uploader Chunk Size (MB)**: 
+   - **JSON Key**: ``chunk_size`` (integer, default: ``100``)
+   - **Description**: Specifies the chunk size in MB for resumable uploads sent by the client. Lowering this value can help bypass proxy body limits (e.g., Nginx).
 
 Storage Configuration
 ~~~~~~~~~~~~~~~~~~~~~
 
 The uploader uses a two-stage storage process:
 
-1. **Temporary Storage (Chunks)**: Chunks are stored in a temporary directory while the upload is in progress (Default: ``/tmp/omero_biomero_tus_upload`` inside the container, which is internal and doesn't require mapping).
+1. **Temporary Storage (Chunks)**: Chunks are stored in a temporary directory while the upload is in progress (Default: ``/tmp/omero_biomero_tus_upload`` inside the container).
 2. **Final Destination**: Once fully assembled, the file is moved to a permanent/assembled storage directory on the BIOMERO filesystem (Default: ``/data/tus_destination``).
 
-These paths are configured via environment variables:
+These paths are configured via backend environment variables:
 
 - ``UPLOADER_CHUNKS_DIR``: Path for temporary chunks.
 - ``UPLOADER_DESTINATION_DIR``: Path for assembled files (Default: ``/data/tus_destination``).
 
 .. note::
-   If **Upload to group folder** is enabled in Admin settings, the final destination will be overridden by the group-specific mapping (e.g., ``/data/uploads/username/group_folder/``).
+   If **Upload to group folder** is enabled, the final destination is overridden by the resolved group directory mapping: ``<group_folder_path>/uploads/<username>/``.
 
-Infrastructure Requirements
----------------------------
+Infrastructure & Permission Requirements
+----------------------------------------
 
 Nginx Configuration
 ~~~~~~~~~~~~~~~~~~~
 
-Since the uploader sends file chunks (default 100MB) via HTTP PATCH requests, the web server (Nginx) must be configured to allow large request bodies.
+Since the uploader sends file chunks via HTTP PATCH requests, the web server (Nginx) must be configured to allow request bodies equal to or larger than the configured chunk size.
 
 In the containerized deployment, this is controlled by the ``CONFIG_nginx_client_max_body_size`` environment variable for the ``omeroweb`` service.
 
@@ -65,14 +74,27 @@ In the containerized deployment, this is controlled by the ``CONFIG_nginx_client
        environment:
          - CONFIG_nginx_client_max_body_size=512m
 
-File System Permissions
-~~~~~~~~~~~~~~~~~~~~~~~
+Cross-Container Permission Requirements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To prevent ownership and permission conflicts between different container processes (e.g., ``omero-web`` writing the uploaded files, and ``biomero-importer`` or ``omeroserver`` reading and importing them), the default configuration maps the assembled files directory (``/data/tus_destination``) to a shared Docker named volume named ``tus-destination``.
+To prevent ownership and permission conflicts, the files and folders used in the uploader must be accessible across multiple container processes:
 
-Since this volume is managed directly by Docker inside the Linux container environment, it bypasses host-level ownership translation issues. 
+1. **``omeroweb`` container** (runs Django/TUS backend):
+   - Needs **write** access to ``UPLOADER_CHUNKS_DIR`` to write incoming file chunks.
+   - Needs **write** access to the final target directory to assemble and move the finished file.
+2. **``biomero-importer`` container** (runs the import background worker):
+   - Needs **read and write** access to the final target directory to read the file, run optional preprocessing containers (which may run under OCI/Podman engines), and create output directories.
+3. **``omeroserver`` container** (runs OMERO application server):
+   - Needs **read** access to the final target directory to perform the in-place import and link files in the OMERO database.
 
-In Docker Compose, this is set up by mounting the shared volume in all relevant services:
+Deployment Options
+~~~~~~~~~~~~~~~~~~
+
+**Option A: Shared Named Volume (Default)**
+
+For standard single-host setups, the default configuration maps the assembled files directory (``/data/tus_destination``) to a shared Docker named volume (``tus-destination``).
+
+Since this volume is managed directly by Docker inside the Linux container environment, it bypasses host-level ownership translation issues.
 
 .. code-block:: yaml
 
@@ -90,12 +112,58 @@ In Docker Compose, this is set up by mounting the shared volume in all relevant 
    volumes:
      tus-destination:
 
-If you are uploading directly to group folders (e.g., ``/data/uploads/username/group_folder/``), make sure the host paths have the correct permissions so the containers can read and write:
+**Option B: Host Mounts (Group Folder Mode)**
+
+When **Upload to group folder** is enabled, the final destination directories resolve to host-mounted paths (e.g., mapped under the main ``/data/`` volume mount). 
+
+Because the Docker engine mounts host folders directly, local OS permissions apply:
+- The `omero-web`, `omero`, and `biomero-importer` processes typically run under UID and GID **1000**.
+- Therefore, the host directories mapped for group folders must be owned by or writable by UID/GID **1000:1000**.
 
 .. code-block:: bash
 
-   # Example on the host machine
-   chown -R 1000:1000 ./web/L-Drive/uploads
+   # Example: Setting permissions on the host directory
+   chown -R 1000:1000 /path/to/shared/group/directories
+
+Uploader Data Flow
+------------------
+
+The life cycle of an upload and its automatic import follows these steps:
+
+1. **Initialize Uppy Client**
+   - The user opens the "Upload images" tab in the OMERO.biomero plugin webclient.
+   - The React frontend initializes the `Uppy` uploader with the `Tus` plugin, pointing to the `/omero_biomero/upload/` endpoint.
+   - The chunk size is passed to the client (converted from `UPLOADER.chunk_size` setting).
+
+2. **Upload Handshake (POST)**
+   - The client initiates an upload by sending a `POST` request to `/omero_biomero/upload/` with `Upload-Length` and base64-encoded `Upload-Metadata` (such as filename, active group, and username).
+   - `TusUploadView` verifies the user's OMERO session.
+   - It generates a unique `resource_id` (UUID), initializes a temporary chunk file, and saves the metadata to `<resource_id>.meta`.
+   - Returns a `201 Created` status with the upload resource `Location` header pointing to `/omero_biomero/upload/<resource_id>`.
+
+3. **Streaming Chunks (PATCH)**
+   - The client streams file chunks sequentially using `PATCH` requests to `/omero_biomero/upload/<resource_id>` with the current `Upload-Offset`.
+   - The server validates the offset, streams the bytes in 1MB buffer steps directly to the chunk file, and updates the metadata offset on disk.
+
+4. **File Assembly & Relocation**
+   - Once `new_offset` equals the total file length, the server triggers finalization.
+   - The server resolves the destination directory based on the user group mapping setting.
+   - The completed file is moved from the chunk directory to the target path. In case of duplicate filenames, a numeric suffix (e.g. `_1`) is appended.
+   - Temporary chunks and metadata files are deleted.
+
+5. **Import Queue Trigger (POST)**
+   - Upon successful completion, Uppy fires the `upload-success` event.
+   - The frontend receives the finalized filename (exposed via the `Upload-Filename` header) and calls `POST /omero_biomero/importer/import_uploaded_file/`.
+   - The request contains the `filename`, target `datasetId`, `datasetType` (Dataset or Project), and target `group`/`groupId`.
+
+6. **Order Creation**
+   - The backend checks user write access to the target dataset/project.
+   - It searches candidate paths for the uploaded file.
+   - Once validated, the backend queues a new order in the ingestion database (``imports`` table) via the ``log_ingestion_step`` utility with stage ``STAGE_NEW_ORDER`` ("Import Pending").
+
+7. **Background Import Processing**
+   - The ``biomero-importer`` daemon continuously polls the database for new orders in the ``STAGE_NEW_ORDER`` stage.
+   - The worker validates the files, executes any associated preprocessing OCI containers (e.g., converting Incucyte datasets using Podman), and performs the final OMERO import to link the files in-place.
 
 Troubleshooting
 ---------------

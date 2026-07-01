@@ -1,7 +1,8 @@
 {
   "UPLOADER": {
     "enabled": true,
-    "upload_to_group_folder": true
+    "upload_to_group_folder": true,
+    "chunk_size": 1
   },
   "FILE_OR_EXTENSION_PATTERNS_EXCLUSIVE": [
     "experiment.db",
