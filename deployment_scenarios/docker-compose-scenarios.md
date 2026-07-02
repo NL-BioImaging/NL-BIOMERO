@@ -32,16 +32,17 @@ The examples below assume you're in the `deployment_scenarios` directory, but yo
 ### Scenario 0.1: Local Development Setup
 **Purpose**: For developers working on NL-BIOMERO components
 
-**Docker Compose File**: `docker-compose-dev.yml`
+**Docker Compose File**: `deployment_scenarios/docker-compose-dev.yml`
 
 **Key Features**:
 - Builds images from local source code
 - Includes development-specific settings
+- Mounts adjacent `../OMERO.biomero` / `../OMERO.forms` source checkouts
 - Keeps omeroweb running with `tail -f /dev/null` to allow direct development inside the container
 
-**Usage**:
+**Usage** (from the project root):
 ```bash
-docker-compose -f docker-compose-dev.yml up -d
+docker-compose -f ./deployment_scenarios/docker-compose-dev.yml --env-file .env.shared up -d
 ```
 
 ### Scenario 0.2: Default (Local Build)
@@ -64,18 +65,19 @@ docker-compose up -d
 ## Scenario 1: Fresh Deployment (no existing data)
 
 ### Scenario 1.1: Standard Production Deployment
-**Purpose**: Production deployment with prebuilt images
+**Purpose**: Production / workshop deployment with prebuilt images
 
-**Docker Compose File**: `docker-compose-from-dockerhub.yml`
+**Docker Compose File**: `docker-compose-from-dockerhub.yml` (lives at the repo root)
 
 **Key Features**:
-- Uses prebuilt images from Docker Hub
+- Uses prebuilt `cellularimagingcf/*` images from Docker Hub (pinned by `NL_BIOMERO_VERSION`)
+- No runtime patches: all former patch behavior is enabled via `BIOMERO_*` env vars and `web/slurm-config.ini`
 - Standard configuration with production defaults
 - No existing OMERO data required
 
-**Usage**:
+**Usage** (from the project root):
 ```bash
-docker-compose -f docker-compose-from-dockerhub.yml up -d
+docker-compose -f docker-compose-from-dockerhub.yml --env-file .env.shared up -d
 ```
 
 ### Scenario 1.2: Production with SSL (Ubuntu)

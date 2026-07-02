@@ -134,13 +134,26 @@ services:
       # target Slurm cluster; pass the
       # narrowed query window into subprocess-launched OMERO scripts.
       BIOMERO_SACCT_START_TIME: ${BIOMERO_SACCT_START_TIME}
-      # Used by the runtime BIOMERO patch for effective GPU jobs only. CPU-only
-      # jobs omit --partition and use Spider's normal/default partition.
-      BIOMERO_DEFAULT_PARTITION: ${BIOMERO_DEFAULT_PARTITION:-gpu_a100_mig}
-      BIOMERO_FORCE_GPU_WORKFLOWS: ${BIOMERO_FORCE_GPU_WORKFLOWS}
-      BIOMERO_FORCE_GPU_ALL_WORKFLOWS: ${BIOMERO_FORCE_GPU_ALL_WORKFLOWS:-false}
+      # BIOMERO core opt-in features (formerly patch_biomero_runtime.py). All are
+      # standard config options read by BIOMERO via env, and forwarded into OMERO
+      # script subprocesses by processor.py (any BIOMERO_* var).
+      # Per-job env file for clusters that drop ambient SSH shell env in sbatch.
+      BIOMERO_ENV_FILE_SUBMISSION: ${BIOMERO_ENV_FILE_SUBMISSION:-true}
+      # Set GPU_FLAG (--nv) per job from the effective use_gpu value.
+      BIOMERO_INJECT_GPU_FLAG: ${BIOMERO_INJECT_GPU_FLAG:-true}
+      # Submit Singularity image pulls as bounded Slurm jobs (project storage for
+      # Apptainer tmp/cache is configured in slurm-config.ini).
+      BIOMERO_IMAGE_PULL_VIA_SBATCH: ${BIOMERO_IMAGE_PULL_VIA_SBATCH:-true}
       BIOMERO_PULL_CPUS: ${BIOMERO_PULL_CPUS}
       BIOMERO_PULL_MEM: ${BIOMERO_PULL_MEM}
+      # Shared GPU sbatch defaults for GPU-requesting workflows. Per-workflow GPU
+      # resources can instead be set via <name>_job_* keys in [MODELS].
+      BIOMERO_GPU_PARTITION: ${BIOMERO_GPU_PARTITION}
+      BIOMERO_GPU_GRES: ${BIOMERO_GPU_GRES}
+      BIOMERO_GPU_GPUS: ${BIOMERO_GPU_GPUS}
+      # Generic fallback partition for jobs without an explicit --partition. CPU-only
+      # jobs use Spider's default if left blank; per-workflow/GPU partitions win.
+      BIOMERO_DEFAULT_PARTITION: ${BIOMERO_DEFAULT_PARTITION:-gpu_a100_mig}
     # Named network to communicate with other containers
     networks:
       - omero
@@ -194,8 +207,6 @@ services:
       # sacct range override.
       BIOMERO_SACCT_START_TIME: ${BIOMERO_SACCT_START_TIME}
       BIOMERO_DEFAULT_PARTITION: ${BIOMERO_DEFAULT_PARTITION:-gpu_a100_mig}
-      BIOMERO_FORCE_GPU_WORKFLOWS: ${BIOMERO_FORCE_GPU_WORKFLOWS}
-      BIOMERO_FORCE_GPU_ALL_WORKFLOWS: ${BIOMERO_FORCE_GPU_ALL_WORKFLOWS:-false}
     # Named network to communicate with other containers
     networks:
       - omero

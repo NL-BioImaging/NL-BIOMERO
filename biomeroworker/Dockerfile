@@ -45,13 +45,6 @@ RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && $VIRTUAL_ENV/bin/python -m pip install --ignore-requires-python biomero-importer==${BIOMERO_IMPORTER_VERSION} \
     && $VIRTUAL_ENV/bin/python -m pip install "biomero[full]==${BIOMERO_VERSION}"
 
-# Apply small compatibility patches after installing BIOMERO.
-# See patch_biomero_runtime.py for the Slurm/BIOMERO
-# runtime issues this keeps reproducible across image rebuilds.
-COPY biomeroworker/patch_biomero_runtime.py /tmp/patch_biomero_runtime.py
-COPY biomeroworker/patches /tmp/patches
-RUN $VIRTUAL_ENV/bin/python /tmp/patch_biomero_runtime.py
-
 ## Adjust processor code with BIOMERO Processor
 # This version forwards HTTP(S) PROXY environment variables to the subprocesses (scripts)
 # See latest OME version @ https://raw.githubusercontent.com/ome/omero-py/master/src/omero/processor.py

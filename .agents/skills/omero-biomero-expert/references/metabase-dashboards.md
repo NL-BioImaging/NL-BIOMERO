@@ -202,6 +202,12 @@ where dc.dashboard_id=6
 order by dc.id;
 ```
 
-## Runtime Web Patch
+## Proxied Metabase Links (now upstream)
 
-`web/patch_biomero_web_runtime.py` patches pinned OMERO.biomero bundle files so Metabase links rendered as `localhost` or `127.0.0.1` stay under the public OMERO origin when embedded behind a reverse proxy. Remove this only when upstream OMERO.biomero handles proxied Metabase dashboard links.
+Metabase links rendered as `localhost` or `127.0.0.1` are rewritten to the public
+OMERO origin so embedded dashboards work behind a reverse proxy. This is handled
+directly in the OMERO.biomero source (`BiomeroApp.js` and `ImporterApp.js`, the
+`["localhost","127.0.0.1"].includes(url.hostname)` → `window.location.origin`
+rewrite) as of the surf branch / OMERO.biomero v1.5.0, bundled into NL-BIOMERO
+1.7.0+. The former deployment shim (`web/patch_biomero_web_runtime.py` +
+`web/patches/`) has been removed.

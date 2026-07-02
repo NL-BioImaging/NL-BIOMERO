@@ -1,8 +1,5 @@
 # Brings up all OMERO nodes on _one_ host computer, but multiple containers
 
-# Version 3 is the newest version of the Compose file format
-version: "3"
-
 # Define all the services: database, omero server, omero web
 services:
   # Name of our database, referenced in omero_db_host
@@ -22,13 +19,17 @@ services:
       - "database:/var/lib/postgresql/data"
 
   database-biomero:
+    # Define a prebuilt Postgres image with a version
     image: "postgres:16"
+    # Define environment variables (user/pass here)
     environment:
       POSTGRES_USER: ${BIOMERO_POSTGRES_USER}
       POSTGRES_DB: ${BIOMERO_POSTGRES_DB}
       POSTGRES_PASSWORD: ${BIOMERO_POSTGRES_PASSWORD}
+    # Define named network to communicate with other containers
     networks:
       - omero
+    # Define named volumes to persist data on host after shutdown
     volumes:
       - "database-biomero:/var/lib/postgresql/data"
 
@@ -36,7 +37,14 @@ services:
   omeroserver:
     # This container uses the tag for the latest server release of OMERO 5
     # To upgrade to the next major release, increment the major version number
-    image: "cellularimagingcf/omeroserver:${NL_BIOMERO_VERSION:-latest}"
+    # image: "openmicroscopy/omero-server:5"
+    # We build this container locally from the Dockerfile in the ./server folder
+    build:
+      context: ../
+      dockerfile: ./server/Dockerfile
+      args:
+        BIOMERO_VERSION: ${BIOMERO_VERSION}
+        OMERO_ZARR_PIXEL_BUFFER_VERSION: ${OMERO_ZARR_PIXEL_BUFFER_VERSION}
     # Define environment variables for use in the container.
     # 'nodedescriptors' assigns roles to all the containers
     # 'omero_db_*' are same as in 'database' description.
@@ -45,14 +53,14 @@ services:
       CONFIG_omero_db_user: ${POSTGRES_USER}
       CONFIG_omero_db_pass: ${POSTGRES_PASSWORD}
       CONFIG_omero_db_name: ${POSTGRES_DB}
+      CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
+      CONFIG_omero_logging_level: ${OMERO_LOGGING_LEVEL}
       CONFIG_omero_server_nodedescriptors: >-
         master:Blitz-0
         omeroworker-1:Tables-0,Indexer-0,PixelData-0,DropBox,MonitorServer,FileServer,Storm
         biomeroworker:Processor-0
       CONFIG_omero_master_host: omeroserver
-      CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
       CONFIG_omero_sessions_timeout: ${OMERO_SESSIONS_TIMEOUT}
-      CONFIG_omero_logging_level: ${OMERO_LOGGING_LEVEL}
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
     # Define named network to communicate with other containers
     networks:
@@ -66,10 +74,17 @@ services:
       - "omero:/OMERO"
       - "../web/L-Drive:/data"
       - "tus-destination:/data/tus_destination"
+      - "../logs/omeroserver:/opt/omero/server/OMERO.server/var/log"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   # Name of our worker node, can be anything
   omeroworker-1:
-    image: "cellularimagingcf/omeroworker:${NL_BIOMERO_VERSION:-latest}"
+    # We build this image locally in the ./worker folder
+    build: ../worker
     # Define variables for use in the container.
     # WORKER_NAME is used in the omero/ice node description
     environment:
@@ -84,10 +99,24 @@ services:
       - "omero:/OMERO"
       - "../web/L-Drive:/data"
       - "tus-destination:/data/tus_destination"
+      - "../logs/omeroworker-1:/opt/omero/server/OMERO.server/var/log"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   # Define our processor worker
   biomeroworker:
-    image: "cellularimagingcf/biomero:${NL_BIOMERO_VERSION:-latest}"
+    # Build this image locally from current map './'
+    # This way we can share file access from Dockerfile in './worker-gpu'
+    # Uses args to provide variables from '.env' file to the Dockerfile
+    build:
+      context: ../
+      dockerfile: ./biomeroworker/Dockerfile
+      args:
+        BIOMERO_VERSION: ${BIOMERO_VERSION}
+        BIOMERO_IMPORTER_VERSION: ${BIOMERO_IMPORTER_VERSION}
     # Define variables for use in the container.
     # WORKER_NAME is used in the omero/ice node description
     # logging_level doesn't work, but should increase logging
@@ -101,6 +130,17 @@ services:
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
+      BIOMERO_SACCT_START_TIME: ${BIOMERO_SACCT_START_TIME}
+      # BIOMERO core opt-in features (formerly patch_biomero_runtime.py).
+      BIOMERO_ENV_FILE_SUBMISSION: ${BIOMERO_ENV_FILE_SUBMISSION:-true}
+      BIOMERO_INJECT_GPU_FLAG: ${BIOMERO_INJECT_GPU_FLAG:-true}
+      BIOMERO_IMAGE_PULL_VIA_SBATCH: ${BIOMERO_IMAGE_PULL_VIA_SBATCH:-true}
+      BIOMERO_PULL_CPUS: ${BIOMERO_PULL_CPUS}
+      BIOMERO_PULL_MEM: ${BIOMERO_PULL_MEM}
+      BIOMERO_GPU_PARTITION: ${BIOMERO_GPU_PARTITION}
+      BIOMERO_GPU_GRES: ${BIOMERO_GPU_GRES:-}
+      BIOMERO_GPU_GPUS: ${BIOMERO_GPU_GPUS:-}
+      BIOMERO_DEFAULT_PARTITION: ${BIOMERO_DEFAULT_PARTITION:-gpu_a100_mig}
     # Named network to communicate with other containers
     networks:
       - omero
@@ -114,22 +154,33 @@ services:
       - "tus-destination:/data/tus_destination"
       - "../config/biomero-importer:/opt/omero/server/config-importer:ro"
       - "../web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
+      - "../logs/biomeroworker:/opt/omero/server/OMERO.server/var/log"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   # Service for the omero.web UI
   omeroweb:
-    image: "cellularimagingcf/omeroweb:${NL_BIOMERO_VERSION:-latest}"
+    #image: "openmicroscopy/omero-web-standalone:5"
+    # We build this also locally in './web' folder, to add some extensions
     # Environment variables for in the container
-    # login__logo supplies a logo on the starting page of web UI
+    build:
+      context: ../
+      dockerfile: ./web/Dockerfile
+      args:
+        OMERO_BIOMERO_VERSION: ${OMERO_BIOMERO_VERSION}
+        OMERO_FORMS_VERSION: ${OMERO_FORMS_VERSION}
+        BIOMERO_VERSION: ${BIOMERO_VERSION}
+        BIOMERO_IMPORTER_VERSION: ${BIOMERO_IMPORTER_VERSION}
     environment:
       OMEROHOST: omeroserver
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
-      CONFIG_omero_web_login__logo: "https://cembo.eu/wp-content/uploads/2021/04/Amsterdam-UMC.png"
       CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
       CONFIG_omero_web_session__expire__at__browser__close: "${OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE}"
       CONFIG_omero_web_session__cookie__age: ${OMERO_WEB_SESSION_COOKIE_AGE}
       ENV: ${OMERO_WEB_ENV}
-      OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
-      CONFIG_omero_scripts_timeout: 604800000
       OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
       OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
       METABASE_SITE_URL: ${METABASE_SITE_URL}
@@ -142,20 +193,34 @@ services:
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
+      UPLOADER_DESTINATION_DIR: /data/tus_destination
     # Named network to communicate with other containers
     networks:
       - omero
     # Map ports to ports on the host machine, to allow opening of webpage
     ports:
       - "4080:4080"
+    # volumes:
+    # In case of further development, add volumes for local_omeroweb_edits here
+    # Once volumes are added, only omeroweb container reload necessary, not the whole docker-compose.
     volumes:
       - "../web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
-      - "../web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
-      - "../web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
-      - "../web/local_omeroweb_edits/pretty_login/login_page_images/bioimaging.png:/opt/omero/web/venv3/lib/python3.9/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/AmsterdamUMC-logo.png:ro"
       - "../web/L-Drive:/data:rw"
       - "tus-destination:/data/tus_destination"
+      - "../../OMERO.biomero/:/opt/omero/web/OMERO.biomero"
+      - "../../OMERO.forms/:/opt/omero/web/OMERO.forms"
+      - "../web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
+      - "../web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
+      - "../logs/omeroweb:/opt/omero/web/OMERO.web/var/log"
+      - "../logs/nginx:/var/log/nginx"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    entrypoint: ["sh", "-c", "tail -f /dev/null"]
 
+  # New Metabase service
   metabase:
     image: metabase/metabase@sha256:f7b5dc52c21aaa2dca910a450e7e6119a975090ce9fc80726aa0742882ca176c
     container_name: metabase
@@ -167,15 +232,15 @@ services:
     networks:
       - omero
     ports:
-      - "3000:3000"
+      - "3000:3000" # Expose Metabase on port 3000
     volumes:
-      - "../metabase:/metabase-data"
+      - "../metabase:/metabase-data" # Mount existing H2 db
 
   biomero-importer:
-    image: "cellularimagingcf/biomero-importer:${BIOMERO_IMPORTER_VERSION:-latest}"
+    build:
+      context: ../biomero-importer
+      dockerfile: ./Dockerfile
     privileged: true
-    profiles:
-      - "IMPORTER_ENABLED"
     devices:
       - "/dev/fuse:/dev/fuse"
     security_opt:
@@ -193,7 +258,9 @@ services:
       - "omero:/OMERO"
       - "../web/L-Drive:/data"
       - "tus-destination:/data/tus_destination"
-      - "../config/biomero-importer:/auto-importer/config:ro"
+      - "../biomero-importer/logs:/auto-importer/logs"
+      - "../biomero-importer/config:/auto-importer/config"
+      - "../biomero-importer/biomero_importer:/auto-importer/biomero_importer"
       - "../logs/biomero-importer:/auto-importer/logs"
     user: "${OMERO_CONTAINER_USER}"
     logging:
