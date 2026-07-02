@@ -17,6 +17,11 @@ def create_forms_user(host, username, password, forms_user, forms_password, max_
     print("Waiting for OMERO server to be ready...")
     for attempt in range(max_attempts):
         try:
+            forms_conn = BlitzGateway(forms_user, forms_password, host=host, port=4064)
+            if forms_conn.connect():
+                print(f"User {forms_user} already exists and can log in")
+                return True
+
             conn = BlitzGateway(username, password, host=host, port=4064)
             if not conn.connect():
                 if attempt % 5 == 0:  # Only print every 5th attempt
@@ -70,6 +75,8 @@ def create_forms_user(host, username, password, forms_user, forms_password, max_
                     f"Max attempts ({max_attempts}) reached. Last error: {str(e)}")
                 return False
         finally:
+            if 'forms_conn' in locals():
+                forms_conn.close()
             if 'conn' in locals():
                 conn.close()
 

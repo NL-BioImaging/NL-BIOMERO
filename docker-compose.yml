@@ -140,6 +140,17 @@ services:
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
+      BIOMERO_SACCT_START_DAYS_AGO: 2
+      BIOMERO_ENV_FILE_SUBMISSION: "true"
+      BIOMERO_INJECT_GPU_FLAG: "true"
+      BIOMERO_GPU_PARTITION: gpu
+      BIOMERO_GPU_GPUS: "1"
+      BIOMERO_IMAGE_PULL_VIA_SBATCH: "true"
+      BIOMERO_PULL_CPUS: "4"
+      BIOMERO_PULL_MEM: "4G"
+      BIOMERO_APPTAINER_TMPDIR: "/data/my-scratch/.apptainer-tmp"
+      BIOMERO_APPTAINER_CACHEDIR: "/data/my-scratch/.apptainer-cache"
+      BIOMERO_SLURM_ZIP_CMD: "7za"
     # Named network to communicate with other containers
     networks:
       - omero

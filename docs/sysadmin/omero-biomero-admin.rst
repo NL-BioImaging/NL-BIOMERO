@@ -168,8 +168,8 @@ Converters Settings
 .. warning::
    Custom converters require additional integration work. Most users should rely on built-in converters.
 
-Models Settings (Workflows)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Workflows Settings
+~~~~~~~~~~~~~~~~~~
 
 **Purpose**: Add and manage analysis workflows available to users
 

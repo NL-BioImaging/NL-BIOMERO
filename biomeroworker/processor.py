@@ -29,6 +29,15 @@ from omero.util.decorators import remoted, perf, locked, wraps
 from omero.rtypes import rint, rlong
 from omero_ext.path import path
 
+try:
+    from biomero.constants import slurm_env as _slurm_env
+    _BIOMERO_ENV_VARS = [
+        v for k, v in vars(_slurm_env).items()
+        if not k.startswith("_") and isinstance(v, str)
+    ]
+except ImportError:
+    _BIOMERO_ENV_VARS = []
+
 sys = __import__("sys")
 
 
@@ -164,8 +173,9 @@ class ProcessI(omero.grid.Process, omero.util.SimpleServant):
             "SQLALCHEMY_URL",
             "INGEST_TRACKING_DB_URL",
             "IMPORTER_ENABLED",
-            "BIOMERO_SACCT_START_DAYS_AGO",
-            "BIOMERO_SACCT_START_TIME"
+            # All BIOMERO_* env vars forwarded dynamically from biomero.constants.slurm_env.
+            # Add new env vars there; they will be picked up here automatically.
+            *_BIOMERO_ENV_VARS,
         )
 
         # Since we know the location of our OMERO, we're going to
