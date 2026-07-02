@@ -132,6 +132,7 @@ Useful checks:
 
 ```sql
 -- Check plate acquisition rows (redundant rows = double-timepoint-folder problem for Incucyte)
+-- Expectation for Incucyte: (0 rows). Any rows returned = double-timepoint-folder bug.
 SELECT id, plate, name FROM plateacquisition WHERE plate = <PLATE_ID>;
 
 -- Locate image IDs for a plate
@@ -141,6 +142,7 @@ JOIN well w ON ws.well = w.id
 WHERE w.plate = <PLATE_ID>;
 
 -- Verify delta T timestamps (should show proper increments, not all zero)
+-- Expectation: increments matching raw timepoints, e.g. 0 / 43200 (12 h) / 86400 (24 h). All-zero = registration bug.
 SELECT id, thez, thec, thet, deltat
 FROM planeinfo
 WHERE pixels IN (SELECT id FROM pixels WHERE image = <IMAGE_ID>)
