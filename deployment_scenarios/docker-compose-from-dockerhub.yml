@@ -68,6 +68,12 @@ services:
       - "omero:/OMERO"
       - "../web/L-Drive:/data"
       - "tus-destination:/tus_destination"
+      - "../logs/omeroserver:/opt/omero/server/OMERO.server/var/log"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   # Name of our worker node, can be anything
   omeroworker-1:
@@ -88,6 +94,12 @@ services:
       - "omero:/OMERO"
       - "../web/L-Drive:/data"
       - "tus-destination:/tus_destination"
+      - "../logs/omeroworker-1:/opt/omero/server/OMERO.server/var/log"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   # Define our processor worker
   biomeroworker:
@@ -120,6 +132,12 @@ services:
       - "tus-destination:/tus_destination"
       - "../config/biomero-importer:/opt/omero/server/config-importer:ro"
       - "../web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
+      - "../logs/biomeroworker:/opt/omero/server/OMERO.server/var/log"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   # Service for the omero.web UI
   omeroweb:
@@ -162,6 +180,12 @@ services:
       - "../web/local_omeroweb_edits/pretty_login/login_page_images/bioimaging.png:/opt/omero/web/venv3/lib/python3.9/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/AmsterdamUMC-logo.png:ro"
       - "../web/L-Drive:/data:rw"
       - "tus-destination:/tus_destination"
+      - "../logs/omeroweb:/opt/omero/web/OMERO.web/var/log"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   metabase:
     image: metabase/metabase@sha256:f7b5dc52c21aaa2dca910a450e7e6119a975090ce9fc80726aa0742882ca176c
