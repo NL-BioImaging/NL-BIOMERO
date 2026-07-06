@@ -7,6 +7,7 @@ web/local_omeroweb_edits/omero-script-menu-widget/
 local.env
 /.idea
 web/L-Drive/*
+!web/L-Drive/uploads/user_0/Cell-Granules.tif
 web/group-mappings.json
 backup_and_restore/backups/
 backup_and_restore/biomero*
