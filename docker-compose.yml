@@ -19,8 +19,8 @@ services:
       - omero
     # Define named volumes to persist data on host after shutdown
     volumes:
-      - "database:/var/lib/postgresql/data"
-      # - .\backup_and_restore\omero-2025-07-24-14-06-06-pg16:/var/lib/postgresql/data
+      - "database:${POSTGRES_DATA_LOCATION}"
+      # - .\backup_and_restore\omero-2025-07-24-14-06-06-pg16:${POSTGRES_DATA_LOCATION}
 
   database-biomero:
     # Define a prebuilt Postgres image with a version
@@ -35,7 +35,7 @@ services:
       - omero
     # Define named volumes to persist data on host after shutdown
     volumes:
-      - "database-biomero:/var/lib/postgresql/data"
+      - "database-biomero:${POSTGRES_DATA_LOCATION}"
 
   # Name of our omero server, referenced in omero_master_host
   omeroserver:
@@ -74,13 +74,13 @@ services:
     # Map ports to ports on the host machine, to connect remotely
     ports:
       - "4063:4063"
-      - "4064:4064"
+      - "${OMERO_PORT}:${OMERO_PORT}"
     # Define named volume and map a folder from the host machine
     volumes:
-      - "omero:/OMERO"
-      - "./web/L-Drive:/data"
-      - "./web/L-Drive/uploads:/tus_destination"
-      - "./logs/omeroserver:/opt/omero/server/OMERO.server/var/log"
+      - "${OMERO_DATA_PATH}:${OMERO_SERVER_DATA_LOCATION}"
+      - "${INPLACE_STORAGE_HOST_PATH}:${IMPORT_MOUNT_PATH}"
+      - "${INPLACE_STORAGE_HOST_PATH}/uploads:${UPLOADER_DESTINATION_DIR}"
+      - "${LOGS_HOST_PATH}/omeroserver:${OMERO_SERVER_LOGGING_LOCATION}"
     logging:
       driver: "json-file"
       options:
@@ -104,10 +104,10 @@ services:
       - omero
     # Named volume to share data access and persist data
     volumes:
-      - "omero:/OMERO"
-      - "./web/L-Drive:/data"
-      - "./web/L-Drive/uploads:/tus_destination"
-      - "./logs/omeroworker-1:/opt/omero/server/OMERO.server/var/log"
+      - "${OMERO_DATA_PATH}:${OMERO_SERVER_DATA_LOCATION}"
+      - "${INPLACE_STORAGE_HOST_PATH}:${IMPORT_MOUNT_PATH}"
+      - "${INPLACE_STORAGE_HOST_PATH}/uploads:${UPLOADER_DESTINATION_DIR}"
+      - "${LOGS_HOST_PATH}/omeroworker-1:${OMERO_SERVER_LOGGING_LOCATION}"
     logging:
       driver: "json-file"
       options:
@@ -140,31 +140,20 @@ services:
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
-      BIOMERO_SACCT_START_DAYS_AGO: 2
-      BIOMERO_ENV_FILE_SUBMISSION: "true"
-      BIOMERO_INJECT_GPU_FLAG: "true"
-      BIOMERO_GPU_PARTITION: gpu
-      BIOMERO_GPU_GPUS: "1"
-      BIOMERO_IMAGE_PULL_VIA_SBATCH: "true"
-      BIOMERO_PULL_CPUS: "4"
-      BIOMERO_PULL_MEM: "4G"
-      BIOMERO_APPTAINER_TMPDIR: "/data/my-scratch/.apptainer-tmp"
-      BIOMERO_APPTAINER_CACHEDIR: "/data/my-scratch/.apptainer-cache"
-      BIOMERO_SLURM_ZIP_CMD: "7za"
     # Named network to communicate with other containers
     networks:
       - omero
     # Named volume to share data access and persist data
     # Forward host SSH setup to container
     volumes:
-      - "omero:/OMERO"
-      - "~/.ssh:/tmp/.ssh:ro"
-      - "./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
-      - "./web/L-Drive:/data"
-      - "./web/L-Drive/uploads:/tus_destination"
-      - "./config/biomero-importer:/opt/omero/server/config-importer:ro"
-      - "./web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
-      - "./logs/biomeroworker:/opt/omero/server/OMERO.server/var/log"
+      - "${OMERO_DATA_PATH}:${OMERO_SERVER_DATA_LOCATION}"
+      - "${SSH_HOST_PATH}:/tmp/.ssh:ro"
+      - "${SLURM_CONFIG_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/slurm-config.ini:rw"
+      - "${INPLACE_STORAGE_HOST_PATH}:${IMPORT_MOUNT_PATH}"
+      - "${INPLACE_STORAGE_HOST_PATH}/uploads:${UPLOADER_DESTINATION_DIR}"
+      - "${BIOMERO_IMPORTER_CONFIG_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/config-importer:ro"
+      - "${BIOMERO_CONFIG_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/biomero-config.json:ro"
+      - "${LOGS_HOST_PATH}/biomeroworker:${OMERO_SERVER_LOGGING_LOCATION}"
     logging:
       driver: "json-file"
       options:
@@ -189,8 +178,8 @@ services:
       CONFIG_omero_web_session__expire__at__browser__close: "${OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE}"
       CONFIG_omero_web_session__cookie__age: ${OMERO_WEB_SESSION_COOKIE_AGE}
       ENV: ${OMERO_WEB_ENV}
-      OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
-      OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
+      OMERO_BIOMERO_CONFIG_FILE: ${OMERO_BIOMERO_CONFIG_FILE}
+      OMERO_BIOMERO_GROUP_MAPPINGS_FILE: ${OMERO_BIOMERO_GROUP_MAPPINGS_FILE}
       METABASE_SITE_URL: ${METABASE_SITE_URL}
       METABASE_SECRET_KEY: ${METABASE_SECRET_KEY}
       METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID: ${METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID}
@@ -201,7 +190,7 @@ services:
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
-      UPLOADER_DESTINATION_DIR: /tus_destination
+      UPLOADER_DESTINATION_DIR: ${UPLOADER_DESTINATION_DIR}
     # Named network to communicate with other containers
     networks:
       - omero
@@ -209,12 +198,12 @@ services:
     ports:
       - "4080:4080"
     volumes:
-      - "./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
-      - "./web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"
-      - "./web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
-      - "./web/L-Drive:/data:rw"
-      - "./web/L-Drive/uploads:/tus_destination:rw"
-      - "./logs/omeroweb:/opt/omero/web/OMERO.web/var/log"
+      - "${SLURM_CONFIG_HOST_PATH}:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
+      - "${BIOMERO_CONFIG_HOST_PATH}:${OMERO_BIOMERO_CONFIG_FILE}:rw"
+      - "${GROUP_MAPPINGS_HOST_PATH}:${OMERO_BIOMERO_GROUP_MAPPINGS_FILE}:rw"
+      - "${INPLACE_STORAGE_HOST_PATH}:${IMPORT_MOUNT_PATH}:rw"
+      - "${INPLACE_STORAGE_HOST_PATH}/uploads:${UPLOADER_DESTINATION_DIR}:rw"
+      - "${LOGS_HOST_PATH}/omeroweb:/opt/omero/web/OMERO.web/var/log"
     logging:
       driver: "json-file"
       options:
@@ -226,7 +215,7 @@ services:
     container_name: metabase
     hostname: metabase
     environment:
-      MB_DB_FILE: /metabase-data/metabase.db
+      MB_DB_FILE: ${METABASE_DATA_LOCATION}/metabase.db
       MB_USER: ${METABASE_USER}
       MB_PASSWORD: ${METABASE_PASSWORD}
     networks:
@@ -234,7 +223,7 @@ services:
     ports:
       - "3000:3000" # Expose Metabase on port 3000
     volumes:
-      - "./metabase:/metabase-data" # Mount existing H2 db
+      - "${METABASE_DATA_HOST_PATH}:${METABASE_DATA_LOCATION}" # Mount existing H2 db
 
   biomero-importer:
     build:
@@ -257,11 +246,11 @@ services:
     networks:
       - omero
     volumes:
-      - "omero:/OMERO"
-      - "./web/L-Drive:/data"
-      - "./web/L-Drive/uploads:/tus_destination"
-      - "./config/biomero-importer:/auto-importer/config:ro"
-      - "./logs/biomero-importer:/auto-importer/logs"
+      - "${OMERO_DATA_PATH}:${OMERO_SERVER_DATA_LOCATION}"
+      - "${INPLACE_STORAGE_HOST_PATH}:${IMPORT_MOUNT_PATH}"
+      - "${INPLACE_STORAGE_HOST_PATH}/uploads:${UPLOADER_DESTINATION_DIR}"
+      - "${BIOMERO_IMPORTER_CONFIG_HOST_PATH}:/auto-importer/config:ro"
+      - "${LOGS_HOST_PATH}/biomero-importer:/auto-importer/logs"
     logging:
       driver: "json-file"
       options:
@@ -285,4 +274,3 @@ volumes:
   omero:
     # external: true
     # name: omero-server-2025-07-29_12-09-40-UTC #  Restored data
-  tus-destination:
