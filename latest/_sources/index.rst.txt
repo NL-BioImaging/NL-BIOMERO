@@ -139,7 +139,7 @@ This documentation serves as your **main gateway** to the BIOMERO 2.0 ecosystem.
    <div style="display: flex; gap: 8px; align-items: center;">
    <a href="https://hub.docker.com/r/cellularimagingcf/biomero-importer" target="_blank" style="background: rgba(255,255,255,0.2); color: white; padding: 4px 8px; text-decoration: none; border-radius: 4px; font-size: 11px;">🐳 DockerHub</a>
    <a href="https://github.com/NL-BioImaging/BIOMERO.importer" target="_blank" style="background: rgba(0,0,0,0.3); color: white; padding: 4px 8px; text-decoration: none; border-radius: 4px; font-size: 11px;">🔍 Repository</a>
-   <div style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 15px; font-size: 11px;">Apache-2.0</div>
+   <div style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 15px; font-size: 11px;">GPL-2.0</div>
    </div>
    </div>
    <p style="margin: 0 0 15px 0; font-size: 14px; opacity: 0.9;">User-friendly data import workflows for in-place importing - keep your raw data where it belongs!</p>
