@@ -1,6 +1,6 @@
 {
   "UPLOADER": {
-    "enabled": true,
+    "enabled": false,
     "upload_to_group_folder": true,
     "chunk_size": 1
   },
