@@ -308,9 +308,11 @@ Your SLURM service account needs:
 git clone --recursive https://github.com/NL-BioImaging/NL-BIOMERO.git
 cd NL-BIOMERO
 
-# Setup local Slurm cluster for testing
+# Setup local Slurm cluster for testing (CPU-only nodes)
 git clone https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm
 cd NL-BIOMERO-Local-Slurm
+# Alternatively, use the GPU-enabled variant (WSL2/Docker Desktop):
+#   https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm-GPU
 cp ~/.ssh/id_rsa.pub .
 docker-compose -f docker-compose-from-dockerhub.yml up -d --build
 
@@ -418,5 +420,6 @@ rules — see the
 - [BIOMERO.analyzer SLURM Documentation](https://nl-bioimaging.github.io/biomero/readme_link.html#using-the-gpu-on-slurm) – Workflow usage and GPU support
 - [NL-BIOMERO Main README](https://github.com/NL-BioImaging/NL-BIOMERO/blob/master/README.md) – Complete deployment guide
 - {doc}`linux-deployment` – Linux-specific deployment instructions
-- [Local SLURM Setup](https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm) – Development cluster setup
+- [Local SLURM Setup](https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm) – Development cluster setup (CPU-only nodes)
+- [Local SLURM Setup (GPU)](https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm-GPU) – Development cluster with GPU node (WSL2/Docker Desktop)
 - {doc}`../developer/containers/biomeroworker` – BIOMERO worker container details

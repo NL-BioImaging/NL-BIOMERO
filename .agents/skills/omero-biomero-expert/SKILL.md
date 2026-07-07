@@ -168,3 +168,30 @@ Incorrect:
 ```python
 p_info.deltaT = TimeI(rdouble(d_t), UnitsTime.SECOND)  # raises type error on save
 ```
+
+## Building the NL-BIOMERO Docs Locally
+
+The docs live in `d:\workspace\NL-BIOMERO\docs\` and use Sphinx with a pre-created venv.
+
+To build the **current branch only** (no multi-version):
+
+```powershell
+cd d:\workspace\NL-BIOMERO\docs
+.\venv\Scripts\sphinx-build -b html . _build_local
+```
+
+Output is written to `_build_local\`. Open in a browser:
+
+```powershell
+start d:\workspace\NL-BIOMERO\docs\_build_local\index.html
+```
+
+Or open with the browser tool using:
+
+```
+file:///d:/workspace/NL-BIOMERO/docs/_build_local/index.html
+```
+
+Do **not** use `make html` or `sphinx-multiversion` — those build all tagged versions and are slow. The direct `sphinx-build` call above is the correct approach for local preview.
+
+The venv already has all required packages (`Sphinx`, `myst-parser`, `sphinx-rtd-theme`, `sphinxcontrib-mermaid`, `sphinx-multiversion`). No install step is needed.

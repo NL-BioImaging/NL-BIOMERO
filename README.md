@@ -20,7 +20,7 @@ Using NL‑BIOMERO yields a unified environment where image data import, preproc
 *BIOMERO 2.0 architecture showing the integration of containerized analysis workflows (BIOMERO 1.0), preprocessing workflows (BIOMERO 2.0), and the unified OMERO.biomero web interface with OMERO.forms for metadata collection.*
 
 It uses Docker Compose to setup an OMERO grid on one computer with a server, web, processor, and a BIOMERO processor, importer and database.
-If you want to experiment with a local HPC cluster, an example Docker Compose setup is hosted <a href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">here</a>.
+If you want to experiment with a local HPC cluster, an example Docker Compose setup is hosted <a href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">here</a> (or <a href="https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm-GPU" target="_blank" rel="noopener noreferrer">here for a GPU-enabled variant</a> that works on WSL2/Docker Desktop).
 
 This is an adaptation of OME's <a href="https://github.com/ome/docker-example-omero-grid" target="_blank" rel="noopener noreferrer">OMERO.server grid and OMERO.web (docker-compose)</a> / <a href="http://www.openmicroscopy.org/site/support/omero5/sysadmins/grid.html#nodes-on-multiple-hosts" target="_blank" rel="noopener noreferrer">OMERO.server components on multiple nodes using OMERO.grid</a>.
 
@@ -83,6 +83,8 @@ For local testing with a containerized Slurm cluster:
 cd ..
 git clone https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm
 cd NL-BIOMERO-Local-Slurm
+# (or use NL-BIOMERO-Local-Slurm-GPU for GPU support on WSL2/Docker Desktop:
+#  https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm-GPU)
 cp ~/.ssh/id_rsa.pub .
 docker compose -f .\docker-compose-from-dockerhub.yml up -d --build  
 cd ../NL-BIOMERO
@@ -336,7 +338,8 @@ This builds all tagged versions and branches, then creates a `latest/` directory
 
 - 📖 **[Ubuntu/Linux Deployment](https://nl-bioimaging.github.io/NL-BIOMERO/latest/sysadmin/linux-deployment.html)** - Production deployment guide
 - 🧬 **<a href="https://nl-bioimaging.github.io/biomero/" target="_blank" rel="noopener noreferrer">BIOMERO Documentation</a>** - Analysis workflows
-- 🏗️ **<a href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">Local Slurm Cluster</a>** - Testing environment
+- 🏗️ **<a href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">Local Slurm Cluster</a>** - Testing environment (CPU-only)
+- 🏗️ **<a href="https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm-GPU" target="_blank" rel="noopener noreferrer">Local Slurm Cluster (GPU)</a>** - Testing environment with GPU node (WSL2/Docker Desktop)
 - 🔬 **<a href="https://omero.readthedocs.io/" target="_blank" rel="noopener noreferrer">OMERO Documentation</a>** - Core platform docs
 
 ---
