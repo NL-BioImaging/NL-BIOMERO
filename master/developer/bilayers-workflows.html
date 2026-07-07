@@ -435,6 +435,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="workflow-development.html#additional-resources">Additional Resources</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="workflow-development.html#biaflows-integration">BIAFLOWS Integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="workflow-development.html#multiple-descriptors-multiple-uis-per-repository">Multiple Descriptors / Multiple UIs per Repository</a></li>
 <li class="toctree-l3"><a class="reference internal" href="workflow-development.html#zarr-workflow-types-biomero-2-4-0">Zarr Workflow Types (BIOMERO ≥ 2.4.0)</a></li>
 </ul>
 </li>
@@ -449,7 +450,10 @@
 <li class="toctree-l2"><a class="reference internal" href="#i-o-directory-handling">I/O Directory Handling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#parameter-choices-radio-dropdown">Parameter Choices (radio / dropdown)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#minimal-working-example">Minimal Working Example</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#adding-a-bilayers-workflow-to-your-biomero-instance">Adding a Bilayers Workflow to Your BIOMERO Instance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#adding-a-bilayers-workflow-to-your-biomero-instance">Adding a Bilayers Workflow to Your BIOMERO Instance</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pointing-to-a-specific-descriptor-file">Pointing to a Specific Descriptor File</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#bilayers-features-not-supported-by-biomero">Bilayers Features Not Supported by BIOMERO</a></li>
 </ul>
 </li>
@@ -936,6 +940,52 @@ URL via the OMERO.biomero admin UI or in <code class="docutils literal notransla
 parse it, and make it available in the script UI without any further
 configuration.</p>
 <p>See also: <a class="reference internal" href="workflow-development.html"><span class="doc">Adding Your Workflow to BIOMERO</span></a> for the full workflow packaging guide.</p>
+<section id="pointing-to-a-specific-descriptor-file">
+<span id="workflow-file-url"></span><h3>Pointing to a Specific Descriptor File<a class="headerlink" href="#pointing-to-a-specific-descriptor-file" title="Permalink to this heading"></a></h3>
+<p>Instead of registering the repository root, you can point directly at a specific
+<code class="docutils literal notranslate"><span class="pre">config.yaml</span></code> or <code class="docutils literal notranslate"><span class="pre">descriptor.json</span></code> file inside the repository.  Use the raw
+GitHub file URL as the workflow value:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[workflows]</span>
+<span class="na">W_MyWorkflow_Bilayers</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s">https://raw.githubusercontent.com/myorg/W_MyWorkflow/main/config.yaml</span>
+<span class="na">W_MyWorkflow_BIAFLOWS</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s">https://raw.githubusercontent.com/myorg/W_MyWorkflow/main/descriptor.json</span>
+</pre></div>
+</div>
+<p>BIOMERO fetches that URL directly, detects the format from the file content, and
+registers it as a normal workflow.</p>
+<p><strong>Why is this useful?</strong></p>
+<ul>
+<li><p><strong>One repo, two descriptor formats.</strong> If your workflow can be driven by either a
+Bilayers <code class="docutils literal notranslate"><span class="pre">config.yaml</span></code> or a BIAFLOWS <code class="docutils literal notranslate"><span class="pre">descriptor.json</span></code> (e.g. you maintain both
+for compatibility), you can register both independently under different workflow
+names.</p></li>
+<li><p><strong>Two UIs for one container.</strong> You can ship two <code class="docutils literal notranslate"><span class="pre">config.yaml</span></code> files in the same
+repo — one for single-image analysis and one for HCS plate analysis (using
+<code class="docutils literal notranslate"><span class="pre">subtype:</span> <span class="pre">plate</span></code>) — and register them as distinct workflows.  Users see two
+separate entries in the OMERO script menu, each with its own parameter set, but
+both run the same underlying container image.</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[workflows]</span>
+<span class="na">W_MyWorkflow</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="s">https://raw.githubusercontent.com/myorg/W_MyWorkflow/main/config.yaml</span>
+<span class="na">W_MyWorkflow_Plate</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="s">https://raw.githubusercontent.com/myorg/W_MyWorkflow/main/config_plate.yaml</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Mono-repo layout.</strong> If you maintain multiple workflows in a single repository
+(each in its own subdirectory), you can register them individually:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[workflows]</span>
+<span class="na">W_Segment</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="s">https://raw.githubusercontent.com/myorg/workflows/main/segment/config.yaml</span>
+<span class="na">W_Classify</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s">https://raw.githubusercontent.com/myorg/workflows/main/classify/config.yaml</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When using a file URL, BIOMERO does <strong>not</strong> search the repository for other
+descriptors — it only reads the file you point at.  This is intentional: it lets
+you have both a <code class="docutils literal notranslate"><span class="pre">config.yaml</span></code> and a <code class="docutils literal notranslate"><span class="pre">descriptor.json</span></code> in the same repo without
+them interfering with each other.</p>
+</div>
+</section>
 </section>
 <section id="bilayers-features-not-supported-by-biomero">
 <h2>Bilayers Features Not Supported by BIOMERO<a class="headerlink" href="#bilayers-features-not-supported-by-biomero" title="Permalink to this heading"></a></h2>

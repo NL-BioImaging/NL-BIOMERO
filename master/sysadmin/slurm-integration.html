@@ -800,6 +800,7 @@ window.addEventListener("load", load);
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/workflow-development.html#additional-resources">Additional Resources</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#biaflows-integration">BIAFLOWS Integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#multiple-descriptors-multiple-uis-per-repository">Multiple Descriptors / Multiple UIs per Repository</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../developer/workflow-development.html#zarr-workflow-types-biomero-2-4-0">Zarr Workflow Types (BIOMERO ≥ 2.4.0)</a></li>
 </ul>
 </li>
@@ -814,7 +815,10 @@ window.addEventListener("load", load);
 <li class="toctree-l2"><a class="reference internal" href="../developer/bilayers-workflows.html#i-o-directory-handling">I/O Directory Handling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/bilayers-workflows.html#parameter-choices-radio-dropdown">Parameter Choices (radio / dropdown)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/bilayers-workflows.html#minimal-working-example">Minimal Working Example</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/bilayers-workflows.html#adding-a-bilayers-workflow-to-your-biomero-instance">Adding a Bilayers Workflow to Your BIOMERO Instance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/bilayers-workflows.html#adding-a-bilayers-workflow-to-your-biomero-instance">Adding a Bilayers Workflow to Your BIOMERO Instance</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../developer/bilayers-workflows.html#pointing-to-a-specific-descriptor-file">Pointing to a Specific Descriptor File</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/bilayers-workflows.html#bilayers-features-not-supported-by-biomero">Bilayers Features Not Supported by BIOMERO</a></li>
 </ul>
 </li>
@@ -1384,9 +1388,11 @@ iptables<span class="w"> </span>-A<span class="w"> </span>INPUT<span class="w"> 
 git<span class="w"> </span>clone<span class="w"> </span>--recursive<span class="w"> </span>https://github.com/NL-BioImaging/NL-BIOMERO.git
 <span class="nb">cd</span><span class="w"> </span>NL-BIOMERO
 
-<span class="c1"># Setup local Slurm cluster for testing</span>
+<span class="c1"># Setup local Slurm cluster for testing (CPU-only nodes)</span>
 git<span class="w"> </span>clone<span class="w"> </span>https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm
 <span class="nb">cd</span><span class="w"> </span>NL-BIOMERO-Local-Slurm
+<span class="c1"># Alternatively, use the GPU-enabled variant (WSL2/Docker Desktop):</span>
+<span class="c1">#   https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm-GPU</span>
 cp<span class="w"> </span>~/.ssh/id_rsa.pub<span class="w"> </span>.
 docker-compose<span class="w"> </span>-f<span class="w"> </span>docker-compose-from-dockerhub.yml<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>--build
 
@@ -1495,7 +1501,8 @@ rules — see the
 <li><p><a class="reference external" href="https://nl-bioimaging.github.io/biomero/readme_link.html#using-the-gpu-on-slurm">BIOMERO.analyzer SLURM Documentation</a> – Workflow usage and GPU support</p></li>
 <li><p><a class="reference external" href="https://github.com/NL-BioImaging/NL-BIOMERO/blob/master/README.md">NL-BIOMERO Main README</a> – Complete deployment guide</p></li>
 <li><p><a class="reference internal" href="linux-deployment.html"><span class="doc">Linux/Ubuntu Deployment</span></a> – Linux-specific deployment instructions</p></li>
-<li><p><a class="reference external" href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm">Local SLURM Setup</a> – Development cluster setup</p></li>
+<li><p><a class="reference external" href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm">Local SLURM Setup</a> – Development cluster setup (CPU-only nodes)</p></li>
+<li><p><a class="reference external" href="https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm-GPU">Local SLURM Setup (GPU)</a> – Development cluster with GPU node (WSL2/Docker Desktop)</p></li>
 <li><p><a class="reference internal" href="../developer/containers/biomeroworker.html"><span class="doc">BIOMERO Worker Container</span></a> – BIOMERO worker container details</p></li>
 </ul>
 </section>

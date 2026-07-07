@@ -105,6 +105,19 @@ For workflows that are part of the BIAFLOWS ecosystem:
    <a href="http://biaflows-doc.neubias.org/" target="_blank" style="background: #9c27b0; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-weight: bold;">📚 BIAFLOWS Docs →</a>
    </div>
 
+Multiple Descriptors / Multiple UIs per Repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+BIOMERO allows you to register a workflow by pointing at a specific descriptor
+**file** inside a repository rather than the repository root.  This means a single
+Git repository can provide more than one BIOMERO workflow entry — for example, a
+``config.yaml`` for single-image analysis alongside a ``config_plate.yaml`` for
+HCS plate analysis, or a ``config.yaml`` (Bilayers) and a ``descriptor.json``
+(BIAFLOWS) that both drive the same container image.
+
+See :ref:`workflow-file-url` in :doc:`bilayers-workflows` for the full explanation
+and configuration examples.
+
 Zarr Workflow Types (BIOMERO ≥ 2.4.0)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

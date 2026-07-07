@@ -435,6 +435,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="workflow-development.html#additional-resources">Additional Resources</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="workflow-development.html#biaflows-integration">BIAFLOWS Integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="workflow-development.html#multiple-descriptors-multiple-uis-per-repository">Multiple Descriptors / Multiple UIs per Repository</a></li>
 <li class="toctree-l3"><a class="reference internal" href="workflow-development.html#zarr-workflow-types-biomero-2-4-0">Zarr Workflow Types (BIOMERO ≥ 2.4.0)</a></li>
 </ul>
 </li>
@@ -449,7 +450,10 @@
 <li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#i-o-directory-handling">I/O Directory Handling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#parameter-choices-radio-dropdown">Parameter Choices (radio / dropdown)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#minimal-working-example">Minimal Working Example</a></li>
-<li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#adding-a-bilayers-workflow-to-your-biomero-instance">Adding a Bilayers Workflow to Your BIOMERO Instance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#adding-a-bilayers-workflow-to-your-biomero-instance">Adding a Bilayers Workflow to Your BIOMERO Instance</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bilayers-workflows.html#pointing-to-a-specific-descriptor-file">Pointing to a Specific Descriptor File</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#bilayers-features-not-supported-by-biomero">Bilayers Features Not Supported by BIOMERO</a></li>
 </ul>
 </li>
@@ -797,7 +801,7 @@ corepack<span class="w"> </span>yarn<span class="w"> </span>build
 <p><img alt="BIOMERO 2.0 Architecture" src="developer/docs/BIOMERO2_overview.png" /></p>
 <p><em>BIOMERO 2.0 architecture showing the integration of containerized analysis workflows (BIOMERO 1.0), preprocessing workflows (BIOMERO 2.0), and the unified OMERO.biomero web interface with OMERO.forms for metadata collection.</em></p>
 <p>It uses Docker Compose to setup an OMERO grid on one computer with a server, web, processor, and a BIOMERO processor, importer and database.
-If you want to experiment with a local HPC cluster, an example Docker Compose setup is hosted <a href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">here</a>.</p>
+If you want to experiment with a local HPC cluster, an example Docker Compose setup is hosted <a href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">here</a> (or <a href="https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm-GPU" target="_blank" rel="noopener noreferrer">here for a GPU-enabled variant</a> that works on WSL2/Docker Desktop).</p>
 <p>This is an adaptation of OME’s <a href="https://github.com/ome/docker-example-omero-grid" target="_blank" rel="noopener noreferrer">OMERO.server grid and OMERO.web (docker-compose)</a> / <a href="http://www.openmicroscopy.org/site/support/omero5/sysadmins/grid.html#nodes-on-multiple-hosts" target="_blank" rel="noopener noreferrer">OMERO.server components on multiple nodes using OMERO.grid</a>.</p>
 <ul class="simple">
 <li><p>OMERO.server listens on ports <code class="docutils literal notranslate"><span class="pre">4063</span></code> and <code class="docutils literal notranslate"><span class="pre">4064</span></code></p></li>
@@ -861,6 +865,8 @@ If you want to experiment with a local HPC cluster, an example Docker Compose se
 <span class="nb">cd</span><span class="w"> </span>..
 git<span class="w"> </span>clone<span class="w"> </span>https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm
 <span class="nb">cd</span><span class="w"> </span>NL-BIOMERO-Local-Slurm
+<span class="c1"># (or use NL-BIOMERO-Local-Slurm-GPU for GPU support on WSL2/Docker Desktop:</span>
+<span class="c1">#  https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm-GPU)</span>
 cp<span class="w"> </span>~/.ssh/id_rsa.pub<span class="w"> </span>.
 docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>.<span class="se">\d</span>ocker-compose-from-dockerhub.yml<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>--build
 <span class="nb">cd</span><span class="w"> </span>../NL-BIOMERO
@@ -1132,7 +1138,8 @@ uncommitted edits. Always use <code class="docutils literal notranslate"><span c
 <ul class="simple">
 <li><p>📖 <strong><a class="reference external" href="https://nl-bioimaging.github.io/NL-BIOMERO/latest/sysadmin/linux-deployment.html">Ubuntu/Linux Deployment</a></strong> - Production deployment guide</p></li>
 <li><p>🧬 <strong><a href="https://nl-bioimaging.github.io/biomero/" target="_blank" rel="noopener noreferrer">BIOMERO Documentation</a></strong> - Analysis workflows</p></li>
-<li><p>🏗️ <strong><a href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">Local Slurm Cluster</a></strong> - Testing environment</p></li>
+<li><p>🏗️ <strong><a href="https://github.com/NL-BioImaging/NL-BIOMERO-Local-Slurm" target="_blank" rel="noopener noreferrer">Local Slurm Cluster</a></strong> - Testing environment (CPU-only)</p></li>
+<li><p>🏗️ <strong><a href="https://github.com/Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm-GPU" target="_blank" rel="noopener noreferrer">Local Slurm Cluster (GPU)</a></strong> - Testing environment with GPU node (WSL2/Docker Desktop)</p></li>
 <li><p>🔬 <strong><a href="https://omero.readthedocs.io/" target="_blank" rel="noopener noreferrer">OMERO Documentation</a></strong> - Core platform docs</p></li>
 </ul>
 </section>

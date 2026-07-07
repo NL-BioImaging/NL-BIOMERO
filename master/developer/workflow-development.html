@@ -435,6 +435,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#additional-resources">Additional Resources</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#biaflows-integration">BIAFLOWS Integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multiple-descriptors-multiple-uis-per-repository">Multiple Descriptors / Multiple UIs per Repository</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#zarr-workflow-types-biomero-2-4-0">Zarr Workflow Types (BIOMERO ≥ 2.4.0)</a></li>
 </ul>
 </li>
@@ -449,7 +450,10 @@
 <li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#i-o-directory-handling">I/O Directory Handling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#parameter-choices-radio-dropdown">Parameter Choices (radio / dropdown)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#minimal-working-example">Minimal Working Example</a></li>
-<li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#adding-a-bilayers-workflow-to-your-biomero-instance">Adding a Bilayers Workflow to Your BIOMERO Instance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#adding-a-bilayers-workflow-to-your-biomero-instance">Adding a Bilayers Workflow to Your BIOMERO Instance</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bilayers-workflows.html#pointing-to-a-specific-descriptor-file">Pointing to a Specific Descriptor File</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#bilayers-features-not-supported-by-biomero">Bilayers Features Not Supported by BIOMERO</a></li>
 </ul>
 </li>
@@ -796,6 +800,17 @@
 <p style="margin: 0 0 15px 0; font-size: 14px;">Comprehensive documentation for BIAFLOWS workflow development and integration</p>
 <a href="http://biaflows-doc.neubias.org/" target="_blank" style="background: #9c27b0; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-weight: bold;">📚 BIAFLOWS Docs →</a>
 </div></section>
+<section id="multiple-descriptors-multiple-uis-per-repository">
+<h3>Multiple Descriptors / Multiple UIs per Repository<a class="headerlink" href="#multiple-descriptors-multiple-uis-per-repository" title="Permalink to this heading"></a></h3>
+<p>BIOMERO allows you to register a workflow by pointing at a specific descriptor
+<strong>file</strong> inside a repository rather than the repository root.  This means a single
+Git repository can provide more than one BIOMERO workflow entry — for example, a
+<code class="docutils literal notranslate"><span class="pre">config.yaml</span></code> for single-image analysis alongside a <code class="docutils literal notranslate"><span class="pre">config_plate.yaml</span></code> for
+HCS plate analysis, or a <code class="docutils literal notranslate"><span class="pre">config.yaml</span></code> (Bilayers) and a <code class="docutils literal notranslate"><span class="pre">descriptor.json</span></code>
+(BIAFLOWS) that both drive the same container image.</p>
+<p>See <a class="reference internal" href="bilayers-workflows.html#workflow-file-url"><span class="std std-ref">Pointing to a Specific Descriptor File</span></a> in <a class="reference internal" href="bilayers-workflows.html"><span class="doc">Bilayers Workflows in BIOMERO</span></a> for the full explanation
+and configuration examples.</p>
+</section>
 <section id="zarr-workflow-types-biomero-2-4-0">
 <h3>Zarr Workflow Types (BIOMERO ≥ 2.4.0)<a class="headerlink" href="#zarr-workflow-types-biomero-2-4-0" title="Permalink to this heading"></a></h3>
 <p>From BIOMERO v2.4.0 / NL-BIOMERO v1.5.0 onward, workflows can be configured to
