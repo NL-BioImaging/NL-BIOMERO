@@ -20,5 +20,8 @@ sed \
     OMERO.server/etc/templates/ice.config > \
     OMERO.server/etc/ice.config
 
+echo "Starting background poller daemon..."
+python3 /opt/omero/server/biomero_poller.py &
+
 echo "Starting node $OMERO_WORKER_NAME"
 exec $omero node $OMERO_WORKER_NAME start --foreground
