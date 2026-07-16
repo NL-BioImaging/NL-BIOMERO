@@ -61,8 +61,6 @@ COPY biomeroworker/slurm-config.ini /etc/slurm-config.ini
 
 ## OMERO: Replace the default startup scripts
 RUN rm /startup/60-database.sh
-COPY biomeroworker/biomero_poller.py /opt/omero/server/biomero_poller.py
-
 COPY biomeroworker/99-run.sh /startup/99-run.sh
 RUN chmod +x /startup/99-run.sh
 USER omero-server
