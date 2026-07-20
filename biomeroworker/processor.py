@@ -855,7 +855,8 @@ class WorkflowWorker(Thread):
                 target_username = user_obj.getName()
                 self.logger.info(f"Impersonating target user {target_username} in group {workflow.group}")
                 
-                with conn.suConn(target_username) as user_conn:
+                with conn.suConn(target_username, ttl=86400000) as user_conn:
+                    self.user_conn = user_conn
                     user_conn.keepAlive()
                     user_conn.setGroupForSession(workflow.group)
                     
@@ -961,7 +962,22 @@ class WorkflowWorker(Thread):
                 wf_params = params.get(f"wf_params_{wf_name}", {})
                 wf_file_params = params.get(f"wf_file_params_{wf_name}", {})
                 email = params.get("email")
-                
+
+                output_settings = {
+                    constants.workflow.OUTPUT_RENAME: params.get(constants.workflow.OUTPUT_RENAME),
+                    constants.workflow.OUTPUT_PARENT: params.get(constants.workflow.OUTPUT_PARENT),
+                    constants.workflow.OUTPUT_ATTACH: params.get(constants.workflow.OUTPUT_ATTACH),
+                    constants.workflow.OUTPUT_NEW_DATASET: params.get(constants.workflow.OUTPUT_NEW_DATASET),
+                    constants.workflow.OUTPUT_NEW_SCREEN: params.get(constants.workflow.OUTPUT_NEW_SCREEN),
+                    constants.workflow.OUTPUT_DUPLICATES: params.get(constants.workflow.OUTPUT_DUPLICATES),
+                    constants.workflow.OUTPUT_CSV_TABLE: params.get(constants.workflow.OUTPUT_CSV_TABLE),
+                    constants.workflow.OUTPUT_ATTACH_FILE_OUTPUTS: params.get(constants.workflow.OUTPUT_ATTACH_FILE_OUTPUTS),
+                    constants.results.OUTPUT_ATTACH_NEW_DATASET_ID: params.get(constants.results.OUTPUT_ATTACH_NEW_DATASET_ID),
+                    constants.results.OUTPUT_ATTACH_NEW_SCREEN_ID: params.get(constants.results.OUTPUT_ATTACH_NEW_SCREEN_ID),
+                    constants.transfer.IDS: params.get(constants.transfer.IDS),
+                    constants.transfer.DATA_TYPE: params.get(constants.transfer.DATA_TYPE)
+                }
+
                 UI_messages = ""
                 UI_messages, job_id, _, wf_task_id = run_workflow(
                     slurmClient,
@@ -973,7 +989,8 @@ class WorkflowWorker(Thread):
                     zipfile,
                     email,
                     wf_name,
-                    self.workflow_id
+                    self.workflow_id,
+                    output_settings
                 )
                 self.logger.info(f"Submitted workflow {wf_name} to Slurm. Job ID: {job_id}")
             if job_id and job_id not in (-1, None, 'None', ''):
@@ -1036,14 +1053,29 @@ class WorkflowWorker(Thread):
             self.logger.info("Import step already completed. Skipping.")
         else:
             self.logger.info("Starting Import step.")
-            output_settings = params.get("output_settings", {})
+            output_settings = {
+                constants.workflow.OUTPUT_RENAME: params.get(constants.workflow.OUTPUT_RENAME),
+                constants.workflow.OUTPUT_PARENT: params.get(constants.workflow.OUTPUT_PARENT),
+                constants.workflow.OUTPUT_ATTACH: params.get(constants.workflow.OUTPUT_ATTACH),
+                constants.workflow.OUTPUT_NEW_DATASET: params.get(constants.workflow.OUTPUT_NEW_DATASET),
+                constants.workflow.OUTPUT_NEW_SCREEN: params.get(constants.workflow.OUTPUT_NEW_SCREEN),
+                constants.workflow.OUTPUT_DUPLICATES: params.get(constants.workflow.OUTPUT_DUPLICATES),
+                constants.workflow.OUTPUT_CSV_TABLE: params.get(constants.workflow.OUTPUT_CSV_TABLE),
+                constants.workflow.OUTPUT_ATTACH_FILE_OUTPUTS: params.get(constants.workflow.OUTPUT_ATTACH_FILE_OUTPUTS),
+                constants.results.OUTPUT_ATTACH_NEW_DATASET_ID: params.get(constants.results.OUTPUT_ATTACH_NEW_DATASET_ID),
+                constants.results.OUTPUT_ATTACH_NEW_SCREEN_ID: params.get(constants.results.OUTPUT_ATTACH_NEW_SCREEN_ID),
+                constants.transfer.IDS: params.get(constants.transfer.IDS),
+                constants.transfer.DATA_TYPE: params.get(constants.transfer.DATA_TYPE)
+            }
             import_params = {**params, **output_settings, "zipfile": zipfile}
             import_mock_client = ScriptMockClient(import_params)
             
             main_job_id = None
+            latest_workflow = tracker.repository.get(self.workflow_id)
             for wf_name in workflows:
-                for name, t in existing_tasks.items():
-                    if name == wf_name and getattr(t, 'job_ids', None):
+                for t_id in latest_workflow.tasks:
+                    t = tracker.repository.get(t_id)
+                    if t.task_name == wf_name and getattr(t, 'job_ids', None):
                         main_job_id = t.job_ids[0]
                         break
                 if main_job_id:
@@ -1052,7 +1084,7 @@ class WorkflowWorker(Thread):
             if not main_job_id:
                 raise ValueError("Could not find main Slurm job ID to import results.")
                 
-            rv_import, task_id = importResultsToOmero(
+            rv_import = importResultsToOmero(
                 import_mock_client,
                 conn,
                 slurmClient,
@@ -1161,6 +1193,7 @@ class WorkflowWorker(Thread):
 def runOMEROScriptBackground(conn, svc, script_id, inputs, slurmClient=None, wf_id=None):
     import time
     import logging
+    import threading
     logger = logging.getLogger("runOMEROScriptBackground")
     script_id = int(script_id)
     proc = svc.runScript(script_id, inputs, None)
@@ -1174,11 +1207,23 @@ def runOMEROScriptBackground(conn, svc, script_id, inputs, slurmClient=None, wf_
             except Exception:
                 next_position = 1
                 
+        thread = threading.current_thread()
+        user_conn = getattr(thread, 'user_conn', None)
+
         while True:
             rc = proc.poll()
             if rc is not None:
                 break
                 
+            if user_conn:
+                try:
+                    user_conn.keepAlive()
+                except Exception:
+                    try:
+                        user_conn.c.sf.keepAlive(None)
+                    except Exception:
+                        pass
+
             if slurmClient is not None and slurmClient.wfProgress is not None:
                 try:
                     slurmClient.bring_listener_uptodate(
