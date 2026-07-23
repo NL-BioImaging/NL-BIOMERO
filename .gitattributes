@@ -13,5 +13,3 @@ Dockerfile text eol=lf
 
 *.db binary
 *.svg binary
-*.whl binary
-*.tar.gz binary
