@@ -121,7 +121,6 @@ services:
       FORMS_MASTER_USER: ${FORMS_MASTER_USER}
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
-      OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
       OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
       UPLOADER_DESTINATION_DIR: /tus_destination
@@ -153,13 +152,11 @@ services:
 
   biomero-importer:
     image: "cellularimagingcf/biomero-importer:${BIOMERO_IMPORTER_VERSION:-latest}"
-    privileged: true
     profiles:
       - "IMPORTER_ENABLED"
-    devices:
-      - "/dev/fuse:/dev/fuse"
     security_opt:
       - "label=disable"
+      - "seccomp=unconfined"
     environment:
       OMERO_HOST: omeroserver
       OMERO_USER: ${OMERO_IMPORTER_USER}
@@ -175,6 +172,9 @@ services:
       - "tus-destination:/tus_destination"
       - "../config/biomero-importer:/auto-importer/config:ro"
       - "../logs/biomero-importer:/auto-importer/logs"
+      - "biomero-importer-containers:/home/autoimportuser/.local/share/containers"
+    tmpfs:
+      - /tmp
     user: "${OMERO_CONTAINER_USER}"
     logging:
       driver: "json-file"
@@ -200,3 +200,4 @@ volumes:
     external: true
     name: <YOUR_RESTORED_METABASE_VOLUME_NAME> # <-- Replace with the actual name of your restored Metabase volume
   tus-destination:
+  biomero-importer-containers:

@@ -235,11 +235,9 @@ services:
     build:
       context: ./biomero-importer
       dockerfile: ./Dockerfile
-    privileged: true
-    devices:
-      - "/dev/fuse:/dev/fuse"
     security_opt:
       - "label=disable"
+      - "seccomp=unconfined"
     environment:
       OMERO_HOST: omeroserver
       OMERO_USER: ${OMERO_IMPORTER_USER}
@@ -257,6 +255,9 @@ services:
       - "./biomero-importer/config:/auto-importer/config"
       - "./biomero-importer/biomero_importer:/auto-importer/biomero_importer"
       - "${LOGS_HOST_PATH}/biomero-importer:/auto-importer/logs"
+      - "biomero-importer-containers:/home/autoimportuser/.local/share/containers"
+    tmpfs:
+      - /tmp
     user: "${OMERO_CONTAINER_USER}"
     logging:
       driver: "json-file"
@@ -274,3 +275,4 @@ volumes:
   database-biomero:
   omero:
   tus-destination:
+  biomero-importer-containers:

@@ -58,13 +58,11 @@ services:
 
   biomero-importer:
     image: "cellularimagingcf/biomero-importer:${BIOMERO_IMPORTER_VERSION:-latest}"
-    privileged: true
     profiles:
       - "IMPORTER_ENABLED"
-    devices:
-      - "/dev/fuse:/dev/fuse"
     security_opt:
       - "label=disable"
+      - "seccomp=unconfined"
     environment:
       OMERO_HOST: ${EXTERNAL_OMERO_HOST}
       OMERO_PORT: ${EXTERNAL_OMERO_PORT:-4064}
@@ -78,6 +76,9 @@ services:
       - "../web/L-Drive:/data"
       - "../config/biomero-importer:/auto-importer/config:ro"
       - "../logs/biomero-importer:/auto-importer/logs"
+      - "biomero-importer-containers:/home/autoimportuser/.local/share/containers"
+    tmpfs:
+      - /tmp
     user: "${OMERO_CONTAINER_USER}"
     logging:
       driver: "json-file"
@@ -90,3 +91,4 @@ networks:
 
 volumes:
   database-biomero:
+  biomero-importer-containers:

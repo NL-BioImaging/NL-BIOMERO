@@ -1,6 +1,6 @@
 {
   "UPLOADER": {
-    "enabled": false,
+    "enabled": true,
     "upload_to_group_folder": true,
     "chunk_size": 1
   },
@@ -38,6 +38,16 @@
     },
     "incucyte_archive": {
       "container": "cellularimagingcf/biomero-converter:latest"
+    }
+  },
+  "group_mappings": {
+    "0": {
+      "folder": "Project B",
+      "groupName": "system"
+    },
+    "3": {
+      "folder": "Project A",
+      "groupName": "test"
     }
   }
 }
