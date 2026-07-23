@@ -264,6 +264,7 @@ This deployment includes several UI enhancements:
 
 - **🧩 OMERO.biomero Plugin**: Unified BIOMERO.importer and BIOMERO.analyzer tabs
 - **📝 OMERO.forms**: Create custom metadata forms for users to fill in
+- **🔬 OME-Zarr Viewer**: Open BIOMERO in-place images, labels, Z stacks, and HCS plates through authenticated OMERO.web access
 - **🔘 Better Buttons**: Improved some button design and accessibility
 - **🎭 Pretty Login**: Minor enhanced login page aesthetics
 

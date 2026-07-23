@@ -6,8 +6,14 @@ This container extends the standard OMERO.web with BIOMERO-specific functionalit
 
 - **OMERO.biomero** - Unified importer and analyzer interface
 - **OMERO.forms** - Custom metadata forms 
+- **BIOMERO OME-Zarr Viewer** - Read-only multichannel, label, Z-stack, and HCS viewing
 - **Enhanced Login Page** - NL-BioImaging branding with institutional customization support
 - **UI Improvements** - Better button icons and styling
+
+The OME-Zarr viewer serves data through the internal Nginx route included in
+the SSL deployment scenario. See the
+[OME-Zarr Viewer administrator guide](../docs/sysadmin/zarr-viewer.rst) for
+storage-path configuration and verification.
 
 ## Customization
 

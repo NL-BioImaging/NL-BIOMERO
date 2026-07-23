@@ -32,6 +32,13 @@ RUN /opt/omero/web/venv3/bin/pip install \
         omero-webtagging-tagsearch \
         whitenoise
 
+# The OME-Zarr viewer is vendored as a verified, platform-independent wheel
+# because it is not published on PyPI. See web/plugins/README.md.
+COPY web/plugins/biomero_zarr_viewer-0.1.10-py3-none-any.whl /tmp/
+RUN /opt/omero/web/venv3/bin/pip install --no-deps \
+        /tmp/biomero_zarr_viewer-0.1.10-py3-none-any.whl \
+    && rm -f /tmp/biomero_zarr_viewer-0.1.10-py3-none-any.whl
+
 
 # Update PATH manually based on known locations
 ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
@@ -67,12 +74,14 @@ ADD web/local_omeroweb_edits/pretty_login/ome.login.css ./webgateway/static/webg
 
 # Configuration file and startup scripts
 ADD web/local_omeroweb_edits/01-default-webapps.omero /opt/omero/web/config/
+ADD web/local_omeroweb_edits/90-biomero-zarr-viewer.omero /opt/omero/web/config/
 ADD web/44-create_forms_user.py /startup/
 ADD web/45-fix-forms-config.sh /startup/
 RUN chmod +x /startup/45-fix-forms-config.sh && \
     chmod +x /startup/44-create_forms_user.py && \
     chown -R omero-web:omero-web /opt/omero/web/config && \
-    chmod 644 /opt/omero/web/config/01-default-webapps.omero
+    chmod 644 /opt/omero/web/config/01-default-webapps.omero \
+              /opt/omero/web/config/90-biomero-zarr-viewer.omero
 
 ### Better Buttons ###
 
@@ -82,4 +91,3 @@ ADD web/local_omeroweb_edits/script-text-play.svg ./webgateway/static/webgateway
 ### ###
 
 USER omero-web
-

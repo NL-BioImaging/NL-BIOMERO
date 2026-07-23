@@ -17,6 +17,7 @@
    sysadmin/backup-restore
    sysadmin/ui-customization
    sysadmin/omero-biomero-admin
+   sysadmin/zarr-viewer
    sysadmin/resumable-uploader
    sysadmin/metabase-admin
    sysadmin/slurm-integration
