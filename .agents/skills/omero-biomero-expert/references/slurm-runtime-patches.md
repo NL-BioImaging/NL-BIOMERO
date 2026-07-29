@@ -64,7 +64,7 @@ BIOMERO_DEFAULT_PARTITION=<fallback-partition>
 > ```
 > These are Spider-specific partition names; other clusters will differ.
 
-Per-workflow GPU overrides in `slurm-config.ini` `[MODELS]` take precedence over the shared env defaults:
+Per-workflow GPU overrides in `slurm-config.ini` `[WORKFLOWS]` take precedence over the shared env defaults:
 
 ```ini
 cellpose_use_gpu = true
@@ -73,13 +73,13 @@ deconvolve_plate_job_partition = gpu_a100_22c   # Spider-specific example
 deconvolve_plate_job_gpus = 1
 ```
 
-A workflow requests GPU when `use_gpu` is effectively true (per-run from the UI, or via `<name>_use_gpu = true` in `[MODELS]`). When GPU is active, BIOMERO adds the GPU sbatch params and (with `BIOMERO_INJECT_GPU_FLAG=true`) sets `GPU_FLAG=--nv`; otherwise `GPU_FLAG` is empty.
+A workflow requests GPU when `use_gpu` is effectively true (per-run from the UI, or via `<name>_use_gpu = true` in `[WORKFLOWS]`). When GPU is active, BIOMERO adds the GPU sbatch params and (with `BIOMERO_INJECT_GPU_FLAG=true`) sets `GPU_FLAG=--nv`; otherwise `GPU_FLAG` is empty.
 
 Guards:
-- A per-workflow `--partition`/`--gres`/`--gpus` in `[MODELS]` wins over the shared default.
+- A per-workflow `--partition`/`--gres`/`--gpus` in `[WORKFLOWS]` wins over the shared default.
 - A GPU partition wins over `BIOMERO_DEFAULT_PARTITION`.
 - Do not set `--gres` and `--gpus` simultaneously (rejected by some schedulers including Spider).
-- The old `BIOMERO_FORCE_GPU_*` flags and per-workflow GPU env overrides are gone; use `[MODELS]` keys instead.
+- The old `BIOMERO_FORCE_GPU_*` flags and per-workflow GPU env overrides are gone; use `[WORKFLOWS]` keys instead.
 
 ## Core Config (formerly the runtime patch)
 
@@ -92,7 +92,7 @@ Mapping from old patch behavior to current config (env vars set in `docker-compo
 | per-job env files for `sbatch` | `BIOMERO_ENV_FILE_SUBMISSION=true` |
 | generated scripts: `set -eo pipefail`, conditional `$GPU_FLAG`, output verify | `resources/job_template.sh` in released BIOMERO |
 | conditional `--nv` (GPU_FLAG per job) | `BIOMERO_INJECT_GPU_FLAG=true` |
-| GPU partition/gres/gpus | `BIOMERO_GPU_PARTITION` / `BIOMERO_GPU_GRES` / `BIOMERO_GPU_GPUS` + `[MODELS]` keys |
+| GPU partition/gres/gpus | `BIOMERO_GPU_PARTITION` / `BIOMERO_GPU_GRES` / `BIOMERO_GPU_GPUS` + `[WORKFLOWS]` keys |
 | generic fallback partition | `BIOMERO_DEFAULT_PARTITION` |
 | image pulls via Slurm | `BIOMERO_IMAGE_PULL_VIA_SBATCH=true`, `BIOMERO_PULL_CPUS`, `BIOMERO_PULL_MEM` |
 | Apptainer dirs | `apptainer_tmpdir` / `apptainer_cachedir` in `[SLURM]` |
