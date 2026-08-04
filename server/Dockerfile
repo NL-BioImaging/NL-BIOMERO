@@ -1,6 +1,7 @@
 FROM openmicroscopy/omero-server:5.6.18
 
-ARG BIOMERO_VERSION
+ARG BIOMERO_SCRIPTS_BRANCH=roi-output-options
+ARG LABEL2ROIS_BRANCH=roi-output-options
 ARG OMERO_ZARR_PIXEL_BUFFER_VERSION
 
 ENV OMERO_DIST=/opt/omero/server/OMERO.server
@@ -19,10 +20,10 @@ ADD server/00-restore-config.sh* /startup/
 # LDAP configuration - add with correct values
 # ADD server/01-ldap-config.omero /opt/omero/server/config/
 
-# Clone tagged release
-RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
+# Track the feature branches while the ROI output integration is tested.
+ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/${BIOMERO_SCRIPTS_BRANCH}" /latest_commit_biomero_scripts
 RUN cd $OMERO_DIST/lib/scripts/ && \
-    git clone --depth 1 --branch v${BIOMERO_VERSION} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
+    git clone --depth 1 --branch ${BIOMERO_SCRIPTS_BRANCH} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
     rm -f biomero/admin/Example_Minimal_Slurm_Script.py && \
     rm -f biomero/__workflows/SLURM_CellPose_Segmentation.py
 
@@ -30,9 +31,11 @@ RUN cd $OMERO_DIST/lib/scripts/ && \
 RUN curl -o $OMERO_DIST/lib/scripts/omero/figure_scripts/Figure_To_Pdf.py \
     https://raw.githubusercontent.com/ome/omero-figure/refs/heads/master/omero_figure/scripts/omero/figure_scripts/Figure_To_Pdf.py
 
-# Install Labels2Rois script
-RUN curl -o $OMERO_DIST/lib/scripts/omero/util_scripts/Labels2Rois.py \
-    https://raw.githubusercontent.com/Cellular-Imaging-Amsterdam-UMC/label2rois/main/Labels2Rois.py
+# Install the matching Labels2Rois feature branch. The API request invalidates
+# Docker's cache whenever the branch head changes.
+ADD "https://api.github.com/repos/Cellular-Imaging-Amsterdam-UMC/label2rois/commits/${LABEL2ROIS_BRANCH}" /latest_commit_label2rois
+RUN curl -fL -o $OMERO_DIST/lib/scripts/omero/util_scripts/Labels2Rois.py \
+    https://raw.githubusercontent.com/Cellular-Imaging-Amsterdam-UMC/label2rois/${LABEL2ROIS_BRANCH}/Labels2Rois.py
 
 # Overwrite ICE configuration
 # COPY ice.config $OMERO_DIST/etc/templates/
