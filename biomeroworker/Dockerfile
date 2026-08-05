@@ -41,13 +41,14 @@ ENV PATH="$PATH:/opt/bioformats2raw-0.12.0-rc1/bin"
 RUN yum -y install ack
 
 # force zarr < 3 for compatibility w/ omero-cli-zarr by installing biomero AFTER the importer
-# To track a branch instead of a release, uncomment the cache-bust line and use the git install:
-# ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/surf" /latest_commit_biomero
-# && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@surf"
+# To track a branch instead of a release, use the cache-bust line and the git install:
+ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/session-poller" /latest_commit_biomero
 RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && $VIRTUAL_ENV/bin/python -m pip install --ignore-requires-python biomero-importer==${BIOMERO_IMPORTER_VERSION} \
-    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full]==${BIOMERO_VERSION}"
+    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@session-poller"
+# Alternative PyPI install:
+# RUN $VIRTUAL_ENV/bin/python -m pip install "biomero[full]==${BIOMERO_VERSION}"
 
 ## Adjust processor code with BIOMERO Processor
 # This version forwards HTTP(S) PROXY environment variables to the subprocesses (scripts)
