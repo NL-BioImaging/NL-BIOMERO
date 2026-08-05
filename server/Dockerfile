@@ -27,6 +27,9 @@ RUN cd $OMERO_DIST/lib/scripts/ && \
     rm -f biomero/admin/Example_Minimal_Slurm_Script.py && \
     rm -f biomero/__workflows/SLURM_CellPose_Segmentation.py
 
+# Do not expose repository tests as runnable OMERO scripts.
+RUN rm -rf $OMERO_DIST/lib/scripts/biomero/tests
+
 # Install the Figure-to-PDF script for OMERO.figure plugin
 RUN curl -o $OMERO_DIST/lib/scripts/omero/figure_scripts/Figure_To_Pdf.py \
     https://raw.githubusercontent.com/ome/omero-figure/refs/heads/master/omero_figure/scripts/omero/figure_scripts/Figure_To_Pdf.py
