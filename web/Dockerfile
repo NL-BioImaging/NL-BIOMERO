@@ -3,6 +3,7 @@ FROM openmicroscopy/omero-web-standalone:5.31.1
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
 ARG OMERO_ANALYSIS_VERSION
+ARG OMERO_ANALYSIS_RUNTIME_VERSION=0.10.0
 ARG BIOMERO_ZARR_VIEWER_VERSION
 
 USER root
@@ -37,7 +38,31 @@ RUN /opt/omero/web/venv3/bin/pip install \
 # Track the matching OMERO.Analysis integration branch for local rebuilds.
 RUN test -n "$OMERO_ANALYSIS_VERSION" || (echo "OMERO_ANALYSIS_VERSION build arg is required" >&2; exit 1)
 ADD "https://api.github.com/repos/NL-BioImaging/OMERO.Analysis/commits/analysis_integration" /latest_commit_omero_analysis
-RUN /opt/omero/web/venv3/bin/pip install git+https://github.com/NL-BioImaging/OMERO.Analysis.git@analysis_integration
+RUN mkdir -p /tmp/omero-analysis-runtime && \
+    /opt/omero/web/venv3/bin/pip download --no-deps \
+      omero-analysis==${OMERO_ANALYSIS_RUNTIME_VERSION} \
+      --dest /tmp/omero-analysis-runtime
+RUN /opt/omero/web/venv3/bin/pip install git+https://github.com/NL-BioImaging/OMERO.Analysis.git@analysis_integration && \
+    /opt/omero/web/venv3/bin/python - <<'PY'
+import importlib.util
+from pathlib import Path
+from zipfile import ZipFile
+
+wheel = next(Path("/tmp/omero-analysis-runtime").glob("omero_analysis-*.whl"))
+package = Path(next(iter(importlib.util.find_spec("omero_analysis").submodule_search_locations)))
+prefix = "omero_analysis/static/omero_analysis/pyodide/"
+with ZipFile(wheel) as archive:
+    for name in archive.namelist():
+        if not name.startswith(prefix) or name.endswith("/"):
+            continue
+        target = package / Path(name).relative_to("omero_analysis")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(archive.read(name))
+runtime = package / "static" / "omero_analysis" / "pyodide" / "pyodide.mjs"
+if not runtime.is_file():
+    raise SystemExit("The self-hosted Pyodide runtime was not installed")
+PY
+RUN rm -rf /tmp/omero-analysis-runtime
 RUN test "$(/opt/omero/web/venv3/bin/python -c 'from importlib.metadata import version; print(version("omero-analysis"))')" = "$OMERO_ANALYSIS_VERSION"
 ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/analysis_integration/docker/90-omero-analysis.omero" /opt/omero/web/config/90-omero-analysis.omero
 ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/analysis_integration/docker/49-omero-analysis-cleanup.py" /startup/49-omero-analysis-cleanup.py
