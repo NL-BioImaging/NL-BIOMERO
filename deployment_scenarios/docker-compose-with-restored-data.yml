@@ -124,6 +124,7 @@ services:
       OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
       OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
+      INTEGRATE_DATA_ANALYSIS: ${INTEGRATE_DATA_ANALYSIS:-FALSE}
       UPLOADER_DESTINATION_DIR: /tus_destination
     networks:
       - omero

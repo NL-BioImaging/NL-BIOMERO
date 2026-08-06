@@ -63,6 +63,7 @@ services:
       ROOTPASS: ${EXTERNAL_OMERO_PASSWORD}
       IMPORTER_ENABLED: "FALSE"
       ANALYZER_ENABLED: "TRUE"
+      INTEGRATE_DATA_ANALYSIS: ${INTEGRATE_DATA_ANALYSIS:-FALSE}
     networks:
       - biomero
     ports:
