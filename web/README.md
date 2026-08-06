@@ -5,6 +5,7 @@ This container extends the standard OMERO.web with BIOMERO-specific functionalit
 ## Included Components
 
 - **OMERO.biomero** - Unified importer and analyzer interface
+- **OMERO.Analysis** - Browser-local Methods, Pipelines, Notebooks, and Assistant workspace
 - **OMERO.forms** - Custom metadata forms 
 - **BIOMERO OME-Zarr Viewer** - Read-only multichannel, label, Z-stack, and HCS viewing
 - **Enhanced Login Page** - NL-BioImaging branding with institutional customization support

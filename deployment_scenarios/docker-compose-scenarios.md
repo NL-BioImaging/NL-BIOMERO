@@ -194,9 +194,15 @@ IMPORTER_ENABLED=TRUE  # set FALSE to hide importer UI
 
 # BIOMERO.analyzer workflows UI
 ANALYZER_ENABLED=TRUE  # set FALSE to hide BIOMERO UI
+
+# OMERO.Analysis navigation mode
+INTEGRATE_DATA_ANALYSIS=FALSE  # set TRUE to show Data Analysis inside BIOMERO
 ```
 
 Setting either variable to `FALSE` removes only the corresponding frontend elements in OMERO.web; backend containers can still run if present.
+OMERO.Analysis is installed in both navigation modes. `FALSE` shows its
+standalone OMERO top link; `TRUE` hides that link and shows BIOMERO's Data
+Analysis application instead.
 
 ### Environment Customization
 All deployments should be customized by editing the `.env` file before deployment:

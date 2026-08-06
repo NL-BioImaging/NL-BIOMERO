@@ -16,6 +16,7 @@
    sysadmin/linux-deployment
    sysadmin/backup-restore
    sysadmin/ui-customization
+   sysadmin/data-analysis
    sysadmin/omero-biomero-admin
    sysadmin/zarr-viewer
    sysadmin/resumable-uploader

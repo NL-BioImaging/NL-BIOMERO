@@ -2,6 +2,7 @@ FROM openmicroscopy/omero-web-standalone:5.31.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
+ARG OMERO_ANALYSIS_VERSION
 ARG BIOMERO_ZARR_VIEWER_VERSION
 
 USER root
@@ -34,12 +35,14 @@ RUN /opt/omero/web/venv3/bin/pip install \
         whitenoise
 
 # Track the matching OMERO.Analysis integration branch for local rebuilds.
+RUN test -n "$OMERO_ANALYSIS_VERSION" || (echo "OMERO_ANALYSIS_VERSION build arg is required" >&2; exit 1)
 ADD "https://api.github.com/repos/NL-BioImaging/OMERO.Analysis/commits/analysis_integration" /latest_commit_omero_analysis
 RUN /opt/omero/web/venv3/bin/pip install git+https://github.com/NL-BioImaging/OMERO.Analysis.git@analysis_integration
+RUN test "$(/opt/omero/web/venv3/bin/python -c 'from importlib.metadata import version; print(version("omero-analysis"))')" = "$OMERO_ANALYSIS_VERSION"
 ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/analysis_integration/docker/90-omero-analysis.omero" /opt/omero/web/config/90-omero-analysis.omero
 ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/analysis_integration/docker/49-omero-analysis-cleanup.py" /startup/49-omero-analysis-cleanup.py
 ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/analysis_integration/docker/51-omero-analysis-navigation.py" /startup/51-omero-analysis-navigation.py
-RUN chmod +x /startup/49-omero-analysis-cleanup.py \
+RUN chmod 755 /startup/49-omero-analysis-cleanup.py \
     /startup/51-omero-analysis-navigation.py
 
 # Install the released BIOMERO OME-Zarr Viewer from PyPI
