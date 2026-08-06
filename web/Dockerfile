@@ -33,6 +33,15 @@ RUN /opt/omero/web/venv3/bin/pip install \
         omero-webtagging-tagsearch \
         whitenoise
 
+# Track the matching OMERO.Analysis integration branch for local rebuilds.
+ADD "https://api.github.com/repos/NL-BioImaging/OMERO.Analysis/commits/analysis_integration" /latest_commit_omero_analysis
+RUN /opt/omero/web/venv3/bin/pip install git+https://github.com/NL-BioImaging/OMERO.Analysis.git@analysis_integration
+ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/analysis_integration/docker/90-omero-analysis.omero" /opt/omero/web/config/90-omero-analysis.omero
+ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/analysis_integration/docker/49-omero-analysis-cleanup.py" /startup/49-omero-analysis-cleanup.py
+ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/analysis_integration/docker/51-omero-analysis-navigation.py" /startup/51-omero-analysis-navigation.py
+RUN chmod +x /startup/49-omero-analysis-cleanup.py \
+    /startup/51-omero-analysis-navigation.py
+
 # Install the released BIOMERO OME-Zarr Viewer from PyPI
 RUN test -n "$BIOMERO_ZARR_VIEWER_VERSION" || (echo "BIOMERO_ZARR_VIEWER_VERSION build arg is required" >&2; exit 1)
 RUN /opt/omero/web/venv3/bin/pip install biomero-zarr-viewer==${BIOMERO_ZARR_VIEWER_VERSION}
