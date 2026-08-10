@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Developer Getting Started &mdash; NL-BIOMERO 1.7.1-beta.3 documentation</title>
+  <title>Developer Getting Started &mdash; NL-BIOMERO 1.7.1 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -34,7 +34,7 @@
             NL-BIOMERO
           </a>
               <div class="version">
-                1.7.1-beta.3
+                1.7.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -165,13 +165,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/ui-customization.html#login-page-branding">Login Page Branding</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../sysadmin/data-analysis.html">Integrated Data Analysis</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/data-analysis.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/data-analysis.html#source-selection-and-saved-workspaces">Source selection and saved Workspaces</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/data-analysis.html#verification">Verification</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/data-analysis.html#troubleshooting">Troubleshooting</a></li>
-</ul>
-</li>
 <li class="toctree-l1"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html">OMERO.biomero Plugin Administration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#accessing-admin-interfaces">Accessing Admin Interfaces</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#importer-admin-configuration">Importer Admin Configuration</a><ul>
@@ -208,13 +201,6 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#interface-troubleshooting">Interface Troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#related-documentation">Related Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../sysadmin/zarr-viewer.html">OME-Zarr Viewer</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/zarr-viewer.html#deployment-requirements">Deployment requirements</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/zarr-viewer.html#storage-paths">Storage paths</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/zarr-viewer.html#verification">Verification</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../sysadmin/zarr-viewer.html#security-model">Security model</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../sysadmin/resumable-uploader.html">Resumable Web Uploader</a><ul>
@@ -868,8 +854,6 @@ If you want to experiment with a local HPC cluster, an example Docker Compose se
 <span class="c1"># Toggle UI components (both default to TRUE):</span>
 <span class="c1"># IMPORTER_ENABLED=TRUE   # Enables the BIOMERO.importer UI module</span>
 <span class="c1"># ANALYZER_ENABLED=TRUE   # Enables the BIOMERO.analyzer UI module</span>
-<span class="c1"># INTEGRATE_DATA_ANALYSIS=FALSE  # TRUE embeds OMERO.Analysis in BIOMERO</span>
-<span class="c1"># DQW_API_TOKEN=&lt;generate-a-high-entropy-secret&gt;  # required by web scenarios</span>
 <span class="c1"># Set either to FALSE to hide that module from OMERO.web without removing containers</span>
 </pre></div>
 </div>
@@ -961,13 +945,7 @@ ssh<span class="w"> </span>localslurm
 </ul>
 </li>
 </ul>
-<p>If you disabled modules via <code class="docutils literal notranslate"><span class="pre">IMPORTER_ENABLED=FALSE</span></code> or <code class="docutils literal notranslate"><span class="pre">ANALYZER_ENABLED=FALSE</span></code>, the corresponding UI tabs/panels won’t appear.
-With <code class="docutils literal notranslate"><span class="pre">INTEGRATE_DATA_ANALYSIS=TRUE</span></code>, use <strong>BIOMERO → Data Analysis</strong>. With
-<code class="docutils literal notranslate"><span class="pre">FALSE</span></code>, use the standalone <strong>Analysis</strong> OMERO top link. OMERO.Analysis is
-installed in either mode. See the
-<a class="reference external" href="https://nl-bioimaging.github.io/NL-BIOMERO/latest/sysadmin/data-analysis.html">Integrated Data Analysis administrator guide</a>.
-For remote DuckDB, SQLite, and CSV queries, also see the
-<a class="reference internal" href="#docs/sysadmin/data-query-worker.md"><span class="xref myst">Data Query Worker operations guide</span></a>.</p>
+<p>If you disabled modules via <code class="docutils literal notranslate"><span class="pre">IMPORTER_ENABLED=FALSE</span></code> or <code class="docutils literal notranslate"><span class="pre">ANALYZER_ENABLED=FALSE</span></code>, the corresponding UI tabs/panels won’t appear.</p>
 </section>
 </section>
 <hr class="docutils" />
@@ -1097,7 +1075,6 @@ docker-compose<span class="w"> </span><span class="nb">exec</span><span class="w
 <ul class="simple">
 <li><p><strong>🧩 OMERO.biomero Plugin</strong>: Unified BIOMERO.importer and BIOMERO.analyzer tabs</p></li>
 <li><p><strong>📝 OMERO.forms</strong>: Create custom metadata forms for users to fill in</p></li>
-<li><p><strong>🔬 OME-Zarr Viewer</strong>: Open BIOMERO in-place images, labels, Z stacks, and HCS plates through authenticated OMERO.web access</p></li>
 <li><p><strong>🔘 Better Buttons</strong>: Improved some button design and accessibility</p></li>
 <li><p><strong>🎭 Pretty Login</strong>: Minor enhanced login page aesthetics</p></li>
 </ul>
