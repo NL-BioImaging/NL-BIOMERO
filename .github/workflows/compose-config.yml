@@ -31,3 +31,10 @@ jobs:
             docker compose --env-file .env --env-file .env.shared \
               -f "$file" config --quiet
           done
+
+  data-query-worker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run authenticated worker cache smoke
+        run: python scripts/smoke_data_query_worker.py
