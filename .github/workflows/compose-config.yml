@@ -38,3 +38,28 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run authenticated worker cache smoke
         run: python scripts/smoke_data_query_worker.py
+
+  web-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build released integration web image
+        shell: bash
+        run: |
+          set -a
+          source .env
+          set +a
+          docker build \
+            --build-arg OMERO_FORMS_VERSION \
+            --build-arg OMERO_BIOMERO_VERSION \
+            --build-arg OMERO_ANALYSIS_VERSION \
+            --build-arg BIOMERO_WORKFLOW_SKILLS_VERSION \
+            --build-arg BIOMERO_ZARR_VIEWER_VERSION \
+            --tag nl-biomero-web:ci \
+            --file web/Dockerfile \
+            .
+      - name: Verify released packages and Analysis runtime
+        run: |
+          docker run --rm --entrypoint /opt/omero/web/venv3/bin/python \
+            nl-biomero-web:ci -c \
+            "from importlib.metadata import version; from pathlib import Path; expected={'omero-analysis':'0.12.0','omero-biomero':'1.6.0','biomero-workflow-skills':'0.4.0'}; actual={name:version(name) for name in expected}; assert actual == expected, actual; assert Path('/opt/omero/web/venv3/lib/python3.12/site-packages/omero_analysis/static/omero_analysis/pyodide/pyodide.mjs').is_file()"
