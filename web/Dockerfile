@@ -2,6 +2,9 @@ FROM openmicroscopy/omero-web-standalone:5.31.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
+ARG OMERO_ANALYSIS_VERSION
+ARG BIOMERO_WORKFLOW_SKILLS_VERSION
+ARG BIOMERO_ZARR_VIEWER_VERSION
 
 USER root
 
@@ -32,6 +35,23 @@ RUN /opt/omero/web/venv3/bin/pip install \
         omero-webtagging-tagsearch \
         whitenoise
 
+# Install released Analysis and its skill catalog reader. The Analysis wheel owns
+# its complete frontend and Pyodide runtime; no runtime splicing is necessary.
+RUN test -n "$OMERO_ANALYSIS_VERSION" || (echo "OMERO_ANALYSIS_VERSION build arg is required" >&2; exit 1) && \
+    test -n "$BIOMERO_WORKFLOW_SKILLS_VERSION" || (echo "BIOMERO_WORKFLOW_SKILLS_VERSION build arg is required" >&2; exit 1)
+RUN /opt/omero/web/venv3/bin/pip install \
+      omero-analysis==${OMERO_ANALYSIS_VERSION} \
+      biomero-workflow-skills==${BIOMERO_WORKFLOW_SKILLS_VERSION} && \
+    test -f /opt/omero/web/venv3/lib/python3.12/site-packages/omero_analysis/static/omero_analysis/pyodide/pyodide.mjs
+ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/v${OMERO_ANALYSIS_VERSION}/docker/90-omero-analysis.omero" /opt/omero/web/config/90-omero-analysis.omero
+ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/v${OMERO_ANALYSIS_VERSION}/docker/49-omero-analysis-cleanup.py" /startup/49-omero-analysis-cleanup.py
+ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/v${OMERO_ANALYSIS_VERSION}/docker/51-omero-analysis-navigation.py" /startup/51-omero-analysis-navigation.py
+RUN chmod 755 /startup/49-omero-analysis-cleanup.py \
+    /startup/51-omero-analysis-navigation.py
+
+# Install the released BIOMERO OME-Zarr Viewer from PyPI
+RUN test -n "$BIOMERO_ZARR_VIEWER_VERSION" || (echo "BIOMERO_ZARR_VIEWER_VERSION build arg is required" >&2; exit 1)
+RUN /opt/omero/web/venv3/bin/pip install biomero-zarr-viewer==${BIOMERO_ZARR_VIEWER_VERSION}
 
 # Update PATH manually based on known locations
 ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
@@ -39,15 +59,25 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 ### Install OMERO.biomero first ###
 ### BIOMERO.importer and BIOMERO.analyzer will be installed as a dependency of OMERO.biomero ###
 
-# To track a branch instead of a release, uncomment the cache-bust line and use the git install:
-# ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/surf" /latest_commit_omero_biomero
-# RUN /opt/omero/web/venv3/bin/pip install git+https://github.com/NL-BioImaging/OMERO.biomero.git@surf \
-#     && /opt/omero/web/venv3/bin/omero-biomero-setup
-
-# Install released OMERO.biomero from PyPI
+# Install the released integration package.
 RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1)
 RUN /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
+
+RUN /opt/omero/web/venv3/bin/python - <<'PY'
+import os
+from importlib.metadata import version
+
+expected = {
+    "omero-analysis": os.environ.get("OMERO_ANALYSIS_VERSION"),
+    "omero-biomero": os.environ.get("OMERO_BIOMERO_VERSION"),
+    "biomero-workflow-skills": os.environ.get("BIOMERO_WORKFLOW_SKILLS_VERSION"),
+}
+for package, wanted in expected.items():
+    installed = version(package)
+    if installed != wanted:
+        raise SystemExit(f"{package}: expected {wanted}, installed {installed}")
+PY
 
 ### Install OMERO.forms ###
 

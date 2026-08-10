@@ -1,0 +1,30 @@
+services:
+  data-query-worker:
+    image: ghcr.io/nl-bioimaging/omero-data-query-worker:0.1.0@sha256:03dcd977280e0ed8929df8437eb22f1c69268918d7a25286efc5a19953ca0a8e
+    environment:
+      DQW_API_TOKEN: smoke-test-token-at-least-16-characters
+      DQW_CACHE_DIR: /var/lib/omero-data-query-worker
+      DQW_DUCKDB_MEMORY_LIMIT: 512MB
+      DQW_DUCKDB_THREADS: "2"
+      DQW_MAX_CONCURRENT_QUERIES: "4"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 2g
+    cpus: 2.0
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    volumes:
+      - data-query-smoke-cache:/var/lib/omero-data-query-worker
+    networks:
+      - worker-private
+
+networks:
+  worker-private:
+    internal: true
+
+volumes:
+  data-query-smoke-cache:

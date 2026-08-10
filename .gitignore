@@ -24,3 +24,7 @@ docs/_build_local/
 docs/venv/
 
 .analyzed
+
+# Python verification artifacts
+__pycache__/
+*.py[cod]

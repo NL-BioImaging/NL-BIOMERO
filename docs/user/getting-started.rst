@@ -81,7 +81,9 @@ Next Steps
 2. **Run Analysis** — Open **Analyze → Run → Image Workflows** (or **Plate Workflows** for plates), choose a workflow, and submit
 3. **Track Progress** — Check **Analyze → Status** to monitor running jobs; note the Workflow UUID for later
 4. **View Results** — Search for the Workflow UUID in OMERO.web to find your imported result images
-5. **Analytics** — Use **Import → Monitor** or Metabase to explore import and workflow statistics
+5. **Open OME-Zarr Data** — Select an in-place imported image or plate and choose
+   **Open With → OME-Zarr Viewer** when your administrator has enabled the SSL deployment
+6. **Analytics** — Use **Import → Monitor** or Metabase to explore import and workflow statistics
 
 Platform Overview from the README
 -----------------

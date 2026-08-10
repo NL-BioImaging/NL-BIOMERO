@@ -1,0 +1,65 @@
+---
+name: Compose configuration
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  compose-config:
+    runs-on: ubuntu-latest
+    env:
+      DQW_API_TOKEN: ci-compose-validation-token
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate maintained Compose scenarios
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            docker-compose.yml
+            docker-compose-dev.yml
+            deployment_scenarios/docker-compose-biomero-client.yml
+            deployment_scenarios/docker-compose-biomero-only.yml
+            deployment_scenarios/docker-compose-for-ubuntu-with-SSL.yml
+            deployment_scenarios/docker-compose-from-dockerhub.yml
+            deployment_scenarios/docker-compose-importer-only.yml
+            deployment_scenarios/docker-compose-with-restored-data.yml
+          )
+          for file in "${files[@]}"; do
+            docker compose --env-file .env --env-file .env.shared \
+              -f "$file" config --quiet
+          done
+
+  data-query-worker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run authenticated worker cache smoke
+        run: python scripts/smoke_data_query_worker.py
+
+  web-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build released integration web image
+        shell: bash
+        run: |
+          set -a
+          source .env
+          set +a
+          docker build \
+            --build-arg OMERO_FORMS_VERSION \
+            --build-arg OMERO_BIOMERO_VERSION \
+            --build-arg OMERO_ANALYSIS_VERSION \
+            --build-arg BIOMERO_WORKFLOW_SKILLS_VERSION \
+            --build-arg BIOMERO_ZARR_VIEWER_VERSION \
+            --tag nl-biomero-web:ci \
+            --file web/Dockerfile \
+            .
+      - name: Verify released packages and Analysis runtime
+        run: |
+          docker run --rm --entrypoint /opt/omero/web/venv3/bin/python \
+            nl-biomero-web:ci -c \
+            "from importlib.metadata import version; from pathlib import Path; expected={'omero-analysis':'0.12.0','omero-biomero':'1.6.0','biomero-workflow-skills':'0.4.0'}; actual={name:version(name) for name in expected}; assert actual == expected, actual; assert Path('/opt/omero/web/venv3/lib/python3.12/site-packages/omero_analysis/static/omero_analysis/pyodide/pyodide.mjs').is_file()"

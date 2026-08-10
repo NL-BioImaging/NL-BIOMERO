@@ -72,6 +72,8 @@ First, customize your environment file `.env`:
 # Toggle UI components (both default to TRUE):
 # IMPORTER_ENABLED=TRUE   # Enables the BIOMERO.importer UI module
 # ANALYZER_ENABLED=TRUE   # Enables the BIOMERO.analyzer UI module
+# INTEGRATE_DATA_ANALYSIS=FALSE  # TRUE embeds OMERO.Analysis in BIOMERO
+# DQW_API_TOKEN=<generate-a-high-entropy-secret>  # required by web scenarios
 # Set either to FALSE to hide that module from OMERO.web without removing containers
 ```
 
@@ -163,6 +165,12 @@ exit
   - **Login**: `admin@biomero.com` / `b1omero` (change default password)
 
 If you disabled modules via `IMPORTER_ENABLED=FALSE` or `ANALYZER_ENABLED=FALSE`, the corresponding UI tabs/panels won't appear.
+With `INTEGRATE_DATA_ANALYSIS=TRUE`, use **BIOMERO → Data Analysis**. With
+`FALSE`, use the standalone **Analysis** OMERO top link. OMERO.Analysis is
+installed in either mode. See the
+[Integrated Data Analysis administrator guide](https://nl-bioimaging.github.io/NL-BIOMERO/latest/sysadmin/data-analysis.html).
+For remote DuckDB, SQLite, and CSV queries, also see the
+[Data Query Worker operations guide](docs/sysadmin/data-query-worker.md).
 
 
 ---
@@ -264,6 +272,7 @@ This deployment includes several UI enhancements:
 
 - **🧩 OMERO.biomero Plugin**: Unified BIOMERO.importer and BIOMERO.analyzer tabs
 - **📝 OMERO.forms**: Create custom metadata forms for users to fill in
+- **🔬 OME-Zarr Viewer**: Open BIOMERO in-place images, labels, Z stacks, and HCS plates through authenticated OMERO.web access
 - **🔘 Better Buttons**: Improved some button design and accessibility
 - **🎭 Pretty Login**: Minor enhanced login page aesthetics
 

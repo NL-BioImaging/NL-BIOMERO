@@ -125,9 +125,14 @@ services:
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
+      INTEGRATE_DATA_ANALYSIS: ${INTEGRATE_DATA_ANALYSIS:-FALSE}
+      OMERO_ANALYSIS_DATA_QUERY_WORKER_URL: http://data-query-worker:8080
+      OMERO_ANALYSIS_DATA_QUERY_WORKER_TOKEN: ${DQW_API_TOKEN:?DQW_API_TOKEN is required}
+      OMERO_ANALYSIS_REMOTE_QUERY_THRESHOLD_BYTES: 104857600
       UPLOADER_DESTINATION_DIR: /tus_destination
     networks:
       - omero
+      - data-query
     ports:
       - "4080:4080"
     volumes:
@@ -136,6 +141,27 @@ services:
       - "../web/group-mappings.json:/opt/omero/web/OMERO.web/var/group-mappings.json:rw"
       - "../web/L-Drive:/data:rw"
       - "tus-destination:/tus_destination"
+
+  data-query-worker:
+    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:0.1.0@sha256:03dcd977280e0ed8929df8437eb22f1c69268918d7a25286efc5a19953ca0a8e"
+    restart: unless-stopped
+    environment:
+      DQW_API_TOKEN: ${DQW_API_TOKEN:?DQW_API_TOKEN is required}
+    networks: [data-query]
+    volumes: [data-query-cache:/var/lib/omero-data-query-worker]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp:size=256m,mode=1777]
+    pids_limit: 128
+    mem_limit: 2g
+    cpus: 2.0
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      start_period: 15s
+      retries: 5
 
   metabase:
     image: metabase/metabase@sha256:f7b5dc52c21aaa2dca910a450e7e6119a975090ce9fc80726aa0742882ca176c
@@ -186,6 +212,8 @@ services:
 
 networks:
   omero:
+  data-query:
+    internal: true
 
 # Define volumes with external references to the restored data
 volumes:
@@ -202,4 +230,5 @@ volumes:
     external: true
     name: <YOUR_RESTORED_METABASE_VOLUME_NAME> # <-- Replace with the actual name of your restored Metabase volume
   tus-destination:
+  data-query-cache:
   biomero-importer-containers:
