@@ -7,7 +7,7 @@ This guide covers deploying **BIOMERO.analyzer** with SLURM cluster integration 
 - BIOMERO.analyzer can offload compute-intensive workflows to SLURM clusters via SSH
 - Requires one-way SSH access from `biomeroworker` container to your SLURM cluster
 - Uses existing SSH keys mounted into the container (see deployment examples)
-- Main config files: `web/slurm-config.ini` and `biomeroworker/slurm-config.ini`
+- The host's `web/slurm-config.ini` is the authoritative runtime configuration
 - SLURM environment is auto-configured via OMERO admin script `SLURM_Init_environment.py`
 - Links to [full BIOMERO.analyzer documentation](https://nl-bioimaging.github.io/biomero/) for workflow details
 ```
@@ -121,22 +121,34 @@ podman run -d --name biomeroworker \
 
 ## Configuration Files
 
-SLURM configuration uses shared `slurm-config.ini` files managed through the **OMERO.biomero Admin interface**.
+SLURM configuration uses one shared `slurm-config.ini` managed through the
+**OMERO.biomero Admin interface**. NL-BIOMERO sets
+`BIOMERO_SLURM_CONFIG_FILE` in both containers, so BIOMERO reads only this
+mounted file instead of merging it with image or user-level defaults.
 
 ### Container File Sharing Setup
 
 **Critical Requirement:** Mount the same `slurm-config.ini` file into both containers:
 
 ```yaml
-# Mount same config file to both containers
+# Web container - Admin interface owns and writes configuration
+environment:
+  BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
 volumes:
-  # Web container - Admin interface reads/writes configuration
   - "./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
-  # Worker container - Reads configuration for job execution
-  - "./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
+
+# Worker container - Reads the same host file
+environment:
+  BIOMERO_SLURM_CONFIG_FILE: /opt/omero/server/slurm-config.ini
+volumes:
+  - "./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:ro"
 ```
 
-This allows the web interface to write configuration changes that the worker container can immediately read.
+This makes the web interface the source of truth: additions, changes, and
+deletions all affect the exact file read by the worker. The worker mount is
+read-only because only OMERO.biomero should modify it. Environment-variable
+overrides on runtime workers still take precedence, but OMERO.web cannot inspect
+or display those worker-local values.
 
 ### Configuration Content Structure
 
@@ -364,10 +376,14 @@ docker exec biomeroworker cat /opt/omero/server/slurm-config.ini
 
 ## Advanced: BIOMERO Environment Variable Overrides
 
-BIOMERO reads its runtime behaviour from `slurm-config.ini`, but many settings can also be
+BIOMERO reads its runtime behaviour from the authoritative `slurm-config.ini`, but many settings can also be
 overridden per-deployment via environment variables set on the `biomeroworker` service in
 `docker-compose.yml`. This is useful for cluster-specific tuning without touching the shared
 config file.
+
+Environment-managed values take precedence over the file. Because container
+environments are process-local, OMERO.biomero documents the supported variable
+names but cannot determine which overrides are active on a worker.
 
 All of these are **off by default** and fully backward compatible.
 

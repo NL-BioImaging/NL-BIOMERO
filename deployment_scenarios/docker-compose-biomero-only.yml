@@ -21,6 +21,7 @@ services:
       CONFIG_omero_master_host: ${EXTERNAL_OMERO_HOST}
       CONFIG_omero_master_port: ${EXTERNAL_OMERO_PORT:-4064}
       OMERO_WORKER_NAME: biomeroworker
+      BIOMERO_SLURM_CONFIG_FILE: /opt/omero/server/slurm-config.ini
       CONFIG_omero_logging_level: ${OMERO_LOGGING_LEVEL}
       CONFIG_omero_sessions_timeout: ${OMERO_SESSIONS_TIMEOUT}
       CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
@@ -35,7 +36,7 @@ services:
       - biomero
     volumes:
       - "~/.ssh:/tmp/.ssh:ro"
-      - "../web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
+      - "../web/slurm-config.ini:/opt/omero/server/slurm-config.ini:ro"
       - "../web/L-Drive:/data"
       - "../config/biomero-importer:/opt/omero/server/config-importer:ro"
       - "../web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
@@ -45,6 +46,7 @@ services:
     environment:
       OMEROHOST: ${EXTERNAL_OMERO_HOST}
       OMEROPORT: ${EXTERNAL_OMERO_PORT:-4064}
+      BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
       CONFIG_omero_web_login__logo: "https://cembo.eu/wp-content/uploads/2021/04/Amsterdam-UMC.png"
       CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
       CONFIG_omero_web_session__expire__at__browser__close: "${OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE}"

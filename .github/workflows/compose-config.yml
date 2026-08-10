@@ -1,11 +1,10 @@
 ---
-name: Build
+name: Compose configuration
 
-on: 
+on:
   push:
   pull_request:
-  schedule:
-    - cron: '0 0 * * 0'
+  workflow_dispatch:
 
 jobs:
   compose-config:

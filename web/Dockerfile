@@ -56,9 +56,6 @@ RUN /opt/omero/web/venv3/bin/pip install biomero-zarr-viewer==${BIOMERO_ZARR_VIE
 # Update PATH manually based on known locations
 ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 
-## Setup slurm-config for biomero, for the BIOMERO django API in OMERO.biomero
-COPY biomeroworker/slurm-config.ini /etc/slurm-config.ini
-
 ### Install OMERO.biomero first ###
 ### BIOMERO.importer and BIOMERO.analyzer will be installed as a dependency of OMERO.biomero ###
 

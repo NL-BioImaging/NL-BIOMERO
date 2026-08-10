@@ -10,6 +10,7 @@ services:
       CONFIG_omero_master_host: "${EXTERNAL_OMERO_HOST}"
       CONFIG_omero_master_port: ${EXTERNAL_OMERO_PORT}
       OMERO_WORKER_NAME: biomeroworker-external
+      BIOMERO_SLURM_CONFIG_FILE: /opt/omero/server/slurm-config.ini
       CONFIG_omero_logging_level: ${OMERO_LOGGING_LEVEL}
       CONFIG_omero_sessions_timeout: ${OMERO_SESSIONS_TIMEOUT}
       CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
@@ -25,7 +26,7 @@ services:
     volumes:
       - "${HOST_OMERO_DATA_PATH}:/OMERO"  # Same host-mounted shared storage (simulates NFS)
       - "~/.ssh:/tmp/.ssh:ro"
-      - "../web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
+      - "../web/slurm-config.ini:/opt/omero/server/slurm-config.ini:ro"
       - "${HOST_L_DRIVE_PATH}:/data"
       - "../biomeroworker/99-run-external.sh:/startup/99-run.sh:ro"
       - "../config/biomero-importer:/opt/omero/server/config-importer:ro"
@@ -42,6 +43,7 @@ services:
       # Connect to external OMERO via host
       OMEROHOST: ${EXTERNAL_OMERO_HOST}
       OMEROPORT: ${EXTERNAL_OMERO_PORT}
+      BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
       CONFIG_omero_web_login__logo: "https://cembo.eu/wp-content/uploads/2021/04/Amsterdam-UMC.png"
       CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
       CONFIG_omero_web_session__expire__at__browser__close: "${OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE}"

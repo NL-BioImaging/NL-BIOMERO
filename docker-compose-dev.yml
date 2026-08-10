@@ -129,6 +129,7 @@ services:
     environment:
       CONFIG_omero_master_host: omeroserver
       OMERO_WORKER_NAME: biomeroworker
+      BIOMERO_SLURM_CONFIG_FILE: ${BIOMERO_CONFIG_LOCATION}/slurm-config.ini
       CONFIG_omero_logging_level: ${OMERO_LOGGING_LEVEL}
       CONFIG_omero_sessions_timeout: ${OMERO_SESSIONS_TIMEOUT}
       CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
@@ -144,7 +145,7 @@ services:
     volumes:
       - "${OMERO_DATA_PATH}:${OMERO_SERVER_DATA_LOCATION}"
       - "${SSH_HOST_PATH}:/tmp/.ssh:ro"
-      - "${SLURM_CONFIG_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/slurm-config.ini:rw"
+      - "${SLURM_CONFIG_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/slurm-config.ini:ro"
       - "${INPLACE_STORAGE_HOST_PATH}:${IMPORT_MOUNT_PATH}"
       - "tus-destination:${UPLOADER_DESTINATION_DIR}"
       - "${BIOMERO_IMPORTER_CONFIG_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/config-importer:ro"
@@ -175,6 +176,7 @@ services:
     environment:
       OMEROHOST: omeroserver
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
+      BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
       CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
       CONFIG_omero_web_session__expire__at__browser__close: "${OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE}"
       CONFIG_omero_web_session__cookie__age: ${OMERO_WEB_SESSION_COOKIE_AGE}
@@ -269,11 +271,9 @@ services:
     build:
       context: ./biomero-importer
       dockerfile: ./Dockerfile
-    privileged: true
-    devices:
-      - "/dev/fuse:/dev/fuse"
     security_opt:
       - "label=disable"
+      - "seccomp=unconfined"
     environment:
       OMERO_HOST: omeroserver
       OMERO_USER: ${OMERO_IMPORTER_USER}
@@ -291,6 +291,9 @@ services:
       - "./biomero-importer/config:/auto-importer/config"
       - "./biomero-importer/biomero_importer:/auto-importer/biomero_importer"
       - "${LOGS_HOST_PATH}/biomero-importer:/auto-importer/logs"
+      - "biomero-importer-containers:/home/autoimportuser/.local/share/containers"
+    tmpfs:
+      - /tmp
     user: "${OMERO_CONTAINER_USER}"
     logging:
       driver: "json-file"
@@ -311,3 +314,4 @@ volumes:
   omero:
   tus-destination:
   data-query-cache:
+  biomero-importer-containers:

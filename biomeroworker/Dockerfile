@@ -55,9 +55,6 @@ RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
 # Might need to merge important changes from time to time to keep this version compatible.
 COPY biomeroworker/processor.py /opt/omero/server/venv3/lib/python3.11/site-packages/omero/
 
-## Setup slurm-config for biomero
-COPY biomeroworker/slurm-config.ini /etc/slurm-config.ini
-
 ## OMERO: Replace the default startup scripts
 RUN rm /startup/60-database.sh
 COPY biomeroworker/99-run.sh /startup/99-run.sh
