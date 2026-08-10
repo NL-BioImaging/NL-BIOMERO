@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Docker Compose Scenarios &mdash; NL-BIOMERO 1.7.1 documentation</title>
+  <title>Docker Compose Scenarios &mdash; NL-BIOMERO 1.7.1-beta.3 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -34,7 +34,7 @@
             NL-BIOMERO
           </a>
               <div class="version">
-                1.7.1
+                1.7.1-beta.3
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -165,6 +165,13 @@
 <li class="toctree-l2"><a class="reference internal" href="ui-customization.html#login-page-branding">Login Page Branding</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="data-analysis.html">Integrated Data Analysis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data-analysis.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data-analysis.html#source-selection-and-saved-workspaces">Source selection and saved Workspaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data-analysis.html#verification">Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data-analysis.html#troubleshooting">Troubleshooting</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="omero-biomero-admin.html">OMERO.biomero Plugin Administration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#accessing-admin-interfaces">Accessing Admin Interfaces</a></li>
 <li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#importer-admin-configuration">Importer Admin Configuration</a><ul>
@@ -201,6 +208,13 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#interface-troubleshooting">Interface Troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="zarr-viewer.html">OME-Zarr Viewer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="zarr-viewer.html#deployment-requirements">Deployment requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zarr-viewer.html#storage-paths">Storage paths</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zarr-viewer.html#verification">Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zarr-viewer.html#security-model">Security model</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="resumable-uploader.html">Resumable Web Uploader</a><ul>
@@ -921,9 +935,15 @@ docker-compose<span class="w"> </span>up<span class="w"> </span>-d
 
 <span class="c1"># BIOMERO.analyzer workflows UI</span>
 <span class="nv">ANALYZER_ENABLED</span><span class="o">=</span>TRUE<span class="w">  </span><span class="c1"># set FALSE to hide BIOMERO UI</span>
+
+<span class="c1"># OMERO.Analysis navigation mode</span>
+<span class="nv">INTEGRATE_DATA_ANALYSIS</span><span class="o">=</span>FALSE<span class="w">  </span><span class="c1"># set TRUE to show Data Analysis inside BIOMERO</span>
 </pre></div>
 </div>
-<p>Setting either variable to <code class="docutils literal notranslate"><span class="pre">FALSE</span></code> removes only the corresponding frontend elements in OMERO.web; backend containers can still run if present.</p>
+<p>Setting either variable to <code class="docutils literal notranslate"><span class="pre">FALSE</span></code> removes only the corresponding frontend elements in OMERO.web; backend containers can still run if present.
+OMERO.Analysis is installed in both navigation modes. <code class="docutils literal notranslate"><span class="pre">FALSE</span></code> shows its
+standalone OMERO top link; <code class="docutils literal notranslate"><span class="pre">TRUE</span></code> hides that link and shows BIOMERO’s Data
+Analysis application instead.</p>
 </section>
 <section id="environment-customization">
 <h4>Environment Customization<a class="headerlink" href="#environment-customization" title="Permalink to this heading"></a></h4>

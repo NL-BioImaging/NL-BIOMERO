@@ -7,6 +7,7 @@ This section covers all aspects of NL-BIOMERO deployment, from initial setup to 
 
 * **Deployment** - Complete deployment scenarios and setup guides
 * **OMERO.biomero Admin** - Administrative configuration and management
+* **Integrated Data Analysis** - Configure standalone or BIOMERO-embedded OMERO.Analysis
 * **Slurm Integration** - High-performance computing cluster setup
 * **Docker Compose Scenarios** - Container orchestration configurations
 * **Linux Deployment** - Linux-specific deployment instructions
