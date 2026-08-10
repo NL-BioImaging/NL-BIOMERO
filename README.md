@@ -73,6 +73,7 @@ First, customize your environment file `.env`:
 # IMPORTER_ENABLED=TRUE   # Enables the BIOMERO.importer UI module
 # ANALYZER_ENABLED=TRUE   # Enables the BIOMERO.analyzer UI module
 # INTEGRATE_DATA_ANALYSIS=FALSE  # TRUE embeds OMERO.Analysis in BIOMERO
+# DQW_API_TOKEN=<generate-a-high-entropy-secret>  # required by web scenarios
 # Set either to FALSE to hide that module from OMERO.web without removing containers
 ```
 
@@ -168,6 +169,8 @@ With `INTEGRATE_DATA_ANALYSIS=TRUE`, use **BIOMERO → Data Analysis**. With
 `FALSE`, use the standalone **Analysis** OMERO top link. OMERO.Analysis is
 installed in either mode. See the
 [Integrated Data Analysis administrator guide](https://nl-bioimaging.github.io/NL-BIOMERO/latest/sysadmin/data-analysis.html).
+For remote DuckDB, SQLite, and CSV queries, also see the
+[Data Query Worker operations guide](docs/sysadmin/data-query-worker.md).
 
 
 ---

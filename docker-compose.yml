@@ -171,6 +171,7 @@ services:
       args:
         OMERO_BIOMERO_VERSION: ${OMERO_BIOMERO_VERSION}
         OMERO_ANALYSIS_VERSION: ${OMERO_ANALYSIS_VERSION}
+        BIOMERO_WORKFLOW_SKILLS_VERSION: ${BIOMERO_WORKFLOW_SKILLS_VERSION}
         OMERO_FORMS_VERSION: ${OMERO_FORMS_VERSION}
         BIOMERO_ZARR_VIEWER_VERSION: ${BIOMERO_ZARR_VIEWER_VERSION}
     environment:
@@ -193,10 +194,14 @@ services:
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
       INTEGRATE_DATA_ANALYSIS: ${INTEGRATE_DATA_ANALYSIS:-FALSE}
+      OMERO_ANALYSIS_DATA_QUERY_WORKER_URL: http://data-query-worker:8080
+      OMERO_ANALYSIS_DATA_QUERY_WORKER_TOKEN: ${DQW_API_TOKEN:?DQW_API_TOKEN is required}
+      OMERO_ANALYSIS_REMOTE_QUERY_THRESHOLD_BYTES: 104857600
       UPLOADER_DESTINATION_DIR: ${UPLOADER_DESTINATION_DIR}
     # Named network to communicate with other containers
     networks:
       - omero
+      - data-query
     # Map ports to ports on the host machine, to allow opening of webpage
     ports:
       - "4080:4080"
@@ -212,6 +217,32 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+
+  data-query-worker:
+    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:0.1.0@sha256:03dcd977280e0ed8929df8437eb22f1c69268918d7a25286efc5a19953ca0a8e"
+    restart: unless-stopped
+    environment:
+      DQW_API_TOKEN: ${DQW_API_TOKEN:?DQW_API_TOKEN is required}
+    networks:
+      - data-query
+    volumes:
+      - data-query-cache:/var/lib/omero-data-query-worker
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    pids_limit: 128
+    mem_limit: 2g
+    cpus: 2.0
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      start_period: 15s
+      retries: 5
 
   metabase:
     image: metabase/metabase@sha256:f7b5dc52c21aaa2dca910a450e7e6119a975090ce9fc80726aa0742882ca176c
@@ -264,6 +295,8 @@ services:
 # Define the network(s) to communicate between containers
 networks:
   omero:
+  data-query:
+    internal: true
 
 # Define the named volume(s) to persist data to the host computer
 # Mount restored data to the named volumes with external: true and name: <volume_name>
@@ -277,3 +310,4 @@ volumes:
   omero:
     # external: true
     # name: omero-server-2025-07-29_12-09-40-UTC #  Restored data
+  data-query-cache:

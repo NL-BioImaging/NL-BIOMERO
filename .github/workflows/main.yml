@@ -8,12 +8,27 @@ on:
     - cron: '0 0 * * 0'
 
 jobs:
-  build:
+  compose-config:
     runs-on: ubuntu-latest
+    env:
+      DQW_API_TOKEN: ci-compose-validation-token
     steps:
-      - uses: actions/checkout@v2
-      - name: Test
-        run: ./test.sh
-      - name: Check logs
-        run: docker-compose logs
-        if: ${{ failure() }}
+      - uses: actions/checkout@v4
+      - name: Validate maintained Compose scenarios
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            docker-compose.yml
+            docker-compose-dev.yml
+            deployment_scenarios/docker-compose-biomero-client.yml
+            deployment_scenarios/docker-compose-biomero-only.yml
+            deployment_scenarios/docker-compose-for-ubuntu-with-SSL.yml
+            deployment_scenarios/docker-compose-from-dockerhub.yml
+            deployment_scenarios/docker-compose-importer-only.yml
+            deployment_scenarios/docker-compose-with-restored-data.yml
+          )
+          for file in "${files[@]}"; do
+            docker compose --env-file .env --env-file .env.shared \
+              -f "$file" config --quiet
+          done
