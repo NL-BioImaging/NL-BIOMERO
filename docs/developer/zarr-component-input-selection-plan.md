@@ -17,7 +17,10 @@ Implemented foundations:
   OMERO-versus-Zarr pixel verification, and transactional first-export
   promotion for individual OMERO Images;
 - canonical-source MapAnnotation attachment and inclusion of newly promoted
-  Images in the exact workflow input snapshot.
+  Images in the exact workflow input snapshot;
+- Import Results recovery and cross-checking of the event-store snapshot and
+  task-side manifest, with the validated snapshot preserved beside permanent
+  `.analyzed` results before any future normalization decision.
 
 Raw-import identity calculation, importer-produced/legacy Zarr adoption, Plate
 promotion, Import Results normalization, projection, and materialization remain
