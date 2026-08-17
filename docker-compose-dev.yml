@@ -45,7 +45,9 @@ services:
       context: ./
       dockerfile: ./server/Dockerfile
       args:
-        BIOMERO_VERSION: ${BIOMERO_VERSION}
+        BIOMERO_SCRIPTS_BRANCH: ${BIOMERO_SCRIPTS_BRANCH:-feature/zarr-shallow-storage}
+        BIOMERO_SCRIPTS_COMMIT: ${BIOMERO_SCRIPTS_COMMIT:-40132a7}
+        LABEL2ROIS_BRANCH: ${LABEL2ROIS_BRANCH:-main}
         OMERO_ZARR_PIXEL_BUFFER_VERSION: ${OMERO_ZARR_PIXEL_BUFFER_VERSION}
     # Define environment variables for use in the container.
     # 'nodedescriptors' assigns roles to all the containers
@@ -121,8 +123,12 @@ services:
       context: ./
       dockerfile: ./biomeroworker/Dockerfile
       args:
-        BIOMERO_VERSION: ${BIOMERO_VERSION}
-        BIOMERO_IMPORTER_VERSION: ${BIOMERO_IMPORTER_VERSION}
+        BIOMERO_SCHEMA_BRANCH: ${BIOMERO_SCHEMA_BRANCH:-feature/zarr-shallow-storage}
+        BIOMERO_SCHEMA_COMMIT: ${BIOMERO_SCHEMA_COMMIT:-aa330bd}
+        BIOMERO_BRANCH: ${BIOMERO_BRANCH:-feature/zarr-shallow-storage}
+        BIOMERO_COMMIT: ${BIOMERO_COMMIT:-43114a2}
+        BIOMERO_IMPORTER_BRANCH: ${BIOMERO_IMPORTER_BRANCH:-feature/zarr-shallow-storage}
+        BIOMERO_IMPORTER_COMMIT: ${BIOMERO_IMPORTER_COMMIT:-05819fa}
     # Define variables for use in the container.
     # WORKER_NAME is used in the omero/ice node description
     # logging_level doesn't work, but should increase logging
@@ -237,6 +243,9 @@ services:
     build:
       context: ./biomero-importer
       dockerfile: ./Dockerfile
+      args:
+        BIOMERO_SCHEMA_BRANCH: ${BIOMERO_SCHEMA_BRANCH:-feature/zarr-shallow-storage}
+        BIOMERO_SCHEMA_COMMIT: ${BIOMERO_SCHEMA_COMMIT:-aa330bd}
     security_opt:
       - "label=disable"
       - "seccomp=unconfined"

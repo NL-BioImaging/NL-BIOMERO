@@ -10,9 +10,12 @@ Implemented foundations:
   representation in `biomero`;
 - transactional canonical `.processed` placement, locking, adoption, and commit
   primitives in BIOMERO.importer.
+- namespace-aware canonical lookup and safe root reuse in Image Transfer;
+- immutable workflow event snapshots plus task-side recovery manifests for
+  fully covered canonical inputs.
 
-The Image Transfer, Import Results, OMERO annotation, identity calculation,
-normalization, projection, and materialization integrations remain pending.
+First-export promotion, OMERO annotation writing, identity calculation, Import
+Results normalization, projection, and materialization remain pending.
 
 ## Decision
 
@@ -211,6 +214,22 @@ Use a configured storage-root ID plus relative path instead of assuming every
 service has the same absolute mount prefix. For an existing registered Zarr,
 derive the initial root/node locator from its trusted `ExternalInfo.lsid` and
 then persist the normalized record.
+
+Deployments expose those logical IDs in the shared `biomero-config.json`, which
+is mounted into the worker and importer. For example:
+
+```json
+{
+  "storage_roots": {
+    "group-3-data": "/data/Project A"
+  }
+}
+```
+
+The absolute value is a container-visible managed root, while only the logical
+ID and a validated relative path enter the portable contract. Missing mappings,
+paths outside the configured root, unavailable directories, and ambiguous
+records are never guessed from display names or annotation iteration order.
 
 Image Transfer resolves this record from the selected OMERO object. If it falls
 back to `ExternalInfo`, `Imported_from`, or `Filepath`, it validates the candidate,

@@ -7,7 +7,9 @@ services:
       context: ../
       dockerfile: ./server/Dockerfile
       args:
-        BIOMERO_VERSION: ${BIOMERO_VERSION}
+        BIOMERO_SCRIPTS_BRANCH: ${BIOMERO_SCRIPTS_BRANCH:-feature/zarr-shallow-storage}
+        BIOMERO_SCRIPTS_COMMIT: ${BIOMERO_SCRIPTS_COMMIT:-40132a7}
+        LABEL2ROIS_BRANCH: ${LABEL2ROIS_BRANCH:-main}
         OMERO_ZARR_PIXEL_BUFFER_VERSION: ${OMERO_ZARR_PIXEL_BUFFER_VERSION}
     environment:
       # Connect to external database via host
