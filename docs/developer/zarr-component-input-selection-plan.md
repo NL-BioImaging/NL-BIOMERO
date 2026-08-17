@@ -12,10 +12,18 @@ Implemented foundations:
   primitives in BIOMERO.importer.
 - namespace-aware canonical lookup and safe root reuse in Image Transfer;
 - immutable workflow event snapshots plus task-side recovery manifests for
-  fully covered canonical inputs.
+  fully covered canonical inputs;
+- a pinned `iscc-bio` IMAGEWALK adapter, NGFF 0.4/Zarr v2 semantic guard,
+  OMERO-versus-Zarr pixel verification, and transactional first-export
+  promotion for individual OMERO Images;
+- canonical-source MapAnnotation attachment and inclusion of newly promoted
+  Images in the exact workflow input snapshot.
 
-First-export promotion, OMERO annotation writing, identity calculation, Import
-Results normalization, projection, and materialization remain pending.
+Raw-import identity calculation, importer-produced/legacy Zarr adoption, Plate
+promotion, Import Results normalization, projection, and materialization remain
+pending. First-export Image promotion currently bootstraps the authoritative
+identity from OMERO Pixels and refuses promotion when dimensions, pixel type, or
+the ISCC-BIO Instance-Code disagree.
 
 ## Decision
 
@@ -81,6 +89,10 @@ Python parser:
 - BIOMERO.importer currently uses Zarr Python 3 APIs for metadata registration;
 - OMERO serves registered pixels through Glencoe
   `omero-zarr-pixel-buffer 0.6.1`, backed by `jzarr 0.4.2` in this deployment.
+- pixel identity uses the public `iscc_bio.api.biocode` API pinned to upstream
+  commit `c536d7699b7d25592bfe5c91c947b749344b6914`; no PyPI release currently
+  exists, so both the importer and workflow worker install that Git revision
+  through the importer's `identity` extra.
 
 Treat 0.4/v2 as the supported provider contract until 0.5/v3 has passed explicit
 export, import, PixelBuffer rendering, label, Plate, and reconstruction tests.

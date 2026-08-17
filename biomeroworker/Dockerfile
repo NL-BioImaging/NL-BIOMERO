@@ -54,7 +54,7 @@ RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && $VIRTUAL_ENV/bin/python -m pip install \
         "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
     && $VIRTUAL_ENV/bin/python -m pip install --ignore-requires-python \
-        "biomero-importer @ git+https://github.com/Cellular-Imaging-Amsterdam-UMC/BIOMERO.importer.git@${BIOMERO_IMPORTER_BRANCH}" \
+        "biomero-importer[identity] @ git+https://github.com/Cellular-Imaging-Amsterdam-UMC/BIOMERO.importer.git@${BIOMERO_IMPORTER_BRANCH}" \
     && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@${BIOMERO_BRANCH}" \
     && $VIRTUAL_ENV/bin/python -m pip install \
         scikit-image==0.25.2 omero-rois==0.4.1
