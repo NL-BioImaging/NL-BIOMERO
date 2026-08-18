@@ -132,7 +132,7 @@ services:
         BIOMERO_BRANCH: ${BIOMERO_BRANCH:-feature/zarr-shallow-storage}
         BIOMERO_COMMIT: ${BIOMERO_COMMIT:-e4b56cc}
         BIOMERO_IMPORTER_BRANCH: ${BIOMERO_IMPORTER_BRANCH:-feature/zarr-shallow-storage}
-        BIOMERO_IMPORTER_COMMIT: ${BIOMERO_IMPORTER_COMMIT:-007fd88}
+        BIOMERO_IMPORTER_COMMIT: ${BIOMERO_IMPORTER_COMMIT:-20e3e73}
     # Define variables for use in the container.
     # WORKER_NAME is used in the omero/ice node description
     # logging_level doesn't work, but should increase logging
