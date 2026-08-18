@@ -53,7 +53,7 @@ ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_COMMIT
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && $VIRTUAL_ENV/bin/python -m pip install \
         "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
-    && $VIRTUAL_ENV/bin/python -m pip install --ignore-requires-python \
+    && $VIRTUAL_ENV/bin/python -m pip install \
         "biomero-importer[identity] @ git+https://github.com/Cellular-Imaging-Amsterdam-UMC/BIOMERO.importer.git@${BIOMERO_IMPORTER_BRANCH}" \
     && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@${BIOMERO_BRANCH}" \
     && $VIRTUAL_ENV/bin/python -m pip install \
