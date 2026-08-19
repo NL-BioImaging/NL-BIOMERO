@@ -34,8 +34,9 @@ natively.
 
 An RFC-8-aware workflow may instead return a shallow Collection containing its
 derived image or label nodes and a source reference to the task-local input.
-BIOMERO rebases that reference to its managed canonical source, so the workflow
-must not guess BIOMERO filesystem or object-storage locations.
+BIOMERO resolves that task-local reference through the recorded workflow input
+and rebases it to its managed canonical source. The workflow must not guess
+BIOMERO filesystem or object-storage locations.
 
 RFC-8 support is an optional optimization, not a requirement. While the proposal
 is still evolving, state the RFC revision used and keep each concrete image or

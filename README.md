@@ -72,8 +72,13 @@ First, customize your environment file `.env`:
 # Toggle UI components (both default to TRUE):
 # IMPORTER_ENABLED=TRUE   # Enables the BIOMERO.importer UI module
 # ANALYZER_ENABLED=TRUE   # Enables the BIOMERO.analyzer UI module
+# BIOMERO_SHALLOW_ZARR=FALSE  # Opt in to canonical-cache/shallow-result handling
 # Set either to FALSE to hide that module from OMERO.web without removing containers
 ```
+
+`BIOMERO_SHALLOW_ZARR` is effective only when `IMPORTER_ENABLED=TRUE`. With the
+flag absent or false, Image Transfer and Import Results keep their established
+export/import behavior.
 
 ### 3. Setup Slurm Connection (Optional)
 For local testing with a containerized Slurm cluster:
