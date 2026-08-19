@@ -527,9 +527,15 @@ the returned filename differed from the transferred input filename. The latter
 caused normalization to retain the complete 140 MB result even though all 18
 pixel identities matched. Both defects are corrected: the Plate inventory now
 lives in one storage marker with one compact OMERO index, and pixel-identity
-matching permits ordinary workflow output renaming. Before deleting Plate
-1552's legacy annotations, migrate their complete inventory to the storage
-marker and prove it round-trips through the compact index.
+matching permits ordinary workflow output renaming. Plate 1552's complete
+inventory was migrated to
+`cellssmall/.processed/.biomero/20220714_TKI_482.ome.zarr.canonical.json` and
+proved to round-trip through the compact index before cleanup. The 18 generated
+`biomero.zarr.plate-source.image` annotations were then removed through the
+OMERO API. Plate 1552 now retains only compact index annotation 17919, while
+the sidecar restores all 18 image identities. The corrected branches are
+deployed in the development stack; the remaining live proof is a new
+`cisegmentation` run whose renamed output must commit as a shallow Plate.
 
 The current branches pass all 79 script tests and the 34 focused importer
 canonical/shallow-result tests. The full importer unit run passes 129 tests and
