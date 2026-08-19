@@ -1,11 +1,8 @@
 FROM openmicroscopy/omero-server:5.6.18
 
 ARG BIOMERO_SCHEMA_BRANCH=feature/zarr-shallow-storage
-ARG BIOMERO_SCHEMA_COMMIT=aa330bd
 ARG BIOMERO_BRANCH=feature/zarr-shallow-storage
-ARG BIOMERO_COMMIT=e4b56cc
 ARG BIOMERO_IMPORTER_BRANCH=feature/zarr-shallow-storage
-ARG BIOMERO_IMPORTER_COMMIT=20e3e73
 
 USER root
 
@@ -45,11 +42,11 @@ ENV PATH="$PATH:/opt/bioformats2raw-0.12.0-rc1/bin"
 RUN yum -y install ack
 
 # Force zarr < 3 for compatibility with omero-cli-zarr by installing biomero
-# after the importer. Commit URLs make moving feature branches invalidate the
-# corresponding Docker layer while the branch names remain readable inputs.
-ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_COMMIT}" /latest_commit_biomero_schema
-ADD "https://api.github.com/repos/Cellular-Imaging-Amsterdam-UMC/BIOMERO.importer/commits/${BIOMERO_IMPORTER_COMMIT}" /latest_commit_biomero_importer
-ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_COMMIT}" /latest_commit_biomero
+# after the importer. Branch-head responses invalidate the corresponding
+# install layer whenever a selected feature branch advances.
+ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_BRANCH}" /latest_commit_biomero_schema
+ADD "https://api.github.com/repos/Cellular-Imaging-Amsterdam-UMC/BIOMERO.importer/commits/${BIOMERO_IMPORTER_BRANCH}" /latest_commit_biomero_importer
+ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_BRANCH}" /latest_commit_biomero
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && $VIRTUAL_ENV/bin/python -m pip install \
         "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
