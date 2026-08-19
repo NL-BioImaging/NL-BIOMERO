@@ -194,7 +194,15 @@ canonical-input snapshot, and retain the complete returned result rather than
 blocking the workflow or guessing a shallow source.
 
 For a Plate, record image-node identities at the known image levels in the
-plate hierarchy. Do not guess labels at the plate root.
+plate hierarchy. Do not guess labels at the plate root. Keep only one compact
+`CanonicalPlateIndex` MapAnnotation on the OMERO Plate. Store the potentially
+large `CanonicalPlateSource` inventory in managed storage: promoted BIOMERO
+canonicals use the internal `.biomero-canonical.json` marker, while native or
+otherwise read-only indexed Zarrs use the non-invasive sibling sidecar
+`.biomero/<zarr-name>.canonical.json`. Never create one visible OMERO
+MapAnnotation per Plate image or label. Readers must continue to accept the
+earlier monolithic and split-annotation layouts for backward compatibility and
+migration.
 
 ## Result normalization
 
@@ -473,10 +481,12 @@ Delivery step 9 now has unit-level storage and transfer coverage:
 
 - Image Transfer indexes an existing managed Plate Zarr in place, caching an
   ISCC-BIO identity for every declared image node and label node. OMERO stores
-  this as one compact Plate index plus bounded image- and label-node
-  MapAnnotations, while events and service boundaries still use one
+  only one compact Plate index. The detailed inventory is an atomic managed
+  storage marker beside a read-only indexed Zarr, or inside a BIOMERO-promoted
+  canonical Zarr. Events and service boundaries still use one
   `CanonicalPlateSource`. Readers retain support for the earlier monolithic
-  annotation shape;
+  and split MapAnnotation shapes, but new writes never scale OMERO annotations
+  with the number of Plate images;
 - nested Plate nodes without a `.zarr` suffix are presented to ISCC-BIO/BioIO
   through a temporary zero-copy `.ome.zarr` symlink; this works around current
   reader suffix detection while keeping hashing in upstream ISCC-BIO and the
@@ -510,15 +520,23 @@ The first live `cisegmentation` run
 `af449699-ea89-4cd0-9bc2-ab0ea015803c` completed against Plate 1552 and produced
 18 image-level `labels_nuclei` nodes. It deliberately remained full because the
 initial monolithic Plate identity MapAnnotation exceeded PostgreSQL's indexed
-map-value limit, so Image Transfer returned no canonical snapshot. The bounded
-record implementation fixes that failure mode and ignores partial record sets
-until their compact index is committed. It is deployed in the development
-stack. A second run, `2192fb60-9de5-4644-a080-44eda1f3442d`, successfully
-indexed Plate 1552 in place as 18 bounded image records; its result/import is
-the live end-to-end proof in progress. The current branches pass 55 schema
-tests, 77 script tests, and 127 importer tests. Run Workflow and OMERO.biomero
-now carry the optional Plate-preview choice end to end; it is visible only for
-Plate workflows with a Screen destination and remains disabled by default.
+map-value limit, so Image Transfer returned no canonical snapshot. A second
+run, `2192fb60-9de5-4644-a080-44eda1f3442d`, successfully indexed Plate 1552,
+but exposed two defects: it wrote 18 visible image-record MapAnnotations, and
+the returned filename differed from the transferred input filename. The latter
+caused normalization to retain the complete 140 MB result even though all 18
+pixel identities matched. Both defects are corrected: the Plate inventory now
+lives in one storage marker with one compact OMERO index, and pixel-identity
+matching permits ordinary workflow output renaming. Before deleting Plate
+1552's legacy annotations, migrate their complete inventory to the storage
+marker and prove it round-trips through the compact index.
+
+The current branches pass all 79 script tests and the 34 focused importer
+canonical/shallow-result tests. The full importer unit run passes 129 tests and
+has one unrelated SQLite fixture failure (`imports` table missing). Run
+Workflow and OMERO.biomero carry the optional Plate-preview choice end to end;
+it is visible only for Plate workflows with a Screen destination and remains
+disabled by default.
 
 Whole-Plate reselection uses the derived Plate's shallow collection annotation.
 Image Transfer resolves the compact `ShallowPlateReference`, reconstructs the
@@ -558,6 +576,9 @@ preview mode, but must not mutate or ambiguously annotate the original Plate.
   Plate registers against canonical source pixels; loose label Images are not
   created; and the opt-in label-backed Plate succeeds only for an exact common
   label selection.
+- Plate metadata scale: a Plate with 1,000 image nodes still creates one compact
+  OMERO canonical index; its full identity inventory round-trips through the
+  managed storage marker, and legacy split records remain readable.
 - Re-materialized shallow result: full source pixels and labels compare with the
   original kept result.
 - Unsupported/newer NGFF: conservative retention with an actionable log.
@@ -574,6 +595,8 @@ preview mode, but must not mutate or ambiguously annotate the original Plate.
   behavior.
 - Eligible unchanged Zarr results occupy label/metadata storage rather than a
   repeated copy of source image pixels.
+- OMERO Plate metadata stays bounded: one compact canonical index per
+  generation, independent of image and label count.
 - Changed results are preserved completely.
 - Selecting a shallow result later produces a conventional, fully usable Zarr
   input for the workflow.
