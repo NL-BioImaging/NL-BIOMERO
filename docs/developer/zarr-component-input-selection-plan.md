@@ -445,6 +445,10 @@ Delivery step 9 now has unit-level storage and transfer coverage:
 - Image Transfer indexes an existing managed Plate Zarr in place, caching an
   ISCC-BIO identity for every declared image node and label node in one
   `CanonicalPlateSource` annotation;
+- nested Plate nodes without a `.zarr` suffix are presented to ISCC-BIO/BioIO
+  through a temporary zero-copy `.ome.zarr` symlink; this works around current
+  reader suffix detection while keeping hashing in upstream ISCC-BIO and the
+  managed Plate read-only;
 - a freshly exported Plate can be transactionally promoted into `.processed`
   through the same canonical store used for Images;
 - returned Plates are eligible only when their complete image-node path set and
