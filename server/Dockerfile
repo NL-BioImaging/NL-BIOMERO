@@ -26,11 +26,16 @@ RUN cd $OMERO_DIST/lib/scripts/ && \
     rm -f biomero/admin/Example_Minimal_Slurm_Script.py && \
     rm -f biomero/__workflows/SLURM_CellPose_Segmentation.py
 
+# Do not expose repository tests as runnable OMERO scripts.
+RUN rm -rf $OMERO_DIST/lib/scripts/biomero/tests
+
 # Install the Figure-to-PDF script for OMERO.figure plugin
 RUN curl -o $OMERO_DIST/lib/scripts/omero/figure_scripts/Figure_To_Pdf.py \
     https://raw.githubusercontent.com/ome/omero-figure/refs/heads/master/omero_figure/scripts/omero/figure_scripts/Figure_To_Pdf.py
 
-# Install Labels2Rois script
+# Install Labels2Rois script from main
+# Invalidate Docker's cache whenever the branch head changes.
+ADD "https://api.github.com/repos/Cellular-Imaging-Amsterdam-UMC/label2rois/commits/main" /latest_commit_label2rois
 RUN curl -o $OMERO_DIST/lib/scripts/omero/util_scripts/Labels2Rois.py \
     https://raw.githubusercontent.com/Cellular-Imaging-Amsterdam-UMC/label2rois/main/Labels2Rois.py
 
