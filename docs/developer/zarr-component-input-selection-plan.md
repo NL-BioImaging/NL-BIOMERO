@@ -380,7 +380,8 @@ will detect and normalize it.
   services that require them.
 - Forward required environment variables through `biomeroworker/processor.py`.
 - Keep all new behavior capability-gated by `IMPORTER_ENABLED`.
-- Pin branch dependencies during feature development and document rebuild
+- Follow the shared feature branch during development, with branch-commit build
+  arguments where Docker needs an explicit cache invalidator; document rebuild
   requirements.
 
 ## Delivery order
@@ -403,6 +404,22 @@ will detect and normalize it.
 9. Add Plate fixtures and multi-label registration.
 10. Add OMERO.biomero inventory and mask-thumbnail presentation.
 11. Publish concise workflow-provider guidance and the BILAYERS blog section.
+
+### Integration evidence
+
+Delivery step 6 is proven for image-level results in the development stack.
+Three labels from one in-place shallow workflow result were submitted in one
+import order and registered as OMERO Images 6151-6153. Each image:
+
+- uses its own label node as PixelBuffer backing and returns a rendered
+  thumbnail;
+- carries a decodable `biomero.zarr.shallow` MapAnnotation referencing the
+  complete shallow collection and its pre-existing source OMERO Image; and
+- does not create another OMERO object for the unchanged top-image pixels.
+
+The remaining step-6 coverage is the automatic full-workflow route, including
+multiple labels and Plate membership. Per-label reuse and recursive
+reconstruction remain delivery steps 7 and 8.
 
 ## Required tests
 
