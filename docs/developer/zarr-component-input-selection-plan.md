@@ -6,23 +6,23 @@ Implemented foundations:
 
 - shared Pydantic contracts in `biomero-schema`, independently versioned from
   workflow descriptors;
-- validated `CanonicalInputsRecorded` workflow events and recovery-manifest
-  representation in `biomero`;
-- transactional canonical `.processed` placement, locking, adoption, and commit
-  primitives in BIOMERO.importer.
+- validated `CanonicalInputsRecorded` workflow events in `biomero`, with legacy
+  workflow state defaulting to an empty snapshot;
+- transactional `.processed` placement, locking, adoption, and commit primitives
+  in BIOMERO.importer for derived conversions that do not already exist as a
+  stable Zarr;
 - namespace-aware canonical lookup and safe root reuse in Image Transfer;
-- immutable workflow event snapshots plus task-side recovery manifests for
-  fully covered canonical inputs;
+- immutable workflow event snapshots for fully covered indexed inputs, without
+  a second Slurm-side provenance file;
 - a pinned `iscc-bio` IMAGEWALK adapter, NGFF 0.4/Zarr v2 semantic guard,
   OMERO-versus-Zarr pixel verification, and transactional first-export
   promotion for individual OMERO Images;
 - canonical-source MapAnnotation attachment and inclusion of newly promoted
   Images in the exact workflow input snapshot;
-- Import Results recovery and cross-checking of the event-store snapshot and
-  task-side manifest, with the validated snapshot preserved beside permanent
-  `.analyzed` results before any future normalization decision.
+- Import Results loading of the event-store snapshot as a lineage fast path;
+  absent or legacy snapshots fall back to exact returned-pixel identity matching.
 
-Raw-import identity calculation, importer-produced/legacy Zarr adoption, Plate
+Raw-import identity calculation, in-place importer-produced/legacy Zarr adoption, Plate
 promotion, Import Results normalization, projection, and materialization remain
 pending. First-export Image promotion currently bootstraps the authoritative
 identity from OMERO Pixels and refuses promotion when dimensions, pixel type, or
@@ -131,11 +131,14 @@ workflow workers cannot mutate canonical or previously committed data.
 
 ## Canonical source placement and reuse
 
-Use BIOMERO.importer's existing `.processed` area as the durable home for
-canonical Zarr conversions. Do not introduce a second global source-Zarr tree,
-and do not place a newly exported canonical conversion beneath a transient
-workflow UUID merely because that workflow triggered its creation. A genuinely
-derived image remains part of its committed result collection.
+"Canonical source" is a catalog role in the current contracts, not an instruction
+to create a byte-for-byte copy. Prefer "indexed/referenceable Zarr source" in
+operator and provider documentation. Use BIOMERO.importer's existing `.processed`
+area only as the durable home for Zarr conversions that did not already exist.
+Do not introduce a second global source-Zarr tree, and do not place a newly
+exported conversion beneath a transient workflow UUID merely because that
+workflow triggered its creation. A genuinely derived image remains part of its
+committed result collection.
 
 Apply these cases in order:
 
@@ -246,28 +249,40 @@ ID and a validated relative path enter the portable contract. Missing mappings,
 paths outside the configured root, unavailable directories, and ambiguous
 records are never guessed from display names or annotation iteration order.
 
-Image Transfer resolves this record from the selected OMERO object. If it falls
+Image Transfer resolves this record from the selected OMERO object. The record
+indexes a stable Zarr that already exists; it does not require a duplicate
+"canonical copy." If resolution falls
 back to `ExternalInfo`, `Imported_from`, or `Filepath`, it validates the candidate,
-computes the missing identity, and writes the canonical record so the next lookup
-is direct.
+computes the missing identity, and writes the source-catalog record so the next
+lookup is direct. A native or previously registered Zarr is adopted in place.
+Only a non-Zarr source that must be converted gains a reusable `.processed` Zarr
+representation.
 
 Import Results has a different requirement: it must know the exact source
 generation used by that workflow, not merely whatever record is current later.
-At export, snapshot the resolved canonical records into:
+At export, snapshot the resolved source records in a new workflow-scoped event in
+the existing event-sourced tracking model, `CanonicalInputsRecorded`, containing
+the export task ID, workflow UUID, input ordinal, selected OMERO object, and
+source generation. Do not duplicate that snapshot in a task-root `.biomero`
+directory or beside permanent results.
 
-- a new workflow-scoped event in the existing event-sourced tracking model, such
-  as `CanonicalInputsRecorded`, containing the export task ID, workflow UUID,
-  input ordinal, selected OMERO object, and canonical generation; and
-- a small BIOMERO-owned transfer manifest beside the task input Zarrs for
-  deployments where workflow tracking is disabled or needs recovery.
-
-The manifest is orchestration metadata outside the portable Zarr and requires no
-workflow support. `SLURM_Run_Workflow.py` already gives Import Results the workflow
-UUID and completed Slurm job ID. Import Results uses those values to load the
-immutable input snapshot and match returned inputs by ordinal/transfer ID. It
+`SLURM_Run_Workflow.py` already gives Import Results the workflow UUID and
+completed Slurm job ID. Import Results uses those values to load the immutable
+input snapshot and match returned inputs by ordinal/transfer ID. The snapshot is
+a fast, lineage-rich candidate list, not a prerequisite for deduplication. For
+old events, disabled tracking, or incomplete snapshots, Import Results compares
+the returned intensity identity with the ISCC-indexed source catalog. Any exact,
+semantically compatible match may back a shallow copy. It
 must not depend on the export task ID being threaded through the current local
 `task_id` variable, which is subsequently reused for conversion and workflow
 tasks. The snapshot is used for comparison and RFC-8 source rebasing.
+
+Adding the canonical defaults did not change the serialized
+`WorkflowInitiated` event fields, so existing event streams replay through the
+current initializer and receive empty defaults; no upcaster is required for this
+change. Accessors also default missing aggregate attributes for defensive
+compatibility. Introduce a `class_version` upcaster when a persisted event's
+schema actually changes, rather than inventing one for derived aggregate state.
 
 `biomero_task_execution` and the other analytics views do not need new columns
 for v1. Add a queryable canonical-source table later only if operators need
@@ -275,8 +290,9 @@ cross-object inventory, migration, or repair queries that are inefficient via
 OMERO annotations. Such a table would be a projection/cache of the OMERO record,
 not a second authority.
 
-Use the deterministic object/generation path plus an atomic creation lock so two
-simultaneous first exports converge on one committed canonical Zarr.
+Use the deterministic object/generation path plus an atomic creation lock only
+when a non-Zarr source needs a derived `.processed` representation, so two
+simultaneous first exports converge on one committed cache.
 
 ### First and repeated export of a non-Zarr original
 
@@ -304,13 +320,13 @@ end-to-end lifecycle is:
    mapping failure and must not silently establish a new identity. After a match,
    Image Transfer atomically promotes the Zarr into `.processed` and attaches the
    `biomero.zarr.source` record to the original OMERO object.
-6. Image Transfer snapshots the exact canonical record in workflow tracking and
-   the recovery manifest, then copies/materializes a writable task-local Zarr for
-   Slurm. The workflow never writes into the `.processed` canonical.
-7. On return, Import Results resolves the workflow snapshot by workflow UUID and
-   compares the output intensities with that exact `.processed` generation. It
-   does not infer the comparison source from the LIF provenance or from the newly
-   created mask object.
+6. Image Transfer snapshots the exact source record in workflow tracking, then
+   copies/materializes a writable task-local Zarr for Slurm. The workflow never
+   writes into the indexed source or `.processed` conversion cache.
+7. On return, Import Results first compares against the workflow snapshot and
+   then falls back to an exact ISCC lookup across indexed stable Zarr sources.
+   It does not infer equality from the LIF filename or from the newly created
+   mask object.
 8. On a later analysis of the same original OMERO Image, step 1 finds the record
    and step 2 reuses the canonical Zarr without invoking the exporter.
 
@@ -440,11 +456,12 @@ When BIOMERO first creates or registers a canonical source Zarr:
 - Cache it against `(server, group, object type, object ID, source generation)`.
 - Recompute only for a deliberate new source generation or integrity repair.
 
-Later workflow comparisons use the original identity snapshotted at export. They
-do not need to reread the LIF or other raw file, and they do not compare against
-the current canonical record in case a newer generation has since been created.
-The snapshot also records the verified canonical generation/path so Image
-Transfer can materialize the matching pixels.
+Later workflow comparisons first use the original identity and source generation
+snapshotted at export. If that event is absent, legacy, disabled, or incomplete,
+they use the returned image identity to query all indexed/referenceable Zarr
+sources for an exact compatible match. They do not need to reread the LIF or
+other raw file. The snapshot also records the verified source generation/path so
+Image Transfer can materialize the matching pixels without searching.
 
 The identity is scoped to image intensity arrays and semantic image metadata,
 not the whole mutable Zarr directory. Labels, BIOMERO hints, workflow metadata,
@@ -673,11 +690,11 @@ part of this cleanup.
 
 ### biomero-scripts
 
-- `_SLURM_Image_Transfer.py`: resolve existing canonical/imported Zarrs with
-  explicit precedence; export and promote once into importer-owned `.processed`
-  when absent; calculate and record source identities; optionally add the input
-  hint; persist the task source snapshot and recovery manifest; materialize
-  shallow selections before transfer.
+- `_SLURM_Image_Transfer.py`: resolve and index existing imported/native Zarrs in
+  place with explicit precedence; export and promote once into importer-owned
+  `.processed` only for non-Zarr sources; calculate and record source identities;
+  optionally add the input hint; persist the task source snapshot in workflow
+  events; materialize shallow selections before transfer.
 - `SLURM_Import_Results.py`: resolve task lineage; detect generic, hinted, or
   native RFC-8 results; load the exact canonical-input snapshot; create typed
   importer orders; gate retention after commit.
@@ -689,9 +706,10 @@ part of this cleanup.
 - Calculate and attach per-scene ISCC-BIO identities while it has access to newly
   ingested raw files, preserving the raw scene-to-OMERO Image mapping; fall back
   explicitly to OMERO Pixels when a raw reader is unavailable.
-- Own committed canonical conversions beneath source/group `.processed`, and
-  attach the namespaced root/node/generation/identity record to every resulting
-  OMERO Image or Plate.
+- Index stable imported/native Zarrs in place. Own committed conversion caches
+  beneath source/group `.processed` only when the source was not already Zarr,
+  and attach the namespaced root/node/generation/identity record to every
+  resulting OMERO Image or Plate.
 - Transactionally normalize results under `.processed` before OMERO
   registration.
 - Calculate returned identities during retrieval/copy when possible.
@@ -734,11 +752,13 @@ part of this cleanup.
 
 1. Add the canonical root/node/generation annotation and deterministic resolver,
    retaining `Imported_from` and `Filepath` as ordered legacy fallbacks.
-2. Add the workflow-scoped `CanonicalInputsRecorded` event and task-side recovery
-   manifest, keyed by workflow UUID and input ordinal.
-3. Reuse existing registered or importer-produced Zarrs without copying them.
+2. Add the workflow-scoped `CanonicalInputsRecorded` event, keyed by workflow
+   UUID and input ordinal. Keep older event streams valid with empty defaults;
+   do not add a Slurm-side recovery manifest.
+3. Index and reuse existing registered, native, or importer-produced Zarrs in
+   place without copying them.
 4. Promote a first non-Zarr export into source/group `.processed` and cache its
-   identity; attach the canonical record to the selected original OMERO object
+   identity; attach the source-catalog record to the selected original OMERO object
    without changing its `Imported_from` value.
 5. Implement collection parsing and physical materialization in Image Transfer.
 6. Exercise manually created shallow fixtures through an unchanged generic
