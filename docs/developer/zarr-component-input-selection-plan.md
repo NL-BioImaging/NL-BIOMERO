@@ -217,9 +217,10 @@ For every returned Zarr candidate:
    validation fails, keep the complete returned Zarr.
 7. Commit the normalized result transactionally before deleting any redundant
    image chunks from that result.
-8. Create importer orders for every viewable label node. Multiple masks produce
-   multiple OMERO result objects, matching existing multi-image result
-   behavior.
+8. For an Image result, create importer orders for every viewable label node;
+   multiple masks produce multiple OMERO Images. For a Plate result, import one
+   authoritative shallow Plate and do not flatten its image-level labels into
+   a Dataset of mask Images.
 
 This optimization removes only copied pixels from the newly returned result.
 It never deletes or rewrites the original OMERO object or native Zarr.
@@ -290,30 +291,50 @@ capability. Full materialization is the interoperable default.
 
 ## OMERO registration and visualization
 
-For an eligible shallow result, the source image or Plate is already present in
-OMERO. Do not create another top-image object merely to represent the unchanged
-pixels. The complete *logical* result remains the in-place shallow collection:
-canonical source pixels plus its retained and referenced labels.
+For an eligible shallow Image result, the source Image is already present in
+OMERO and label projections are sufficient until viewers support label layers.
+For an eligible shallow Plate result, create one derived OMERO Plate so the
+result remains selectable and navigable as a Plate. The complete *logical*
+result remains the in-place shallow collection: canonical source pixels plus
+its retained and referenced labels.
 
-Every declared returned label is also registered automatically as an ordinary
-OMERO Image projection while PixelBuffer/iViewer label-layer support is
-incomplete. This is determined from the returned Zarr structure, not from
-workflow-user options such as `Import_Label_Zarrs` or `Import_Only_Labels`.
-These projections provide mask thumbnails, ordinary image viewing, and input to
-ROI-conversion scripts. Each carries a validated `biomero.zarr.shallow`
-reference containing the collection locator, image-node membership, all label
-nodes, and source identity. Selecting any projection reconstructs the complete
-source plus all labels. A label-aware viewer follows the same reference to
-overlay the selected mask (and optionally its sibling labels) on the source.
-The projections must never duplicate top-image pixel storage.
+Every declared returned label of a non-Plate Image is registered automatically
+as an ordinary OMERO Image projection while PixelBuffer/iViewer label-layer
+support is incomplete. This is determined from the returned Zarr structure,
+not from legacy workflow-user options such as `Import_Label_Zarrs` or
+`Import_Only_Labels`. These projections provide mask thumbnails, ordinary image
+viewing, and input to ROI-conversion scripts. Each carries a validated
+`biomero.zarr.shallow` reference. The projections never duplicate top-image
+pixel storage.
+
+A shallow Plate is registered from its canonical Plate source. OMERO creates
+the normal WellSample child Images, and each child PixelBuffer LSID points to
+the corresponding canonical Zarr image node. This displays the original pixels
+without storing them again, including when the original OMERO Plate came from a
+non-Zarr acquisition: Image Transfer has already promoted a reusable canonical
+Zarr before a result can be proven shallow. The derived Plate carries the
+shallow collection reference, so a label-aware viewer can overlay every retained
+or inherited image-level label and later workflow selection reconstructs the
+complete Plate.
+
+An opt-in label-backed Plate preview may additionally register the same Plate
+hierarchy with every WellSample child Image pointed at one specifically named,
+common label node (for example `labels_nuclei`). This creates OMERO metadata,
+not another label-pixel copy. It is off by default. The request must name the
+label, or use automatic selection only when exactly one label name is present
+on every Plate image. Missing or ambiguous membership fails that optional
+preview without weakening the authoritative shallow Plate import. Creating one
+preview Plate per arbitrary label and importing thousands of loose label Images
+are both outside the default path.
 
 If the returned top-image pixels changed, the result is not shallow: import
 that full image/Plate as a distinct primary result and also import its declared
 labels automatically.
 
-For Plates, label groups occur at image levels in the plate hierarchy. Each
-mask projection retains its exact Plate/well/image membership in the collection
-metadata.
+For Plates, label groups occur at image levels in the Plate hierarchy. The
+collection retains exact Plate/well/image membership. The normal Plate view can
+therefore use source-backed pixels, while a selected label-backed preview uses
+the matching label node for each WellSample.
 
 ## Supported interchange profile
 
@@ -358,13 +379,14 @@ will detect and normalize it.
 ### BIOMERO.importer
 
 - Parse/validate supported NGFF structures.
-- Recognize `.biomero-shallow.json` on a label's ancestor, resolve and validate
-  its canonical source, and attach the collection reference to the imported
-  label Image. Direct primary registration remains available for explicit
-  imports, but Import Results does not create a duplicate top-image object for
-  an eligible shallow result.
-- Automatically register every declared label as an ordinary Image projection,
-  without requiring nested label groups to have a `.zarr` suffix.
+- Recognize `.biomero-shallow.json`, resolve and validate its canonical Image or
+  Plate source, and attach the collection reference to every derived OMERO
+  result object.
+- Register a shallow Plate once from its canonical Plate structure and source
+  pixels. Optionally register one additional label-backed Plate by routing each
+  child Image to the requested image-level label node.
+- Automatically register every declared non-Plate label as an ordinary Image
+  projection without requiring nested label groups to have a `.zarr` suffix.
 - Return every created OMERO object so result provenance can be attached.
 - It owns transactional promotion and validation of the permanent
   source-conversion cache for this feature.
@@ -397,14 +419,16 @@ will detect and normalize it.
    exact canonical generations in the event store.
 5. Implement result discovery and exact returned-image comparison in Import
    Results, initially in keep mode with decision logging only.
-6. Implement transactional shallow normalization and automatic label
-   projection import; omit unchanged top-image pass-through objects.
+6. Implement transactional shallow normalization and automatic Image-label
+   projection import; register Plate results as Plates and omit unchanged
+   top-image pass-through objects.
 7. Extend input snapshots and shallow collections with per-label identities and
    managed label references so chained workflows reuse unchanged labels.
 8. Implement recursive materialization of a selected shallow result for future workflow
    transfer.
 9. Add Plate fixtures, per-image canonical identities, shallow normalization,
-   standalone label-image reconstruction, and multi-label registration.
+   source-backed Plate registration, optional common-label Plate registration,
+   standalone Image-label reconstruction, and multi-label registration.
 10. Add OMERO.biomero inventory and mask-thumbnail presentation.
 11. Publish concise workflow-provider guidance and the BILAYERS blog section.
 
@@ -455,10 +479,11 @@ Delivery step 9 now has unit-level storage and transfer coverage:
   every image-node identity match the workflow snapshot;
 - normalization removes every duplicate image dataset, preserves Plate/well
   metadata, retains new/changed image-level labels, and references inherited
-  labels; and
-- selecting a nested Plate label projection reconstructs that Plate image node
-  as a conventional standalone root-image Zarr with all labels rebased below
-  `labels/`.
+  labels;
+- the logical shallow Plate resolves to its canonical Plate for ordinary
+  PixelBuffer registration without restoring copied pixels; and
+- an optional label-backed Plate maps one common label name to every WellSample
+  child Image without copying the label arrays.
 
 The concrete integration fixtures are
 `Project A/cellsA1B1.ome.zarr` (native managed Plate Zarr) and
@@ -470,13 +495,12 @@ nodes under `A/1/0..8` and `B/1/0..8`. The planned workflow checks are:
 - `simple-zarr-plate-processor` or `cideconvolve` v2.3.3: changed pixels must
   remain a full result; and
 - `cisegmentation` v0.5.0: unchanged source pixels plus image-level labels
-  should normalize to a shallow Plate and import its masks automatically.
+  should normalize to one source-backed shallow Plate; optionally, its one
+  common `labels_nuclei` layer should register as one label-backed Plate.
 
-Whole-Plate reselection with a particular shallow label collection still
-depends on OMERO.biomero collection inventory (delivery step 10). Individual
-Plate label projections already retain exact image membership and reconstruct
-as image-workflow inputs; the UI must later expose a collection-level Plate
-choice without mutating or ambiguously annotating the original Plate.
+Whole-Plate reselection uses the derived Plate's shallow collection annotation.
+OMERO.biomero collection inventory (delivery step 10) may expose its labels and
+preview mode, but must not mutate or ambiguously annotate the original Plate.
 
 ## Required tests
 
@@ -497,13 +521,16 @@ choice without mutating or ambiguously annotating the original Plate.
   omits only the duplicate returned image chunks.
 - Changed/unknown/ambiguous returned image: full result retained.
 - Old event stream: loads successfully with an empty or upcast input snapshot.
-- Multiple label nodes: all receive ordinary Image projections referencing the
-  same in-place shallow collection; unchanged top-image pixels do not create a
-  duplicate OMERO Image.
+- Multiple label nodes on an Image: all receive ordinary Image projections
+  referencing the same in-place shallow collection; unchanged top-image pixels
+  do not create a duplicate OMERO Image.
 - Chained labels: an unchanged inherited label is referenced once, a new or
   changed label is retained as a new component, and reconstruction produces the
   complete expected set without losing source pixels or earlier labels.
-- Plate: image-level labels retain correct well/image membership.
+- Plate: image-level labels retain correct well/image membership; one derived
+  Plate registers against canonical source pixels; loose label Images are not
+  created; and the opt-in label-backed Plate succeeds only for an exact common
+  label selection.
 - Re-materialized shallow result: full source pixels and labels compare with the
   original kept result.
 - Unsupported/newer NGFF: conservative retention with an actionable log.
