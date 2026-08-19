@@ -536,6 +536,11 @@ OMERO API. Plate 1552 now retains only compact index annotation 17919, while
 the sidecar restores all 18 image identities. The corrected branches are
 deployed in the development stack; the remaining live proof is a new
 `cisegmentation` run whose renamed output must commit as a shallow Plate.
+The first retry, `9192c966-e316-4e48-a12f-d8c8427ea52b`, stopped before export
+because biomero's compatibility module did not re-export the shared
+`ShallowPlateReference` model used by Image Transfer. Biomero commit `c9c9018`
+adds the missing export and regression assertion; the rebuilt worker now loads
+that commit and imports the model from `biomero_schema.zarr` successfully.
 
 The current branches pass all 79 script tests and the 34 focused importer
 canonical/shallow-result tests. The full importer unit run passes 129 tests and
