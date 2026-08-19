@@ -467,8 +467,11 @@ removed after verification; all managed sources remained read-only.
 Delivery step 9 now has unit-level storage and transfer coverage:
 
 - Image Transfer indexes an existing managed Plate Zarr in place, caching an
-  ISCC-BIO identity for every declared image node and label node in one
-  `CanonicalPlateSource` annotation;
+  ISCC-BIO identity for every declared image node and label node. OMERO stores
+  this as one compact Plate index plus bounded image- and label-node
+  MapAnnotations, while events and service boundaries still use one
+  `CanonicalPlateSource`. Readers retain support for the earlier monolithic
+  annotation shape;
 - nested Plate nodes without a `.zarr` suffix are presented to ISCC-BIO/BioIO
   through a temporary zero-copy `.ome.zarr` symlink; this works around current
   reader suffix detection while keeping hashing in upstream ISCC-BIO and the
@@ -497,6 +500,17 @@ nodes under `A/1/0..8` and `B/1/0..8`. The planned workflow checks are:
 - `cisegmentation` v0.5.0: unchanged source pixels plus image-level labels
   should normalize to one source-backed shallow Plate; optionally, its one
   common `labels_nuclei` layer should register as one label-backed Plate.
+
+The first live `cisegmentation` run
+`af449699-ea89-4cd0-9bc2-ab0ea015803c` completed against Plate 1552 and produced
+18 image-level `labels_nuclei` nodes. It deliberately remained full because the
+initial monolithic Plate identity MapAnnotation exceeded PostgreSQL's indexed
+map-value limit, so Image Transfer returned no canonical snapshot. The bounded
+record implementation fixes that failure mode and ignores partial record sets
+until their compact index is committed. It is deployed in the development
+stack; 54 schema tests, 73 script tests, and 126 importer tests pass. A fresh
+workflow run remains the live end-to-end proof for shallow normalization and
+the two Plate registrations.
 
 Whole-Plate reselection uses the derived Plate's shallow collection annotation.
 OMERO.biomero collection inventory (delivery step 10) may expose its labels and
