@@ -7,8 +7,7 @@ services:
       context: ../
       dockerfile: ./server/Dockerfile
       args:
-        BIOMERO_SCRIPTS_BRANCH: ${BIOMERO_SCRIPTS_BRANCH:-roi-output-options}
-        LABEL2ROIS_BRANCH: ${LABEL2ROIS_BRANCH:-roi-output-options}
+        BIOMERO_VERSION: ${BIOMERO_VERSION}
         OMERO_ZARR_PIXEL_BUFFER_VERSION: ${OMERO_ZARR_PIXEL_BUFFER_VERSION}
     environment:
       # Connect to external database via host

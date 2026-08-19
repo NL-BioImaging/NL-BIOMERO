@@ -1,6 +1,6 @@
 FROM openmicroscopy/omero-server:5.6.18
 
-ARG BIOMERO_BRANCH=roi-output-options
+ARG BIOMERO_VERSION
 ARG BIOMERO_IMPORTER_VERSION
 
 USER root
@@ -41,11 +41,13 @@ ENV PATH="$PATH:/opt/bioformats2raw-0.12.0-rc1/bin"
 RUN yum -y install ack
 
 # force zarr < 3 for compatibility w/ omero-cli-zarr by installing biomero AFTER the importer
-# Track the ROI output feature branch. Refresh the layer when its head changes.
-ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_BRANCH}" /latest_commit_biomero
+# To track a branch instead of a release, uncomment the cache-bust line and use the git install:
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/surf" /latest_commit_biomero
+# && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@surf"
+RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && $VIRTUAL_ENV/bin/python -m pip install --ignore-requires-python biomero-importer==${BIOMERO_IMPORTER_VERSION} \
-    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@${BIOMERO_BRANCH}" \
+    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full]==${BIOMERO_VERSION}" \
     && $VIRTUAL_ENV/bin/python -m pip install \
         scikit-image==0.25.2 omero-rois==0.4.1
 

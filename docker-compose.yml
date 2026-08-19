@@ -49,8 +49,7 @@ services:
       context: ./
       dockerfile: ./server/Dockerfile
       args:
-        BIOMERO_SCRIPTS_BRANCH: ${BIOMERO_SCRIPTS_BRANCH:-roi-output-options}
-        LABEL2ROIS_BRANCH: ${LABEL2ROIS_BRANCH:-roi-output-options}
+        BIOMERO_VERSION: ${BIOMERO_VERSION}
         OMERO_ZARR_PIXEL_BUFFER_VERSION: ${OMERO_ZARR_PIXEL_BUFFER_VERSION}
     # Define environment variables for use in the container.
     # 'nodedescriptors' assigns roles to all the containers
@@ -126,7 +125,7 @@ services:
       context: ./
       dockerfile: ./biomeroworker/Dockerfile
       args:
-        BIOMERO_BRANCH: ${BIOMERO_BRANCH:-roi-output-options}
+        BIOMERO_VERSION: ${BIOMERO_VERSION}
         BIOMERO_IMPORTER_VERSION: ${BIOMERO_IMPORTER_VERSION}
     # Define variables for use in the container.
     # WORKER_NAME is used in the omero/ice node description
@@ -171,7 +170,7 @@ services:
       context: ./
       dockerfile: ./web/Dockerfile
       args:
-        OMERO_BIOMERO_BRANCH: ${OMERO_BIOMERO_BRANCH:-roi-output-options}
+        BIOMERO_VERSION: ${BIOMERO_VERSION}
         OMERO_FORMS_VERSION: ${OMERO_FORMS_VERSION}
     environment:
       OMEROHOST: omeroserver
