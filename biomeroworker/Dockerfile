@@ -54,7 +54,8 @@ RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
         "biomero-importer[identity] @ git+https://github.com/Cellular-Imaging-Amsterdam-UMC/BIOMERO.importer.git@${BIOMERO_IMPORTER_BRANCH}" \
     && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@${BIOMERO_BRANCH}" \
     && $VIRTUAL_ENV/bin/python -m pip install \
-        scikit-image==0.25.2 omero-rois==0.4.1 dask==2026.7.1 \
+        scikit-image==0.25.2 omero-rois==0.4.1 \
+        ezomero==3.2.3 dask==2026.1.1 distributed==2026.1.1 \
     && $VIRTUAL_ENV/bin/python -m pip check
 
 ## Adjust processor code with BIOMERO Processor
