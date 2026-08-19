@@ -396,6 +396,10 @@ will detect and normalize it.
 - Edit authoritative group mappings.
 - Discover collection membership from server-side metadata.
 - Present source/label inventories and mask thumbnails.
+- For Plate workflows with a Screen image-result destination, offer an
+  off-by-default `Import Plate label preview` control and optional exact label
+  name. The backend normalizes this request before Run Workflow applies the
+  importer/shallow capability gates.
 - Never send trusted absolute storage paths in workflow requests.
 
 ### NL-BIOMERO
@@ -429,7 +433,8 @@ will detect and normalize it.
 9. Add Plate fixtures, per-image canonical identities, shallow normalization,
    source-backed Plate registration, optional common-label Plate registration,
    standalone Image-label reconstruction, and multi-label registration.
-10. Add OMERO.biomero inventory and mask-thumbnail presentation.
+10. Expose the optional Plate label-preview import in OMERO.biomero, then add
+    full collection inventory and mask-thumbnail presentation.
 11. Publish concise workflow-provider guidance and the BILAYERS blog section.
 
 ### Integration evidence
@@ -508,11 +513,19 @@ initial monolithic Plate identity MapAnnotation exceeded PostgreSQL's indexed
 map-value limit, so Image Transfer returned no canonical snapshot. The bounded
 record implementation fixes that failure mode and ignores partial record sets
 until their compact index is committed. It is deployed in the development
-stack; 54 schema tests, 73 script tests, and 126 importer tests pass. A fresh
-workflow run remains the live end-to-end proof for shallow normalization and
-the two Plate registrations.
+stack. A second run, `2192fb60-9de5-4644-a080-44eda1f3442d`, successfully
+indexed Plate 1552 in place as 18 bounded image records; its result/import is
+the live end-to-end proof in progress. The current branches pass 55 schema
+tests, 77 script tests, and 127 importer tests. Run Workflow and OMERO.biomero
+now carry the optional Plate-preview choice end to end; it is visible only for
+Plate workflows with a Screen destination and remains disabled by default.
 
 Whole-Plate reselection uses the derived Plate's shallow collection annotation.
+Image Transfer resolves the compact `ShallowPlateReference`, reconstructs the
+canonical Plate hierarchy with every local or inherited image-level label, and
+records the original canonical Plate lineage even though the selected derived
+OMERO Plate has a different ID. The reconstructed transfer artifact is always a
+conventional full Plate Zarr.
 OMERO.biomero collection inventory (delivery step 10) may expose its labels and
 preview mode, but must not mutate or ambiguously annotate the original Plate.
 

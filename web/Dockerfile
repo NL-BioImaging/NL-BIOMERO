@@ -2,6 +2,7 @@ FROM openmicroscopy/omero-web-standalone:5.31.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
+ARG OMERO_BIOMERO_BRANCH=feature/zarr-shallow-storage
 
 USER root
 
@@ -39,14 +40,11 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 ### Install OMERO.biomero first ###
 ### BIOMERO.importer and BIOMERO.analyzer will be installed as a dependency of OMERO.biomero ###
 
-# To track a branch instead of a release, uncomment the cache-bust line and use the git install:
-# ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/surf" /latest_commit_omero_biomero
-# RUN /opt/omero/web/venv3/bin/pip install git+https://github.com/NL-BioImaging/OMERO.biomero.git@surf \
-#     && /opt/omero/web/venv3/bin/omero-biomero-setup
-
-# Install released OMERO.biomero from PyPI
-RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1)
-RUN /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
+# Track the matching feature branch. The branch-head API response invalidates
+# Docker's cache whenever that branch advances, while pip still installs by
+# branch name rather than pinning an individual commit.
+ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BIOMERO_BRANCH}" /latest_commit_omero_biomero
+RUN /opt/omero/web/venv3/bin/pip install "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 ### Install OMERO.forms ###
