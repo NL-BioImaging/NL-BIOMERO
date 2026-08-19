@@ -1,7 +1,6 @@
 FROM openmicroscopy/omero-server:5.6.18
 
 ARG BIOMERO_SCRIPTS_BRANCH=feature/zarr-shallow-storage
-ARG BIOMERO_SCRIPTS_COMMIT=40132a7
 ARG LABEL2ROIS_BRANCH=main
 ARG OMERO_ZARR_PIXEL_BUFFER_VERSION
 
@@ -21,8 +20,9 @@ ADD server/00-restore-config.sh* /startup/
 # LDAP configuration - add with correct values
 # ADD server/01-ldap-config.omero /opt/omero/server/config/
 
-# Track the feature branch while the shallow Zarr integration is tested.
-ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/${BIOMERO_SCRIPTS_COMMIT}" /latest_commit_biomero_scripts
+# The branch-head response changes whenever the branch advances, invalidating
+# the following clone layer without pinning the image build to one commit.
+ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/${BIOMERO_SCRIPTS_BRANCH}" /latest_commit_biomero_scripts
 RUN cd $OMERO_DIST/lib/scripts/ && \
     git clone --depth 1 --branch ${BIOMERO_SCRIPTS_BRANCH} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
     rm -f biomero/admin/Example_Minimal_Slurm_Script.py && \
