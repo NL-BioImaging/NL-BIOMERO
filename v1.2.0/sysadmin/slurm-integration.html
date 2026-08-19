@@ -1107,9 +1107,9 @@ podman<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </sp
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Mount same config file to both containers</span>
 <span class="nt">volumes</span><span class="p">:</span>
 <span class="w">  </span><span class="c1"># Web container - Admin interface reads/writes configuration</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"</span>
 <span class="w">  </span><span class="c1"># Worker container - Reads configuration for job execution  </span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"</span>
 </pre></div>
 </div>
 <p>This allows the web interface to write configuration changes that the worker container can immediately read.</p>
@@ -1228,10 +1228,10 @@ chmod<span class="w"> </span><span class="m">644</span><span class="w"> </span>.
 <h3>Manual Verification<a class="headerlink" href="#manual-verification" title="Permalink to this heading"></a></h3>
 <p>Test the SSH connection from your deployment:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Test connection from biomeroworker container</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;sinfo&quot;</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">"sinfo"</span>
 
 <span class="c1"># OR for production deployment</span>
-podman<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>production-slurm<span class="w"> </span><span class="s2">&quot;squeue&quot;</span>
+podman<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>production-slurm<span class="w"> </span><span class="s2">"squeue"</span>
 </pre></div>
 </div>
 </section>
@@ -1308,7 +1308,7 @@ Alternatively, take our Docker Compose setups as a starting point and use these 
 <section id="ssh-connection-issues">
 <h3>SSH Connection Issues<a class="headerlink" href="#ssh-connection-issues" title="Permalink to this heading"></a></h3>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Test SSH from container</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>-v<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;echo &#39;SSH working&#39;&quot;</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>-v<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">"echo 'SSH working'"</span>
 
 <span class="c1"># Check SSH key permissions in container</span>
 docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>~/.ssh/
@@ -1318,13 +1318,13 @@ docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </spa
 <section id="slurm-job-issues">
 <h3>SLURM Job Issues<a class="headerlink" href="#slurm-job-issues" title="Permalink to this heading"></a></h3>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Check SLURM cluster status</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;sinfo&quot;</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">"sinfo"</span>
 
 <span class="c1"># View recent jobs</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;squeue -u </span><span class="nv">$USER</span><span class="s2">&quot;</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">"squeue -u </span><span class="nv">$USER</span><span class="s2">"</span>
 
 <span class="c1"># Check job details</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;scontrol show job JOBID&quot;</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">"scontrol show job JOBID"</span>
 </pre></div>
 </div>
 </section>

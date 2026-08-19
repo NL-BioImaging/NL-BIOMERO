@@ -678,7 +678,7 @@
 <p><strong>Usage</strong>:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Mount SSH keys in docker-compose</span>
 <span class="nt">volumes</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;$HOME/.ssh:/tmp/.ssh:ro&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"$HOME/.ssh:/tmp/.ssh:ro"</span>
 </pre></div>
 </div>
 </section>
@@ -785,7 +785,7 @@
 <p>The web interface can mount a different configuration that overrides this base file:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># In docker-compose</span>
 <span class="nt">volumes</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./slurm-config-override.ini:/etc/slurm-config.ini:ro&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./slurm-config-override.ini:/etc/slurm-config.ini:ro"</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -809,7 +809,7 @@
 </pre></div>
 </div>
 <p><strong>Database Connection</strong>:</p>
-<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Uses environment variable SQLALCHEMY_URL or container&#39;s PostgreSQL connection</span>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Uses environment variable SQLALCHEMY_URL or container's PostgreSQL connection</span>
 <span class="na">sqlalchemy_url</span><span class="o">=</span><span class="s">postgresql+psycopg2://user:password@localhost:5432/biomero</span>
 </pre></div>
 </div>
@@ -836,7 +836,7 @@
 </pre></div>
 </div>
 <p><strong>ICE Configuration</strong>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sed<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;s/@omero.master.host@/</span><span class="nv">$MASTER_ADDR</span><span class="s2">/&quot;</span><span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sed<span class="w"> </span>-e<span class="w"> </span><span class="s2">"s/@omero.master.host@/</span><span class="nv">$MASTER_ADDR</span><span class="s2">/"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>OMERO.server/etc/templates/ice.config<span class="w"> </span>&gt;<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>OMERO.server/etc/ice.config
 </pre></div>
@@ -888,7 +888,7 @@ docker-compose<span class="w"> </span><span class="nb">exec</span><span class="w
 ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="c1"># SSH alias for HPC cluster in config.ini</span>
 
 <span class="c1"># Test BIOMERO configuration</span>
-python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;from biomero.slurm_client import SlurmClient; client = SlurmClient.from_config(); print(client.validate())&quot;</span>
+python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"from biomero.slurm_client import SlurmClient; client = SlurmClient.from_config(); print(client.validate())"</span>
 </pre></div>
 </div>
 <p><strong>Test Analytics Database</strong>:</p>
@@ -900,7 +900,7 @@ python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;f
                           <span class="n">enable_job_progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                           <span class="n">enable_workflow_analytics</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">slurmClient</span><span class="o">.</span><span class="n">initialize_analytics_system</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Analytics system initialized&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Analytics system initialized'</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Option 2: From config file</p>
@@ -915,10 +915,10 @@ python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;f
 
 <span class="n">notifications</span> <span class="o">=</span> <span class="n">slurmClient</span><span class="o">.</span><span class="n">workflowTracker</span><span class="o">.</span><span class="n">notification_log</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="mi">54</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
 <span class="k">if</span> <span class="n">notifications</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">notifications</span><span class="p">)</span><span class="si">}</span><span class="s1"> workflow notifications&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">notifications</span><span class="p">)</span><span class="si">}</span><span class="s1"> workflow notifications'</span><span class="p">)</span>
     <span class="p">[</span><span class="n">pprint</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">notifications</span><span class="p">]</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No workflow notifications found&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">'No workflow notifications found'</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -940,7 +940,7 @@ python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;f
 </div>
 <p>Aggregate view</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load an aggregate by its UUID</span>
-<span class="n">slurmClient</span><span class="o">.</span><span class="n">workflowTracker</span><span class="o">.</span><span class="n">repository</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;747fc951-15ca-4b56-a19e-418e1db97d14&#39;</span><span class="p">)</span>
+<span class="n">slurmClient</span><span class="o">.</span><span class="n">workflowTracker</span><span class="o">.</span><span class="n">repository</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'747fc951-15ca-4b56-a19e-418e1db97d14'</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>

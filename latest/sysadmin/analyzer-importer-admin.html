@@ -778,8 +778,8 @@ bloat on OMERO server storage, and provides a consistent in-place import experie
 </div>
 <p><strong>Volume mounts</strong>:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">volumes</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./config/biomero-importer:/opt/omero/server/config-importer:ro&quot;</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./web/biomero-config.json:/opt/omero/server/biomero-config.json:ro&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./config/biomero-importer:/opt/omero/server/config-importer:ro"</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"</span>
 </pre></div>
 </div>
 <ul class="simple">
@@ -861,7 +861,7 @@ that group when no explicit mapping is configured).</p></li>
 <p>Verify in the container:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Check ownership of the data root</span>
 ls<span class="w"> </span>-la<span class="w"> </span>/path/to/L-Drive/
-touch<span class="w"> </span>/path/to/L-Drive/test_write<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Write OK&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Write failed&quot;</span>
+touch<span class="w"> </span>/path/to/L-Drive/test_write<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"Write OK"</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"Write failed"</span>
 
 <span class="c1"># If needed, grant write access to UID 1000 and GID 994 or map containers to a different user with appropriate permissions.</span>
 </pre></div>
@@ -906,7 +906,7 @@ deployment prerequisites.</p></li>
 <p>After rebuilding and restarting the biomeroworker container, verify the library is available:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker-compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>/opt/omero/server/venv3/bin/python<span class="w"> </span>-c<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="s2">&quot;import biomero_importer; print(&#39;biomero-importer OK&#39;)&quot;</span>
+<span class="w">    </span><span class="s2">"import biomero_importer; print('biomero-importer OK')"</span>
 </pre></div>
 </div>
 <p>Run a test analysis workflow. Afterwards check:</p>

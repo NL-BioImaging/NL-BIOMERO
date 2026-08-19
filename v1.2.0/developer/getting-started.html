@@ -781,7 +781,7 @@ ssh<span class="w"> </span>-i<span class="w"> </span>~/.ssh/id_rsa<span class="w
 </div>
 <p>If not successful, try forcing ownership and permissions (and then try ssh again):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># from your host machine:</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>slurmctld<span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;chown -R slurm:slurm /home/slurm/.ssh &amp;&amp; chmod 700 /home/slurm/.ssh &amp;&amp; chmod 600 /home/slurm/.ssh/authorized_keys&quot;</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>slurmctld<span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">"chown -R slurm:slurm /home/slurm/.ssh &amp;&amp; chmod 700 /home/slurm/.ssh &amp;&amp; chmod 600 /home/slurm/.ssh/authorized_keys"</span>
 </pre></div>
 </div>
 </section>
@@ -975,15 +975,15 @@ docker-compose<span class="w"> </span><span class="nb">exec</span><span class="w
 <h5>Custom Institution Branding<a class="headerlink" href="#custom-institution-branding" title="Permalink to this heading"></a></h5>
 <p>By default, BIOMERO 2.0 uses NL-BioImaging branding. To customize:</p>
 <p><strong>Change banner logo:</strong> Mount your logo over the banner image</p>
-<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span>- &quot;./your-logo.png:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/nl-bioimaging-banner.png:ro&quot;
+<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./your-logo.png:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/nl-bioimaging-banner.png:ro"</span>
 </pre></div>
 </div>
 <p><strong>Change footer logo:</strong> Mount your logo over the footer image</p>
-<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span>- &quot;./your-logo.png:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/NL-BIoImaging-logo.jpg:ro&quot;
+<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./your-logo.png:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/NL-BIoImaging-logo.jpg:ro"</span>
 </pre></div>
 </div>
 <p><strong>Change footer text/colors/design:</strong> Create custom <code class="docutils literal notranslate"><span class="pre">login.html</span></code> template with inline CSS and mount it</p>
-<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span>- &quot;./custom-login.html:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/templates/webclient/login.html:ro&quot;
+<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./custom-login.html:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/templates/webclient/login.html:ro"</span>
 </pre></div>
 </div>
 <p>Restart container after changes: <code class="docutils literal notranslate"><span class="pre">docker-compose</span> <span class="pre">down</span> <span class="pre">omeroweb</span> <span class="pre">&amp;&amp;</span> <span class="pre">docker-compose</span> <span class="pre">up</span> <span class="pre">-d</span> <span class="pre">omeroweb</span></code></p>

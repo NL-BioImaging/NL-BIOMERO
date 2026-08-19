@@ -901,8 +901,8 @@ the same host path into each container.</p>
 and the group-mapping JSON:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">volumes</span><span class="p">:</span>
 <span class="w">  </span><span class="c1"># ... existing mounts ...</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./config/biomero-importer:/opt/omero/server/config-importer:ro&quot;</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./web/biomero-config.json:/opt/omero/server/biomero-config.json:ro&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./config/biomero-importer:/opt/omero/server/config-importer:ro"</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"</span>
 </pre></div>
 </div>
 <ul class="simple">
@@ -929,8 +929,8 @@ uses these to resolve the correct destination path for each group.</p></li>
 <span class="w">    </span><span class="nt">IMPORTER_ENABLED</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${IMPORTER_ENABLED}</span>
 <span class="w">  </span><span class="nt">volumes</span><span class="p">:</span>
 <span class="w">    </span><span class="c1"># ... existing ...</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./config/biomero-importer:/opt/omero/server/config-importer:ro&quot;</span><span class="w">   </span><span class="c1"># new</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./web/biomero-config.json:/opt/omero/server/biomero-config.json:ro&quot;</span><span class="w">   </span><span class="c1"># new</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./config/biomero-importer:/opt/omero/server/config-importer:ro"</span><span class="w">   </span><span class="c1"># new</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"</span><span class="w">   </span><span class="c1"># new</span>
 </pre></div>
 </div>
 <p>The Dockerfile itself installs <code class="docutils literal notranslate"><span class="pre">biomero-importer</span></code> (Python library, not the service) as a separate
@@ -978,7 +978,7 @@ in <a class="reference internal" href="#id1">Permission requirements</a> above.<
 omeroweb or biomero-importer).</p></li>
 <li><p>Verify the biomero-importer Python library is installed in the worker’s virtual environment:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker-compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>/opt/omero/server/venv3/bin/python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import biomero_importer; print(&#39;ok&#39;)&quot;</span>
+<span class="w">    </span>/opt/omero/server/venv3/bin/python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import biomero_importer; print('ok')"</span>
 </pre></div>
 </div>
 </li>

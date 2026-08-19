@@ -747,7 +747,7 @@
 <p>Migrate to a new PostgreSQL version using pg_dump/pg_restore. The backup_and_restore scripts in this repo automate most steps and can also help migrate an existing OMERO DB into NL-BIOMERO.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Dump from old Postgres (inside container or via exec)</span>
 docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-t<span class="w"> </span>nl-biomero_database_1<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>pg_dump<span class="w"> </span>-Fc<span class="w"> </span>-U<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$POSTGRES_USER</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$POSTGRES_DB</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>pg_dump<span class="w"> </span>-Fc<span class="w"> </span>-U<span class="w"> </span><span class="s2">"</span><span class="nv">$POSTGRES_USER</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$POSTGRES_DB</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-f<span class="w"> </span>/tmp/omero.pg_dump
 docker<span class="w"> </span>cp<span class="w"> </span>nl-biomero_database_1:/tmp/omero.pg_dump<span class="w"> </span>./backup_and_restore/backups/
 
@@ -766,11 +766,11 @@ docker<span class="w"> </span>cp<span class="w"> </span>nl-biomero_database_1:/t
 <span class="w">  </span>-e<span class="w"> </span><span class="nv">POSTGRES_DB</span><span class="o">=</span>...<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-e<span class="w"> </span><span class="nv">POSTGRES_PASSWORD</span><span class="o">=</span>...<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-v<span class="w"> </span>/mnt/...:/var/lib/postgresql/data<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/logs/database:/var/lib/postgresql/data/logs:Z&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/logs/database:/var/lib/postgresql/data/logs:Z"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>postgres:16<span class="w"> </span>postgres<span class="w"> </span>-N<span class="w"> </span><span class="m">500</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-c<span class="w"> </span><span class="nv">logging_collector</span><span class="o">=</span>on<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-c<span class="w"> </span><span class="nv">log_directory</span><span class="o">=</span><span class="s1">&#39;logs&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-c<span class="w"> </span><span class="nv">log_filename</span><span class="o">=</span><span class="s1">&#39;postgresql-%Y-%m-%d.log&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-c<span class="w"> </span><span class="nv">log_directory</span><span class="o">=</span><span class="s1">'logs'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-c<span class="w"> </span><span class="nv">log_filename</span><span class="o">=</span><span class="s1">'postgresql-%Y-%m-%d.log'</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-c<span class="w"> </span><span class="nv">log_rotation_age</span><span class="o">=</span>1d<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-c<span class="w"> </span><span class="nv">log_rotation_size</span><span class="o">=</span>100MB<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-c<span class="w"> </span><span class="nv">log_statement</span><span class="o">=</span>all
@@ -794,11 +794,11 @@ docker<span class="w"> </span>cp<span class="w"> </span>nl-biomero_database_1:/t
 <p>You can exec into the database containers and use psql directly.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># OMERO DB</span>
 docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>nl-biomero_database_1<span class="w"> </span>bash
-psql<span class="w"> </span>-U<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$POSTGRES_USER</span><span class="s2">&quot;</span>
+psql<span class="w"> </span>-U<span class="w"> </span><span class="s2">"</span><span class="nv">$POSTGRES_USER</span><span class="s2">"</span>
 
 <span class="c1"># BIOMERO DB</span>
 docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>nl-biomero_database-biomero_1<span class="w"> </span>bash
-psql<span class="w"> </span>-U<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BIOMERO_POSTGRES_USER</span><span class="s2">&quot;</span>
+psql<span class="w"> </span>-U<span class="w"> </span><span class="s2">"</span><span class="nv">$BIOMERO_POSTGRES_USER</span><span class="s2">"</span>
 </pre></div>
 </div>
 <p>Common psql commands:</p>
@@ -817,8 +817,8 @@ psql<span class="w"> </span>-U<span class="w"> </span><span class="s2">&quot;</s
 
 <span class="go">-- Retry a failed importer order by setting it back to pending</span>
 <span class="go">UPDATE imports</span>
-<span class="go">SET stage = &#39;Import Pending&#39;</span>
-<span class="go">WHERE uuid = &#39;00000000-0000-0000-0000-000000000000&#39;;</span>
+<span class="go">SET stage = 'Import Pending'</span>
+<span class="go">WHERE uuid = '00000000-0000-0000-0000-000000000000';</span>
 </pre></div>
 </div>
 </section>

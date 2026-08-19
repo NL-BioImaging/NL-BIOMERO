@@ -836,10 +836,10 @@ METABASE_SECRET_KEY=...
 <span class="w">  </span><span class="nt">networks</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">omero</span>
 <span class="w">  </span><span class="nt">ports</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;4080:4080&quot;</span><span class="w">  </span><span class="c1"># OMERO HTTP</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;4443:4443&quot;</span><span class="w">  </span><span class="c1"># OMERO HTTPS</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;3000:3000&quot;</span><span class="w">  </span><span class="c1"># Metabase HTTP</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;3443:3443&quot;</span><span class="w">  </span><span class="c1"># Metabase HTTPS</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"4080:4080"</span><span class="w">  </span><span class="c1"># OMERO HTTP</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"4443:4443"</span><span class="w">  </span><span class="c1"># OMERO HTTPS</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"3000:3000"</span><span class="w">  </span><span class="c1"># Metabase HTTP</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"3443:3443"</span><span class="w">  </span><span class="c1"># Metabase HTTPS</span>
 <span class="w">  </span><span class="nt">volumes</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./nginx/nginx.conf:/etc/nginx/nginx.conf:ro</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/etc/letsencrypt/:/etc/letsencrypt:ro</span>

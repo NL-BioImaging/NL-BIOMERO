@@ -1215,13 +1215,13 @@ mounted file instead of merging it with image or user-level defaults.</p>
 <span class="nt">environment</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">BIOMERO_SLURM_CONFIG_FILE</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/opt/omero/web/OMERO.web/var/slurm-config.ini</span>
 <span class="nt">volumes</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./web/slurm-config.ini:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"</span>
 
 <span class="c1"># Worker container - Reads the same host file</span>
 <span class="nt">environment</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">BIOMERO_SLURM_CONFIG_FILE</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/opt/omero/server/slurm-config.ini</span>
 <span class="nt">volumes</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:ro&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./web/slurm-config.ini:/opt/omero/server/slurm-config.ini:ro"</span>
 </pre></div>
 </div>
 <p>This makes the web interface the source of truth: additions, changes, and
@@ -1344,10 +1344,10 @@ chmod<span class="w"> </span><span class="m">666</span><span class="w"> </span>.
 <h3>Manual Verification<a class="headerlink" href="#manual-verification" title="Permalink to this heading"></a></h3>
 <p>Test the SSH connection from your deployment:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Test connection from biomeroworker container</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;sinfo&quot;</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">"sinfo"</span>
 
 <span class="c1"># OR for production deployment</span>
-podman<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>production-slurm<span class="w"> </span><span class="s2">&quot;squeue&quot;</span>
+podman<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>production-slurm<span class="w"> </span><span class="s2">"squeue"</span>
 </pre></div>
 </div>
 </section>
@@ -1426,7 +1426,7 @@ Alternatively, take our Docker Compose setups as a starting point and use these 
 <section id="ssh-connection-issues">
 <h3>SSH Connection Issues<a class="headerlink" href="#ssh-connection-issues" title="Permalink to this heading"></a></h3>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Test SSH from container</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>-v<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;echo &#39;SSH working&#39;&quot;</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>-v<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">"echo 'SSH working'"</span>
 
 <span class="c1"># Check SSH key permissions in container</span>
 docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>~/.ssh/
@@ -1436,13 +1436,13 @@ docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </spa
 <section id="slurm-job-issues">
 <h3>SLURM Job Issues<a class="headerlink" href="#slurm-job-issues" title="Permalink to this heading"></a></h3>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Check SLURM cluster status</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;sinfo&quot;</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">"sinfo"</span>
 
 <span class="c1"># View recent jobs</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;squeue -u </span><span class="nv">$USER</span><span class="s2">&quot;</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">"squeue -u </span><span class="nv">$USER</span><span class="s2">"</span>
 
 <span class="c1"># Check job details</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">&quot;scontrol show job JOBID&quot;</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>ssh<span class="w"> </span>localslurm<span class="w"> </span><span class="s2">"scontrol show job JOBID"</span>
 </pre></div>
 </div>
 </section>
@@ -1475,34 +1475,34 @@ names but cannot determine which overrides are active on a worker.</p>
 
 <span class="w">  </span><span class="c1"># --- Env-file submission ---</span>
 <span class="w">  </span><span class="c1"># Write workflow env vars to a per-job file instead of passing via SSH session.</span>
-<span class="w">  </span><span class="c1"># Use when your cluster&#39;s sbatch does not reliably inherit SSH environment variables.</span>
-<span class="w">  </span><span class="nt">BIOMERO_ENV_FILE_SUBMISSION</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;false&quot;</span>
+<span class="w">  </span><span class="c1"># Use when your cluster's sbatch does not reliably inherit SSH environment variables.</span>
+<span class="w">  </span><span class="nt">BIOMERO_ENV_FILE_SUBMISSION</span><span class="p">:</span><span class="w"> </span><span class="s">"false"</span>
 
 <span class="w">  </span><span class="c1"># --- GPU support ---</span>
 <span class="w">  </span><span class="c1"># Enable dynamic GPU flag handling in generated scripts and submissions.</span>
-<span class="w">  </span><span class="nt">BIOMERO_INJECT_GPU_FLAG</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;false&quot;</span>
+<span class="w">  </span><span class="nt">BIOMERO_INJECT_GPU_FLAG</span><span class="p">:</span><span class="w"> </span><span class="s">"false"</span>
 <span class="w">  </span><span class="c1"># Shared fallback partition for GPU workflows (only used when inject_gpu_flag is true)</span>
 <span class="w">  </span><span class="nt">BIOMERO_GPU_PARTITION</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gpu</span>
 <span class="w">  </span><span class="c1"># Shared fallback GRES for GPU workflows</span>
-<span class="w">  </span><span class="nt">BIOMERO_GPU_GRES</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;gpu:1&quot;</span>
+<span class="w">  </span><span class="nt">BIOMERO_GPU_GRES</span><span class="p">:</span><span class="w"> </span><span class="s">"gpu:1"</span>
 <span class="w">  </span><span class="c1"># Whether to emit the shared GPU fallback as --gres or --gpus</span>
 <span class="w">  </span><span class="nt">BIOMERO_GPU_RESOURCE_FLAG</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gres</span>
 
 <span class="w">  </span><span class="c1"># --- Image pull / build via sbatch ---</span>
 <span class="w">  </span><span class="c1"># Submit image pulls to the scheduler instead of running on the login node.</span>
-<span class="w">  </span><span class="nt">BIOMERO_IMAGE_PULL_VIA_SBATCH</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;false&quot;</span>
-<span class="w">  </span><span class="nt">BIOMERO_PULL_CPUS</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;8&quot;</span>
-<span class="w">  </span><span class="nt">BIOMERO_PULL_MEM</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;32G&quot;</span>
+<span class="w">  </span><span class="nt">BIOMERO_IMAGE_PULL_VIA_SBATCH</span><span class="p">:</span><span class="w"> </span><span class="s">"false"</span>
+<span class="w">  </span><span class="nt">BIOMERO_PULL_CPUS</span><span class="p">:</span><span class="w"> </span><span class="s">"8"</span>
+<span class="w">  </span><span class="nt">BIOMERO_PULL_MEM</span><span class="p">:</span><span class="w"> </span><span class="s">"32G"</span>
 
 <span class="w">  </span><span class="c1"># --- Apptainer tmp / cache dirs ---</span>
 <span class="w">  </span><span class="c1"># Override where Apptainer/Singularity writes tmp and cache during image pulls.</span>
 <span class="w">  </span><span class="c1"># Needed when the default location is too small for large images.</span>
-<span class="w">  </span><span class="nt">BIOMERO_APPTAINER_TMPDIR</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/data/my-scratch/.apptainer-tmp&quot;</span>
-<span class="w">  </span><span class="nt">BIOMERO_APPTAINER_CACHEDIR</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/data/my-scratch/.apptainer-cache&quot;</span>
+<span class="w">  </span><span class="nt">BIOMERO_APPTAINER_TMPDIR</span><span class="p">:</span><span class="w"> </span><span class="s">"/data/my-scratch/.apptainer-tmp"</span>
+<span class="w">  </span><span class="nt">BIOMERO_APPTAINER_CACHEDIR</span><span class="p">:</span><span class="w"> </span><span class="s">"/data/my-scratch/.apptainer-cache"</span>
 
 <span class="w">  </span><span class="c1"># --- Zip command ---</span>
 <span class="w">  </span><span class="c1"># Override the zip tool used on the cluster. Default: auto-detects 7z or 7za.</span>
-<span class="w">  </span><span class="nt">BIOMERO_SLURM_ZIP_CMD</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;7za&quot;</span>
+<span class="w">  </span><span class="nt">BIOMERO_SLURM_ZIP_CMD</span><span class="p">:</span><span class="w"> </span><span class="s">"7za"</span>
 </pre></div>
 </div>
 <p>For the full reference — including <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code> keys, types, defaults, and precedence

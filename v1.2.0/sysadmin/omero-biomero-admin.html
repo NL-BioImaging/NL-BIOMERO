@@ -687,7 +687,7 @@ and security configuration, see <a class="reference internal" href="metabase-adm
 </dl>
 <p><strong>Docker Mount Example</strong>:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">volumes</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;./web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"</span>
 </pre></div>
 </div>
 <p><strong>Important</strong>: Ensure the container user has write access to this file.</p>
@@ -827,7 +827,7 @@ and security configuration, see <a class="reference internal" href="metabase-adm
 <p><strong>Example Output</strong>:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>starting cellpose v1.3.1
 starting stardist v1.3.2
-FATAL: Image file already exists: &quot;cellpose/w_nucleisegmentation-cellpose_v1.3.1.sif&quot; - will not overwrite
+FATAL: Image file already exists: "cellpose/w_nucleisegmentation-cellpose_v1.3.1.sif" - will not overwrite
 finished cellpose v1.3.1
 </pre></div>
 </div>

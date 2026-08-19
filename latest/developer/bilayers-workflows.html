@@ -817,10 +817,10 @@ However, you can also just git a <code class="docutils literal notranslate"><spa
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">parameters</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">save_dir</span>
 <span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">textbox</span>
-<span class="w">    </span><span class="nt">label</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Save</span><span class="nv"> </span><span class="s">directory&quot;</span>
+<span class="w">    </span><span class="nt">label</span><span class="p">:</span><span class="w"> </span><span class="s">"Save</span><span class="nv"> </span><span class="s">directory"</span>
 <span class="w">    </span><span class="nt">output_dir_set</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
-<span class="w">    </span><span class="nt">default</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/output_images&quot;</span>
-<span class="w">    </span><span class="nt">cli_tag</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;--savedir&quot;</span>
+<span class="w">    </span><span class="nt">default</span><span class="p">:</span><span class="w"> </span><span class="s">"/output_images"</span>
+<span class="w">    </span><span class="nt">cli_tag</span><span class="p">:</span><span class="w"> </span><span class="s">"--savedir"</span>
 <span class="w">    </span><span class="nt">optional</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 </pre></div>
 </div>
@@ -858,7 +858,7 @@ dropdown in the OMERO script UI.</p>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">label</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
 <span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
 <span class="w">    </span><span class="nt">default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
-<span class="w">    </span><span class="nt">cli_tag</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;--an_axis&quot;</span>
+<span class="w">    </span><span class="nt">cli_tag</span><span class="p">:</span><span class="w"> </span><span class="s">"--an_axis"</span>
 </pre></div>
 </div>
 <p>When labels differ from values (e.g. <code class="docutils literal notranslate"><span class="pre">label:</span> <span class="pre">&quot;Option</span> <span class="pre">Alpha&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">value:</span> <span class="pre">alpha</span></code>),
@@ -870,25 +870,25 @@ correct value to the CLI.</p>
 <p>Below is the smallest valid <code class="docutils literal notranslate"><span class="pre">config.yaml</span></code> that BIOMERO will accept, with one image
 input, one output, and one user-facing parameter:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">citations</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;MyWorkflow&quot;</span>
-<span class="w">    </span><span class="nt">license</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;BSD</span><span class="nv"> </span><span class="s">3-Clause&quot;</span>
-<span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Example</span><span class="nv"> </span><span class="s">workflow&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">"MyWorkflow"</span>
+<span class="w">    </span><span class="nt">license</span><span class="p">:</span><span class="w"> </span><span class="s">"BSD</span><span class="nv"> </span><span class="s">3-Clause"</span>
+<span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">"Example</span><span class="nv"> </span><span class="s">workflow"</span>
 
 <span class="nt">docker_image</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">org</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">myorg</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">w_myworkflow</span>
-<span class="w">  </span><span class="nt">platform</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;linux/amd64&quot;</span>
+<span class="w">  </span><span class="nt">platform</span><span class="p">:</span><span class="w"> </span><span class="s">"linux/amd64"</span>
 
 <span class="nt">exec_function</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;generate_cli_command&quot;</span>
-<span class="w">  </span><span class="nt">cli_command</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;python</span><span class="nv"> </span><span class="s">-m</span><span class="nv"> </span><span class="s">myworkflow&quot;</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">"generate_cli_command"</span>
+<span class="w">  </span><span class="nt">cli_command</span><span class="p">:</span><span class="w"> </span><span class="s">"python</span><span class="nv"> </span><span class="s">-m</span><span class="nv"> </span><span class="s">myworkflow"</span>
 
 <span class="nt">inputs</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">inputfile</span>
 <span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">image</span>
-<span class="w">    </span><span class="nt">label</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Input</span><span class="nv"> </span><span class="s">image&quot;</span>
+<span class="w">    </span><span class="nt">label</span><span class="p">:</span><span class="w"> </span><span class="s">"Input</span><span class="nv"> </span><span class="s">image"</span>
 <span class="w">    </span><span class="nt">subtype</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">grayscale</span><span class="p p-Indicator">]</span>
-<span class="w">    </span><span class="nt">cli_tag</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;--input&quot;</span>
+<span class="w">    </span><span class="nt">cli_tag</span><span class="p">:</span><span class="w"> </span><span class="s">"--input"</span>
 <span class="w">    </span><span class="nt">optional</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
 <span class="w">    </span><span class="nt">format</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">tiff</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">omezarr</span><span class="p p-Indicator">]</span>
 <span class="w">    </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">beginner</span>
@@ -896,8 +896,8 @@ input, one output, and one user-facing parameter:</p>
 <span class="nt">outputs</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">outputfolder</span>
 <span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">image</span>
-<span class="w">    </span><span class="nt">label</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Output</span><span class="nv"> </span><span class="s">image&quot;</span>
-<span class="w">    </span><span class="nt">cli_tag</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;--output&quot;</span>
+<span class="w">    </span><span class="nt">label</span><span class="p">:</span><span class="w"> </span><span class="s">"Output</span><span class="nv"> </span><span class="s">image"</span>
+<span class="w">    </span><span class="nt">cli_tag</span><span class="p">:</span><span class="w"> </span><span class="s">"--output"</span>
 <span class="w">    </span><span class="nt">optional</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 <span class="w">    </span><span class="nt">format</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">tiff</span><span class="p p-Indicator">]</span>
 <span class="w">    </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">beginner</span>
@@ -905,10 +905,10 @@ input, one output, and one user-facing parameter:</p>
 <span class="nt">parameters</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">threshold</span>
 <span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">float</span>
-<span class="w">    </span><span class="nt">label</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Threshold&quot;</span>
-<span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Detection</span><span class="nv"> </span><span class="s">threshold</span><span class="nv"> </span><span class="s">(0–1).&quot;</span>
+<span class="w">    </span><span class="nt">label</span><span class="p">:</span><span class="w"> </span><span class="s">"Threshold"</span>
+<span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">"Detection</span><span class="nv"> </span><span class="s">threshold</span><span class="nv"> </span><span class="s">(0–1)."</span>
 <span class="w">    </span><span class="nt">default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.5</span>
-<span class="w">    </span><span class="nt">cli_tag</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;--threshold&quot;</span>
+<span class="w">    </span><span class="nt">cli_tag</span><span class="p">:</span><span class="w"> </span><span class="s">"--threshold"</span>
 <span class="w">    </span><span class="nt">optional</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 <span class="w">    </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">beginner</span>
 </pre></div>

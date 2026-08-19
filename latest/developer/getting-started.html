@@ -877,7 +877,7 @@ ssh<span class="w"> </span>-i<span class="w"> </span>~/.ssh/id_rsa<span class="w
 </div>
 <p>If not successful, try forcing ownership and permissions (and then try ssh again):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># from your host machine:</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>slurmctld<span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;chown -R slurm:slurm /home/slurm/.ssh &amp;&amp; chmod 700 /home/slurm/.ssh &amp;&amp; chmod 600 /home/slurm/.ssh/authorized_keys&quot;</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>slurmctld<span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">"chown -R slurm:slurm /home/slurm/.ssh &amp;&amp; chmod 700 /home/slurm/.ssh &amp;&amp; chmod 600 /home/slurm/.ssh/authorized_keys"</span>
 </pre></div>
 </div>
 </section>
@@ -1071,15 +1071,15 @@ docker-compose<span class="w"> </span><span class="nb">exec</span><span class="w
 <h5>Custom Institution Branding<a class="headerlink" href="#custom-institution-branding" title="Permalink to this heading"></a></h5>
 <p>By default, BIOMERO 2.0 uses NL-BioImaging branding. To customize:</p>
 <p><strong>Change banner logo:</strong> Mount your logo over the banner image</p>
-<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span>- &quot;./your-logo.png:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/nl-bioimaging-banner.png:ro&quot;
+<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./your-logo.png:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/nl-bioimaging-banner.png:ro"</span>
 </pre></div>
 </div>
 <p><strong>Change footer logo:</strong> Mount your logo over the footer image</p>
-<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span>- &quot;./your-logo.png:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/NL-BIoImaging-logo.jpg:ro&quot;
+<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./your-logo.png:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/NL-BIoImaging-logo.jpg:ro"</span>
 </pre></div>
 </div>
 <p><strong>Change footer text/colors/design:</strong> Create custom <code class="docutils literal notranslate"><span class="pre">login.html</span></code> template with inline CSS and mount it</p>
-<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span>- &quot;./custom-login.html:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/templates/webclient/login.html:ro&quot;
+<div class="highlight-yml notranslate"><div class="highlight"><pre><span></span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./custom-login.html:/opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb/webclient/templates/webclient/login.html:ro"</span>
 </pre></div>
 </div>
 <p>Restart container after changes: <code class="docutils literal notranslate"><span class="pre">docker-compose</span> <span class="pre">down</span> <span class="pre">omeroweb</span> <span class="pre">&amp;&amp;</span> <span class="pre">docker-compose</span> <span class="pre">up</span> <span class="pre">-d</span> <span class="pre">omeroweb</span></code></p>
@@ -1095,7 +1095,7 @@ docker-compose<span class="w"> </span><span class="nb">exec</span><span class="w
 <section id="quick-local-preview-working-directory">
 <h6>Quick local preview (working directory)<a class="headerlink" href="#quick-local-preview-working-directory" title="Permalink to this heading"></a></h6>
 <p>To preview your <strong>uncommitted changes</strong> instantly:</p>
-<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd </span><span class="s2">&quot;NL-BIOMERO\docs&quot;</span>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd </span><span class="s2">"NL-BIOMERO\docs"</span>
 <span class="p">.\</span><span class="n">venv</span><span class="p">\</span><span class="n">Scripts</span><span class="p">\</span><span class="n">sphinx-build</span><span class="p">.</span><span class="n">exe</span> <span class="n">-b</span> <span class="n">html</span> <span class="p">.</span> <span class="n">_build_local</span>
 </pre></div>
 </div>
@@ -1108,12 +1108,12 @@ uncommitted edits. Always use <code class="docutils literal notranslate"><span c
 <section id="full-versioned-build-all-tags-branches">
 <h6>Full versioned build (all tags + branches)<a class="headerlink" href="#full-versioned-build-all-tags-branches" title="Permalink to this heading"></a></h6>
 <p>Once your changes are committed, rebuild the complete versioned site:</p>
-<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd </span><span class="s2">&quot;NL-BIOMERO\docs&quot;</span>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd </span><span class="s2">"NL-BIOMERO\docs"</span>
 <span class="nb">Remove-Item</span> <span class="n">-Recurse</span> <span class="n">-Force</span> <span class="n">_build</span> <span class="n">-ErrorAction</span> <span class="n">SilentlyContinue</span>
 <span class="p">.\</span><span class="n">venv</span><span class="p">\</span><span class="n">Scripts</span><span class="p">\</span><span class="n">sphinx-multiversion</span><span class="p">.</span><span class="n">exe</span> <span class="p">.</span> <span class="n">_build</span>
 <span class="nb">Copy-Item</span> <span class="n">assets</span><span class="p">/</span><span class="n">gh-pages-redirect</span><span class="p">.</span><span class="n">html</span> <span class="n">_build</span><span class="p">/</span><span class="n">index</span><span class="p">.</span><span class="n">html</span>
-<span class="nv">$latestTag</span> <span class="p">=</span> <span class="p">(</span><span class="n">git</span> <span class="n">tag</span> <span class="n">-l</span> <span class="s2">&quot;v*.*.*&quot;</span> <span class="p">|</span> <span class="nb">Where-Object</span> <span class="p">{</span> <span class="nv">$_</span> <span class="o">-match</span> <span class="s2">&quot;^v[0-9]+\.[0-9]+\.[0-9]+$&quot;</span> <span class="p">}</span> <span class="p">|</span> <span class="nb">Sort-Object</span> <span class="p">{</span><span class="no">[version]</span><span class="p">(</span><span class="nv">$_</span> <span class="o">-replace</span> <span class="s1">&#39;^v&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">)}</span> <span class="n">-Descending</span> <span class="p">|</span> <span class="nb">Select-Object</span> <span class="n">-First</span> <span class="n">1</span><span class="p">)</span>
-<span class="k">if</span> <span class="p">(</span><span class="nv">$latestTag</span><span class="p">)</span> <span class="p">{</span> <span class="nb">Copy-Item</span> <span class="s2">&quot;_build/$latestTag&quot;</span> <span class="s2">&quot;_build/latest&quot;</span> <span class="n">-Recurse</span><span class="p">;</span> <span class="nb">Write-Host</span> <span class="s2">&quot;Created latest directory pointing to $latestTag&quot;</span> <span class="p">}</span>
+<span class="nv">$latestTag</span> <span class="p">=</span> <span class="p">(</span><span class="n">git</span> <span class="n">tag</span> <span class="n">-l</span> <span class="s2">"v*.*.*"</span> <span class="p">|</span> <span class="nb">Where-Object</span> <span class="p">{</span> <span class="nv">$_</span> <span class="o">-match</span> <span class="s2">"^v[0-9]+\.[0-9]+\.[0-9]+$"</span> <span class="p">}</span> <span class="p">|</span> <span class="nb">Sort-Object</span> <span class="p">{</span><span class="no">[version]</span><span class="p">(</span><span class="nv">$_</span> <span class="o">-replace</span> <span class="s1">'^v'</span><span class="p">,</span><span class="s1">''</span><span class="p">)}</span> <span class="n">-Descending</span> <span class="p">|</span> <span class="nb">Select-Object</span> <span class="n">-First</span> <span class="n">1</span><span class="p">)</span>
+<span class="k">if</span> <span class="p">(</span><span class="nv">$latestTag</span><span class="p">)</span> <span class="p">{</span> <span class="nb">Copy-Item</span> <span class="s2">"_build/$latestTag"</span> <span class="s2">"_build/latest"</span> <span class="n">-Recurse</span><span class="p">;</span> <span class="nb">Write-Host</span> <span class="s2">"Created latest directory pointing to $latestTag"</span> <span class="p">}</span>
 </pre></div>
 </div>
 <p>This builds all tagged versions and branches, then creates a <code class="docutils literal notranslate"><span class="pre">latest/</span></code> directory pointing to the newest release tag.</p>

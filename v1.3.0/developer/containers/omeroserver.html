@@ -703,13 +703,13 @@
 <h3>Configuration Changes<a class="headerlink" href="#configuration-changes" title="Permalink to this heading"></a></h3>
 <p><strong>Programmatic Configuration</strong>: Always make configuration changes through scripts or environment variables to maintain stateless deployments:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example: Add new configuration via startup script</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;config set -- omero.my.setting &#39;value&#39;&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>/opt/omero/server/config/02-my-config.omero
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"config set -- omero.my.setting 'value'"</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>/opt/omero/server/config/02-my-config.omero
 </pre></div>
 </div>
 <p><strong>Environment Variables</strong>: Use docker-compose environment variables for dynamic configuration:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">environment</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">CONFIG_omero_db_host</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;${POSTGRES_HOST}&quot;</span>
-<span class="w">  </span><span class="nt">CONFIG_omero_db_name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;${POSTGRES_DB}&quot;</span>
+<span class="w">  </span><span class="nt">CONFIG_omero_db_host</span><span class="p">:</span><span class="w"> </span><span class="s">"${POSTGRES_HOST}"</span>
+<span class="w">  </span><span class="nt">CONFIG_omero_db_name</span><span class="p">:</span><span class="w"> </span><span class="s">"${POSTGRES_DB}"</span>
 </pre></div>
 </div>
 </section>
