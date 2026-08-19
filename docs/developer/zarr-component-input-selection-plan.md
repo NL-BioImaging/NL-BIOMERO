@@ -419,7 +419,25 @@ import order and registered as OMERO Images 6151-6153. Each image:
 
 The remaining step-6 coverage is the automatic full-workflow route, including
 multiple labels and Plate membership. Per-label reuse and recursive
-reconstruction remain delivery steps 7 and 8.
+reconstruction are now implemented for one root-level image; Plate membership
+remains delivery step 9.
+
+Delivery steps 7 and 8 are proven at the image-collection level:
+
+- canonical full-Zarr inputs inventory every existing label node and store its
+  ISCC-BIO identity plus managed location in the workflow event snapshot;
+- returned labels are independently classified as inherited, new, or changed;
+  inherited returned copies are omitted while new/changed label nodes remain
+  local and become OMERO result projections;
+- selecting any shallow label projection reconstructs a conventional Zarr from
+  the canonical image pixels and every local/inherited label component; and
+- schema-v1 shallow manifests written before label-component records existed
+  are upcast at materialization by hashing their declared physical label paths.
+
+A live smoke test reconstructed OMERO Image 6151 from source Image 1341 into a
+temporary 6,848,888-byte Zarr containing both the root image and
+`labels/fractal_cellpose_sam_segmentation.zarr`. The temporary artifact was
+removed after verification; all managed sources remained read-only.
 
 ## Required tests
 
