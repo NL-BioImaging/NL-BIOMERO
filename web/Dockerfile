@@ -3,6 +3,7 @@ FROM openmicroscopy/omero-web-standalone:5.31.1
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
 ARG OMERO_BIOMERO_BRANCH=feature/zarr-shallow-storage
+ARG BIOMERO_SCHEMA_BRANCH=feature/zarr-shallow-storage
 
 USER root
 
@@ -43,8 +44,10 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 # Track the matching feature branch. The branch-head API response invalidates
 # Docker's cache whenever that branch advances, while pip still installs by
 # branch name rather than pinning an individual commit.
+ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_BRANCH}" /latest_commit_biomero_schema
 ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BIOMERO_BRANCH}" /latest_commit_omero_biomero
-RUN /opt/omero/web/venv3/bin/pip install "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
+RUN /opt/omero/web/venv3/bin/pip install "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
+    && /opt/omero/web/venv3/bin/pip install "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 ### Install OMERO.forms ###
