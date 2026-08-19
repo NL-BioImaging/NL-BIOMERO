@@ -145,6 +145,8 @@ workflow descriptor schema. The target vocabulary is:
 - `PixelIdentity`: identity and guards for one NGFF image or label node;
 - `CanonicalZarrSource`: OMERO Image/Plate identity, managed Zarr locator,
   generation, interchange profile, and verified pixel identity;
+- `CanonicalPlateSource`: one managed Plate locator plus an independently
+  identified `CanonicalPlateImage` for every declared Plate image node;
 - `CanonicalInput`: selected object, ordinal, and exact canonical generation
   transferred;
 - `CanonicalInputManifest`: ordered inputs bound to workflow and export task;
@@ -401,7 +403,8 @@ will detect and normalize it.
    managed label references so chained workflows reuse unchanged labels.
 8. Implement recursive materialization of a selected shallow result for future workflow
    transfer.
-9. Add Plate fixtures and multi-label registration.
+9. Add Plate fixtures, per-image canonical identities, shallow normalization,
+   standalone label-image reconstruction, and multi-label registration.
 10. Add OMERO.biomero inventory and mask-thumbnail presentation.
 11. Publish concise workflow-provider guidance and the BILAYERS blog section.
 
@@ -418,9 +421,7 @@ import order and registered as OMERO Images 6151-6153. Each image:
 - does not create another OMERO object for the unchanged top-image pixels.
 
 The remaining step-6 coverage is the automatic full-workflow route, including
-multiple labels and Plate membership. Per-label reuse and recursive
-reconstruction are now implemented for one root-level image; Plate membership
-remains delivery step 9.
+multiple labels and live Plate membership registration.
 
 Delivery steps 7 and 8 are proven at the image-collection level:
 
@@ -438,6 +439,40 @@ A live smoke test reconstructed OMERO Image 6151 from source Image 1341 into a
 temporary 6,848,888-byte Zarr containing both the root image and
 `labels/fractal_cellpose_sam_segmentation.zarr`. The temporary artifact was
 removed after verification; all managed sources remained read-only.
+
+Delivery step 9 now has unit-level storage and transfer coverage:
+
+- Image Transfer indexes an existing managed Plate Zarr in place, caching an
+  ISCC-BIO identity for every declared image node and label node in one
+  `CanonicalPlateSource` annotation;
+- a freshly exported Plate can be transactionally promoted into `.processed`
+  through the same canonical store used for Images;
+- returned Plates are eligible only when their complete image-node path set and
+  every image-node identity match the workflow snapshot;
+- normalization removes every duplicate image dataset, preserves Plate/well
+  metadata, retains new/changed image-level labels, and references inherited
+  labels; and
+- selecting a nested Plate label projection reconstructs that Plate image node
+  as a conventional standalone root-image Zarr with all labels rebased below
+  `labels/`.
+
+The concrete integration fixtures are
+`Project A/cellsA1B1.ome.zarr` (native managed Plate Zarr) and
+`Project B/cellssmall/.processed/20220714_TKI_482.ome.zarr` (processed
+canonical representation of a raw `.db` acquisition). Both contain 18 image
+nodes under `A/1/0..8` and `B/1/0..8`. The planned workflow checks are:
+
+- `bilayers_plate_test`: unchanged, label-free pass-through;
+- `simple-zarr-plate-processor` or `cideconvolve` v2.3.3: changed pixels must
+  remain a full result; and
+- `cisegmentation` v0.5.0: unchanged source pixels plus image-level labels
+  should normalize to a shallow Plate and import its masks automatically.
+
+Whole-Plate reselection with a particular shallow label collection still
+depends on OMERO.biomero collection inventory (delivery step 10). Individual
+Plate label projections already retain exact image membership and reconstruct
+as image-workflow inputs; the UI must later expose a collection-level Plate
+choice without mutating or ambiguously annotating the original Plate.
 
 ## Required tests
 
