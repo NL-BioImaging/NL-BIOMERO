@@ -139,6 +139,9 @@ services:
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
+      IMPORT_MOUNT_PATH: ${IMPORT_MOUNT_PATH}
+      OMERO_BIOMERO_CONFIG_FILE: ${BIOMERO_CONFIG_LOCATION}/biomero-config.json
+      OMERO_BIOMERO_GROUP_MAPPINGS_FILE: ${BIOMERO_CONFIG_LOCATION}/group-mappings.json
     # Named network to communicate with other containers
     networks:
       - omero
@@ -152,6 +155,7 @@ services:
       - "tus-destination:${UPLOADER_DESTINATION_DIR}"
       - "${BIOMERO_IMPORTER_CONFIG_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/config-importer:ro"
       - "${BIOMERO_CONFIG_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/biomero-config.json:ro"
+      - "${GROUP_MAPPINGS_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/group-mappings.json:ro"
       - "${LOGS_HOST_PATH}/biomeroworker:${OMERO_SERVER_LOGGING_LOCATION}"
     logging:
       driver: "json-file"

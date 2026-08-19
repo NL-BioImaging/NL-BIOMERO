@@ -49,9 +49,5 @@
       "folder": "Project A",
       "groupName": "test"
     }
-  },
-  "storage_roots": {
-    "group-0-data": "/data/Project B",
-    "group-3-data": "/data/Project A"
   }
 }

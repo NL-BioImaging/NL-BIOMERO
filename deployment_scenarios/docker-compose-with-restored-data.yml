@@ -89,6 +89,9 @@ services:
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
+      IMPORT_MOUNT_PATH: /data
+      OMERO_BIOMERO_CONFIG_FILE: /opt/omero/server/biomero-config.json
+      OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/server/group-mappings.json
     networks:
       - omero
     volumes:
@@ -99,6 +102,7 @@ services:
       - "tus-destination:/tus_destination"
       - "../config/biomero-importer:/opt/omero/server/config-importer:ro"
       - "../web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
+      - "../web/group-mappings.json:/opt/omero/server/group-mappings.json:ro"
 
   omeroweb:
     security_opt:

@@ -211,7 +211,7 @@ namespaced record on the OMERO Image or Plate, for example:
 namespace = biomero.zarr.source
 schema = 1
 storageRoot = group-5-data
-relativePath = project/.processed/Image-3207.g1.ome.zarr
+relativePath = .processed/Image-3207.g1.ome.zarr
 nodePath = . | 0 | A/1/0 | ...
 sourceObjectType = Image | Plate
 sourceObjectId = 3207
@@ -228,26 +228,31 @@ IMAGEWALK versions, node path, role, shape, axes, dtype, and coordinate
 transformations. The optional `storeIdentity` is an ISCC-SUM identifier for the
 physical tree; its method is intentionally not conflated with pixel identity.
 
-Use a configured storage-root ID plus relative path instead of assuming every
-service has the same absolute mount prefix. For an existing registered Zarr,
+Use a derived logical storage-root ID plus relative path instead of persisting a
+container-specific absolute mount prefix. For an existing registered Zarr,
 derive the initial root/node locator from its trusted `ExternalInfo.lsid` and
 then persist the normalized record.
 
-Deployments expose those logical IDs in the shared `biomero-config.json`, which
-is mounted into the worker and importer. For example:
+Do not add a `storage_roots` section to `slurm-config.ini` or
+`biomero-config.json`. Group folders already have one runtime authority:
+`group-mappings.json`, with the legacy `biomero-config.json["group_mappings"]`
+fallback. The container mount prefix already has one deployment authority:
+`IMPORT_MOUNT_PATH`. Derive the logical group root on each script execution:
 
-```json
-{
-  "storage_roots": {
-    "group-3-data": "/data/Project A"
-  }
-}
+```text
+group mapping: 3 -> folder "Project A"
+mount: IMPORT_MOUNT_PATH=/data
+logical ID: group-3-data
+worker-visible root: /data/Project A
 ```
 
-The absolute value is a container-visible managed root, while only the logical
-ID and a validated relative path enter the portable contract. Missing mappings,
-paths outside the configured root, unavailable directories, and ambiguous
-records are never guessed from display names or annotation iteration order.
+Mount the same mapping files read-only into `biomeroworker`; OMERO.biomero keeps
+editing its normal runtime files. Do not send absolute storage paths from the
+web client: workflows may be launched outside the web UI, and the worker must
+authorize the selected object's real OMERO group against current server-side
+configuration. Missing mappings, paths outside `IMPORT_MOUNT_PATH`, unavailable
+directories, and ambiguous records are never guessed from display names or
+annotation iteration order.
 
 Image Transfer resolves this record from the selected OMERO object. The record
 indexes a stable Zarr that already exists; it does not require a duplicate
