@@ -74,6 +74,63 @@ Results continues to provide in-place importing, but canonical promotion,
 input snapshots, returned-image comparison, and shallow normalization are
 disabled. This is the backward-compatible importer route.
 
+## Importer lifecycle boundary
+
+Shallow-result handling is a native, opt-in importer lifecycle operation. It
+is not part of `register.py` and it is not encoded as an
+`imports_preprocessing` container. The existing preprocessing table describes
+one external converter invocation and must keep doing so unchanged.
+
+An import order may carry a versioned `ImportOptionsEnvelope` in the existing
+nullable `imports.import_options` JSON text field. The envelope contains:
+
+- registration options for the eventual OMERO import;
+- an ordered tuple of typed lifecycle operations; and
+- schema/version discriminators so an importer can validate capability before
+  touching data.
+
+The first native operation is `biomero.shallow-zarr`. Its request contains the
+exact workflow-scoped `CanonicalInputManifest`, safe failure policy, and
+automatic result-view controls. The identity worker count is deployment
+configuration owned by the importer service, not a client-controlled field.
+Future operation kinds can cover storage relocation, integrity verification,
+or deduplication without changing the OMERO registration implementation.
+
+The execution order is:
+
+```text
+import order
+  -> optional legacy external/container preprocessing
+  -> native lifecycle operations (post-conversion, pre-import)
+  -> importer-owned registration plan
+  -> current register.py / future omero CLI implementation
+```
+
+This lets direct Zarr imports and converter-produced Zarrs use the same native
+operation. `SLURM_Import_Results.py`, OMERO.biomero, or another uploader can
+submit the same typed request through a public BIOMERO.importer order API;
+none needs to call the shallow implementation directly.
+
+Compatibility rules are strict:
+
+- missing/empty options and legacy flat schema-1 `ZarrImportOptions` upcast to
+  an envelope with no lifecycle operations;
+- no operation means the current importer path byte-for-byte in behavior;
+- `BIOMERO_SHALLOW_ZARR=false` means BIOMERO scripts do not enqueue the
+  operation;
+- an importer that does not advertise the operation must not receive such an
+  order; the script falls back to the existing full import;
+- unsupported operation kinds or invalid payloads fail before mutation with a
+  clear order status; and
+- the shallow operation itself is fail-safe and idempotent: uncertain
+  comparison keeps the full result, while a valid existing shallow manifest is
+  reused on retry.
+
+Operation-level status can initially use the existing append-only import
+stages and descriptions. If multiple independently retryable operations later
+need their own audit trail, add an `imports_operations` table by migration;
+the wire request and engine API do not need to change.
+
 ## Runtime configuration ownership
 
 The authoritative group-to-storage mapping is:
@@ -96,10 +153,11 @@ Image Transfer reads the same mapping only when effective shallow storage is
 enabled and it must promote a non-Zarr export under that group's `.processed`
 area. It must not read a separate `storage_roots` configuration.
 
-The `biomeroworker` container runs both Image Transfer and the result scripts.
-It therefore still needs the shared mapping files for importer-enabled Import
-Results. Mount the same files used by OMERO.biomero read-only in the worker;
-do not pass absolute storage paths from the web request.
+The `biomeroworker` container runs Image Transfer and Import Results. It still
+needs shared mappings for result placement and canonical export. The
+BIOMERO.importer service independently needs the same read-only mappings and
+the same `/data` view to resolve managed references during lifecycle
+operations. Do not pass absolute trusted storage paths from web requests.
 
 OMERO's processor does not automatically pass container environment variables
 to downloaded script subprocesses. Every required variable must also be in the
@@ -113,6 +171,8 @@ explicit allowlist in `biomeroworker/processor.py`. In particular:
 - `OMERO_BIOMERO_GROUP_MAPPINGS_FILE`.
 
 Changing that allowlist requires rebuilding/recreating `biomeroworker`.
+`BIOMERO_SHALLOW_ZARR_WORKERS` belongs only to the BIOMERO.importer service;
+it defaults to `1` and is not forwarded into OMERO script subprocesses.
 
 ## Data identities
 
@@ -206,9 +266,12 @@ migration.
 
 ## Result normalization
 
-This processing belongs in `SLURM_Import_Results.py`, after results have been
-copied into their permanent `.analyzed` directory and before importer orders
-are committed.
+`SLURM_Import_Results.py` copies results into their permanent `.analyzed`
+directory, loads the exact workflow input snapshot, and submits one typed
+import request. The expensive discovery, identity comparison, normalization,
+and result-view planning belong to BIOMERO.importer after it dequeues the
+order. Logging out of OMERO.web or timing out the polling script must not stop
+those operations.
 
 For every returned Zarr candidate:
 
@@ -227,10 +290,10 @@ For every returned Zarr candidate:
    metadata in place, validate the shallow collection, and only then delete the
    journal. Restore every move and metadata file on a pre-commit failure. Do
    not copy the retained label/metadata tree.
-8. For an Image result, create importer orders for every viewable label node;
-   multiple masks produce multiple OMERO Images. For a Plate result, import one
-   authoritative shallow Plate and do not flatten its image-level labels into
-   a Dataset of mask Images.
+8. Build an internal importer registration plan. For an Image result, register
+   every viewable label node; multiple masks produce multiple OMERO Images.
+   For a Plate result, register one authoritative shallow Plate and do not
+   flatten its image-level labels into a Dataset of mask Images.
 
 This optimization removes only copied pixels from the newly returned result.
 It never deletes or rewrites the original OMERO object or native Zarr.
@@ -270,6 +333,35 @@ read-only ISCC-BIO verification took 13.583, 12.590, and 11.786 seconds
 18 label identities, 0.705 seconds for discovery, and 0.670 seconds elsewhere.
 The complete comparison plus production normalization therefore averages about
 25.4 seconds for this fixture.
+
+Returned image nodes are independent identity jobs, as are returned label
+nodes. BIOMERO.importer therefore accepts bounded service-side concurrency via
+`BIOMERO_SHALLOW_ZARR_WORKERS`. The default is `1`, preserving previous
+sequential execution. Values greater than one use a bounded thread pool while
+preserving discovered node order; every identity phase completes before any
+result mutation. Invalid values fail back to one worker. Benchmark 1, 2, 4, 8,
+16, and 32 workers against production-like storage before selecting a site
+override; CPU count alone is not a suitable default because Zarr chunk and
+filesystem-metadata I/O may saturate first.
+
+A preliminary read-only sweep on the same 18-image/18-label result showed the
+expected storage-sensitive ceiling. Three runs were collected for 1, 2, and 4
+workers; higher counts received one exploratory run:
+
+| Identity workers | Total verification times | Mean / observed |
+| ---: | --- | ---: |
+| 1 | 16.294, 16.929, 10.350 s | 14.524 s mean |
+| 2 | 7.669, 20.565, 7.730 s | 11.988 s mean |
+| 4 | 7.609, 12.487, 8.108 s | 9.401 s mean |
+| 8 | 12.569 s | 12.569 s observed |
+| 16 | 13.857 s | 13.857 s observed |
+| 32 | 13.201 s | 13.201 s observed |
+
+Four workers had the best mean on this development mount, but variance was
+large and counts above four increased aggregate worker time through I/O
+contention. This evidence supports configurability, not a global default
+change: deployments remain at one worker until their own storage benchmark
+justifies an override.
 
 This is a baseline, not proof of linear scalability to a 1,000-image Plate.
 Before broad rollout, benchmark representative large Plates and record image
@@ -434,12 +526,21 @@ will detect and normalize it.
 
 - Image Transfer creates temporary full inputs, identifies them, records the
   workflow snapshot, and materializes selected shallow results.
-- Import Results owns result-location resolution and shallow normalization.
+- Import Results owns result-location resolution and submits a typed,
+  workflow-scoped shallow operation when the feature and importer capability
+  are enabled. It never hashes or normalizes returned Zarrs itself.
 - Get Results remains independent of BIOMERO.importer and in-place storage.
 - Run Workflow remains the authoritative importer/Get Results switch.
 
 ### BIOMERO.importer
 
+- Expose a public, typed import-order submission/capability API usable by
+  biomero-scripts, OMERO.biomero, and other upload clients.
+- Parse/upcast the versioned import-options envelope and execute registered
+  lifecycle operations after optional converter preprocessing and before
+  registration planning.
+- Own returned-Zarr discovery, identity work, fail-safe normalization,
+  idempotent retry, and automatic result-view planning.
 - Parse/validate supported NGFF structures.
 - Recognize `.biomero-shallow.json`, resolve and validate its canonical Image or
   Plate source, and attach the collection reference to every derived OMERO
@@ -483,21 +584,24 @@ will detect and normalize it.
 3. Keep shared canonical contracts and add backward-compatible event upcasting.
 4. Promote non-Zarr exports once; index native/returned Zarrs in place; record
    exact canonical generations in the event store.
-5. Implement result discovery and exact returned-image comparison in Import
-   Results, initially in keep mode with decision logging only.
-6. Implement transactional shallow normalization and automatic Image-label
-   projection import; register Plate results as Plates and omit unchanged
-   top-image pass-through objects.
-7. Extend input snapshots and shallow collections with per-label identities and
+5. Add versioned import-operation contracts, legacy option upcasting, a public
+   importer order API, and an importer lifecycle operation registry. Preserve
+   legacy external preprocessing unchanged.
+6. Move result discovery and exact returned-image comparison into the native
+   importer `biomero.shallow-zarr` operation, initially in keep mode.
+7. Implement importer-owned transactional shallow normalization and automatic
+   Image-label projection planning; register Plate results as Plates and omit
+   unchanged top-image pass-through objects.
+8. Extend input snapshots and shallow collections with per-label identities and
    managed label references so chained workflows reuse unchanged labels.
-8. Implement recursive materialization of a selected shallow result for future workflow
+9. Implement recursive materialization of a selected shallow result for future workflow
    transfer.
-9. Add Plate fixtures, per-image canonical identities, shallow normalization,
+10. Add Plate fixtures, per-image canonical identities, shallow normalization,
    source-backed Plate registration, optional common-label Plate registration,
    standalone Image-label reconstruction, and multi-label registration.
-10. Expose the optional Plate label-preview import in OMERO.biomero, then add
+11. Expose the optional Plate label-preview import in OMERO.biomero, then add
     full collection inventory and mask-thumbnail presentation.
-11. Publish concise workflow-provider guidance and the BILAYERS blog section.
+12. Publish concise workflow-provider guidance and the BILAYERS blog section.
 
 ### Integration evidence
 
