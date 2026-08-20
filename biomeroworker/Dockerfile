@@ -45,13 +45,13 @@ RUN yum -y install ack
 # after the importer. Branch-head responses invalidate the corresponding
 # install layer whenever a selected feature branch advances.
 ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_BRANCH}" /latest_commit_biomero_schema
-ADD "https://api.github.com/repos/Cellular-Imaging-Amsterdam-UMC/BIOMERO.importer/commits/${BIOMERO_IMPORTER_BRANCH}" /latest_commit_biomero_importer
+ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.importer/commits/${BIOMERO_IMPORTER_BRANCH}" /latest_commit_biomero_importer
 ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_BRANCH}" /latest_commit_biomero
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && $VIRTUAL_ENV/bin/python -m pip install \
         "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
     && $VIRTUAL_ENV/bin/python -m pip install \
-        "biomero-importer[identity] @ git+https://github.com/Cellular-Imaging-Amsterdam-UMC/BIOMERO.importer.git@${BIOMERO_IMPORTER_BRANCH}" \
+        "biomero-importer[identity] @ git+https://github.com/NL-BioImaging/BIOMERO.importer.git@${BIOMERO_IMPORTER_BRANCH}" \
     && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@${BIOMERO_BRANCH}" \
     && $VIRTUAL_ENV/bin/python -m pip install \
         scikit-image==0.25.2 omero-rois==0.4.1 \

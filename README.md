@@ -73,12 +73,16 @@ First, customize your environment file `.env`:
 # IMPORTER_ENABLED=TRUE   # Enables the BIOMERO.importer UI module
 # ANALYZER_ENABLED=TRUE   # Enables the BIOMERO.analyzer UI module
 # BIOMERO_SHALLOW_ZARR=FALSE  # Opt in to canonical-cache/shallow-result handling
+# BIOMERO_SHALLOW_ZARR_WORKERS=1  # Optional importer-side identity workers
 # Set either to FALSE to hide that module from OMERO.web without removing containers
 ```
 
 `BIOMERO_SHALLOW_ZARR` is effective only when `IMPORTER_ENABLED=TRUE`. With the
 flag absent or false, Image Transfer and Import Results keep their established
-export/import behavior.
+export/import behavior. `BIOMERO_SHALLOW_ZARR_WORKERS` is an importer-service
+setting and defaults to `1`, preserving sequential identity calculation;
+installations with suitable local CPU and storage capacity may opt into bounded
+parallelism with a larger value. It is not forwarded to OMERO scripts.
 
 ### 3. Setup Slurm Connection (Optional)
 For local testing with a containerized Slurm cluster:
