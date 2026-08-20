@@ -223,8 +223,10 @@ For every returned Zarr candidate:
    retains labels and references the source OMERO object.
 6. If pixels differ, no exact source is available, the mapping is ambiguous, or
    validation fails, keep the complete returned Zarr.
-7. Commit the normalized result transactionally before deleting any redundant
-   image chunks from that result.
+7. Move duplicate array directories into a sibling rollback journal, update
+   metadata in place, validate the shallow collection, and only then delete the
+   journal. Restore every move and metadata file on a pre-commit failure. Do
+   not copy the retained label/metadata tree.
 8. For an Image result, create importer orders for every viewable label node;
    multiple masks produce multiple OMERO Images. For a Plate result, import one
    authoritative shallow Plate and do not flatten its image-level labels into
@@ -232,6 +234,50 @@ For every returned Zarr candidate:
 
 This optimization removes only copied pixels from the newly returned result.
 It never deletes or rewrites the original OMERO object or native Zarr.
+Exact recursive byte accounting is a diagnostic option, not part of the
+synchronous import path: on mounted Plate storage its directory-stat cost can
+dominate the actual normalization. Operational logs report the retained label
+count and successful duplicate-array omission without rescanning the tree.
+
+### Return-path performance baseline
+
+The A1/B1 `cisegmentation` result was benchmarked inside the Linux
+BIOMERO.importer container against identical disposable copies on the real
+`/data` mount. The Plate has 18 image nodes, 18 image-level labels, 1,722 files,
+and occupied 146,143,912 bytes before normalization. Its shallow form occupied
+10,775,929 bytes: 135,367,983 bytes (92.6%) of copied source pixels were
+removed. Copy preparation was excluded because a workflow result already
+exists in `.analyzed` when normalization starts.
+
+| Measured component | Copy retained tree | Move journal + size scans | Move journal, production |
+| --- | ---: | ---: | ---: |
+| NGFF discovery | 1.005 s | 1.042 s | 1.088 s mean |
+| Dataset planning | 0.142 s | 0.147 s | 0.154 s mean |
+| Retained-tree copy / duplicate-array moves | 81.163 s | 1.235 s | 1.271 s mean |
+| Attribute reads | included | 1.186 s | 1.238 s mean |
+| Metadata/manifest writes | 0.467 s | 0.317 s | 0.319 s mean |
+| Full-tree size before | 77.787 s | 77.004 s | skipped |
+| Full-tree size after | 26.221 s | 33.624 s | skipped |
+| Delete replaced/pruned tree | 9.458 s | 6.050 s | 6.449 s mean |
+| Other/validation | 0.022 s | 2.241 s | 2.211 s mean |
+| **Normalization total** | **196.264 s** | **122.844 s** | **12.729 s mean** |
+
+The production result is three runs (12.666, 12.734, and 12.788 seconds).
+Moving instead of copying reduced the original measured transaction by 37.4%;
+removing the two diagnostic tree scans reduced it by 93.5% overall. Separate
+read-only ISCC-BIO verification took 13.583, 12.590, and 11.786 seconds
+(12.653 seconds mean): 7.854 seconds for 18 image identities, 3.425 seconds for
+18 label identities, 0.705 seconds for discovery, and 0.670 seconds elsewhere.
+The complete comparison plus production normalization therefore averages about
+25.4 seconds for this fixture.
+
+This is a baseline, not proof of linear scalability to a 1,000-image Plate.
+Before broad rollout, benchmark representative large Plates and record image
+count, label count, file/chunk count, bytes, mount/backend, identity time, move
+time, deletion time, and total wall time. If synchronous unlink becomes the
+dominant user-visible cost, commit the manifest after the rollback-safe moves
+and queue journal deletion as recoverable background maintenance. Do not adopt
+that extra lifecycle until it has crash-recovery and orphan-journal cleanup.
 
 ## RFC-8-shaped storage and BIOMERO references
 
@@ -296,6 +342,14 @@ that result with its source pixels.
 
 Direct transfer of label-only data may be added later as an explicit workflow
 capability. Full materialization is the interoperable default.
+
+An optional future optimization may run the same task-bound image/label
+identity comparison on HPC before returning a result and transfer an already
+shallow RFC-8-shaped collection. This could reduce both return traffic and
+server-side I/O for TB-scale Plates. It is a feasibility item, not the primary
+contract: generic FAIR workflows need not know BIOMERO metadata, native shallow
+output remains welcome, and BIOMERO's return path remains the backup control
+point for conventional full Zarr results.
 
 ## OMERO registration and visualization
 
@@ -533,9 +587,11 @@ inventory was migrated to
 proved to round-trip through the compact index before cleanup. The 18 generated
 `biomero.zarr.plate-source.image` annotations were then removed through the
 OMERO API. Plate 1552 now retains only compact index annotation 17919, while
-the sidecar restores all 18 image identities. The corrected branches are
-deployed in the development stack; the remaining live proof is a new
-`cisegmentation` run whose renamed output must commit as a shallow Plate.
+the sidecar restores all 18 image identities. A later `cisegmentation` run,
+`f186d374-3b9d-439a-9fd6-7798a9b4cb17`, proved the renamed output path: it
+committed as a shallow Plate, reduced the result from 146,143,980 to 10,775,997
+bytes, and successfully submitted both the authoritative source-backed Plate
+and the opt-in label-backed Plate preview to the importer.
 The first retry, `9192c966-e316-4e48-a12f-d8c8427ea52b`, stopped before export
 because biomero's compatibility module did not re-export the shared
 `ShallowPlateReference` model used by Image Transfer. Biomero commit `c9c9018`
@@ -590,6 +646,10 @@ preview mode, but must not mutate or ambiguously annotate the original Plate.
 - Plate metadata scale: a Plate with 1,000 image nodes still creates one compact
   OMERO canonical index; its full identity inventory round-trips through the
   managed storage marker, and legacy split records remain readable.
+- Plate performance scale: benchmark at least one representative large Plate;
+  no recursive whole-tree byte scan or retained-tree copy occurs in the
+  synchronous path, and identity, move, deletion, and total times are reported
+  separately.
 - Re-materialized shallow result: full source pixels and labels compare with the
   original kept result.
 - Unsupported/newer NGFF: conservative retention with an actionable log.
