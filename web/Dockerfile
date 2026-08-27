@@ -1,3 +1,17 @@
+FROM python:3.12-slim AS omero-forms-builder
+
+ARG OMERO_FORMS_VERSION
+
+# OMERO.forms 2.3.0 is released on GitHub but not yet published on PyPI.
+# Build its frontend and pure-Python wheel from the matching release tag.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends nodejs npm && \
+    rm -rf /var/lib/apt/lists/*
+RUN test -n "$OMERO_FORMS_VERSION" || (echo "OMERO_FORMS_VERSION build arg is required" >&2; exit 1)
+RUN SETUPTOOLS_SCM_PRETEND_VERSION_FOR_OMERO_FORMS="$OMERO_FORMS_VERSION" \
+    python -m pip wheel --no-deps --wheel-dir /tmp/omero-forms-wheels \
+    "https://github.com/NL-BioImaging/OMERO.forms/archive/refs/tags/v${OMERO_FORMS_VERSION}.tar.gz"
+
 FROM openmicroscopy/omero-web-standalone:5.31.1
 
 ARG OMERO_FORMS_VERSION
@@ -51,8 +65,10 @@ RUN /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION}
 
 ### Install OMERO.forms ###
 
-# Install OMERO.forms from PyPI
-RUN /opt/omero/web/venv3/bin/pip install omero-forms==${OMERO_FORMS_VERSION}
+# Install the release wheel built above without retaining Node build tooling.
+COPY --from=omero-forms-builder /tmp/omero-forms-wheels /tmp/omero-forms-wheels
+RUN /opt/omero/web/venv3/bin/pip install /tmp/omero-forms-wheels/*.whl && \
+    rm -rf /tmp/omero-forms-wheels
 
 # Set the working directory
 WORKDIR /opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb
