@@ -28,6 +28,9 @@ Import Workflow
 
    High-level flow of the BIOMERO.importer import process, from user request and database orchestration to worker thread execution.
 
+.. tip::
+   🎥 **Visual explanation · 1:24:** :ref:`See how group storage, optional preprocessing, and in-place import connect <video-in-place-importing>`.
+
 Import order creation and management
 ------------------------------------
 
