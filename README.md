@@ -8,8 +8,9 @@ BIOMERO 2.0 is described in our published paper: [“BIOMERO 2.0: end-to-end FA
 - metadata enrichment, versioning, and provenance tracking,  
 - integrated workflow monitoring and dashboards.
 
-🎥 **Introduction video**  
-👉 https://nl-bioimaging.github.io/NL-BIOMERO/latest/overview.html
+🎥 **BIOMERO videos**
+
+👉 [Conceptual introduction and short technical clips](https://nl-bioimaging.github.io/NL-BIOMERO/latest/overview.html)
 
 Using NL‑BIOMERO yields a unified environment where image data import, preprocessing, analysis, and provenance tracking are managed end-to-end — from raw data to processed results — in a reproducible, shareable, FAIR‑compliant infrastructure.
 

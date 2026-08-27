@@ -22,8 +22,10 @@ Welcome to NL-BIOMERO's documentation!
    </div>
    
    <div style="flex: 1; min-width: 300px; background: #f0f4ff; border-left: 4px solid #6366f1; padding: 15px; border-radius: 5px;">
-   <h4 style="margin: 0 0 10px 0; color: #6366f1;">🎥 Introduction Video</h4>
-   <p style="margin: 0; font-size: 14px;">New to BIOMERO? Watch our overview explaining FAIR challenges, OMERO data management, and how BIOMERO transforms your workflow. <a href="overview.html">Watch Now →</a></p>
+   <h4 style="margin: 0 0 10px 0; color: #6366f1;">🎥 BIOMERO Videos</h4>
+   <p style="margin: 0; font-size: 14px;">Choose an introduction that matches your background:</p>
+   <p style="margin: 10px 0 0 0; font-size: 14px;"><a href="overview.html#video-conceptual-introduction">Conceptual introduction →</a><br>
+   <a href="overview.html#video-technical-architecture-clips">Short technical clips →</a></p>
    </div>
    
    </div>

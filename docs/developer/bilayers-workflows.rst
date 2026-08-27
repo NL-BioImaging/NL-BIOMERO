@@ -84,6 +84,9 @@ I/O Directory Handling
 
 This is the most important difference from BIAFLOWS.
 
+.. tip::
+   🎥 **Visual explanation · 0:58:** :ref:`See how one OME-Zarr transfer path supports flexible workflow interfaces <video-one-format-flexible-workflows>`.
+
 In a BIAFLOWS workflow the job template always passes ``--infolder`` and
 ``--outfolder`` at fixed positions. The workflow must accept exactly those flags.
 

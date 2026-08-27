@@ -86,6 +86,9 @@ Database Integration
 Data Export Pipeline
 ~~~~~~~~~~~~~~~~~~~
 
+.. tip::
+   🎥 **Visual explanation · 0:58:** :ref:`See how OME-Zarr connects OMERO data to flexible workflow inputs <video-one-format-flexible-workflows>`.
+
 **bioformats2raw Installation**:
 
 .. code-block:: dockerfile
@@ -357,6 +360,9 @@ Inspect workflow notifications
 
 Eventsourcing
 ~~~~~~~~~~~~~
+
+.. tip::
+   🎥 **Visual explanation · 1:26:** :ref:`See how immutable events provide live progress and later provenance <video-provenance-while-working>`.
 
 .. code-block:: python
 
