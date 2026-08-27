@@ -179,7 +179,11 @@ it defaults to `1` and is not forwarded into OMERO script subprocesses.
 Use `iscc-bio`/IMAGEWALK for the pixel identity of an image node. Its useful
 property is format-independent identity: the same logical image pixels can
 produce the same identity when read from a raw microscopy file, OMERO Pixels,
-or OME-Zarr.
+or OME-Zarr. IMAGEWALK operates on decoded, canonicalized two-dimensional
+planes in Z→C→T order and is independent of chunk layout, codecs, metadata,
+additional pyramid levels, and separately stored labels. It is therefore the
+identity used to answer whether workflow-returned source pixels changed. See
+[IEP-0018](https://ieps.iscc.codes/iep-0018/).
 
 Record semantic guards with each identity:
 
@@ -189,13 +193,58 @@ Record semantic guards with each identity:
 - ISCC, Data-Code, and Instance-Code;
 - tool version and IMAGEWALK revision.
 
-Use `iscc-sum` as an optional store/archive identity for transfer integrity,
-fast exact-store checks, and operational deduplication. Do not create a
+Use `iscc-sum`/TREEWALK-ISCC only as an optional store/archive identity for
+transfer integrity, fast exact-fileset checks, and operational deduplication.
+It changes when a store is rechunked, recompressed, gains labels, or receives
+metadata changes, so it is not an image-pixel equality check. Do not create a
 BIOMERO-specific checksum implementation.
+
+If BIOMERO later persists a whole-store code, use `<store>/.iscc.json`.
+TREEWALK-ISCC always excludes files ending in `.iscc.json`, including in
+directory, archive, and object-store traversal, avoiding a circular store sum.
+`.isccignore` may additionally exclude operational paths. This whole-store
+sidecar is optional and outside the synchronous shallow-eligibility path. See
+[IEP-0017](https://ieps.iscc.codes/iep-0017/).
 
 Pixel equality is based on the pixel identity plus semantic guards, not on a
 copied directory path. Store identity alone is insufficient because adding
 labels or metadata legitimately changes the Zarr tree.
+
+### Portable embedded Image identity
+
+Whenever BIOMERO calculates or reuses an IMAGEWALK identity for a writable
+BIOMERO-produced Zarr, publish a compact ISCC metadata object in the user
+attributes of the concrete NGFF Image group:
+
+```json
+{
+  "iscc": {
+    "iscc": "ISCC:..."
+  }
+}
+```
+
+This applies to an ordinary Image root, every HCS field such as `A/1/0`, and
+each label Image group for which BIOMERO calculates a label identity. Write it
+through the Zarr group-attributes API, not by targeting a metadata filename:
+
+- OME-NGFF 0.4/Zarr v2 serializes it as top-level `iscc` in the Image group's
+  `.zattrs`, beside `multiscales`, `omero`, and other group attributes;
+- Zarr v3 serializes the same logical attribute as `attributes.iscc` in the
+  Image group's `zarr.json`.
+
+Keep it outside the versioned NGFF `ome` namespace. A minimal
+`{"iscc": "ISCC:..."}` value follows the lightweight embedding convention;
+do not claim that it is a complete IEP-0012 JSON-LD document unless all
+required IEP-0012 metadata fields are emitted. See
+[IEP-0012](https://ieps.iscc.codes/iep-0012/).
+
+An embedded identity is a portable claim and path-independent hint, not trusted
+proof that the current pixels still match it. Generic workflows may copy user
+attributes unchanged while modifying pixels. BIOMERO's trusted workflow input
+snapshot and a freshly computed returned IMAGEWALK identity remain
+authoritative for normalization. Never discard returned pixels solely because
+`attrs.iscc` matches the recorded source.
 
 ## Shared contracts
 
@@ -228,13 +277,18 @@ For an importer-enabled Zarr transfer:
    profile, verify it against OMERO Pixels, and transactionally promote it once
    into the group's `.processed` area.
 4. Calculate or reuse the ISCC-BIO identity for each canonical image node
-   actually sent.
+   actually sent and for each declared label node included in the transfer.
 5. Record a `CanonicalInputManifest` in the workflow event store, including the
    selected OMERO object, canonical generation, and transferred identity.
-6. Optionally place a small BIOMERO hint in the transfer Zarr. A generic
-   workflow may preserve, remove, or ignore it.
-7. Transfer the ordinary, fully usable Zarr to SLURM.
-8. Clean up the task-local transfer copy according to existing behavior; retain
+6. For every writable BIOMERO-produced Image or label group, publish its
+   IMAGEWALK code as the portable group-level `iscc` user attribute. A native
+   read-only Zarr is indexed without mutation; its identity remains available
+   through BIOMERO's managed inventory and workflow snapshot.
+7. Optionally place a small BIOMERO task/provenance hint in the transfer Zarr.
+   A generic workflow may preserve, remove, or ignore either hint, and neither
+   replaces return-side verification.
+8. Transfer the ordinary, fully usable Zarr to SLURM.
+9. Clean up the task-local transfer copy according to existing behavior; retain
    the committed canonical source.
 
 The snapshot describes the exact canonical generation sent to one workflow
@@ -280,8 +334,10 @@ For every returned Zarr candidate:
    labels.
 3. Match returned image nodes to input nodes deterministically by provenance,
    structure, and identity. Never choose an arbitrary candidate.
-4. Calculate the returned image-node identity unless a valid task-bound hint
-   permits a safe fast path.
+4. Calculate the returned image-node identity. A copied embedded `attrs.iscc`
+   claim is never sufficient to skip this calculation. Any future fast path
+   must be independently bound to the exact task input and validated without
+   trusting mutable workflow output metadata.
 5. If identity and semantic guards match, construct a shallow collection that
    retains labels and references the source OMERO object.
 6. If pixels differ, no exact source is available, the mapping is ambiguous, or
@@ -386,6 +442,19 @@ containing at least:
 - workflow/task provenance;
 - managed canonical Zarr locator and generation.
 
+Carry both kinds of source linkage:
+
+- the RFC-8/NGFF relative `source.image` path identifies where the source Image
+  lives in one concrete portable materialization; and
+- the source Image's IMAGEWALK ISCC in the trusted collection/source record
+  identifies which decoded pixel content the result derives from independently
+  of storage path.
+
+The source ISCC strengthens, but does not replace, the relative source path.
+Do not invent an unversioned relation property inside NGFF's `source` object;
+keep BIOMERO's path-independent relation in the versioned shared collection
+contract until NGFF or ISCC standardizes such a relation.
+
 This is storage/orchestration metadata, not a BILAYERS requirement. When the
 source is later requested for a workflow, BIOMERO materializes a conventional
 self-contained transfer Zarr and writes valid paths for that temporary layout.
@@ -405,6 +474,11 @@ image-node membership, logical label path, identity, and semantic guards:
 - replace an unchanged copied label with a managed reference to its prior
   collection component;
 - do not infer that similarly named labels are identical.
+
+When a label group is writable, publish its own group-level `attrs.iscc` value
+for interoperability. This value identifies the label pixels, not the source
+Image. The label's source relationship remains in NGFF source metadata and the
+trusted shallow-collection graph.
 
 Collection references form an acyclic provenance graph. Reconstruction resolves
 the canonical source, recursively resolves inherited label references, and then
@@ -503,6 +577,13 @@ that same profile if they want immediate OMERO registration and thumbnails.
 Support will advance as Glencoe and OMERO release compatible exporter,
 PixelBuffer, and importer versions.
 
+BIOMERO inputs may contain a group-level `iscc` user attribute on Image and
+label groups. Providers may preserve it. If they change the identified pixels
+and want the output metadata to remain accurate, they should recompute or
+remove it; BIOMERO does not require workflow support for this convention and
+will independently verify returned pixels. A copied or stale value never causes
+BIOMERO to omit returned arrays.
+
 Native RFC-8 output is an optional optimization. A provider may instead return
 a conventional full Zarr with unchanged image pixels and added labels; BIOMERO
 will detect and normalize it.
@@ -583,7 +664,9 @@ will detect and normalize it.
    `IMPORT_MOUNT_PATH`; remove the duplicate `storage_roots` configuration.
 3. Keep shared canonical contracts and add backward-compatible event upcasting.
 4. Promote non-Zarr exports once; index native/returned Zarrs in place; record
-   exact canonical generations in the event store.
+   exact canonical generations in the event store. Publish portable per-Image
+   and per-label `attrs.iscc` claims on writable BIOMERO-produced Zarrs while
+   keeping the workflow snapshot authoritative.
 5. Add versioned import-operation contracts, legacy option upcasting, a public
    importer order API, and an importer lifecycle operation registry. Preserve
    legacy external preprocessing unchanged.
@@ -731,6 +814,23 @@ preview mode, but must not mutate or ambiguously annotate the original Plate.
   a second `storage_roots` config.
 - Native Zarr input: reuse in place and record identity without a persistent
   copy.
+- Zarr-v2 identity embedding: writable BIOMERO-produced Image, Plate-field, and
+  label groups expose top-level `iscc` in `.zattrs`; native read-only Zarrs are
+  never mutated merely to add it.
+- Zarr-v3 identity embedding: the same group-attributes implementation writes
+  `attributes.iscc` in `zarr.json` when that interchange profile becomes
+  supported; code does not hard-code either metadata filename.
+- IMAGEWALK invariance: rechunking, recompression, added metadata, added scale
+  levels, and added labels leave the base Image identity unchanged; changing a
+  decoded source pixel changes it.
+- Embedded-claim safety: a workflow that copies stale `attrs.iscc` while
+  changing pixels is retained as a full result after return-side recomputation.
+- Plate identities: every declared field is independently identified and the
+  ordered field/path inventory is compared; no synthetic Plate-level pixel
+  code substitutes for those Image identities.
+- Store identity: adding `<store>/.iscc.json` does not alter a
+  TREEWALK-ISCC result, while adding labels or changing store files does; the
+  store code is never used as source-pixel equality.
 - Raw/non-Zarr input with feature enabled: one `.processed` promotion followed
   by reuse on later workflows.
 - Unchanged returned image plus labels: shallow normalization retains labels and
@@ -770,6 +870,9 @@ preview mode, but must not mutate or ambiguously annotate the original Plate.
   behavior.
 - Eligible unchanged Zarr results occupy label/metadata storage rather than a
   repeated copy of source image pixels.
+- Every writable BIOMERO-produced transfer/canonical Zarr publishes portable
+  per-Image and per-label ISCC claims without making those mutable claims
+  authoritative for returned-pixel deletion.
 - OMERO Plate metadata stays bounded: one compact canonical index per
   generation, independent of image and label count.
 - Changed results are preserved completely.
