@@ -1,105 +1,337 @@
-# BIOMERO shallow OME-Zarr
+# Experimental BIOMERO shallow OME-Zarr storage
 
 ```{warning}
-BIOMERO shallow OME-Zarr is an experimental, internal storage contract. It is
-inspired by the shallow-copy use case in OME-NGFF RFC 8, but a
-`.biomero-shallow.json` file is **not** an RFC 8 Collection and must not be
-advertised as portable OME-NGFF metadata. The current wire contract is schema
-1 and is expected to evolve through versioned readers and upcasters.
+This is an experimental, private BIOMERO storage contract. It is inspired by
+the shallow-copy use case in OME-NGFF RFC 8, but
+`.biomero-shallow.json` is **not** an RFC 8 Collection and is not a portable
+OME-NGFF standard. The current wire schema is version 1 and will evolve through
+versioned readers and upcasters.
 ```
 
-This page documents why BIOMERO stores some workflow results as shallow
-OME-Zarr collections, how those collections are reconstructed at workflow
-boundaries, and how ISCC-BIO IMAGEWALK identities make the storage decision
-safe.
+BIOMERO can store a label-producing Zarr workflow result without keeping a
+second copy of the unchanged input pixels. The retained result contains its
+labels, the structural metadata needed to describe them, and managed references
+to a full source Zarr. When that result is selected for another workflow,
+BIOMERO reconstructs an ordinary, self-contained OME-Zarr before transfer.
 
-## Status and scope
+The feature deliberately applies only to **derived workflow results**. It never
+removes or rewrites the user's original raw data or the managed full source.
+When BIOMERO cannot establish that returned pixels are unchanged, it keeps the
+returned Zarr in full. A workflow result can also be regenerated from its
+original input and parameters, so the optimization has a smaller risk boundary
+than deduplicating primary data.
 
-This page will distinguish three things that are intentionally related but not
-interchangeable:
+## Why shallow results exist
 
-1. the collection and shallow-copy concepts proposed by
-   [OME-NGFF RFC 8](https://ngff.openmicroscopy.org/rfc/8/);
-2. the private BIOMERO storage and service contract represented by
-   `.biomero-shallow.json`; and
-3. the portable pixel-content identities produced by
-   [ISCC-BIO](https://github.com/bio-codes/iscc-bio).
+A typical segmentation workflow receives a full OME-Zarr, copies its image
+arrays to the output, and adds one or more NGFF labels. Persisting every such
+output duplicates the largest part of the data. This becomes costly for Plates:
+several segmentation and analysis runs can otherwise create several copies of
+the same hundreds of gigabytes or terabytes of intensity data.
 
-The feature is opt-in through `BIOMERO_SHALLOW_ZARR`. Disabling it preserves
-the conventional full-result import path.
+The shallow result is a managed composition:
 
-During an enabled export, BIOMERO writes `.biomero-input.json` into each
-task-local Zarr copy. It contains one existing `CanonicalInput` record and lets
-the importer distinguish separately selected OMERO objects that have identical
-pixels even when a workflow renames its output. The marker is validated against
-the authoritative workflow event snapshot, never trusted as proof of pixel
-equality, and removed before the result is registered. It is not written into
-the canonical source and workflow providers do not need to understand it.
+```text
+full managed source pixels ───────────────┐
+                                          ├─ reconstruct ─> full workflow input
+derived result metadata + local labels ───┘
+```
 
-## Why BIOMERO uses shallow results
+This is primarily a **storage optimization**, not an interchange format.
+Workflows normally receive the reconstructed full Zarr so that generic tools
+can use intensity pixels, physical metadata, inherited labels, and new labels
+without understanding BIOMERO.
 
-<!-- Explain duplicated source pixels in Zarr-to-Zarr workflows and the
-read-only managed-storage model. -->
+## Lifecycle
+
+1. Image Transfer resolves or creates a full managed Zarr for every selected
+   OMERO Image or Plate. A non-Zarr original may therefore acquire a reusable
+   canonical representation in `.processed`; an already managed Zarr can be
+   used directly without making another canonical copy.
+2. BIOMERO calculates per-image and per-label pixel identities and stores the
+   authoritative ordered input snapshot in its workflow event store.
+3. Each task-local input copy receives `.biomero-input.json`. This small marker
+   identifies the selected input even when several inputs contain identical
+   pixels or a workflow renames its result. It is not a workflow-provider
+   contract and is removed from the stored result.
+4. The workflow runs against a normal, full OME-Zarr. It may ignore and simply
+   copy BIOMERO metadata.
+5. On return, BIOMERO.importer recomputes the decoded pixel identities. If the
+   image pixels match the corresponding source and useful labels are present,
+   it transactionally removes the duplicated image arrays and writes
+   `.biomero-shallow.json`. Changed or uncertain results stay full.
+6. OMERO registers viewable projections of the result while the authoritative
+   shallow collection remains in managed `.analyzed` storage.
+7. Selecting a shallow result for a later workflow causes Image Transfer to
+   materialize a temporary full Zarr containing the source pixels, inherited
+   labels, and locally retained labels. The temporary reconstruction is removed
+   after transfer.
+
+Return-side identity work and normalization belong to BIOMERO.importer. They
+are not tied to the lifetime of the OMERO.web request that submitted the
+workflow. The OMERO script currently waits for the import status, but an ended
+web session does not terminate importer-owned processing.
+
+## Relationship to OME-NGFF RFC 8
+
+[RFC 8](https://ngff.openmicroscopy.org/rfc/8/) proposes Collections and, as a
+motivating use case, shallow copies of images with segmentations. BIOMERO mirrors
+the following design ideas:
+
+- unchanged image data can remain in a separately managed source;
+- a derived collection can retain labels and refer back to that source;
+- collection members can be composed into a complete view at a system
+  boundary; and
+- a Plate can refer to source images per field rather than inventing one
+  Plate-wide pixel checksum.
+
+BIOMERO currently adds private machinery that RFC 8 does not define: OMERO
+object IDs and generations, logical storage roots, relative managed paths,
+workflow and transfer identifiers, an event-store input snapshot, ISCC-BIO
+pixel identities, and registration projections for the current OMERO
+PixelBuffer.
+
+Consequently, a BIOMERO shallow result must not be presented as a standardized
+RFC 8 Collection. Generic OME-Zarr readers are not expected to follow its
+managed references. Once a compatible Collections model is released and
+supported by the surrounding OMERO stack, the private schema can be migrated or
+adapted behind its versioned reader.
+
+### NGFF label `source`
+
+A retained label still has the standard NGFF 0.4 relationship:
+
+```json
+{
+  "image-label": {
+    "source": {"image": "../../"},
+    "version": "0.4"
+  }
+}
+```
+
+That relative path describes the label's logical image inside the reconstructed
+Zarr. While the result is shallow, the local image arrays may be absent, so the
+BIOMERO sidecar is the authority for locating the externally managed pixels.
+Reconstruction makes the ordinary relative NGFF relationship valid again. We
+do not overload `image-label.source.image` with a deployment-specific absolute
+filesystem or object-store path.
+
+## The BIOMERO storage contract
+
+The Pydantic models in `biomero-schema` are the shared contract between
+BIOMERO, BIOMERO.importer, and the OMERO scripts. Services must use those models
+instead of independently constructing JSON. The principal markers are:
+
+| Marker | Lifetime and purpose |
+| --- | --- |
+| `.biomero-canonical.json` | Identifies a committed reusable full source representation. |
+| `.biomero-input.json` | Task-local input hint, validated against the workflow event snapshot and removed on return. |
+| `.biomero-shallow.json` | Authoritative manifest for a stored derived result whose image arrays were omitted. |
+
+An abbreviated Image result looks like this:
+
+```json
+{
+  "schema": 1,
+  "model": "rfc8-shallow-copy",
+  "workflowId": "ae83dc5e-5273-4f26-a170-563674a915d0",
+  "transferArtifact": "Cell-Granules__cisegmentation.ome.zarr",
+  "interchangeProfile": "ngff-0.4-zarr-v2",
+  "images": [{
+    "imageNodePath": ".",
+    "source": {
+      "storageRoot": "group-0-data",
+      "relativePath": ".processed/Image-1338.g1.ome.zarr",
+      "sourceObjectType": "Image",
+      "sourceObjectId": 1338,
+      "sourceGeneration": 1,
+      "nodePath": ".",
+      "pixelIdentity": {"method": "iscc-bio/imagewalk", "role": "image"}
+    },
+    "returnedPixelIdentity": {
+      "method": "iscc-bio/imagewalk",
+      "role": "image"
+    },
+    "labelNodePaths": ["labels/labels_nuclei"],
+    "labelComponents": [{
+      "logicalNodePath": "labels/labels_nuclei",
+      "source": null,
+      "pixelIdentity": {"method": "iscc-bio/imagewalk", "role": "label"}
+    }]
+  }]
+}
+```
+
+The actual identity objects also contain the ISCC codes, shape, dtype, axes,
+coordinate transformations, tool version, and IMAGEWALK revision. A Plate has
+one `images` entry for every retained field such as `A/1/0`; each entry points
+to that field in the managed source Plate.
+
+`source: null` on a label component means the label is stored locally in this
+result. A managed source on a label component means it is inherited from an
+earlier shallow result. This distinction lets chains such as nuclei
+segmentation → cell expansion → measurement reconstruct all prior and new
+labels without repeatedly storing their pixels.
+
+The Zarr root also carries a small `biomero` pointer to the manifest, but the
+sidecar is authoritative. A shallow root is not a synthetic black image: its
+duplicated multiscale image arrays are absent. This avoids storing even a fake
+pixel pyramid and prevents readers from mistaking zeros for scientific data.
+
+## Pixel identity with ISCC-BIO
+
+BIOMERO uses the experimental
+[ISCC-BIO](https://github.com/bio-codes/iscc-bio) IMAGEWALK implementation.
+IMAGEWALK traverses decoded level-0 bioimage planes deterministically and is
+designed to identify the logical pixels independently of their container,
+chunking, compression, extra pyramid levels, labels, and ordinary metadata
+changes. In principle this also lets BIOMERO recognize the same pixels in a raw
+format and in its canonical OME-Zarr representation.
+
+For every image or label node BIOMERO records:
+
+- the combined ISCC value, Data-Code, and Instance-Code;
+- `shape`, `dtype`, axes, and coordinate transformations;
+- the node role (`image` or `label`) and logical node path; and
+- the ISCC-BIO version and IMAGEWALK implementation revision.
+
+The current exact equality predicate compares the **Instance-Code** together
+with the role, shape, dtype, axes, and coordinate transformations. Node paths
+and aggregate/Data-Codes are not used to disambiguate otherwise identical
+selected images. The task-local marker and ordered event snapshot provide that
+mapping.
+
+An embedded code is a claim, not proof that a workflow preserved the pixels.
+BIOMERO therefore records the input identity before execution and recomputes
+the returned pixels before removing anything. Copying a stale metadata field
+does not make changed pixels eligible. This is not intended as adversarial
+cryptographic attestation; it is a conservative decision about whether to keep
+more or less of a reproducible derived result.
+
+### Why TREEWALK is not the equality check
+
+An ISCC-SUM TREEWALK over an entire Zarr answers whether the stored fileset is
+bit-identical. It changes when chunks are recompressed or rechunked, metadata or
+scales change, or labels are added—the exact changes a Zarr workflow may make
+without modifying the original image pixels. It is therefore the wrong signal
+for shallow eligibility.
+
+TREEWALK remains interesting for future whole-store integrity,
+deduplication, version tracking, or citation. Its convention excludes a
+`.iscc.json` sidecar and supports `.isccignore`, avoiding a circular whole-store
+identifier. The schema already leaves room for a separate `storeIdentity`, but
+BIOMERO does not currently require one.
+
+### Embedded `attrs.iscc`
+
+The intended portable direction is to publish an IMAGEWALK identity in the
+user attributes of each Image group—for Zarr v3, `attributes.iscc` as a sibling
+of the versioned `attributes.ome` namespace. That makes a derived Zarr carry a
+path-independent identity for its source. Current BIOMERO matching does **not**
+assume this attribute exists: identities are held in the managed markers and
+event provenance, and returned pixels are recomputed. Embedding and consuming
+the group attribute consistently is remaining interoperability work and may
+change with ISCC-BIO and NGFF guidance.
+
+## Eligibility and failure behavior
+
+The normalizer is intentionally conservative:
+
+| Returned result | Storage outcome |
+| --- | --- |
+| Source pixels match and at least one local or inherited label exists | Store shallow collection. |
+| Source pixels changed | Keep full returned Zarr. |
+| Identity, source, field mapping, or schema is missing/ambiguous | Keep full returned Zarr. |
+| Label-free pass-through duplicates only the input | Do not create a useless derived shallow result. |
+| Feature flag disabled | Preserve the legacy full-result import path. |
+| Importer integration disabled | Preserve the independent Get Results path. |
+
+Normalization uses a same-filesystem rollback journal. Duplicate array
+directories are moved into the journal first, the sidecar and remaining
+metadata are committed, and only then is the journal deleted. A failure before
+commit restores the result. The full managed source is read-only throughout.
+
+## Images, Plates, and OMERO representation
+
+For an Image result, BIOMERO can register retained label nodes as separate
+viewable OMERO Images. This makes masks available to today's PixelBuffer and
+iViewer and permits optional conversion to ROIs. The authoritative shallow
+collection stays in `.analyzed`; the OMERO objects carry compact managed
+references and provenance rather than a copy of the entire manifest.
+
+For a Plate, labels live below each Plate image/field in NGFF. Importing every
+label from a large Plate as unrelated Images would lose the useful Plate
+organization and could create thousands of OMERO objects. BIOMERO therefore
+keeps one authoritative derived Plate representation. It can register:
+
+- a source-backed Plate whose ordinary pixels come from the original managed
+  Zarr; and
+- optionally, a label-backed Plate preview when one requested label name is
+  present consistently across the fields.
+
+The preview is a convenience for current OMERO viewing, not another authority.
+Native label overlays and complete RFC 8 traversal depend on future OMERO and
+viewer support. Per-field identities and mappings remain in the storage
+sidecar; OMERO gets one compact Plate-level reference instead of hundreds or
+thousands of repeated key-value annotations.
+
+## Compatibility profile
+
+BIOMERO currently exchanges **OME-NGFF 0.4 on Zarr v2**. This is determined by
+the deployed Glencoe exporter/importer tooling and the OMERO Zarr PixelBuffer
+that must serve registered pixels; accepting a newer, valid NGFF version in one
+component would not help if the rest of the OMERO path could not read it.
+
+Workflow providers should therefore consume and emit that profile today. See
+[Zarr workflow provider guidance](zarr-workflow-provider-guidance.md) for the
+short external contract. BIOMERO will advance the profile as Glencoe and OMERO
+releases add compatible support. The private shallow reader remains versioned
+so older managed results can be reconstructed during such a transition.
 
 ## Operational trade-off: storage versus import time
 
-Shallow normalization exchanges importer time and storage I/O for lower
-persistent storage use. Enabling the feature is therefore a deployment choice,
-not a format requirement. The work runs in BIOMERO.importer, so it can continue
-after the initiating OMERO.web session ends, but the result remains in its
-importing state until identity verification and normalization finish.
+Shallow normalization trades importer CPU and storage I/O for lower persistent
+storage use. It is opt-in because a deployment with small results or a slow,
+metadata-heavy filesystem may value latency more than the saved capacity.
 
-The current production-path benchmark used an 18-field A1/B1 Plate returned by
-`cisegmentation`. It contained one label image per field and 1,722 files. The
-test ran inside the Linux importer container against the real `/data` mount;
+The current production-path Plate benchmark used an 18-field A1/B1 Plate
+returned by `cisegmentation`, with one new label per field and 1,722 files. It
+ran inside the Linux importer container against the real `/data` mount;
 preparing disposable benchmark copies was excluded.
 
 | Measurement | Result |
 | --- | ---: |
 | Full returned Plate | 146,143,912 bytes |
-| Shallow Plate | 10,775,929 bytes |
+| Stored shallow Plate | 10,775,929 bytes |
 | Storage removed | 135,367,983 bytes (92.6%) |
 | Read-only ISCC-BIO verification | 12.653 s mean |
-| Transactional production normalization | 12.729 s mean |
+| Transactional normalization | 12.729 s mean |
 | **Added importer processing** | **about 25.4 s** |
 
-Production normalization moves duplicate array directories into a rollback
-journal on the same filesystem and then deletes the journal. It does not copy
-the retained label tree and does not recursively scan both trees merely to
-report byte totals. Those two changes reduced the original diagnostic
-implementation from roughly 196 seconds to 12.7 seconds for normalization.
+The first diagnostic implementation took roughly 196 seconds to normalize the
+same Plate. Same-filesystem moves, avoiding a copy of the retained label tree,
+and avoiding recursive before/after byte scans reduced normalization to 12.7
+seconds.
 
-An existing single-Image example shows the same storage tendency: its shallow
-label result occupies 185,072 bytes while its referenced full source Zarr
-occupies 6,848,883 bytes, a 97.3% reduction. This is a storage observation only;
-no comparable end-to-end timing was recorded for that Image, so it must not be
-used as a latency benchmark.
+A later live run processed five Image results with both new and inherited
+labels. Their estimated full size was 28.463 MiB and their stored shallow size
+was 2.319 MiB: 26.144 MiB, or **91.9%**, was avoided. Importer identity and
+normalization work took approximately 10 seconds in total with four workers.
+One earlier individual Image example occupied 185,072 bytes shallow versus a
+6,848,883-byte full source Zarr, a 97.3% size difference; that individual
+observation did not include a comparable end-to-end timing.
 
-**Pending benchmark:** run one label-producing workflow for both a single Image
-and a group of Images. Report first-time canonical export separately from a
-repeat run that reuses the canonical Zarr, then split the return path into NGFF
-discovery, source/label identity generation, normalization, deletion and total
-import time. Record full and shallow bytes and file counts for each case.
+### Parallel identity workers and scaling
 
-### Scaling and parallel identity workers
+`BIOMERO_SHALLOW_ZARR_WORKERS` controls a bounded importer thread pool for
+per-image and per-label identity generation. It defaults to `4` in the
+NL-BIOMERO deployment. Discovery, transactional moves, and journal deletion are
+not parallelized.
 
-The Plate benchmark does **not** prove linear scaling. As a deliberately rough
-illustration, linear extrapolation of 25.4 seconds for 18 fields would be about
-24 minutes for 1,000 equally sized fields. Real results may be faster or much
-slower because decoded pixel volume, label count, chunk/file count, filesystem
-metadata latency, cache state and concurrent storage traffic all matter. Very
-large or badly chunked Plates can therefore still take hours. A representative
-large-Plate benchmark is required before enabling the feature broadly at a
-site.
+A preliminary read-only sweep of the 18-image/18-label Plate produced:
 
-Image and label identities can be calculated concurrently. The importer-only
-environment variable `BIOMERO_SHALLOW_ZARR_WORKERS` controls a bounded thread
-pool and defaults to `4` in NL-BIOMERO. It affects identity generation only; discovery,
-transactional moves and journal deletion are not parallelized.
-
-A preliminary read-only sweep of the same 18-image/18-label Plate produced:
-
-| Identity workers | Verification time |
+| Workers | Verification time |
 | ---: | ---: |
 | 1 | 14.524 s mean |
 | 2 | 11.988 s mean |
@@ -108,120 +340,87 @@ A preliminary read-only sweep of the same 18-image/18-label Plate produced:
 | 16 | 13.857 s observed |
 | 32 | 13.201 s observed |
 
-Four workers performed best on this development mount, but run-to-run variance
-was large and higher counts became slower through I/O contention. Parallelism
-therefore mitigates identity time but does not remove the scaling risk. Sites
-should benchmark their production storage backend with 1, 2, 4 and, if useful,
-more workers before overriding the deployment default.
+Four workers performed best on this development mount. Higher counts increased
+I/O contention, and variance was material. Sites should benchmark their own
+storage with 1, 2, and 4 workers before increasing the value.
 
-### When to enable it
+The 18-field result does not establish linear scaling. A deliberately crude
+linear extrapolation of 25.4 seconds would be about 24 minutes for 1,000 equally
+sized fields. Actual time depends on decoded pixel volume, label and file
+counts, chunking, cache state, filesystem metadata latency, and concurrent I/O;
+a very large or badly chunked Plate could still take hours. A representative
+large-Plate benchmark remains necessary before broad production enablement.
 
-The feature is most useful when workflows commonly copy large unchanged images
-or Plates while adding relatively small labels, and when the same source is
-processed repeatedly. It is less attractive for latency-sensitive facilities,
-small results, slow metadata-heavy mounts, or workflows that normally change
-the source pixels: those workflows still pay the verification cost but are
-correctly retained in full and gain no result-storage reduction.
+## Enabling and observing the feature
 
-For the NL-BIOMERO Compose deployment the explicit starting configuration is:
+The NL-BIOMERO Compose deployment uses:
 
 ```text
+IMPORTER_ENABLED=true
 BIOMERO_SHALLOW_ZARR=true
 BIOMERO_SHALLOW_ZARR_WORKERS=4
 ```
 
-The feature flag is consumed across the BIOMERO transfer/import boundary. The
-worker-count setting belongs to BIOMERO.importer and should be increased only
-after a storage-local benchmark.
-
-Monitor at least image/field count, label count, bytes before and after,
-identity time, normalization time and total import time. Disable the feature or
-reduce worker concurrency if the measured import delay is not justified by the
+`BIOMERO_SHALLOW_ZARR` defaults off, preserving the old export/import behavior.
+The worker flag crosses the OMERO processor environment allow-list; the worker
+count belongs to the importer service. Monitor image/field count, label count,
+bytes before and after, identity time, normalization time, and total import
+time. Disable the feature if its measured latency is not justified by the
 storage saved.
 
-## Lifecycle: full input, shallow storage, full input again
+Useful logs distinguish:
 
-<!-- Document canonical discovery/promotion, importer-owned return-side
-normalization, OMERO registration, and transfer-time reconstruction. -->
+- calculation versus reuse of canonical source identities;
+- the selected source and transfer marker;
+- `eligible (input-image-unchanged)` versus a conservative keep-full reason;
+- identity generation and normalization durations; and
+- stored full versus shallow outcomes.
 
-## Relationship to OME-NGFF RFC 8
+## Validation status
 
-### What BIOMERO emulates
+The feature branch has verified the following live paths:
 
-<!-- Collection contains derived data and links to unchanged source images;
-source data remain read-only; output can be viewed and processed together. -->
+- full canonical creation and later reuse during Image Transfer;
+- ordered event provenance and task-local markers, including five selected
+  Images with identical pixels and renamed outputs;
+- five Image results normalized to 91.9% smaller shallow collections while
+  retaining multiple and inherited labels;
+- label-Image registration, non-image attachments, and ROI creation for those
+  Image results;
+- an 18-field Plate normalized to 92.6% smaller storage, with one compact
+  derived Plate reference and optional label-backed preview;
+- focused reconstruction of a shallow Image into a temporary full Zarr; and
+- compatibility readers/tests for older event streams and absent optional
+  shallow settings.
 
-### What is BIOMERO-specific
+The following remain release gates or scale validation:
 
-<!-- Sidecar name/schema, managed storage roots, OMERO IDs/generations,
-event-store snapshots, Plate mapping, registration projections. -->
+- a live changed-pixel Image and changed-pixel Plate must remain full;
+- a complete chained workflow must reconstruct source pixels plus inherited
+  and new labels;
+- feature-off behavior and importer-disabled Get Results need live controls;
+- unsupported/newer NGFF input must fail or fall back clearly; and
+- a representative large high-content Plate needs storage-local timing and
+  capacity measurements.
 
-### What is not claimed
+## Expected evolution
 
-<!-- Not an RFC 8 Collection, not a new OME-NGFF version, not a format that a
-generic reader is expected to understand. -->
+The present contract fixes `schema: 1`, `model: "rfc8-shallow-copy"`, and the
+`ngff-0.4-zarr-v2` interchange profile. Recorded identities also pin the
+ISCC-BIO version and IMAGEWALK revision because ISCC-BIO is itself early-stage.
 
-## Pixel identity with ISCC-BIO
-
-### IMAGEWALK is the source-pixel identity
-
-<!-- Decoded level-0 planes, Z-C-T traversal, format-independent comparison,
-data/instance/composite codes, semantic guards, pinned generator revision. -->
-
-### TREEWALK is not used for source-pixel equality
-
-<!-- A whole-store code changes with chunks, codecs, metadata, scales, and
-labels. Document the possible future storeIdentity integrity role. -->
-
-### Claims, recomputation, and deletion safety
-
-<!-- Embedded attrs.iscc is a portable claim/cache. The authoritative input
-snapshot is recorded before execution; BIOMERO recomputes returned pixels. -->
-
-## The `.biomero-shallow.json` schema
-
-<!-- Add a compact annotated Image example and a Plate fragment. Document
-ShallowCollection, ShallowImageReference, CanonicalZarrSource,
-ZarrLabelComponent, and PixelIdentity. -->
-
-## Images, labels, and Plates
-
-<!-- Explain local versus inherited label components, per-field Plate
-identity, source-backed Plate registration, and optional label-backed preview.
--->
-
-## OMERO representation
-
-<!-- Explain compact MapAnnotations as indexes, the storage sidecar as
-authority, PixelBuffer limitations, and label Image/Plate projections. -->
-
-## Compatibility profile
-
-BIOMERO currently exchanges OME-NGFF 0.4 on Zarr v2 because the deployed
-Glencoe exporter and OMERO Zarr PixelBuffer must both be able to serve the
-result. This profile will advance as those dependencies and OMERO support newer
-OME-NGFF and Zarr releases.
-
-## Versioning and expected migration
-
-<!-- Document schema versioning/upcasting, RFC 8/NGFF 1.0 migration intent,
-ISCC-BIO 0.1 instability, interchange-profile evolution, and preservation of
-old managed results. -->
-
-## Failure behavior and operational controls
-
-<!-- Conservative keep-full rules, importer capability gate, worker count,
-logging, retry behavior, and importer-disabled Get Results. -->
-
-## Worked example
-
-<!-- Use a redacted/shortened form of the 18-image cisegmentation Plate
-manifest from workflow 77d5452c. Explain matching returned/source codes,
-canonical-bootstrap, canonicalPixelVerified, and local label components. -->
+Likely future changes include migration toward a released NGFF Collections
+model, newer Zarr/NGFF profiles as OMERO PixelBuffer support advances,
+standardized embedded Image identities, object-store-aware references, and
+asynchronous or differently scheduled processing for very large Plates. Those
+changes should be introduced through new schema/profile versions and upcasters,
+not by silently changing the meaning of existing managed results.
 
 ## Further reading
 
 - [OME-NGFF RFC 8: Collections and Extensibility](https://ngff.openmicroscopy.org/rfc/8/)
-- [ISCC-BIO](https://github.com/bio-codes/iscc-bio)
-- [IEP-0017: deterministic Treewalk](https://ieps.iscc.codes/iep-0017/)
+- [ISCC-BIO and IMAGEWALK](https://github.com/bio-codes/iscc-bio)
+- [IEP-0017: TREEWALK](https://ieps.iscc.codes/iep-0017/)
+- [IEP-0018: IMAGEWALK](https://ieps.iscc.codes/iep-0018/)
 - [Zarr workflow provider guidance](zarr-workflow-provider-guidance.md)
+- [Implementation plan and validation ledger](zarr-component-input-selection-plan.md)

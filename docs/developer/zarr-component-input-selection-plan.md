@@ -210,7 +210,13 @@ Pixel equality is based on the pixel identity plus semantic guards, not on a
 copied directory path. Store identity alone is insufficient because adding
 labels or metadata legitimately changes the Zarr tree.
 
-### Portable embedded Image identity
+### Portable embedded Image identity (planned interoperability step)
+
+This is the desired direction, not a prerequisite or guaranteed property of
+the current schema-1 implementation. Current services persist the same
+identity records in managed sidecars and workflow provenance and recompute
+returned pixels. Readers must continue to work when no group-level `iscc`
+attribute exists.
 
 Whenever BIOMERO calculates or reuses an IMAGEWALK identity for a writable
 BIOMERO-produced Zarr, publish a compact ISCC metadata object in the user
@@ -486,10 +492,11 @@ image-node membership, logical label path, identity, and semantic guards:
   collection component;
 - do not infer that similarly named labels are identical.
 
-When a label group is writable, publish its own group-level `attrs.iscc` value
-for interoperability. This value identifies the label pixels, not the source
-Image. The label's source relationship remains in NGFF source metadata and the
-trusted shallow-collection graph.
+As a future interoperability step, a writable label group should publish its
+own group-level `attrs.iscc` value. This value identifies the label pixels, not
+the source Image. The label's source relationship remains in NGFF source
+metadata and the trusted shallow-collection graph. Current readers use the
+sidecar identity when the embedded value is absent.
 
 Collection references form an acyclic provenance graph. Reconstruction resolves
 the canonical source, recursively resolves inherited label references, and then
@@ -675,9 +682,10 @@ will detect and normalize it.
    `IMPORT_MOUNT_PATH`; remove the duplicate `storage_roots` configuration.
 3. Keep shared canonical contracts and add backward-compatible event upcasting.
 4. Promote non-Zarr exports once; index native/returned Zarrs in place; record
-   exact canonical generations in the event store. Publish portable per-Image
-   and per-label `attrs.iscc` claims on writable BIOMERO-produced Zarrs while
-   keeping the workflow snapshot authoritative.
+   exact canonical generations and IMAGEWALK identities in the event store.
+   Portable per-Image and per-label `attrs.iscc` claims on writable
+   BIOMERO-produced Zarrs remain interoperability work; current deletion
+   decisions use the authoritative snapshot and recomputed returned pixels.
 5. Add versioned import-operation contracts, legacy option upcasting, a public
    importer order API, and an importer lifecycle operation registry. Preserve
    legacy external preprocessing unchanged.
@@ -709,8 +717,18 @@ import order and registered as OMERO Images 6151-6153. Each image:
   complete shallow collection and its pre-existing source OMERO Image; and
 - does not create another OMERO object for the unchanged top-image pixels.
 
-The remaining step-6 coverage is the automatic full-workflow route, including
-multiple labels and live Plate membership registration.
+The automatic full-workflow Image route is also proven. Workflow
+`ae83dc5e-5273-4f26-a170-563674a915d0` selected five OMERO Images whose decoded
+pixels were identical. Image Transfer reused their canonical identities and
+wrote one task-local marker per input; the ordered event snapshot let the
+importer map all five renamed results to the correct selected objects without
+an ambiguous-identity fallback. All five results were classified
+`eligible (input-image-unchanged)`, stored shallow, and had their transfer
+markers removed. The batch retained 13 local or inherited labels, created 13
+viewable label Images, attached five DuckDB files, and created 42 ROIs. Its
+estimated full size was 28.463 MiB and stored shallow size was 2.319 MiB, a
+91.9% reduction. Importer identity and normalization took approximately ten
+seconds with four workers.
 
 Delivery steps 7 and 8 are proven at the image-collection level:
 
@@ -796,12 +814,11 @@ because biomero's compatibility module did not re-export the shared
 adds the missing export and regression assertion; the rebuilt worker now loads
 that commit and imports the model from `biomero_schema.zarr` successfully.
 
-The current branches pass all 79 script tests and the 34 focused importer
-canonical/shallow-result tests. The full importer unit run passes 129 tests and
-has one unrelated SQLite fixture failure (`imports` table missing). Run
-Workflow and OMERO.biomero carry the optional Plate-preview choice end to end;
-it is visible only for Plate workflows with a Screen destination and remains
-disabled by default.
+The current branches pass their focused canonical, shallow-result, importer,
+script, schema, and OMERO.biomero regression suites. Run Workflow and
+OMERO.biomero carry the optional Plate-preview choice end to end; it is visible
+only for Plate workflows with a Screen destination and remains disabled by
+default.
 
 Whole-Plate reselection uses the derived Plate's shallow collection annotation.
 Image Transfer resolves the compact `ShallowPlateReference`, reconstructs the
@@ -825,9 +842,10 @@ preview mode, but must not mutate or ambiguously annotate the original Plate.
   a second `storage_roots` config.
 - Native Zarr input: reuse in place and record identity without a persistent
   copy.
-- Zarr-v2 identity embedding: writable BIOMERO-produced Image, Plate-field, and
-  label groups expose top-level `iscc` in `.zattrs`; native read-only Zarrs are
-  never mutated merely to add it.
+- Zarr-v2 identity embedding (future interoperability): writable
+  BIOMERO-produced Image, Plate-field, and label groups expose top-level
+  `iscc` in `.zattrs`; native read-only Zarrs are never mutated merely to add
+  it. Current managed sidecars/event snapshots remain valid when it is absent.
 - Zarr-v3 identity embedding: the same group-attributes implementation writes
   `attributes.iscc` in `zarr.json` when that interchange profile becomes
   supported; code does not hard-code either metadata filename.
@@ -865,11 +883,11 @@ preview mode, but must not mutate or ambiguously annotate the original Plate.
   no recursive whole-tree byte scan or retained-tree copy occurs in the
   synchronous path, and identity, move, deletion, and total times are reported
   separately.
-- Image performance: run a label-producing workflow for one Image and a group
-  of Images. Measure first-time canonical export separately from canonical
-  reuse, then report NGFF discovery, source/label identity, normalization,
-  deletion, total return-path time, full/shallow bytes, file counts, and storage
-  saved per Image and for the batch.
+- Image performance: the five-Image canonical-reuse batch established 91.9%
+  storage reduction and approximately ten seconds of importer identity plus
+  normalization work. Still measure a first-time canonical export separately,
+  and split NGFF discovery, source/label identity, normalization, deletion,
+  total return-path time, full/shallow bytes, and file counts per Image.
 - Re-materialized shallow result: full source pixels and labels compare with the
   original kept result.
 - Unsupported/newer NGFF: conservative retention with an actionable log.
@@ -886,9 +904,9 @@ preview mode, but must not mutate or ambiguously annotate the original Plate.
   behavior.
 - Eligible unchanged Zarr results occupy label/metadata storage rather than a
   repeated copy of source image pixels.
-- Every writable BIOMERO-produced transfer/canonical Zarr publishes portable
-  per-Image and per-label ISCC claims without making those mutable claims
-  authoritative for returned-pixel deletion.
+- Current services share versioned per-Image and per-label IMAGEWALK records;
+  later portable embedded ISCC claims must remain non-authoritative for
+  returned-pixel deletion.
 - OMERO Plate metadata stays bounded: one compact canonical index per
   generation, independent of image and label count.
 - Changed results are preserved completely.
