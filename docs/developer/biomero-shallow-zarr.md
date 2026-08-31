@@ -28,6 +28,14 @@ interchangeable:
 The feature is opt-in through `BIOMERO_SHALLOW_ZARR`. Disabling it preserves
 the conventional full-result import path.
 
+During an enabled export, BIOMERO writes `.biomero-input.json` into each
+task-local Zarr copy. It contains one existing `CanonicalInput` record and lets
+the importer distinguish separately selected OMERO objects that have identical
+pixels even when a workflow renames its output. The marker is validated against
+the authoritative workflow event snapshot, never trusted as proof of pixel
+equality, and removed before the result is registered. It is not written into
+the canonical source and workflow providers do not need to understand it.
+
 ## Why BIOMERO uses shallow results
 
 <!-- Explain duplicated source pixels in Zarr-to-Zarr workflows and the
@@ -86,7 +94,7 @@ site.
 
 Image and label identities can be calculated concurrently. The importer-only
 environment variable `BIOMERO_SHALLOW_ZARR_WORKERS` controls a bounded thread
-pool and defaults to `1`. It affects identity generation only; discovery,
+pool and defaults to `4` in NL-BIOMERO. It affects identity generation only; discovery,
 transactional moves and journal deletion are not parallelized.
 
 A preliminary read-only sweep of the same 18-image/18-label Plate produced:
@@ -102,9 +110,9 @@ A preliminary read-only sweep of the same 18-image/18-label Plate produced:
 
 Four workers performed best on this development mount, but run-to-run variance
 was large and higher counts became slower through I/O contention. Parallelism
-therefore mitigates identity time but does not remove the scaling risk. Keep the
-default until the production storage backend has been benchmarked with 1, 2, 4
-and, if useful, more workers.
+therefore mitigates identity time but does not remove the scaling risk. Sites
+should benchmark their production storage backend with 1, 2, 4 and, if useful,
+more workers before overriding the deployment default.
 
 ### When to enable it
 
@@ -119,7 +127,7 @@ For the NL-BIOMERO Compose deployment the explicit starting configuration is:
 
 ```text
 BIOMERO_SHALLOW_ZARR=true
-BIOMERO_SHALLOW_ZARR_WORKERS=1
+BIOMERO_SHALLOW_ZARR_WORKERS=4
 ```
 
 The feature flag is consumed across the BIOMERO transfer/import boundary. The

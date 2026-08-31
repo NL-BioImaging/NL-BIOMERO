@@ -259,12 +259,16 @@ workflow descriptor schema. The target vocabulary is:
 - `CanonicalInput`: selected object, ordinal, and exact canonical generation
   transferred;
 - `CanonicalInputManifest`: ordered inputs bound to workflow and export task;
+- `.biomero-input.json`: one serialized `CanonicalInput` written only into a
+  temporary transfer Zarr so a copied-and-renamed result can be rebound to its
+  selected input;
 - `ShallowCollection`: source and label membership plus safe materialization
   metadata.
 
 Previously serialized workflow events must remain readable. Add explicit
-upcasting/default behavior for the old event payloads; do not rewrite event
-history or add a sidecar manifest on SLURM.
+upcasting/default behavior for old event payloads and do not rewrite event
+history. The transfer marker is a non-authoritative copy of one existing
+manifest entry, not a replacement event manifest.
 
 ## Export and input snapshot
 
@@ -284,9 +288,11 @@ For an importer-enabled Zarr transfer:
    IMAGEWALK code as the portable group-level `iscc` user attribute. A native
    read-only Zarr is indexed without mutation; its identity remains available
    through BIOMERO's managed inventory and workflow snapshot.
-7. Optionally place a small BIOMERO task/provenance hint in the transfer Zarr.
-   A generic workflow may preserve, remove, or ignore either hint, and neither
-   replaces return-side verification.
+7. Write `.biomero-input.json` into each writable task-local transfer Zarr. It
+   contains that artifact's serialized `CanonicalInput`, never a managed path
+   invented by the workflow. Do not modify the canonical source. A generic
+   workflow may preserve, remove, or ignore the marker; it never replaces
+   return-side verification.
 8. Transfer the ordinary, fully usable Zarr to SLURM.
 9. Clean up the task-local transfer copy according to existing behavior; retain
    the committed canonical source.
@@ -330,23 +336,27 @@ those operations.
 For every returned Zarr candidate:
 
 1. Load the exact workflow input snapshot through workflow/task provenance.
-2. Discover returned NGFF image and label nodes, including Plate image-level
+2. If `.biomero-input.json` survived, validate it as an exact member of the
+   authoritative workflow input snapshot. Reject invalid or foreign markers;
+   when absent, retain the existing artifact-name and identity fallbacks.
+3. Discover returned NGFF image and label nodes, including Plate image-level
    labels.
-3. Match returned image nodes to input nodes deterministically by provenance,
+4. Match returned image nodes to input nodes deterministically by provenance,
    structure, and identity. Never choose an arbitrary candidate.
-4. Calculate the returned image-node identity. A copied embedded `attrs.iscc`
+5. Calculate the returned image-node identity. A copied embedded `attrs.iscc`
    claim is never sufficient to skip this calculation. Any future fast path
    must be independently bound to the exact task input and validated without
    trusting mutable workflow output metadata.
-5. If identity and semantic guards match, construct a shallow collection that
+6. If identity and semantic guards match, construct a shallow collection that
    retains labels and references the source OMERO object.
-6. If pixels differ, no exact source is available, the mapping is ambiguous, or
+7. If pixels differ, no exact source is available, the mapping is ambiguous, or
    validation fails, keep the complete returned Zarr.
-7. Move duplicate array directories into a sibling rollback journal, update
+8. Consume the temporary transfer marker before managed registration. Move
+   duplicate array directories into a sibling rollback journal, update
    metadata in place, validate the shallow collection, and only then delete the
    journal. Restore every move and metadata file on a pre-commit failure. Do
    not copy the retained label/metadata tree.
-8. Build an internal importer registration plan. For an Image result, register
+9. Build an internal importer registration plan. For an Image result, register
    every viewable label node; multiple masks produce multiple OMERO Images.
    For a Plate result, register one authoritative shallow Plate and do not
    flatten its image-level labels into a Dataset of mask Images.
@@ -392,11 +402,12 @@ The complete comparison plus production normalization therefore averages about
 
 Returned image nodes are independent identity jobs, as are returned label
 nodes. BIOMERO.importer therefore accepts bounded service-side concurrency via
-`BIOMERO_SHALLOW_ZARR_WORKERS`. The default is `1`, preserving previous
-sequential execution. Values greater than one use a bounded thread pool while
-preserving discovered node order; every identity phase completes before any
-result mutation. Invalid values fail back to one worker. Benchmark 1, 2, 4, 8,
-16, and 32 workers against production-like storage before selecting a site
+`BIOMERO_SHALLOW_ZARR_WORKERS`. NL-BIOMERO supplies `4` as its deployment
+default; the importer library retains a sequential fallback when the variable
+is absent. Values greater than one use a bounded thread pool while preserving
+discovered node order; every identity phase completes before any result
+mutation. Invalid values fall back to the library default. Benchmark 1, 2, 4,
+8, 16, and 32 workers against production-like storage before selecting a site
 override; CPU count alone is not a suitable default because Zarr chunk and
 filesystem-metadata I/O may saturate first.
 
