@@ -31,6 +31,7 @@
    developer/getting-started
    developer/workflow-development
    developer/bilayers-workflows
+   developer/biomero-shallow-zarr
    developer/containers/index
 
 .. toctree::

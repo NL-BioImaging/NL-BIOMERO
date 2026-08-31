@@ -854,6 +854,11 @@ preview mode, but must not mutate or ambiguously annotate the original Plate.
   no recursive whole-tree byte scan or retained-tree copy occurs in the
   synchronous path, and identity, move, deletion, and total times are reported
   separately.
+- Image performance: run a label-producing workflow for one Image and a group
+  of Images. Measure first-time canonical export separately from canonical
+  reuse, then report NGFF discovery, source/label identity, normalization,
+  deletion, total return-path time, full/shallow bytes, file counts, and storage
+  saved per Image and for the batch.
 - Re-materialized shallow result: full source pixels and labels compare with the
   original kept result.
 - Unsupported/newer NGFF: conservative retention with an actionable log.
