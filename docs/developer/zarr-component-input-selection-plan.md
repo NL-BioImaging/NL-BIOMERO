@@ -508,7 +508,8 @@ final deduplication boundary.
 
 ## Materialization for a later workflow
 
-When a user selects a shallow result in OMERO.biomero:
+When a user selects a shallow result for a Zarr-consuming workflow in
+OMERO.biomero:
 
 1. Image Transfer reads trusted collection/source metadata from the selected
    OMERO object.
@@ -524,8 +525,21 @@ Selecting the original image alone does not automatically add every historical
 label collection. Selecting a shallow label result requests reconstruction of
 that result with its source pixels.
 
-Direct transfer of label-only data may be added later as an explicit workflow
-capability. Full materialization is the interoperable default.
+TIFF-consuming Image workflows are the deliberate exception. Run Workflow
+already knows that its Zarr transfer artifact will be converted to TIFF, so it
+instructs Image Transfer not to reconstruct a shallow collection. Image
+Transfer then uses `omero-cli-zarr` to export the selected OMERO Image's
+registered PixelBuffer as a standalone Zarr. A label-backed Image consequently
+produces label pixels for the existing Zarr-to-TIFF converter, without copying
+the canonical original or unrelated labels. This disposable conversion
+artifact is neither promoted to the canonical cache nor included in a
+returned-Zarr matching snapshot. Ordinary Images in the same batch may still
+reuse or populate their canonical cache. Plates are Zarr-only and always use
+full reconstruction.
+
+Direct transfer of label-only data to a Zarr-consuming workflow may be added
+later as an explicit workflow capability. Full materialization remains the
+interoperable default for Zarr workflow inputs.
 
 An optional future optimization may run the same task-bound image/label
 identity comparison on HPC before returning a result and transfer an already
@@ -747,6 +761,15 @@ temporary 6,848,888-byte Zarr containing both the root image and
 `labels/fractal_cellpose_sam_segmentation.zarr`. The temporary artifact was
 removed after verification; all managed sources remained read-only.
 
+A later CellExpansion smoke test exposed the flat-workflow exception: full
+reconstruction followed by the generic converter selected root scale `0`, so a
+selected label Image would have supplied original pixels. The transfer
+contract now routes TIFF-bound shallow Images through their registered OMERO
+PixelBuffer instead. Unit coverage proves selected-pixel export, preservation
+of canonical reuse for ordinary Images in a mixed batch, default full
+reconstruction when the new optional input is absent, and a Plate guard. A
+successful live CellExpansion retry remains required.
+
 Delivery step 9 now has unit-level storage and transfer coverage:
 
 - Image Transfer indexes an existing managed Plate Zarr in place, caching an
@@ -911,4 +934,5 @@ preview mode, but must not mutate or ambiguously annotate the original Plate.
   generation, independent of image and label count.
 - Changed results are preserved completely.
 - Selecting a shallow result later produces a conventional, fully usable Zarr
-  input for the workflow.
+  input for a Zarr workflow, while a TIFF-bound Image export preserves the
+  exact registered OMERO pixels selected by the user.

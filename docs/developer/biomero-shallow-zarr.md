@@ -11,8 +11,9 @@ versioned readers and upcasters.
 BIOMERO can store a label-producing Zarr workflow result without keeping a
 second copy of the unchanged input pixels. The retained result contains its
 labels, the structural metadata needed to describe them, and managed references
-to a full source Zarr. When that result is selected for another workflow,
-BIOMERO reconstructs an ordinary, self-contained OME-Zarr before transfer.
+to a full source Zarr. When that result is selected for a Zarr-consuming
+workflow, BIOMERO reconstructs an ordinary, self-contained OME-Zarr before
+transfer.
 
 The feature deliberately applies only to **derived workflow results**. It never
 removes or rewrites the user's original raw data or the managed full source.
@@ -38,9 +39,12 @@ derived result metadata + local labels ───┘
 ```
 
 This is primarily a **storage optimization**, not an interchange format.
-Workflows normally receive the reconstructed full Zarr so that generic tools
-can use intensity pixels, physical metadata, inherited labels, and new labels
-without understanding BIOMERO.
+Zarr-consuming workflows normally receive the reconstructed full Zarr so that
+generic tools can use intensity pixels, physical metadata, inherited labels,
+and new labels without understanding BIOMERO. A TIFF-consuming workflow is the
+intentional exception: its temporary Zarr conversion material represents the
+exact OMERO Image pixels the user selected, such as one registered mask Image,
+rather than the complete shallow collection.
 
 ## Lifecycle
 
@@ -62,10 +66,16 @@ without understanding BIOMERO.
    `.biomero-shallow.json`. Changed or uncertain results stay full.
 6. OMERO registers viewable projections of the result while the authoritative
    shallow collection remains in managed `.analyzed` storage.
-7. Selecting a shallow result for a later workflow causes Image Transfer to
-   materialize a temporary full Zarr containing the source pixels, inherited
-   labels, and locally retained labels. The temporary reconstruction is removed
-   after transfer.
+7. Selecting a shallow result for a later Zarr workflow causes Image Transfer
+   to materialize a temporary full Zarr containing the source pixels, inherited
+   labels, and locally retained labels. For a workflow that will convert its
+   inputs to TIFF, Image Transfer instead uses the established OMERO CLI Zarr
+   export route for the selected OMERO Image. The registered PixelBuffer then
+   remains the authority, so selecting a label Image exports that label rather
+   than reconstructing and accidentally converting the original image. This
+   conversion artifact is not promoted as a canonical source and carries no
+   returned-Zarr matching contract. Temporary inputs are removed after
+   transfer.
 
 Return-side identity work and normalization belong to BIOMERO.importer. They
 are not tied to the lifetime of the OMERO.web request that submitted the
@@ -390,6 +400,9 @@ The feature branch has verified the following live paths:
 - an 18-field Plate normalized to 92.6% smaller storage, with one compact
   derived Plate reference and optional label-backed preview;
 - focused reconstruction of a shallow Image into a temporary full Zarr; and
+- unit coverage for the TIFF-bound exception, where a selected shallow label
+  Image is exported from its registered OMERO PixelBuffer instead of being
+  reconstructed with the original pixels; and
 - compatibility readers/tests for older event streams and absent optional
   shallow settings.
 
@@ -398,6 +411,9 @@ The following remain release gates or scale validation:
 - a live changed-pixel Image and changed-pixel Plate must remain full;
 - a complete chained workflow must reconstruct source pixels plus inherited
   and new labels;
+- a live TIFF-bound chained workflow (for example CellExpansion) must confirm
+  that the selected label pixels, rather than reconstructed root pixels, reach
+  the workflow;
 - feature-off behavior and importer-disabled Get Results need live controls;
 - unsupported/newer NGFF input must fail or fall back clearly; and
 - a representative large high-content Plate needs storage-local timing and
