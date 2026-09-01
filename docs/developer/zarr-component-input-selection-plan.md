@@ -911,6 +911,12 @@ preview mode, but must not mutate or ambiguously annotate the original Plate.
   normalization work. Still measure a first-time canonical export separately,
   and split NGFF discovery, source/label identity, normalization, deletion,
   total return-path time, full/shallow bytes, and file counts per Image.
+- Multi-generation Image performance: workflow
+  `f3e4a4c2-93bb-47d8-87dc-564ea6af743f` reconstructed five inherited label
+  layers in 10.1 seconds, then verified and normalized the returned Image in
+  6.4 seconds. Its six-label shallow collection occupied 245,043 bytes versus
+  an estimated 4,874,061-byte fully materialized footprint, avoiding 95.0%.
+  Treat these timings as one live observation, not a benchmark mean.
 - Re-materialized shallow result: full source pixels and labels compare with the
   original kept result.
 - Unsupported/newer NGFF: conservative retention with an actionable log.

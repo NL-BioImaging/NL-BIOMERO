@@ -331,6 +331,30 @@ same Plate. Same-filesystem moves, avoiding a copy of the retained label tree,
 and avoiding recursive before/after byte scans reduced normalization to 12.7
 seconds.
 
+The following observations put the Plate benchmark alongside the live Image
+paths tested so far. ``Estimated full`` means the size of the pixels and label
+components if they were materialized together; production deliberately skips
+an exact recursive pre-normalization size scan because that scan can cost more
+than normalization itself.
+
+| Scenario | Logical content | Full or estimated full | Stored shallow | Storage avoided | Return-path shallow processing | Outbound reconstruction |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| A1/B1 Plate benchmark | 18 fields, one new label per field | 146,143,912 bytes | 10,775,929 bytes | 135,367,983 bytes (92.6%) | 25.4 s mean | not measured |
+| Five-Image live batch | five Images with new and inherited labels | 28.463 MiB estimated | 2.319 MiB | 26.144 MiB (91.9%) | about 10 s total | not measured |
+| Multi-generation Image chain | one Image, five inherited labels and one new label | 4,874,061 bytes estimated | 245,043 bytes | 4,629,018 bytes (95.0%) | 6.4 s observed | 10.1 s observed |
+| Earlier individual Image | one Image result | 6,848,883 bytes | 185,072 bytes | 6,663,811 bytes (97.3%) | not measured | not measured |
+
+The multi-generation observation is workflow
+``f3e4a4c2-93bb-47d8-87dc-564ea6af743f``. Reconstruction copied the canonical
+pixels and five referenced label layers into the temporary transfer Zarr in
+10.1 seconds. On return, the importer spent 4.8 seconds evaluating pixel and
+label identities with four workers and 1.6 seconds transactionally retaining
+only the new ``labels_cells_3`` layer. That is about 16.5 seconds of observed
+shallow-storage work across both system boundaries. It is a single warm-system
+observation rather than a statistically stable benchmark, and the 4,874,061
+byte full footprint is the sum of the currently referenced canonical and six
+label components rather than a pre-normalization tree scan.
+
 A later live run processed five Image results with both new and inherited
 labels. Their estimated full size was 28.463 MiB and their stored shallow size
 was 2.319 MiB: 26.144 MiB, or **91.9%**, was avoided. Importer identity and
