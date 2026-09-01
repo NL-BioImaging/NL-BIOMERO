@@ -376,7 +376,7 @@ count and successful duplicate-array omission without rescanning the tree.
 
 ### Return-path performance baseline
 
-The A1/B1 `cisegmentation` result was benchmarked inside the Linux
+An 18-field Plate segmentation result was benchmarked inside the Linux
 BIOMERO.importer container against identical disposable copies on the real
 `/data` mount. The Plate has 18 image nodes, 18 image-level labels, 1,722 files,
 and occupied 146,143,912 bytes before normalization. Its shallow form occupied
@@ -723,7 +723,7 @@ will detect and normalize it.
 
 Delivery step 6 is proven for image-level results in the development stack.
 Three labels from one in-place shallow workflow result were submitted in one
-import order and registered as OMERO Images 6151-6153. Each image:
+import order and registered as three OMERO Images. Each image:
 
 - uses its own label node as PixelBuffer backing and returns a rendered
   thumbnail;
@@ -731,12 +731,12 @@ import order and registered as OMERO Images 6151-6153. Each image:
   complete shallow collection and its pre-existing source OMERO Image; and
 - does not create another OMERO object for the unchanged top-image pixels.
 
-The automatic full-workflow Image route is also proven. Workflow
-`ae83dc5e-5273-4f26-a170-563674a915d0` selected five OMERO Images whose decoded
-pixels were identical. Image Transfer reused their canonical identities and
-wrote one task-local marker per input; the ordered event snapshot let the
-importer map all five renamed results to the correct selected objects without
-an ambiguous-identity fallback. All five results were classified
+The automatic full-workflow Image route is also proven. A live batch selected
+five OMERO Images whose decoded pixels were identical. Image Transfer reused
+their canonical identities and wrote one task-local marker per input; the
+ordered event snapshot let the importer map all five renamed results to the
+correct selected objects without an ambiguous-identity fallback. All five
+results were classified
 `eligible (input-image-unchanged)`, stored shallow, and had their transfer
 markers removed. The batch retained 13 local or inherited labels, created 13
 viewable label Images, attached five DuckDB files, and created 42 ROIs. Its
@@ -756,10 +756,10 @@ Delivery steps 7 and 8 are proven at the image-collection level:
 - schema-v1 shallow manifests written before label-component records existed
   are upcast at materialization by hashing their declared physical label paths.
 
-A live smoke test reconstructed OMERO Image 6151 from source Image 1341 into a
-temporary 6,848,888-byte Zarr containing both the root image and
-`labels/fractal_cellpose_sam_segmentation.zarr`. The temporary artifact was
-removed after verification; all managed sources remained read-only.
+A live smoke test reconstructed one shallow result into a temporary
+6,848,888-byte Zarr containing both the root image and its inherited
+segmentation layer. The temporary artifact was removed after verification; all
+managed sources remained read-only.
 
 A later CellExpansion smoke test exposed the flat-workflow exception: full
 reconstruction followed by the generic converter selected root scale `0`, so a
@@ -796,11 +796,9 @@ Delivery step 9 now has unit-level storage and transfer coverage:
 - an optional label-backed Plate maps one common label name to every WellSample
   child Image without copying the label arrays.
 
-The concrete integration fixtures are
-`Project A/cellsA1B1.ome.zarr` (native managed Plate Zarr) and
-`Project B/cellssmall/.processed/20220714_TKI_482.ome.zarr` (processed
-canonical representation of a raw `.db` acquisition). Both contain 18 image
-nodes under `A/1/0..8` and `B/1/0..8`. The planned workflow checks are:
+The concrete integration fixtures comprise a native managed Plate Zarr and a
+processed canonical representation of a raw acquisition. Both contain 18
+image nodes split across two wells. The planned workflow checks are:
 
 - `bilayers_plate_test`: unchanged, label-free pass-through;
 - `simple-zarr-plate-processor` or `cideconvolve` v2.3.3: changed pixels must
@@ -809,33 +807,23 @@ nodes under `A/1/0..8` and `B/1/0..8`. The planned workflow checks are:
   should normalize to one source-backed shallow Plate; optionally, its one
   common `labels_nuclei` layer should register as one label-backed Plate.
 
-The first live `cisegmentation` run
-`af449699-ea89-4cd0-9bc2-ab0ea015803c` completed against Plate 1552 and produced
-18 image-level `labels_nuclei` nodes. It deliberately remained full because the
-initial monolithic Plate identity MapAnnotation exceeded PostgreSQL's indexed
-map-value limit, so Image Transfer returned no canonical snapshot. A second
-run, `2192fb60-9de5-4644-a080-44eda1f3442d`, successfully indexed Plate 1552,
-but exposed two defects: it wrote 18 visible image-record MapAnnotations, and
-the returned filename differed from the transferred input filename. The latter
-caused normalization to retain the complete 140 MB result even though all 18
-pixel identities matched. Both defects are corrected: the Plate inventory now
-lives in one storage marker with one compact OMERO index, and pixel-identity
-matching permits ordinary workflow output renaming. Plate 1552's complete
-inventory was migrated to
-`cellssmall/.processed/.biomero/20220714_TKI_482.ome.zarr.canonical.json` and
-proved to round-trip through the compact index before cleanup. The 18 generated
-`biomero.zarr.plate-source.image` annotations were then removed through the
-OMERO API. Plate 1552 now retains only compact index annotation 17919, while
-the sidecar restores all 18 image identities. A later `cisegmentation` run,
-`f186d374-3b9d-439a-9fd6-7798a9b4cb17`, proved the renamed output path: it
-committed as a shallow Plate, reduced the result from 146,143,980 to 10,775,997
-bytes, and successfully submitted both the authoritative source-backed Plate
-and the opt-in label-backed Plate preview to the importer.
-The first retry, `9192c966-e316-4e48-a12f-d8c8427ea52b`, stopped before export
-because biomero's compatibility module did not re-export the shared
-`ShallowPlateReference` model used by Image Transfer. Biomero commit `c9c9018`
-adds the missing export and regression assertion; the rebuilt worker now loads
-that commit and imports the model from `biomero_schema.zarr` successfully.
+The first live Plate segmentation produced one image-level label per field but
+deliberately remained full because the initial monolithic Plate identity
+MapAnnotation exceeded PostgreSQL's indexed map-value limit. A second run
+successfully indexed the Plate but exposed two defects: it wrote one visible
+image-record MapAnnotation per field, and the returned filename differed from
+the transferred input filename. The latter caused normalization to retain the
+complete 140 MB result even though every pixel identity matched. Both defects
+are corrected: the detailed inventory now lives in one managed storage marker
+with one compact OMERO index, and pixel-identity matching permits ordinary
+workflow output renaming. The compact index was verified to restore all 18
+image identities without field-level annotation spam. A later run proved the
+corrected return path: it committed as a shallow Plate, reduced the result from
+146,143,980 to 10,775,997 bytes, and successfully submitted both the
+authoritative source-backed Plate and the opt-in label-backed Plate preview to
+the importer. A compatibility failure found during retry also gained a
+regression test: the biomero compatibility module now re-exports the shared
+`ShallowPlateReference` model used by Image Transfer.
 
 The current branches pass their focused canonical, shallow-result, importer,
 script, schema, and OMERO.biomero regression suites. Run Workflow and
@@ -911,12 +899,14 @@ preview mode, but must not mutate or ambiguously annotate the original Plate.
   normalization work. Still measure a first-time canonical export separately,
   and split NGFF discovery, source/label identity, normalization, deletion,
   total return-path time, full/shallow bytes, and file counts per Image.
-- Multi-generation Image performance: workflow
-  `f3e4a4c2-93bb-47d8-87dc-564ea6af743f` reconstructed five inherited label
-  layers in 10.1 seconds, then verified and normalized the returned Image in
-  6.4 seconds. Its six-label shallow collection occupied 245,043 bytes versus
-  an estimated 4,874,061-byte fully materialized footprint, avoiding 95.0%.
-  Treat these timings as one live observation, not a benchmark mean.
+- Multi-generation Image performance: one shallow Image was reconstructed with
+  five inherited label layers, processed by a Zarr-to-Zarr segmentation that
+  added one non-empty label layer, and normalized again on return.
+  Reconstruction took 10.1 seconds; return verification and normalization took
+  6.4 seconds. The resulting six-label shallow collection occupied 245,043
+  bytes versus an estimated 4,874,061-byte fully materialized footprint,
+  avoiding 95.0%. Treat these timings as one live observation, not a benchmark
+  mean.
 - Re-materialized shallow result: full source pixels and labels compare with the
   original kept result.
 - Unsupported/newer NGFF: conservative retention with an actionable log.

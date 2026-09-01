@@ -386,7 +386,7 @@ Aggregate view
 .. code-block:: python
 
     # Load an aggregate by its UUID
-    slurmClient.workflowTracker.repository.get('747fc951-15ca-4b56-a19e-418e1db97d14')
+    slurmClient.workflowTracker.repository.get('00000000-0000-0000-0000-000000000000')
 
 Troubleshooting
 --------------

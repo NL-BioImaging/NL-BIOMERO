@@ -147,16 +147,16 @@ An abbreviated Image result looks like this:
 {
   "schema": 1,
   "model": "rfc8-shallow-copy",
-  "workflowId": "ae83dc5e-5273-4f26-a170-563674a915d0",
-  "transferArtifact": "Cell-Granules__cisegmentation.ome.zarr",
+  "workflowId": "<workflow-id>",
+  "transferArtifact": "segmentation-result.ome.zarr",
   "interchangeProfile": "ngff-0.4-zarr-v2",
   "images": [{
     "imageNodePath": ".",
     "source": {
       "storageRoot": "group-0-data",
-      "relativePath": ".processed/Image-1338.g1.ome.zarr",
+      "relativePath": ".processed/canonical-image.ome.zarr",
       "sourceObjectType": "Image",
-      "sourceObjectId": 1338,
+      "sourceObjectId": 42,
       "sourceGeneration": 1,
       "nodePath": ".",
       "pixelIdentity": {"method": "iscc-bio/imagewalk", "role": "image"}
@@ -312,10 +312,10 @@ Shallow normalization trades importer CPU and storage I/O for lower persistent
 storage use. It is opt-in because a deployment with small results or a slow,
 metadata-heavy filesystem may value latency more than the saved capacity.
 
-The current production-path Plate benchmark used an 18-field A1/B1 Plate
-returned by `cisegmentation`, with one new label per field and 1,722 files. It
-ran inside the Linux importer container against the real `/data` mount;
-preparing disposable benchmark copies was excluded.
+The current production-path Plate benchmark used an 18-field Plate returned by
+a Zarr-to-Zarr segmentation workflow, with one new label per field and 1,722
+files. It ran inside the Linux importer container against the real `/data`
+mount; preparing disposable benchmark copies was excluded.
 
 | Measurement | Result |
 | --- | ---: |
@@ -339,21 +339,22 @@ than normalization itself.
 
 | Scenario | Logical content | Full or estimated full | Stored shallow | Storage avoided | Return-path shallow processing | Outbound reconstruction |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| A1/B1 Plate benchmark | 18 fields, one new label per field | 146,143,912 bytes | 10,775,929 bytes | 135,367,983 bytes (92.6%) | 25.4 s mean | not measured |
+| 18-field Plate benchmark | 18 fields, one new label per field | 146,143,912 bytes | 10,775,929 bytes | 135,367,983 bytes (92.6%) | 25.4 s mean | not measured |
 | Five-Image live batch | five Images with new and inherited labels | 28.463 MiB estimated | 2.319 MiB | 26.144 MiB (91.9%) | about 10 s total | not measured |
 | Multi-generation Image chain | one Image, five inherited labels and one new label | 4,874,061 bytes estimated | 245,043 bytes | 4,629,018 bytes (95.0%) | 6.4 s observed | 10.1 s observed |
 | Earlier individual Image | one Image result | 6,848,883 bytes | 185,072 bytes | 6,663,811 bytes (97.3%) | not measured | not measured |
 
-The multi-generation observation is workflow
-``f3e4a4c2-93bb-47d8-87dc-564ea6af743f``. Reconstruction copied the canonical
-pixels and five referenced label layers into the temporary transfer Zarr in
-10.1 seconds. On return, the importer spent 4.8 seconds evaluating pixel and
-label identities with four workers and 1.6 seconds transactionally retaining
-only the new ``labels_cells_3`` layer. That is about 16.5 seconds of observed
-shallow-storage work across both system boundaries. It is a single warm-system
-observation rather than a statistically stable benchmark, and the 4,874,061
-byte full footprint is the sum of the currently referenced canonical and six
-label components rather than a pre-normalization tree scan.
+The multi-generation observation started from one shallow Image referencing
+canonical intensity pixels and five inherited label layers. A Zarr-to-Zarr
+segmentation reconstructed that complete collection, added one non-empty label
+layer, and returned the materialized result. Reconstruction took 10.1 seconds.
+On return, the importer spent 4.8 seconds evaluating pixel and label identities
+with four workers and 1.6 seconds transactionally retaining only the new layer.
+That is about 16.5 seconds of observed shallow-storage work across both system
+boundaries. It is a single warm-system observation rather than a statistically
+stable benchmark, and the 4,874,061-byte full footprint is the sum of the
+currently referenced canonical and six label components rather than a
+pre-normalization tree scan.
 
 A later live run processed five Image results with both new and inherited
 labels. Their estimated full size was 28.463 MiB and their stored shallow size
