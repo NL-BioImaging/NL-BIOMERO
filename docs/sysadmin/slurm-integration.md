@@ -439,8 +439,10 @@ environment:
   BIOMERO_SLURM_ZIP_CMD: "7za"
 ```
 
-Each array task preflights its registry manifest, builds in compute-node-local
-`$SLURM_TMPDIR` when available, validates the SIF, and publishes it atomically.
+Each array task auto-detects `apptainer` or `singularity`. The selected runtime
+resolves the registry manifest through its native build path, builds in
+compute-node-local `$SLURM_TMPDIR` when available, validates the SIF, and
+publishes it atomically. No separate registry inspection tool is required.
 The concurrency suffix (for example `%4`) bounds simultaneous extraction and
 SquashFS work. Per-image logs are written as `pull-image-<array>_<task>.log`, and
 structured status distinguishes `READY`, `RUNNING`, and `FAILED`. Re-running the
