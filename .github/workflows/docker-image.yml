@@ -5,6 +5,8 @@ on:
 
 jobs:
   build:
+    # Media-only releases use documentation-* tags and must not publish images.
+    if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     steps:
       -
@@ -117,4 +119,3 @@ jobs:
           push: true
           tags: ${{ steps.meta-worker.outputs.tags }}
           labels: ${{ steps.meta-worker.outputs.labels }}
-

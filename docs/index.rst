@@ -13,7 +13,7 @@ Welcome to NL-BIOMERO's documentation!
    
    <div style="flex: 1; min-width: 300px; background: #f8f9fa; border-left: 4px solid #007bff; padding: 15px; border-radius: 5px;">
    <h4 style="margin: 0 0 10px 0; color: #007bff;"><img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" style="height:1em; width:auto; vertical-align:middle; margin-right:3px;"> What is BIOMERO 2.0?</h4>
-   <p style="margin: 0; font-size: 14px;">An end-to-end platform that transforms OMERO into a provenance-aware system for bioimage data import, analysis, and sharing. <a href="https://arxiv.org/abs/2511.13611" target="_blank">📄 Read our preprint</a></p>
+   <p style="margin: 0; font-size: 14px;">An end-to-end platform that transforms OMERO into a provenance-aware system for bioimage data import, analysis, and sharing. <a href="https://doi.org/10.1111/jmi.70114" target="_blank">📄 Read the publication</a> · <a href="citing.html">Cite BIOMERO</a></p>
    </div>
    
    <div style="flex: 1; min-width: 300px; background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; border-radius: 5px;">
@@ -22,8 +22,10 @@ Welcome to NL-BIOMERO's documentation!
    </div>
    
    <div style="flex: 1; min-width: 300px; background: #f0f4ff; border-left: 4px solid #6366f1; padding: 15px; border-radius: 5px;">
-   <h4 style="margin: 0 0 10px 0; color: #6366f1;">🎥 Introduction Video</h4>
-   <p style="margin: 0; font-size: 14px;">New to BIOMERO? Watch our overview explaining FAIR challenges, OMERO data management, and how BIOMERO transforms your workflow. <a href="overview.html">Watch Now →</a></p>
+   <h4 style="margin: 0 0 10px 0; color: #6366f1;">🎥 BIOMERO Videos</h4>
+   <p style="margin: 0; font-size: 14px;">Choose an introduction that matches your background:</p>
+   <p style="margin: 10px 0 0 0; font-size: 14px;"><a href="overview.html#video-conceptual-introduction">Conceptual introduction →</a><br>
+   <a href="overview.html#video-technical-architecture-clips">Short technical clips →</a></p>
    </div>
    
    </div>
@@ -270,4 +272,3 @@ This documentation serves as your **main gateway** to the BIOMERO 2.0 ecosystem.
    <div style="margin: 40px 0; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 8px; border-left: 4px solid #667eea; text-align: center; color: #4a5568;">
    <p style="font-size: 14px; margin: 0; opacity: 0.8;">💡 This documentation covers containerized deployment scenarios. For non-containerized installations, refer to the individual component documentation.</p>
    </div>
-

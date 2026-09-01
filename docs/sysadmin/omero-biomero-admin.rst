@@ -23,6 +23,8 @@ Importer Admin Configuration
 
 The Importer Admin tab manages settings for BIOMERO.importer (formerly ADI).
 
+.. _group-folder-mappings:
+
 Group Folder Mappings
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -173,8 +175,14 @@ Workflows Settings
 
 **Purpose**: Add and manage analysis workflows available to users
 
+.. _adding-new-workflows:
+
 Adding New Workflows
 ^^^^^^^^^^^^^^^^^^^^
+
+.. tip::
+   🎥 **Visual explanation · 1:26:** :ref:`See how a pinned container and
+   descriptor become a workflow users can run <video-adding-analysis-workflow>`.
 
 1. **Click "Add Model"** to create a new workflow entry
 
@@ -253,6 +261,10 @@ data and which UI options users see.
 
 Zarr Workflow
 ^^^^^^^^^^^^^
+
+.. tip::
+   🎥 **Visual explanation · 0:58:** :ref:`See how OME-Zarr can feed Zarr-native
+   or TIFF-based workflows <video-one-format-flexible-workflows>`.
 
 When **Zarr Workflow** is enabled for a model:
 

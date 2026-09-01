@@ -2,10 +2,8 @@ Architecture Overview
 =====================
 
 .. note::
-   🎥 **New to BIOMERO?** Watch our :doc:`../overview` video for a comprehensive introduction to BIOMERO architecture and workflows.
-
-.. note::
-   Looking for deployment instructions? See :doc:`../sysadmin/quickstart` for step-by-step setup guidance.
+   Looking for deployment instructions? See the :doc:`../sysadmin/deployment`
+   guide for supported deployment scenarios.
 
 NL-BIOMERO transforms OMERO into a comprehensive FAIR (Findable, Accessible, Interoperable, Reusable) platform for bioimage data management and analysis. This page provides a detailed technical overview of the system architecture.
 
@@ -18,6 +16,10 @@ System Architecture Diagram
    :width: 100%
    
    **BIOMERO 2.0 System Architecture** - Complete overview showing the integration of containerized analysis workflows (BIOMERO 1.0), preprocessing workflows (BIOMERO 2.0), and the unified OMERO.biomero web interface with OMERO.forms for metadata collection.
+
+.. tip::
+   🎥 **Visual orientation:** :ref:`Watch What NL-BIOMERO adds to OMERO for a 1-minute-26-second explanation of the system boundary shown above <video-what-nl-biomero-adds>`.
+   New to OMERO or HPC? Start with the :ref:`conceptual introduction <video-conceptual-introduction>` instead.
 
 Core Components
 ---------------
@@ -62,8 +64,13 @@ BIOMERO Services
 Data Flow Architecture
 ----------------------
 
+.. _architecture-in-place-import:
+
 In-Place Import Pipeline
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. tip::
+   🎥 **Visual explanation · 1:24:** :ref:`See how group storage, optional preprocessing, and in-place import connect <video-in-place-importing>`.
 
 1. **Remote Storage Access** - Raw data stored on dedicated remote storage systems
 2. **Web-Based Import Interface** - Users trigger in-place imports via OMERO.biomero web interface
@@ -77,6 +84,11 @@ In-Place Import Pipeline
 
 Analysis Pipeline
 ~~~~~~~~~~~~~~~~~
+
+.. _architecture-analysis-pipeline:
+
+.. tip::
+   🎥 **Visual explanation · 0:58:** :ref:`See how OME-Zarr connects OMERO to TIFF, Zarr, and plate-aware workflows <video-one-format-flexible-workflows>`.
 
 1. **Data Selection** - Users select images/datasets via OMERO.biomero interface
 2. **Workflow Configuration** - Parameters set through web interface or BIOMERO.scripts
@@ -165,8 +177,13 @@ Data Protection
 * **Encrypted Communication** - TLS/SSL for web interfaces
 * **Backup Integration** - Backup strategies for critical data via mounted storage
 
+.. _architecture-monitoring-analytics:
+
 Monitoring & Analytics
 ----------------------
+
+.. tip::
+   🎥 **Visual explanation · 1:26:** :ref:`See how provenance and live progress are recorded as the work happens <video-provenance-while-working>`.
 
 Workflow Monitoring
 ~~~~~~~~~~~~~~~~~~~
@@ -193,6 +210,9 @@ Workflow Development
 * **Parameter Schemas** - JSON-based parameter definition system for interpretability
 * **Open Source Workflows** - Community-contributed analysis pipelines for findability, accessibility and reusability
 
+.. tip::
+   🎥 **Visual explanation · 1:26:** :ref:`See how a container and descriptor become a workflow users can run <video-adding-analysis-workflow>`.
+
 API Integration
 ~~~~~~~~~~~~~~~
 
@@ -205,7 +225,7 @@ Deployment Scenarios
 
 For detailed deployment instructions, see:
 
-* :doc:`../sysadmin/quickstart` - Quick setup guide for development/demo
+* :doc:`../sysadmin/development-setup` - Quick setup guide for development/demo
 * :doc:`../sysadmin/deployment` - Production deployment scenarios
 * :doc:`../sysadmin/linux-deployment` - Linux-specific production setup
 * :doc:`../sysadmin/docker-compose-scenarios` - Advanced Docker configurations
@@ -213,7 +233,7 @@ For detailed deployment instructions, see:
 Next Steps
 ----------
 
-* **Get Started**: Follow the :doc:`../sysadmin/quickstart` for immediate deployment
+* **Get Started**: Follow :doc:`../sysadmin/development-setup` for a development/demo setup
 * **Develop Workflows**: See :doc:`workflow-development` for creating custom analysis pipelines
 * **Container Details**: Explore :doc:`containers/index` for deep-dive into individual services
 * **Admin Guide**: Check :doc:`../sysadmin/omero-biomero-admin` for system configuration

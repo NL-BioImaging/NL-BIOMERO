@@ -3,6 +3,9 @@ Adding Your Workflow to BIOMERO
 
 This guide is for **image analysts and workflow developers** who want to make their image analysis workflows available through the BIOMERO platform. Whether you're developing CellProfiler pipelines, Python-based analysis scripts, or other computational workflows, BIOMERO provides a standardized framework for packaging and deploying your work.
 
+.. tip::
+   🎥 **Visual explanation · 1:26:** :ref:`See how a container and descriptor become a workflow users can run <video-adding-analysis-workflow>`.
+
 Overview
 --------
 
