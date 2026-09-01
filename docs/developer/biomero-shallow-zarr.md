@@ -129,9 +129,11 @@ filesystem or object-store path.
 
 ## The BIOMERO storage contract
 
-The Pydantic models in `biomero-schema` are the shared contract between
-BIOMERO, BIOMERO.importer, and the OMERO scripts. Services must use those models
-instead of independently constructing JSON. The principal markers are:
+The Pydantic models in
+[`biomero-schema`](https://nl-bioimaging.github.io/biomero-schema/) are the
+shared contract between BIOMERO, BIOMERO.importer, and the OMERO scripts.
+Services must use those models instead of independently constructing JSON. The
+principal markers are:
 
 | Marker | Lifetime and purpose |
 | --- | --- |
@@ -190,6 +192,11 @@ duplicated multiscale image arrays are absent. This avoids storing even a fake
 pixel pyramid and prevents readers from mistaking zeros for scientific data.
 
 ## Pixel identity with ISCC-BIO
+
+The BIOMERO Schema documentation provides the normative, field-by-field
+[`PixelIdentity` reference](https://nl-bioimaging.github.io/biomero-schema/pixel-identity/),
+including the exact equality predicate and a complete JSON example. This page
+focuses on how that contract participates in shallow storage.
 
 BIOMERO uses the experimental
 [ISCC-BIO](https://github.com/bio-codes/iscc-bio) IMAGEWALK implementation.
@@ -434,6 +441,8 @@ not by silently changing the meaning of existing managed results.
 
 ## Further reading
 
+- [BIOMERO Schema: Zarr contracts](https://nl-bioimaging.github.io/biomero-schema/zarr-contracts/)
+- [BIOMERO Schema: Pixel identity](https://nl-bioimaging.github.io/biomero-schema/pixel-identity/)
 - [OME-NGFF RFC 8: Collections and Extensibility](https://ngff.openmicroscopy.org/rfc/8/)
 - [ISCC-BIO and IMAGEWALK](https://github.com/bio-codes/iscc-bio)
 - [IEP-0017: TREEWALK](https://ieps.iscc.codes/iep-0017/)
