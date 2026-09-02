@@ -4,6 +4,7 @@
    :maxdepth: 2
 
    overview
+   citing
 
 .. toctree::
    :hidden:

@@ -125,8 +125,14 @@ Because the Docker engine mounts host folders directly, local OS permissions app
    # Example: Setting permissions on the host directory
    chown -R 1000:1000 /path/to/shared/group/directories
 
+.. _uploader-data-flow:
+
 Uploader Data Flow
 ------------------
+
+.. tip::
+   🎥 **Visual explanation · 1:24:** :ref:`See how uploads enter the same
+   asynchronous in-place import route <video-in-place-importing>`.
 
 The life cycle of an upload and its automatic import follows these steps:
 

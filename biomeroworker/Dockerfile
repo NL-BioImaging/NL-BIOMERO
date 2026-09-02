@@ -46,7 +46,9 @@ ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/session-poller" 
 RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && $VIRTUAL_ENV/bin/python -m pip install --ignore-requires-python biomero-importer==${BIOMERO_IMPORTER_VERSION} \
-    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@session-poller"
+    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@session-poller" \
+    && $VIRTUAL_ENV/bin/python -m pip install \
+        scikit-image==0.25.2 omero-rois==0.4.1
 # Alternative PyPI install:
 # RUN $VIRTUAL_ENV/bin/python -m pip install "biomero[full]==${BIOMERO_VERSION}"
 
@@ -55,9 +57,6 @@ RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
 # See latest OME version @ https://raw.githubusercontent.com/ome/omero-py/master/src/omero/processor.py
 # Might need to merge important changes from time to time to keep this version compatible.
 COPY biomeroworker/processor.py /opt/omero/server/venv3/lib/python3.11/site-packages/omero/
-
-## Setup slurm-config for biomero
-COPY biomeroworker/slurm-config.ini /etc/slurm-config.ini
 
 ## OMERO: Replace the default startup scripts
 RUN rm /startup/60-database.sh

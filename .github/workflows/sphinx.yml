@@ -8,6 +8,8 @@ on:
 
 jobs:
   pages:
+    # Keep master deployments, but ignore media-only documentation releases.
+    if: github.event_name == 'push' || startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     permissions:
       contents: write

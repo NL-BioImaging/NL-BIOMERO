@@ -1,92 +1,168 @@
 Getting Started
 ===============
 
-First Steps with NL-BIOMERO
----------------------------
+This guide follows the tasks most people perform in OMERO.biomero: adding data,
+running a workflow, monitoring progress, and finding results.
 
-Access the Platform
-~~~~~~~~~~~~~~~~~~~
+Before You Start
+----------------
 
-After deployment, open OMERO.web at the address provided by your system
-administrator (sometimes on port **4080**).
-
-.. note::
-   Default credentials are set during deployment. Contact your system administrator
-   for login details. Administrators must change default passwords immediately after
-   first login — see :doc:`../sysadmin/metabase-admin` for the security setup.
+Open OMERO.web at the address provided by your system administrator and select
+the **BIOMERO** panel from the top navigation bar. The active OMERO group matters:
+it controls which remote-storage folder you can browse and where imported or
+analyzed data is placed.
 
 .. warning::
-   **Do not log out of OMERO while a job is running.**
+   Do not log out while an import or analysis is running. Closing the browser
+   keeps the OMERO session alive until its configured timeout, but logging out
+   ends the session immediately and may leave active work unable to finish.
 
-   Logging out, or closing the browser without the session being kept alive, will
-   terminate your active OMERO session. Any running import or analysis jobs that
-   were started under that session may fail or become orphaned.
+.. tip::
+   🎥 **Live demonstration · 5:39:** :ref:`See NL-BIOMERO in practice
+   during a real session <video-live-demonstration>`. The current interface has
+   since gained the web uploader, Bilayers workflows, and some updated dialogs.
 
-   - **After closing the browser**, a session remains active for the configured
-     session timeout period (default: 7 days). Jobs submitted before closing will
-     continue to run.
-   - **Logging out immediately ends the session**, regardless of running jobs.
-     If you need to step away, simply close the browser tab instead of logging out.
+Interface at a Glance
+---------------------
 
-   Administrators can adjust the session timeout via ``CONFIG_omero_sessions_timeout``
-   in the deployment ``.env`` file.
-
-OMERO.biomero Interface
------------------------
-
-OMERO.biomero is a plugin inside OMERO.web that provides a unified interface for
-importing and analyzing imaging data. After logging in to OMERO.web, open the
-`BIOMERO` panel from the top navigation bar.
-
-The interface has the following main areas:
+The available tabs depend on the features enabled by your administrator.
 
 **Import**
-   The Import section has subtabs:
+   **Import Images**
+      Browse the remote-storage folder mapped to your active OMERO group and
+      start an in-place import.
 
-   *Import Images*
-      Browse your current group's remote shared storage and start an in-place import to bring
-      your data into OMERO without duplicating files on disk.
+   **Upload Images** *(when enabled)*
+      Upload supported individual files from your computer. After the upload
+      completes, the files enter the same asynchronous importer route. See the
+      :doc:`../sysadmin/resumable-uploader` guide for supported files and
+      additional details.
 
-   *Monitor*
-      Track the progress of your import orders. An embedded Metabase dashboard shows
-      all active and completed imports for your group. Each import order is identified
-      by a **UUID** shown in the table — use this UUID to find your imported data back
-      in OMERO.web.
+   **Monitor**
+      Follow active and completed import orders. Each order has a UUID that can
+      be used when locating data or asking an administrator for help.
 
 **Analyze**
-   The Analyze section has subtabs:
+   **Image Workflows**
+      Run workflows on selected datasets or individual images.
 
-   *Run*
-      Submit analysis jobs to the HPC cluster. The Run subtab itself has two sub-sections:
+   **Plate Workflows** *(when configured)*
+      Run plate-aware workflows that receive a complete plate as Zarr and
+      preserve its well and acquisition structure.
 
-      - **Image Workflows** *(default)* — choose a workflow, select datasets or individual images from OMERO
-        as input, configure workflow parameters, and submit.
-      - **Plate Workflows** *(BIOMERO ≥ 2.4.0)* — plate-aware analysis that sends the
-        entire plate as a single Zarr, preserving well and acquisition structure.
-        Only plates can be selected as input. Only workflows configured as
-        *Zarr Plate Workflows* by your administrator appear here.
+   **Status**
+      Follow queued, running, completed, and failed workflow runs. Each run has
+      a Workflow ID (UUID) that also identifies its returned results.
 
-   *Status*
-      Track your submitted jobs and see their current state (queued, running,
-      finished, failed). Each job is identified by a **Workflow ID (UUID)** shown in
-      the dashboard. Once a job finishes, search for that UUID in OMERO.web to find
-      your result images, which are imported automatically with full provenance
-      metadata.
+.. _user-remote-storage-import:
 
+How Do I Add Data Already on Remote Storage?
+--------------------------------------------
 
-Next Steps
-~~~~~~~~~~
+Use this route for files or folder-based datasets that already reside on shared
+storage:
 
-1. **Import Data** — Use the **Import → Import Images** tab to bring your microscopy data into OMERO
-2. **Run Analysis** — Open **Analyze → Run → Image Workflows** (or **Plate Workflows** for plates), choose a workflow, and submit
-3. **Track Progress** — Check **Analyze → Status** to monitor running jobs; note the Workflow UUID for later
-4. **View Results** — Search for the Workflow UUID in OMERO.web to find your imported result images
-5. **Analytics** — Use **Import → Monitor** or Metabase to explore import and workflow statistics
+1. Select the OMERO group that should own the imported data.
+2. Open **BIOMERO > Import > Import Images**.
+3. Browse the folder made available to that group and select the data to import.
+4. Choose the requested destination and preprocessing options, if any, then
+   start the import.
+5. Open **Import > Monitor** to follow the order and record its UUID.
 
-Platform Overview from the README
------------------
+The importer can optionally run a versioned preprocessing container before
+registering the result. The original data remains on shared storage; OMERO stores
+the metadata and file references needed to access it.
 
-.. include:: ../../README.md
-   :parser: myst_parser.sphinx_
-   :start-after: ## 📊 Data Import
-   :end-before: ## 🛠️ Container Management
+.. _user-web-upload:
+
+How Do I Add Data Directly from the Web?
+----------------------------------------
+
+Use the uploader for supported individual files on your computer:
+
+1. Open **BIOMERO > Import > Upload Images**.
+2. Select the target project or dataset shown by the interface.
+3. Add the files and start the upload. Interrupted uploads can resume.
+4. After assembly, OMERO.biomero creates an import order automatically.
+5. Follow that order under **Import > Monitor**.
+
+Folder-based formats and datasets whose directory structure must be preserved
+should use **Import Images** from remote storage instead. If **Upload Images** is
+not visible, the feature has not been enabled for this deployment. See
+:doc:`../sysadmin/resumable-uploader` for the full behavior and supported-file
+limitations.
+
+.. _user-run-workflow:
+
+How Do I Run a Workflow on My Images?
+-------------------------------------
+
+1. Make sure the input images, dataset, or plate are available in OMERO.
+2. Open **BIOMERO > Analyze**.
+3. Choose **Image Workflows** for images or datasets, or **Plate Workflows** for
+   a compatible plate-aware workflow.
+4. Select the workflow and its input data.
+5. Configure the exposed parameters and output destination, then submit the run.
+6. Open **Analyze > Status** and record the Workflow ID.
+
+When processing finishes, BIOMERO returns supported image and file outputs to
+OMERO with provenance metadata. Search for the Workflow ID in OMERO.web to find
+the returned results.
+
+.. _user-request-workflow:
+
+How Do I Get a New Workflow into BIOMERO?
+-----------------------------------------
+
+You cannot install a new workflow from the normal user interface. Ask your
+BIOMERO administrator and provide the workflow repository, required version,
+expected input type, and intended use. The administrator must review, register,
+and initialize the pinned workflow before it becomes available.
+
+Workflow authors can start with :doc:`../developer/workflow-development`.
+Administrators should follow :ref:`Adding New Workflows
+<adding-new-workflows>`.
+
+.. _user-faq:
+
+Frequently Asked Questions
+--------------------------
+
+I cannot find my folder on the remote disk
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+First confirm that the correct OMERO group is active. Each group can be mapped
+to a different remote-storage folder, so switching groups changes what the
+browser can show. If the folder is still absent, ask an administrator to check
+the :ref:`group-folder mapping <group-folder-mappings>` and storage permissions.
+
+The Upload Images tab is missing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The web uploader is optional and must be enabled by an administrator. Use
+**Import Images** if the data is already on shared storage, or ask the
+administrator to review the :doc:`../sysadmin/resumable-uploader` setup.
+
+The workflow I need is missing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It may not yet be registered or initialized, or it may appear only under
+**Plate Workflows** because of its input type. Give the workflow name and desired
+version to your administrator. Administrators can check :ref:`Adding New
+Workflows <adding-new-workflows>`.
+
+My import or workflow is not progressing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Keep the OMERO session active, check **Import > Monitor** or **Analyze > Status**,
+and copy the order or Workflow UUID. Send that UUID and the approximate start
+time to your administrator; those identifiers connect the interface entry to
+the BIOMERO database and service logs.
+
+Where are my workflow results?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+After a successful run, search OMERO.web for the Workflow ID shown under
+**Analyze > Status**. Returned images are imported automatically and carry
+metadata linking them to the workflow run. If the run says it completed but no
+results appear, give the Workflow ID to your administrator.

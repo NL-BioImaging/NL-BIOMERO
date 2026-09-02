@@ -127,6 +127,7 @@ services:
     environment:
       CONFIG_omero_master_host: omeroserver
       OMERO_WORKER_NAME: biomeroworker
+      BIOMERO_SLURM_CONFIG_FILE: /opt/omero/server/slurm-config.ini
       CONFIG_omero_logging_level: ${OMERO_LOGGING_LEVEL}
       CONFIG_omero_sessions_timeout: ${OMERO_SESSIONS_TIMEOUT}
       CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
@@ -142,7 +143,7 @@ services:
     volumes:
       - "omero:/OMERO"
       - "/opt/omero/.ssh:/tmp/.ssh:ro" # TODO: Make sure to open permissions on the host e.g. chmod -R 777 /opt/omero/.ssh
-      - "../web/slurm-config.ini:/opt/omero/server/slurm-config.ini:rw"
+      - "../web/slurm-config.ini:/opt/omero/server/slurm-config.ini:ro"
       - "../web/L-Drive:/data"
       - "tus-destination:/tus_destination"
       - "../config/biomero-importer:/opt/omero/server/config-importer:ro"
@@ -162,6 +163,7 @@ services:
     environment:
       OMEROHOST: omeroserver
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
+      BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
       CONFIG_omero_web_login__logo: "https://cembo.eu/wp-content/uploads/2021/04/Amsterdam-UMC.png"
       CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
       CONFIG_omero_web_session__expire__at__browser__close: "${OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE}"
@@ -176,7 +178,6 @@ services:
       IMPORT_MOUNT_PATH: ${IMPORT_MOUNT_PATH}
       FORMS_MASTER_USER: ${FORMS_MASTER_USER}
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
-      OMERO_BIOMERO_CONFIG_FILE: /opt/omero/web/OMERO.web/var/biomero-config.json
       OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
@@ -214,13 +215,11 @@ services:
 
   biomero-importer:
     image: "cellularimagingcf/biomero-importer:${BIOMERO_IMPORTER_VERSION:-latest}"
-    privileged: true
     profiles:
       - "IMPORTER_ENABLED"
-    devices:
-      - "/dev/fuse:/dev/fuse"
     security_opt:
       - "label=disable"
+      - "seccomp=unconfined"
     environment:
       OMERO_HOST: omeroserver
       OMERO_USER: ${OMERO_IMPORTER_USER}
@@ -228,7 +227,6 @@ services:
       OMERO_PORT: ${OMERO_PORT}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       ADI_RUN_MIGRATIONS: ${ADI_RUN_MIGRATIONS}
-      PODMAN_USERNS_MODE: keep-id
     networks:
       - omero
     volumes:
@@ -237,6 +235,9 @@ services:
       - "tus-destination:/tus_destination"
       - "../config/biomero-importer:/auto-importer/config:ro"
       - "../logs/biomero-importer:/auto-importer/logs"
+      - "biomero-importer-containers:/home/autoimportuser/.local/share/containers"
+    tmpfs:
+      - /tmp
     user: "${OMERO_CONTAINER_USER}"
     logging:
       driver: "json-file"
@@ -254,3 +255,4 @@ volumes:
   database-biomero:
   omero:
   tus-destination:
+  biomero-importer-containers:
