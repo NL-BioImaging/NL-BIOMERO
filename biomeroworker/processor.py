@@ -1245,6 +1245,8 @@ class WorkflowSupervisor(Thread):
             if launcher is None:
                 # Started by a script that runs its own pipeline, so it is not
                 # ours to run. Remembered until the cache is next dropped.
+                self.logger.debug(f"Workflow {wf_id} was not queued for us; "
+                                  f"leaving it alone.")
                 self.ignore(wf_id)
                 continue
             batched = launcher.task_name == constants.RUN_WF_BATCHED_SCRIPT
