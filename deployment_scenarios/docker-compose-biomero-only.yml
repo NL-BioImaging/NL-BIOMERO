@@ -69,6 +69,7 @@ services:
       # External OMERO credentials
       ROOTPASS: ${EXTERNAL_OMERO_PASSWORD}
       IMPORTER_ENABLED: "FALSE"
+      BIOMERO_SHALLOW_ZARR: ${BIOMERO_SHALLOW_ZARR:-false}
       ANALYZER_ENABLED: "TRUE"
     networks:
       - biomero

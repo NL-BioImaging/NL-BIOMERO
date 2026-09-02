@@ -405,7 +405,12 @@ BIOMERO_SHALLOW_ZARR_WORKERS=4
 
 `BIOMERO_SHALLOW_ZARR` defaults off, preserving the old export/import behavior.
 The worker flag crosses the OMERO processor environment allow-list; the worker
-count belongs to the importer service. Monitor image/field count, label count,
+count belongs to the importer service. Shallow processing also requires the
+BIOMERO.importer `identity` extra, which supplies ISCC-BIO. The shipped
+NL-BIOMERO importer image installs that extra. A custom importer installation
+must use `pip install "biomero-importer[identity]"`; when it is absent, the
+importer reports the missing capability and rejects only shallow lifecycle
+orders while ordinary imports continue. Monitor image/field count, label count,
 bytes before and after, identity time, normalization time, and total import
 time. Disable the feature if its measured latency is not justified by the
 storage saved.

@@ -251,7 +251,11 @@ parallel identity generation in BIOMERO.importer; increasing it can make a
 metadata-heavy storage mount slower through I/O contention. Enabling the
 feature is a storage-versus-import-time choice: current development examples
 saved about 92% of returned Zarr storage, but large Plates still need
-site-specific timing before broad deployment.
+site-specific timing before broad deployment. Custom importer installations
+must include the identity extra (``pip install "biomero-importer[identity]"``).
+The NL-BIOMERO importer image already includes it. If the flag is enabled
+without ISCC-BIO, only shallow lifecycle orders are rejected; normal imports
+remain available.
 
 See :doc:`../developer/biomero-shallow-zarr` for the storage contract, measured
 trade-offs, RFC 8 relationship, ISCC identity rules, and current validation
