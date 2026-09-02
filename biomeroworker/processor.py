@@ -11,6 +11,7 @@ OMERO Grid Processor
 
 import contextlib
 import logging
+from datetime import datetime, timezone
 import os
 import time
 import signal
@@ -788,6 +789,10 @@ CHILD_POLL_SECONDS = 15
 # them, but the memory is dropped periodically so that a transient database
 # error cannot sideline a workflow until the next restart.
 IGNORE_CACHE_POLLS = 90
+# A script starts its workflow before it registers the launcher task, so a
+# workflow this young without one is not evidence that it is not ours: it is
+# re-examined on the next poll instead of being remembered.
+IGNORE_MIN_AGE_SECONDS = 300
 
 biomero_logger = logging.getLogger("biomero.detached")
 
@@ -1243,26 +1248,41 @@ class WorkflowSupervisor(Thread):
         self.logger.info("Workflow supervisor shutting down")
 
     def unfinished_workflows(self):
-        """Every workflow that has not reached a final state.
+        """Every workflow that has not reached a final state, with its age.
 
         The task execution view does not record which workflow a task belongs
         to, so candidates cannot be narrowed down to queued runs in SQL; that
         is what the launcher lookup below is for.
+
+        Returns:
+            list: ``(workflow_id, age_in_seconds)`` pairs.
         """
         from biomero.constants import workflow_status as wfs
         from biomero.database import EngineManager, WorkflowProgressView
 
+        now = datetime.now(timezone.utc)
         with EngineManager.get_session() as session:
-            rows = session.query(WorkflowProgressView.workflow_id).filter(
-                WorkflowProgressView.status.notin_(
-                    [wfs.DONE, wfs.FAILED])).all()
-            return [row.workflow_id for row in rows]
+            rows = session.query(
+                WorkflowProgressView.workflow_id,
+                WorkflowProgressView.start_time).filter(
+                    WorkflowProgressView.status.notin_(
+                        [wfs.DONE, wfs.FAILED])).all()
+        workflows = []
+        for workflow_id, start_time in rows:
+            if start_time is None:
+                age = 0.0
+            else:
+                if start_time.tzinfo is None:
+                    start_time = start_time.replace(tzinfo=timezone.utc)
+                age = (now - start_time).total_seconds()
+            workflows.append((workflow_id, age))
+        return workflows
 
     def spawn_workers(self):
         """Start a worker for each queued workflow that has none yet."""
         from biomero import constants, detached
 
-        for wf_id in self.unfinished_workflows():
+        for wf_id, age in self.unfinished_workflows():
             with self.lock:
                 if wf_id in self.active_workers or wf_id in self.ignored:
                     continue
@@ -1274,6 +1294,10 @@ class WorkflowSupervisor(Thread):
                 return
             launcher = detached.find_launcher_task(self.tracker, wf_id)
             if launcher is None:
+                if age < IGNORE_MIN_AGE_SECONDS:
+                    # Possibly still being set up by the script that started
+                    # it; look again next time.
+                    continue
                 # Started by a script that runs its own pipeline, so it is not
                 # ours to run. Remembered until the cache is next dropped.
                 self.logger.debug(f"Workflow {wf_id} was not queued for us; "
