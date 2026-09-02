@@ -774,6 +774,14 @@ MAX_ACTIVE_WORKFLOWS = int(os.environ.get("BIOMERO_MAX_ACTIVE_WORKFLOWS", "4"))
 # How often to look for newly queued workflows.
 SUPERVISOR_POLL_SECONDS = int(
     os.environ.get("BIOMERO_SUPERVISOR_POLL_SECONDS", "10"))
+# How long to hold off the first poll. A run needs sub-scripts, which cannot
+# start until this processor is registered and the server is routing work to
+# it, so resuming a run the moment the process comes up would fail it.
+SUPERVISOR_STARTUP_GRACE_SECONDS = int(
+    os.environ.get("BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS", "60"))
+# A sub-script launch is retried while the server reports no processor, which
+# it does until registration has gone through after a restart.
+SCRIPT_START_RETRY_SECONDS = 180
 # How often a batched parent checks on its children.
 CHILD_POLL_SECONDS = 15
 # Workflows found not to be ours are remembered so we do not keep inspecting
@@ -880,7 +888,7 @@ def polling_script_runner(client, svc, script_id, inputs,
         tuple: (results, job) exactly as runOMEROScript() returns them.
     """
     logger = logging.getLogger("biomero.detached.script")
-    proc = svc.runScript(int(script_id), inputs, None)
+    proc = start_script(svc, script_id, inputs, logger)
     conn = getattr(client, "conn", None)
     try:
         next_position = 0
@@ -913,6 +921,24 @@ def polling_script_runner(client, svc, script_id, inputs,
         return proc.getResults(0), proc.getJob()
     finally:
         proc.close(False)
+
+
+def start_script(svc, script_id, inputs, logger):
+    """Start a sub-script, waiting out a processor that is not ready yet.
+
+    Right after this processor restarts it is not yet being given work, so a
+    resumed run would otherwise fail on its first sub-script.
+    """
+    deadline = time.time() + SCRIPT_START_RETRY_SECONDS
+    while True:
+        try:
+            return svc.runScript(int(script_id), inputs, None)
+        except omero.NoProcessorAvailable:
+            if time.time() >= deadline:
+                raise
+            logger.info(f"No processor available yet for script {script_id}; "
+                        f"retrying.")
+            time.sleep(10)
 
 
 class WorkflowWorker(Thread):
@@ -1196,6 +1222,11 @@ class WorkflowSupervisor(Thread):
         except Exception as e:
             self.logger.error(f"Cannot supervise workflows: {e}", exc_info=True)
             return
+
+        if SUPERVISOR_STARTUP_GRACE_SECONDS:
+            self.logger.info(f"Waiting {SUPERVISOR_STARTUP_GRACE_SECONDS}s "
+                             f"for this processor to start taking work")
+            self.shutdown_event.wait(SUPERVISOR_STARTUP_GRACE_SECONDS)
 
         polls = 0
         while not self.shutdown_event.is_set():
