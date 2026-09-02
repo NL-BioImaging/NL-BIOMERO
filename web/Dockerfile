@@ -1,9 +1,17 @@
 FROM openmicroscopy/omero-web-standalone:5.31.1
 
 ARG OMERO_FORMS_VERSION
-ARG OMERO_BIOMERO_VERSION
-ARG OMERO_BIOMERO_BRANCH=feature/zarr-shallow-storage
-ARG BIOMERO_SCHEMA_BRANCH=feature/zarr-shallow-storage
+ARG OMERO_BIOMERO_VERSION=1.7.0b1
+
+# Development-only branch wiring. Uncomment the matching ARGs, branch-head
+# cache busters, and direct-reference installs together for unpublished work.
+# ARG OMERO_BIOMERO_BRANCH=main
+# ARG BIOMERO_SCHEMA_BRANCH=main
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_BRANCH}" /latest_commit_biomero_schema
+# ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BIOMERO_BRANCH}" /latest_commit_omero_biomero
+# RUN /opt/omero/web/venv3/bin/pip install \
+#     "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
+#     "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}"
 
 USER root
 
@@ -41,13 +49,10 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 ### Install OMERO.biomero first ###
 ### BIOMERO.importer and BIOMERO.analyzer will be installed as a dependency of OMERO.biomero ###
 
-# Track the matching feature branch. The branch-head API response invalidates
-# Docker's cache whenever that branch advances, while pip still installs by
-# branch name rather than pinning an individual commit.
-ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_BRANCH}" /latest_commit_biomero_schema
-ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BIOMERO_BRANCH}" /latest_commit_omero_biomero
-RUN /opt/omero/web/venv3/bin/pip install "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
-    && /opt/omero/web/venv3/bin/pip install "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
+# Install the released OMERO.biomero package from PyPI. Its BIOMERO,
+# BIOMERO.importer, and biomero-schema dependencies resolve transitively.
+RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1)
+RUN /opt/omero/web/venv3/bin/pip install "omero-biomero==${OMERO_BIOMERO_VERSION}" \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 ### Install OMERO.forms ###

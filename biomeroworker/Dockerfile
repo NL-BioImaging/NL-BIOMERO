@@ -1,8 +1,20 @@
 FROM openmicroscopy/omero-server:5.6.18
 
-ARG BIOMERO_SCHEMA_BRANCH=feature/zarr-shallow-storage
-ARG BIOMERO_BRANCH=feature/zarr-shallow-storage
-ARG BIOMERO_IMPORTER_BRANCH=feature/zarr-shallow-storage
+ARG BIOMERO_VERSION=2.9.0b1
+ARG BIOMERO_IMPORTER_VERSION=1.5.0b2
+
+# Development-only branch wiring. Uncomment the matching ARGs, branch-head
+# cache busters, and direct-reference installs together for unpublished work.
+# ARG BIOMERO_SCHEMA_BRANCH=main
+# ARG BIOMERO_BRANCH=main
+# ARG BIOMERO_IMPORTER_BRANCH=main
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_BRANCH}" /latest_commit_biomero_schema
+# ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.importer/commits/${BIOMERO_IMPORTER_BRANCH}" /latest_commit_biomero_importer
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_BRANCH}" /latest_commit_biomero
+# RUN $VIRTUAL_ENV/bin/python -m pip install \
+#     "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
+#     "biomero-importer[identity] @ git+https://github.com/NL-BioImaging/BIOMERO.importer.git@${BIOMERO_IMPORTER_BRANCH}" \
+#     "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@${BIOMERO_BRANCH}"
 
 USER root
 
@@ -41,18 +53,15 @@ ENV PATH="$PATH:/opt/bioformats2raw-0.12.0-rc1/bin"
 ## Add BIOMERO Omero Slurm Client
 RUN yum -y install ack
 
-# Force zarr < 3 for compatibility with omero-cli-zarr by installing biomero
-# after the importer. Branch-head responses invalidate the corresponding
-# install layer whenever a selected feature branch advances.
-ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_BRANCH}" /latest_commit_biomero_schema
-ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.importer/commits/${BIOMERO_IMPORTER_BRANCH}" /latest_commit_biomero_importer
-ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_BRANCH}" /latest_commit_biomero
+# Install released packages from PyPI. biomero-schema is resolved transitively
+# from the compatible constraints declared by BIOMERO and BIOMERO.importer.
+RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1) \
+    && test -n "$BIOMERO_IMPORTER_VERSION" || (echo "BIOMERO_IMPORTER_VERSION build arg is required" >&2; exit 1)
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && $VIRTUAL_ENV/bin/python -m pip install \
-        "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
+        "biomero-importer[identity]==${BIOMERO_IMPORTER_VERSION}" \
     && $VIRTUAL_ENV/bin/python -m pip install \
-        "biomero-importer[identity] @ git+https://github.com/NL-BioImaging/BIOMERO.importer.git@${BIOMERO_IMPORTER_BRANCH}" \
-    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@${BIOMERO_BRANCH}" \
+        "biomero[full]==${BIOMERO_VERSION}" \
     && $VIRTUAL_ENV/bin/python -m pip install \
         scikit-image==0.25.2 omero-rois==0.4.1 \
         ezomero==3.2.3 dask==2026.1.1 distributed==2026.1.1 \

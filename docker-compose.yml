@@ -49,7 +49,6 @@ services:
       context: ./
       dockerfile: ./server/Dockerfile
       args:
-        BIOMERO_SCRIPTS_BRANCH: ${BIOMERO_SCRIPTS_BRANCH:-feature/zarr-shallow-storage}
         LABEL2ROIS_BRANCH: ${LABEL2ROIS_BRANCH:-main}
         OMERO_ZARR_PIXEL_BUFFER_VERSION: ${OMERO_ZARR_PIXEL_BUFFER_VERSION}
     # Define environment variables for use in the container.
@@ -125,10 +124,6 @@ services:
     build:
       context: ./
       dockerfile: ./biomeroworker/Dockerfile
-      args:
-        BIOMERO_SCHEMA_BRANCH: ${BIOMERO_SCHEMA_BRANCH:-feature/zarr-shallow-storage}
-        BIOMERO_BRANCH: ${BIOMERO_BRANCH:-feature/zarr-shallow-storage}
-        BIOMERO_IMPORTER_BRANCH: ${BIOMERO_IMPORTER_BRANCH:-feature/zarr-shallow-storage}
     # Define variables for use in the container.
     # WORKER_NAME is used in the omero/ice node description
     # logging_level doesn't work, but should increase logging
@@ -178,8 +173,6 @@ services:
       dockerfile: ./web/Dockerfile
       args:
         OMERO_BIOMERO_VERSION: ${OMERO_BIOMERO_VERSION}
-        OMERO_BIOMERO_BRANCH: ${OMERO_BIOMERO_BRANCH:-feature/zarr-shallow-storage}
-        BIOMERO_SCHEMA_BRANCH: ${BIOMERO_SCHEMA_BRANCH:-feature/zarr-shallow-storage}
         OMERO_FORMS_VERSION: ${OMERO_FORMS_VERSION}
     environment:
       OMEROHOST: omeroserver
@@ -241,8 +234,6 @@ services:
     build:
       context: ./biomero-importer
       dockerfile: ./Dockerfile
-      args:
-        BIOMERO_SCHEMA_BRANCH: ${BIOMERO_SCHEMA_BRANCH:-feature/zarr-shallow-storage}
     profiles:
       - "IMPORTER_ENABLED"
     security_opt:
