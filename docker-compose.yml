@@ -143,6 +143,9 @@ services:
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
       OMERO_USER: root
       OMERO_PASSWORD: ${OMERO_ROOT_PASSWORD}
+      # Run workflows detached from the requesting OMERO session: the script
+      # queues the run and the supervisor in this processor executes it.
+      BIOMERO_DETACHED_WORKFLOWS: ${BIOMERO_DETACHED_WORKFLOWS:-true}
     # Named network to communicate with other containers
     networks:
       - omero

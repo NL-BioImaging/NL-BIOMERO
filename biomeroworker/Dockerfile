@@ -52,6 +52,15 @@ RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
 # Alternative PyPI install:
 # RUN $VIRTUAL_ENV/bin/python -m pip install "biomero[full]==${BIOMERO_VERSION}"
 
+## BIOMERO: the workflow supervisor in our processor drives the pipeline out
+## of the workflow scripts themselves, so this node needs them on disk as well
+## as the server does. Keep the branch in step with server/Dockerfile.
+ENV OMERO_DIST=/opt/omero/server/OMERO.server
+ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/session-poller" /latest_commit_biomero_scripts
+RUN cd $OMERO_DIST/lib/scripts/ && \
+    git clone --depth 1 --branch session-poller --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
+    rm -rf biomero/tests
+
 ## Adjust processor code with BIOMERO Processor
 # This version forwards HTTP(S) PROXY environment variables to the subprocesses (scripts)
 # See latest OME version @ https://raw.githubusercontent.com/ome/omero-py/master/src/omero/processor.py

@@ -1,0 +1,26 @@
+# Local development overlay: run the stack from working copies instead of the
+# published branches the Dockerfiles install from.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.localdev.yml up -d
+#
+# Nothing is rebuilt: the images stay as they are and the source trees are
+# mounted over the installed copies, so a change only needs the affected
+# service restarted.
+#
+# Both paths default to a sibling checkout and can be pointed elsewhere:
+#   BIOMERO_SOURCE_PATH   the biomero repository
+#   SCRIPTS_OVERLAY_PATH  the biomero-scripts tree to expose as OMERO scripts
+#
+# OMERO lists every .py under the scripts directory, so point
+# SCRIPTS_OVERLAY_PATH at a copy without the repository's tests if a cluttered
+# script menu gets in the way.
+services:
+  omeroserver:
+    volumes:
+      - "${SCRIPTS_OVERLAY_PATH:-../biomero-scripts}:/opt/omero/server/OMERO.server/lib/scripts/biomero:ro"
+
+  biomeroworker:
+    volumes:
+      - "${BIOMERO_SOURCE_PATH:-../biomero}/biomero:/opt/omero/server/venv3/lib/python3.11/site-packages/biomero:ro"
+      - "${SCRIPTS_OVERLAY_PATH:-../biomero-scripts}:/opt/omero/server/OMERO.server/lib/scripts/biomero:ro"
+      - "./biomeroworker/processor.py:/opt/omero/server/venv3/lib/python3.11/site-packages/omero/processor.py:ro"
