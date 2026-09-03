@@ -2,10 +2,18 @@ FROM openmicroscopy/omero-server:5.6.18
 
 ARG BIOMERO_VERSION
 
-# Development-only branch wiring for the scheduler-native image-pull proof of
-# concept. Restore the versioned install below after cross-repository testing.
-ARG BIOMERO_BRANCH=feature/slurm-image-pull-array
-ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_BRANCH}" /latest_commit_biomero
+# Development-only branch wiring. Uncomment the matching ARGs, branch-head
+# cache busters, and direct-reference installs together for unpublished work.
+# ARG BIOMERO_SCHEMA_BRANCH=main
+# ARG BIOMERO_BRANCH=fix/full-runtime-dependencies
+# ARG BIOMERO_IMPORTER_BRANCH=main
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_BRANCH}" /latest_commit_biomero_schema
+# ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.importer/commits/${BIOMERO_IMPORTER_BRANCH}" /latest_commit_biomero_importer
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_BRANCH}" /latest_commit_biomero
+# RUN $VIRTUAL_ENV/bin/python -m pip install \
+#     "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
+#     "biomero-importer[identity] @ git+https://github.com/NL-BioImaging/BIOMERO.importer.git@${BIOMERO_IMPORTER_BRANCH}" \
+#     "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@${BIOMERO_BRANCH}"
 
 USER root
 
@@ -44,12 +52,13 @@ ENV PATH="$PATH:/opt/bioformats2raw-0.12.0-rc1/bin"
 ## Add BIOMERO Omero Slurm Client
 RUN yum -y install ack
 
-# Install the complete BIOMERO.scripts runtime from the matching BIOMERO branch.
+# Install the complete BIOMERO.scripts runtime from BIOMERO's full extra.
 # BIOMERO.importer, biomero-schema, and the image-processing dependencies are
 # resolved transitively from its compatible constraints.
+RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && $VIRTUAL_ENV/bin/python -m pip install \
-        "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@${BIOMERO_BRANCH}" \
+        "biomero[full]==${BIOMERO_VERSION}" \
     && $VIRTUAL_ENV/bin/python -m pip check
 
 ## Adjust processor code with BIOMERO Processor
