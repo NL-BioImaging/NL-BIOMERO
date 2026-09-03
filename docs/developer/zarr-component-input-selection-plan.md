@@ -502,9 +502,9 @@ Collection references form an acyclic provenance graph. Reconstruction resolves
 the canonical source, recursively resolves inherited label references, and then
 overlays local labels. A local/newer component wins only at its exact logical
 label path. The materialized Zarr is validated to contain each declared label
-once. The initial shallow implementation may retain copied labels until these
-component identities are implemented; that is functionally correct but not the
-final deduplication boundary.
+once. Component identities are now implemented: unchanged inherited label
+chunks are omitted from the next physical result while their managed references
+remain in the logical collection. New or changed labels remain local.
 
 ## Materialization for a later workflow
 
@@ -565,16 +565,11 @@ provide mask thumbnails, ordinary image viewing, and input to ROI-conversion
 scripts. Each carries a validated `biomero.zarr.shallow` reference and never
 duplicates top-image pixel storage.
 
-**TODO -- inherited-label result clutter:** inherited labels must remain in the
-logical shallow collection and be reconstructed for later workflows, but they
-should not automatically create another OMERO Image result when an equivalent
-projection already exists. The current importer registers every label exposed
-by each returned collection, including inherited components. A five-Image live
-run therefore created 23 mask Images: four new labels per input plus three
-repeated inherited-label projections. Add identity-aware projection reuse or
-default filtering so only new/changed labels become new OMERO results, with an
-explicit option if users want inherited labels projected again. This must not
-remove inherited label references from the shallow manifest.
+Unchanged inherited labels remain in the logical shallow collection and are
+reconstructed for later workflows, but they do not automatically create another
+OMERO Image result. Only locally new or changed labels become new projections by
+default. A later explicit re-projection option may let users request another
+view of an inherited mask without changing the manifest or copying its pixels.
 
 A shallow Plate is registered from its canonical Plate source. OMERO creates
 the normal WellSample child Images, and each child PixelBuffer LSID points to
@@ -765,6 +760,15 @@ Delivery steps 7 and 8 are proven at the image-collection level:
 - schema-v1 shallow manifests written before label-component records existed
   are upcast at materialization by hashing their declared physical label paths.
 
+One canonical-input regression was found during live chaining: the transfer
+helper returned an empty preliminary label tuple for an ordinary full Zarr, and
+the snapshot builder incorrectly treated that tuple as proof that the canonical
+store had no labels. The fix makes both a missing and an empty preliminary
+inventory trigger canonical label discovery. A red/green regression test covers
+both paths. This ensures labels that existed before BIOMERO first shallow-stored
+a result receive the same identity and deduplication treatment as labels
+inherited from an existing shallow manifest.
+
 A live smoke test reconstructed one shallow result into a temporary
 6,848,888-byte Zarr containing both the root image and its inherited
 segmentation layer. The temporary artifact was removed after verification; all
@@ -913,12 +917,13 @@ preview mode, but must not mutate or ambiguously annotate the original Plate.
   total return-path time, full/shallow bytes, and file counts per Image.
 - Multi-generation Image performance: one shallow Image was reconstructed with
   five inherited label layers, processed by a Zarr-to-Zarr segmentation that
-  added one non-empty label layer, and normalized again on return.
-  Reconstruction took 10.1 seconds; return verification and normalization took
-  6.4 seconds. The resulting six-label shallow collection occupied 245,043
-  bytes versus an estimated 4,874,061-byte fully materialized footprint,
-  avoiding 95.0%. Treat these timings as one live observation, not a benchmark
-  mean.
+  appended four labels, and normalized again on return. Reconstruction took
+  7.6 seconds; return verification and normalization took 19.7 seconds. The
+  resulting nine-label logical collection occupied 990,300 bytes physically
+  versus an estimated 8,956,291-byte fully materialized footprint, avoiding
+  88.9%. The five inherited label directories were referenced rather than
+  copied, and only the four new labels became OMERO projections. Treat these
+  timings as one live observation, not a benchmark mean.
 - Re-materialized shallow result: full source pixels and labels compare with the
   original kept result.
 - Unsupported/newer NGFF: conservative retention with an actionable log.

@@ -27,19 +27,23 @@ The portable default is to return an OME-NGFF 0.4/Zarr v2 result:
 
 Keeping the concrete image and label nodes in this profile allows BIOMERO to
 register them with the currently deployed OMERO Zarr PixelBuffer. BIOMERO imports
-each label group as a separate viewable result object until OMERO supports labels
-natively.
+each newly produced or changed label group as a separate viewable result object
+until OMERO supports labels natively. Unchanged labels copied from the input
+remain part of the logical result but are referenced rather than stored and
+imported again.
 
-## Optional native shallow result
+## Experimental native shallow output
 
-An RFC-8-aware workflow may instead return a shallow Collection containing its
-derived image or label nodes and a source reference to the task-local input.
-BIOMERO resolves that task-local reference through the recorded workflow input
-and rebases it to its managed canonical source. The workflow must not guess
-BIOMERO filesystem or object-storage locations.
+The reliably supported provider contract is the conventional full OME-NGFF
+0.4/Zarr v2 result above. BIOMERO performs its own identity comparison and
+private shallow normalization after the workflow returns. Providers should not
+assume that arbitrary draft RFC 8 Collections can currently be imported.
 
-RFC-8 support is an optional optimization, not a requirement. While the proposal
-is still evolving, state the RFC revision used and keep each concrete image or
-label node that BIOMERO must display compatible with OME-NGFF 0.4/Zarr v2. This
-lets BIOMERO import a referenced label node directly even when the collection
-envelope itself is not understood by the current OMERO PixelBuffer.
+A provider may coordinate an experimental native shallow output with a BIOMERO
+deployment. Such an output should identify the exact RFC 8 revision it follows,
+refer to the task-local input rather than guessing managed storage paths, and
+keep every concrete image or label node that OMERO must display compatible with
+OME-NGFF 0.4/Zarr v2. BIOMERO would then resolve the task-local source through
+its recorded workflow snapshot and rebase it to managed storage. This remains a
+future interoperability optimization, not a portable or required provider
+feature while RFC 8 and the surrounding OMERO support are evolving.

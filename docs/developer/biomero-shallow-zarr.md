@@ -8,6 +8,17 @@ OME-NGFF standard. The current wire schema is version 1 and will evolve through
 versioned readers and upcasters.
 ```
 
+Standards status at a glance:
+
+- RFC 8 is a proposal, not a released OME-NGFF Collections specification;
+- BIOMERO emulates its composition idea with a private managed sidecar rather
+  than claiming standards compliance;
+- the current workflow interchange profile is OME-NGFF 0.4 on Zarr v2, not the
+  newest draft NGFF/Zarr feature set, because the Glencoe exporter and OMERO
+  Zarr PixelBuffer must both be able to serve the result; and
+- generic readers are only expected to read a BIOMERO result after it has been
+  reconstructed into a conventional full Zarr.
+
 BIOMERO can store a label-producing Zarr workflow result without keeping a
 second copy of the unchanged input pixels. The retained result contains its
 labels, the structural metadata needed to describe them, and managed references
@@ -45,6 +56,76 @@ and new labels without understanding BIOMERO. A TIFF-consuming workflow is the
 intentional exception: its temporary Zarr conversion material represents the
 exact OMERO Image pixels the user selected, such as one registered mask Image,
 rather than the complete shallow collection.
+
+## Which Zarr is which?
+
+There can be several Zarr directories during one workflow, but they have
+different owners and lifetimes. They must not all be interpreted as the same
+scientific object.
+
+| Artifact | Typical location | What it contains | Who consumes it |
+| --- | --- | --- | --- |
+| Managed source or canonical Zarr | Original managed location or `.processed` | Complete image pixels and NGFF structure; it may already contain labels | BIOMERO as the read-only pixel source |
+| Temporary transfer Zarr | Workflow-specific transfer directory | A complete, ordinary Zarr assembled for this workflow | A Zarr-native workflow on HPC |
+| Full returned Zarr | Temporary result, then `.analyzed` | Whatever the workflow produced, often copied input pixels plus labels | BIOMERO.importer before normalization |
+| Stored shallow result | `.analyzed` | Result metadata, locally new or changed labels, and managed references to unchanged pixels and inherited labels | BIOMERO, OMERO registration, and later reconstruction |
+| OMERO label Image | OMERO metadata plus PixelBuffer path | A view of one label node, not another copy of the whole collection | iViewer, thumbnails, ROI conversion, and user selection |
+| Reconstructed follow-up input | Temporary transfer directory | Source pixels plus all inherited and local labels, materialized as one conventional Zarr | The next Zarr-native workflow |
+
+The stored shallow directory is therefore often **not byte-for-byte the Zarr
+that the workflow received**. It is the compact, authoritative result in
+BIOMERO-managed storage. At the workflow boundary BIOMERO turns it back into a
+normal Zarr.
+
+```{mermaid}
+flowchart LR
+    A[OMERO selection] --> B{Workflow input format}
+    B -->|Zarr-native| C[Full temporary Zarr]
+    B -->|TIFF / BIAFLOWS| D[Disposable Zarr from selected PixelBuffer]
+    D --> E[TIFF input]
+    C --> F[Workflow]
+    E --> F
+    F --> G{Returned a Zarr?}
+    G -->|no| H[Legacy result import]
+    G -->|yes| I[Verify image and label identities]
+    I -->|image pixels changed or uncertain| J[Keep full returned Zarr]
+    I -->|image pixels unchanged| K[Store shallow result]
+    K --> L[Keep new or changed labels locally]
+    K --> M[Reference unchanged pixels and inherited labels]
+    L --> N[Create new OMERO label views]
+    M --> O[Reconstruct when selected for another Zarr workflow]
+    L --> O
+```
+
+### What the workflow actually receives
+
+| User selection and workflow | Data delivered to the workflow |
+| --- | --- |
+| Ordinary Image selected for a Zarr-native workflow | A complete Zarr copied from an existing managed Zarr or reusable canonical conversion |
+| Shallow label result selected for a Zarr-native workflow | A newly materialized full Zarr containing the original intensity pixels, every inherited label, and every label stored by the selected result |
+| Ordinary or label Image selected for a TIFF/BIAFLOWS workflow | TIFF converted from the selected OMERO PixelBuffer; for a label Image this means mask pixels, not reconstructed intensity pixels |
+| Plate selected for a workflow | A complete Plate Zarr; Plates remain Zarr-only and are never flattened into the TIFF exception |
+| Zarr uploaded directly through BIOMERO.importer | The submitted Zarr is imported normally; no workflow input snapshot exists, so BIOMERO does not automatically shallow it |
+
+The temporary Zarr used before a TIFF conversion is an implementation detail
+of the older transfer path. The TIFF workflow never receives that Zarr. It is
+also excluded from canonical promotion and return-side Zarr matching.
+
+### Labels across workflow generations
+
+BIOMERO identifies label pixels independently from image pixels. A follow-up
+workflow may receive five existing label layers and add four more. On return:
+
+- the five unchanged inherited labels remain members of the logical result but
+  become references to their existing managed locations;
+- the four new labels remain physically stored in the new shallow result;
+- only the four new labels become new OMERO mask Images by default; and
+- the next reconstruction contains all nine labels exactly once.
+
+This is label deduplication as well as image-pixel deduplication. Labels are
+not forgotten merely because their chunks are not copied into every result.
+If a workflow changes an existing label at the same logical path, its ISCC-BIO
+identity changes and BIOMERO stores that changed label as a new component.
 
 ## Lifecycle
 
@@ -277,14 +358,11 @@ iViewer and permits optional conversion to ROIs. The authoritative shallow
 collection stays in `.analyzed`; the OMERO objects carry compact managed
 references and provenance rather than a copy of the entire manifest.
 
-The current experimental importer projects every label exposed by a returned
-Image collection. That includes inherited labels, so a batch or chained run can
-create repeated OMERO mask Images even though their label pixels are referenced
-only once in managed storage. This is a known follow-up: inherited components
-must stay in the shallow manifest for complete reconstruction, while automatic
-OMERO result creation should default to locally new or changed labels. An
-explicit re-projection option can remain available for users who need another
-view of an inherited mask.
+For a chained result, the importer projects locally new or changed labels by
+default. Unchanged inherited labels remain in the shallow manifest and are
+included in later reconstruction, but do not create duplicate OMERO mask
+Images. An explicit re-projection option may be added later for users who need
+another OMERO view of an inherited mask.
 
 For a Plate, labels live below each Plate image/field in NGFF. Importing every
 label from a large Plate as unrelated Images would lose the useful Plate
@@ -350,20 +428,21 @@ than normalization itself.
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
 | 18-field Plate benchmark | 18 fields, one new label per field | 146,143,912 bytes | 10,775,929 bytes | 135,367,983 bytes (92.6%) | 25.4 s mean | not measured |
 | Five-Image live batch | five Images with new and inherited labels | 28.463 MiB estimated | 2.319 MiB | 26.144 MiB (91.9%) | about 10 s total | not measured |
-| Multi-generation Image chain | one Image, five inherited labels and one new label | 4,874,061 bytes estimated | 245,043 bytes | 4,629,018 bytes (95.0%) | 6.4 s observed | 10.1 s observed |
+| Multi-generation Image chain | one Image, five inherited labels and four new labels | 8,956,291 bytes estimated | 990,300 bytes | 7,965,991 bytes (88.9%) | 19.7 s observed | 7.6 s observed |
 | Earlier individual Image | one Image result | 6,848,883 bytes | 185,072 bytes | 6,663,811 bytes (97.3%) | not measured | not measured |
 
 The multi-generation observation started from one shallow Image referencing
 canonical intensity pixels and five inherited label layers. A Zarr-to-Zarr
-segmentation reconstructed that complete collection, added one non-empty label
-layer, and returned the materialized result. Reconstruction took 10.1 seconds.
-On return, the importer spent 4.8 seconds evaluating pixel and label identities
-with four workers and 1.6 seconds transactionally retaining only the new layer.
-That is about 16.5 seconds of observed shallow-storage work across both system
-boundaries. It is a single warm-system observation rather than a statistically
-stable benchmark, and the 4,874,061-byte full footprint is the sum of the
-currently referenced canonical and six label components rather than a
-pre-normalization tree scan.
+segmentation reconstructed that complete collection and appended four new
+labels. Reconstruction took 7.6 seconds. On return, the importer spent 18.3
+seconds evaluating image and label identities with four workers and 1.4
+seconds transactionally retaining only the four new layers. The five inherited
+label directories were absent from the new physical store but remained present
+as managed components in `.biomero-shallow.json`. Only the four new labels were
+registered as new OMERO Images. The estimated 8,956,291-byte full footprint is
+the sum of the referenced canonical pixels and all nine logical label
+components, not a recursive pre-normalization tree scan. This is one warm-system
+observation rather than a statistically stable benchmark.
 
 A later live run processed five Image results with both new and inherited
 labels. Their estimated full size was 28.463 MiB and their stored shallow size
@@ -445,8 +524,12 @@ The feature branch has verified the following live paths:
   Image results;
 - an 18-field Plate normalized to 92.6% smaller storage, with one compact
   derived Plate reference and optional label-backed preview;
-- focused reconstruction of a shallow Image into a temporary full Zarr; and
-- unit coverage for the TIFF-bound exception, where a selected shallow label
+- a complete chained Zarr workflow: five inherited labels were reconstructed,
+  four appended labels were retained, unchanged inherited label chunks were
+  referenced rather than copied, and only the four new labels became OMERO
+  Images;
+- focused reconstruction of a shallow Image into a temporary full Zarr;
+- a live and unit-covered TIFF-bound exception, where a selected shallow label
   Image is exported from its registered OMERO PixelBuffer instead of being
   reconstructed with the original pixels; and
 - compatibility readers/tests for older event streams and absent optional
@@ -455,13 +538,9 @@ The feature branch has verified the following live paths:
 The following remain release gates or scale validation:
 
 - a live changed-pixel Image and changed-pixel Plate must remain full;
-- a complete chained workflow must reconstruct source pixels plus inherited
-  and new labels;
-- a live TIFF-bound chained workflow (for example CellExpansion) must confirm
-  that the selected label pixels, rather than reconstructed root pixels, reach
-  the workflow;
-- inherited labels must remain reconstructable without automatically creating
-  duplicate OMERO mask Images on every downstream result;
+- a full canonical Zarr that already contains labels must be repeated live
+  after the canonical-input inventory regression fix; unit coverage verifies
+  that an empty preliminary inventory now triggers label discovery;
 - feature-off behavior and importer-disabled Get Results need live controls;
 - unsupported/newer NGFF input must fail or fall back clearly; and
 - a representative large high-content Plate needs storage-local timing and
