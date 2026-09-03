@@ -25,11 +25,21 @@ the documented local environments:
 Before changing Slurm resource examples, inspect the current README and
 `slurm.conf` in both referenced repositories. Never copy a site-specific
 partition, reservation, account, time limit, CPU count, or memory request into
-NL-BIOMERO's active examples. In particular, `defq` is not a partition in either
-local demo. Prefer leaving partition and time unset when their scheduler defaults
-are portable. Current portable image-pull settings are 1 CPU, 2G memory, bounded
-concurrency 2, and empty time/partition values; revalidate them if either local
-cluster topology changes.
+NL-BIOMERO's active examples. Prefer leaving partition and time unset when their
+scheduler defaults are portable. Current portable image-pull settings are 1 CPU,
+2G memory, bounded concurrency 2, and empty time/partition values; revalidate
+them if either local cluster topology changes.
+
+Documentation is for users: show only valid, positive examples. Do not preserve
+site-specific or invalid values as negative examples explaining what not to use.
+
+For temporary cross-repository proof-of-concept testing, switch unpublished
+BIOMERO, OMERO.biomero, and biomero-scripts references directly in their
+corresponding Dockerfiles, following the development blocks already present
+there. Do not add temporary branch selectors to Compose files or `.env`.
+Explicitly install the matching BIOMERO core branch in the web image before the
+OMERO.biomero branch so dependency resolution cannot select the released core
+package. Restore release-based Dockerfile installs when testing is complete.
 
 ## Stack Root
 

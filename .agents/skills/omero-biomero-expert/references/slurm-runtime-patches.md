@@ -10,7 +10,7 @@ Validate concrete scheduler examples against both local clusters before
 publishing them. The CPU-only cluster currently has two 4-CPU/5120-MB nodes and
 uses `test` as its default partition. The GPU-enabled cluster has three
 8-CPU/5120-MB nodes, uses `normal` as its default CPU partition, and reserves
-`gpu` for its single GPU node. Neither provides `defq`.
+`gpu` for its single GPU node.
 
 For image-pull arrays, the shared portable example is:
 
