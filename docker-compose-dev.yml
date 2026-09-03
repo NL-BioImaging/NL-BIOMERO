@@ -45,7 +45,8 @@ services:
       context: ./
       dockerfile: ./server/Dockerfile
       args:
-        LABEL2ROIS_BRANCH: ${LABEL2ROIS_BRANCH:-main}
+        BIOMERO_SCRIPTS_VERSION: ${BIOMERO_SCRIPTS_VERSION}
+        LABEL2ROIS_VERSION: ${LABEL2ROIS_VERSION}
         OMERO_ZARR_PIXEL_BUFFER_VERSION: ${OMERO_ZARR_PIXEL_BUFFER_VERSION}
     # Define environment variables for use in the container.
     # 'nodedescriptors' assigns roles to all the containers
@@ -120,6 +121,8 @@ services:
     build:
       context: ./
       dockerfile: ./biomeroworker/Dockerfile
+      args:
+        BIOMERO_VERSION: ${BIOMERO_VERSION}
     # Define variables for use in the container.
     # WORKER_NAME is used in the omero/ice node description
     # logging_level doesn't work, but should increase logging

@@ -1,7 +1,7 @@
 FROM openmicroscopy/omero-server:5.6.18
 
-ARG BIOMERO_SCRIPTS_VERSION=v2.9.0-beta.1
-ARG LABEL2ROIS_BRANCH=main
+ARG BIOMERO_SCRIPTS_VERSION
+ARG LABEL2ROIS_VERSION
 ARG OMERO_ZARR_PIXEL_BUFFER_VERSION
 
 # Development-only branch wiring. Uncomment the ARG, cache buster, and clone
@@ -45,7 +45,7 @@ RUN curl -o $OMERO_DIST/lib/scripts/omero/figure_scripts/Figure_To_Pdf.py \
 # ADD "https://api.github.com/repos/Cellular-Imaging-Amsterdam-UMC/label2rois/commits/main" /latest_commit_label2rois
 # Install Labels2Rois (versioned)
 RUN curl -o $OMERO_DIST/lib/scripts/omero/util_scripts/Labels2Rois.py \
-    https://raw.githubusercontent.com/Cellular-Imaging-Amsterdam-UMC/label2rois/v1.0.0/Labels2Rois.py
+    https://raw.githubusercontent.com/Cellular-Imaging-Amsterdam-UMC/label2rois/${LABEL2ROIS_VERSION}/Labels2Rois.py
 
 # Overwrite ICE configuration
 # COPY ice.config $OMERO_DIST/etc/templates/

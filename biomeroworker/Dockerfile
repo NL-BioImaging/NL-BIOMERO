@@ -1,12 +1,11 @@
 FROM openmicroscopy/omero-server:5.6.18
 
-ARG BIOMERO_VERSION=2.9.0b1
-ARG BIOMERO_IMPORTER_VERSION=1.5.0b2
+ARG BIOMERO_VERSION
 
 # Development-only branch wiring. Uncomment the matching ARGs, branch-head
 # cache busters, and direct-reference installs together for unpublished work.
 # ARG BIOMERO_SCHEMA_BRANCH=main
-# ARG BIOMERO_BRANCH=main
+# ARG BIOMERO_BRANCH=fix/full-runtime-dependencies
 # ARG BIOMERO_IMPORTER_BRANCH=main
 # ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_BRANCH}" /latest_commit_biomero_schema
 # ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.importer/commits/${BIOMERO_IMPORTER_BRANCH}" /latest_commit_biomero_importer
@@ -53,18 +52,13 @@ ENV PATH="$PATH:/opt/bioformats2raw-0.12.0-rc1/bin"
 ## Add BIOMERO Omero Slurm Client
 RUN yum -y install ack
 
-# Install released packages from PyPI. biomero-schema is resolved transitively
-# from the compatible constraints declared by BIOMERO and BIOMERO.importer.
-RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1) \
-    && test -n "$BIOMERO_IMPORTER_VERSION" || (echo "BIOMERO_IMPORTER_VERSION build arg is required" >&2; exit 1)
+# Install the complete BIOMERO.scripts runtime from BIOMERO's full extra.
+# BIOMERO.importer, biomero-schema, and the image-processing dependencies are
+# resolved transitively from its compatible constraints.
+RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
     && $VIRTUAL_ENV/bin/python -m pip install \
-        "biomero-importer[identity]==${BIOMERO_IMPORTER_VERSION}" \
-    && $VIRTUAL_ENV/bin/python -m pip install \
         "biomero[full]==${BIOMERO_VERSION}" \
-    && $VIRTUAL_ENV/bin/python -m pip install \
-        scikit-image==0.25.2 omero-rois==0.4.1 \
-        ezomero==3.2.3 dask==2026.1.1 distributed==2026.1.1 \
     && $VIRTUAL_ENV/bin/python -m pip check
 
 ## Adjust processor code with BIOMERO Processor
