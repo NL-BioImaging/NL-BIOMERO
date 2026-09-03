@@ -8,6 +8,44 @@ OME-NGFF standard. The current wire schema is version 1 and will evolve through
 versioned readers and upcasters.
 ```
 
+## One managed result, several OMERO views
+
+The most useful way to understand this design is as **one managed data graph
+with several views**, similar to database views over shared stored data.
+BIOMERO.importer keeps the shallow result once, in place, in `.analyzed`. OMERO
+then registers lightweight objects whose PixelBuffer routes to the appropriate
+part of that result graph:
+
+- a source-backed Plate view displays the managed original intensity pixels;
+- an optional label-backed Plate view displays one selected label at the same
+  well and field positions; and
+- Image results can expose each newly produced label as a separate mask Image.
+
+These views do not each receive another copy of the Zarr arrays. They add OMERO
+database objects, hierarchy, and provenance, but reuse the managed source and
+label storage. The same shallow result can therefore look like the original
+Plate in one OMERO view and like a segmentation Plate in another, while still
+remaining one authoritative workflow result for later reconstruction.
+
+```{mermaid}
+flowchart TB
+    S[Read-only managed source pixels]
+    R[One in-place shallow result<br/>metadata + local labels + managed references]
+    S --> R
+    R --> P[Source-backed OMERO Plate<br/>PixelBuffer displays intensity pixels]
+    R --> L[Optional label-backed OMERO Plate<br/>PixelBuffer displays one selected label]
+    R --> I[OMERO label Images<br/>PixelBuffer displays individual new labels]
+    S --> F[Temporary reconstructed full Zarr]
+    R --> F
+    F --> W[Next Zarr-native workflow]
+```
+
+The Plate views are cheap in pixel-storage terms, but not completely free:
+each additional view still creates another OMERO Plate/Well/WellSample/Image
+hierarchy. BIOMERO therefore creates one source-backed Plate by default and at
+most one explicitly requested label-backed preview, rather than automatically
+registering a Plate for every label.
+
 Standards status at a glance:
 
 - RFC 8 is a proposal, not a released OME-NGFF Collections specification;
