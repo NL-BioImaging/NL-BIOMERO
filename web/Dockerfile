@@ -1,7 +1,7 @@
 FROM openmicroscopy/omero-web-standalone:5.31.1
 
 ARG OMERO_FORMS_VERSION
-ARG OMERO_BIOMERO_VERSION=1.7.0b1
+ARG OMERO_BIOMERO_VERSION
 
 # Development-only branch wiring. Uncomment the matching ARGs, branch-head
 # cache busters, and direct-reference installs together for unpublished work.
@@ -67,6 +67,7 @@ WORKDIR /opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb
 COPY web/local_omeroweb_edits/pretty_login/login.html ./webclient/templates/webclient/login.html
 ADD web/local_omeroweb_edits/pretty_login/login_page_images ./webclient/static/webclient/image/login_page_images/
 ADD web/local_omeroweb_edits/pretty_login/ome.login.css ./webgateway/static/webgateway/css/ome.login.css
+COPY web/local_omeroweb_edits/biomero-base-include.html ./webclient/templates/webclient/base/includes/biomero-base-include.html
 
 # Configuration file and startup scripts
 ADD web/local_omeroweb_edits/01-default-webapps.omero /opt/omero/web/config/
