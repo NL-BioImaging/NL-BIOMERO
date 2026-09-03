@@ -45,7 +45,8 @@ services:
       context: ./
       dockerfile: ./server/Dockerfile
       args:
-        BIOMERO_VERSION: ${BIOMERO_VERSION}
+        BIOMERO_SCRIPTS_VERSION: ${BIOMERO_SCRIPTS_VERSION}
+        LABEL2ROIS_VERSION: ${LABEL2ROIS_VERSION}
         OMERO_ZARR_PIXEL_BUFFER_VERSION: ${OMERO_ZARR_PIXEL_BUFFER_VERSION}
     # Define environment variables for use in the container.
     # 'nodedescriptors' assigns roles to all the containers
@@ -122,7 +123,6 @@ services:
       dockerfile: ./biomeroworker/Dockerfile
       args:
         BIOMERO_VERSION: ${BIOMERO_VERSION}
-        BIOMERO_IMPORTER_VERSION: ${BIOMERO_IMPORTER_VERSION}
     # Define variables for use in the container.
     # WORKER_NAME is used in the omero/ice node description
     # logging_level doesn't work, but should increase logging
@@ -137,6 +137,10 @@ services:
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
+      BIOMERO_SHALLOW_ZARR: ${BIOMERO_SHALLOW_ZARR:-false}
+      IMPORT_MOUNT_PATH: ${IMPORT_MOUNT_PATH}
+      OMERO_BIOMERO_CONFIG_FILE: ${BIOMERO_CONFIG_LOCATION}/biomero-config.json
+      OMERO_BIOMERO_GROUP_MAPPINGS_FILE: ${BIOMERO_CONFIG_LOCATION}/group-mappings.json
     # Named network to communicate with other containers
     networks:
       - omero
@@ -150,6 +154,7 @@ services:
       - "tus-destination:${UPLOADER_DESTINATION_DIR}"
       - "${BIOMERO_IMPORTER_CONFIG_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/config-importer:ro"
       - "${BIOMERO_CONFIG_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/biomero-config.json:ro"
+      - "${GROUP_MAPPINGS_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/group-mappings.json:ro"
       - "${LOGS_HOST_PATH}/biomeroworker:${OMERO_SERVER_LOGGING_LOCATION}"
     logging:
       driver: "json-file"
@@ -189,6 +194,7 @@ services:
       FORMS_MASTER_USER: ${FORMS_MASTER_USER}
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
+      BIOMERO_SHALLOW_ZARR: ${BIOMERO_SHALLOW_ZARR:-false}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
       UPLOADER_DESTINATION_DIR: ${UPLOADER_DESTINATION_DIR}
     # Named network to communicate with other containers
@@ -247,6 +253,8 @@ services:
       OMERO_PORT: ${OMERO_PORT}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       ADI_RUN_MIGRATIONS: ${ADI_RUN_MIGRATIONS}
+      BIOMERO_SHALLOW_ZARR: ${BIOMERO_SHALLOW_ZARR:-false}
+      BIOMERO_SHALLOW_ZARR_WORKERS: ${BIOMERO_SHALLOW_ZARR_WORKERS:-4}
     networks:
       - omero
     volumes:
