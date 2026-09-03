@@ -107,16 +107,6 @@ flowchart LR
 | Plate selected for a workflow | A complete Plate Zarr; Plates remain Zarr-only and are never flattened into the TIFF exception |
 | Zarr uploaded directly through BIOMERO.importer | The submitted Zarr is imported normally; no workflow input snapshot exists, so BIOMERO does not automatically shallow it |
 
-"Complete" describes the transport artifact, not which array is the semantic
-input to an analysis. A segmentation workflow normally reads the image arrays
-and writes a label below the corresponding `labels/` group. A label-driven
-workflow, such as cell expansion, reads the requested existing label from that
-group and writes its derived label back into the Zarr. It may additionally read
-the intensity image when its algorithm needs intensity information. The
-workflow contract or parameters must identify the intended label name; BIOMERO
-preserves all labels during reconstruction rather than guessing that the
-top-level image is the desired mask.
-
 The temporary Zarr used before a TIFF conversion is an implementation detail
 of the older transfer path. The TIFF workflow never receives that Zarr. It is
 also excluded from canonical promotion and return-side Zarr matching.
@@ -149,9 +139,8 @@ identity changes and BIOMERO stores that changed label as a new component.
    identifies the selected input even when several inputs contain identical
    pixels or a workflow renames its result. It is not a workflow-provider
    contract and is removed from the stored result.
-4. The workflow runs against a normal, full OME-Zarr. Image-driven workflows
-   read its image arrays; label-driven workflows read the appropriate
-   `labels/` member. It may ignore and simply copy BIOMERO metadata.
+4. The workflow runs against a normal, full OME-Zarr. It may ignore and simply
+   copy BIOMERO metadata.
 5. On return, BIOMERO.importer recomputes the decoded pixel identities. If the
    image pixels match the corresponding source and useful labels are present,
    it transactionally removes the duplicated image arrays and writes
@@ -274,9 +263,9 @@ to that field in the managed source Plate.
 
 `source: null` on a label component means the label is stored locally in this
 result. A managed source on a label component means it is inherited from an
-earlier shallow result. This distinction lets chains such as nuclei
-segmentation → cell expansion → measurement reconstruct all prior and new
-labels without repeatedly storing their pixels.
+earlier shallow result. This distinction lets multi-stage workflows derive new
+masks from existing masks and later analyze the combined label set without
+repeatedly storing unchanged label pixels.
 
 The Zarr root also carries a small `biomero` pointer to the manifest, but the
 sidecar is authoritative. A shallow root is not a synthetic black image: its
@@ -399,13 +388,12 @@ that must serve registered pixels; accepting a newer, valid NGFF version in one
 component would not help if the rest of the OMERO path could not read it.
 
 Workflows do not need to know about BIOMERO's shallow-storage representation.
-They receive a complete Zarr—including its labels—and should consume its image
-or label members according to their own declared analysis contract. They return
-an ordinary, valid OME-Zarr in the supported profile. BIOMERO inspects and
-optimizes that result only after the workflow has finished. BIOMERO will advance
-the profile as Glencoe and OMERO releases add compatible support. The private
-shallow reader remains versioned so older managed results can be reconstructed
-during such a transition.
+BIOMERO inspects and optimizes ordinary workflow results only after the workflow
+has finished. The workflow-facing image and label contract is documented under
+[Developing OME-Zarr workflows](zarr-workflow-development.md). BIOMERO will
+advance the profile as Glencoe and OMERO releases add compatible support. The
+private shallow reader remains versioned so older managed results can be
+reconstructed during such a transition.
 
 ## Operational trade-off: storage versus import time
 

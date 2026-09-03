@@ -32,6 +32,7 @@
    developer/getting-started
    developer/workflow-development
    developer/bilayers-workflows
+   developer/zarr-workflow-development
    developer/biomero-shallow-zarr
    developer/containers/index
 
