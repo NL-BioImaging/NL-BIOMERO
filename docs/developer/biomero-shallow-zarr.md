@@ -277,6 +277,15 @@ iViewer and permits optional conversion to ROIs. The authoritative shallow
 collection stays in `.analyzed`; the OMERO objects carry compact managed
 references and provenance rather than a copy of the entire manifest.
 
+The current experimental importer projects every label exposed by a returned
+Image collection. That includes inherited labels, so a batch or chained run can
+create repeated OMERO mask Images even though their label pixels are referenced
+only once in managed storage. This is a known follow-up: inherited components
+must stay in the shallow manifest for complete reconstruction, while automatic
+OMERO result creation should default to locally new or changed labels. An
+explicit re-projection option can remain available for users who need another
+view of an inherited mask.
+
 For a Plate, labels live below each Plate image/field in NGFF. Importing every
 label from a large Plate as unrelated Images would lose the useful Plate
 organization and could create thousands of OMERO objects. BIOMERO therefore
@@ -451,6 +460,8 @@ The following remain release gates or scale validation:
 - a live TIFF-bound chained workflow (for example CellExpansion) must confirm
   that the selected label pixels, rather than reconstructed root pixels, reach
   the workflow;
+- inherited labels must remain reconstructable without automatically creating
+  duplicate OMERO mask Images on every downstream result;
 - feature-off behavior and importer-disabled Get Results need live controls;
 - unsupported/newer NGFF input must fail or fall back clearly; and
 - a representative large high-content Plate needs storage-local timing and

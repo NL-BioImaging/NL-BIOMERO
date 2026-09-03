@@ -558,14 +558,23 @@ result remains selectable and navigable as a Plate. The complete *logical*
 result remains the in-place shallow collection: canonical source pixels plus
 its retained and referenced labels.
 
-Every declared returned label of a non-Plate Image is registered automatically
-as an ordinary OMERO Image projection while PixelBuffer/iViewer label-layer
-support is incomplete. This is determined from the returned Zarr structure,
-not from legacy workflow-user options such as `Import_Label_Zarrs` or
-`Import_Only_Labels`. These projections provide mask thumbnails, ordinary image
-viewing, and input to ROI-conversion scripts. Each carries a validated
-`biomero.zarr.shallow` reference. The projections never duplicate top-image
-pixel storage.
+Locally retained new or changed labels of a non-Plate Image should be
+registered automatically as ordinary OMERO Image projections while
+PixelBuffer/iViewer label-layer support is incomplete. These projections
+provide mask thumbnails, ordinary image viewing, and input to ROI-conversion
+scripts. Each carries a validated `biomero.zarr.shallow` reference and never
+duplicates top-image pixel storage.
+
+**TODO -- inherited-label result clutter:** inherited labels must remain in the
+logical shallow collection and be reconstructed for later workflows, but they
+should not automatically create another OMERO Image result when an equivalent
+projection already exists. The current importer registers every label exposed
+by each returned collection, including inherited components. A five-Image live
+run therefore created 23 mask Images: four new labels per input plus three
+repeated inherited-label projections. Add identity-aware projection reuse or
+default filtering so only new/changed labels become new OMERO results, with an
+explicit option if users want inherited labels projected again. This must not
+remove inherited label references from the shallow manifest.
 
 A shallow Plate is registered from its canonical Plate source. OMERO creates
 the normal WellSample child Images, and each child PixelBuffer LSID points to
@@ -883,6 +892,9 @@ preview mode, but must not mutate or ambiguously annotate the original Plate.
 - Chained labels: an unchanged inherited label is referenced once, a new or
   changed label is retained as a new component, and reconstruction produces the
   complete expected set without losing source pixels or earlier labels.
+- Inherited-label projection policy: inherited components remain available for
+  reconstruction but do not create duplicate OMERO mask Images by default;
+  explicit re-projection remains possible.
 - Plate: image-level labels retain correct well/image membership; one derived
   Plate registers against canonical source pixels; loose label Images are not
   created; and the opt-in label-backed Plate succeeds only for an exact common
