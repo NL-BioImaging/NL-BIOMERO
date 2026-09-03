@@ -592,6 +592,20 @@ The present contract fixes `schema: 1`, `model: "rfc8-shallow-copy"`, and the
 `ngff-0.4-zarr-v2` interchange profile. Recorded identities also pin the
 ISCC-BIO version and IMAGEWALK revision because ISCC-BIO is itself early-stage.
 
+Viewer support can evolve independently of this storage contract. Today,
+BIOMERO registers source-backed and label-backed PixelBuffer views so that
+OMERO.iViewer can show either the intensity image or a selected mask as an
+ordinary Image or Plate. A label-aware viewer can instead follow the shallow
+references and present labels as overlays on the source pixels, which is the
+more natural NGFF experience; OME's
+[napari-ome-zarr](https://github.com/ome/napari-ome-zarr) already exposes NGFF
+labels as label layers. As native label support reaches OMERO viewers, and as
+the viewer integration being developed alongside BIOMERO matures, users should
+be able to open one managed result and switch or overlay its labels directly.
+That may make some convenience mask registrations optional, but it does not
+need to change the stored result, provenance, pixel identities, or
+reconstruction contract.
+
 Likely future changes include migration toward a released NGFF Collections
 model, newer Zarr/NGFF profiles as OMERO PixelBuffer support advances,
 standardized embedded Image identities, object-store-aware references, and
