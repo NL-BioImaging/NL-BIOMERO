@@ -9,6 +9,42 @@ Use this skill for NL-BIOMERO work on dev or prod. Prefer inspection over guesse
 
 Never print secrets. Mask `.env`, container env, Metabase datasource JSON, passwords, secret keys, JWTs, and tokens in user-facing output.
 
+## Repository Scope and Example Contract
+
+`NL-BIOMERO` is the runnable local Docker Compose demonstration and the source
+used to build the project's Docker Hub images. It is not the repository for an
+institution's production HPC deployment; those deployment-specific values live
+in separate site repositories.
+
+All enabled values and concrete examples shipped by this repository must work in
+the documented local environments:
+
+- CPU-only: `NL-BioImaging/NL-BIOMERO-Local-Slurm`
+- GPU-enabled: `Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm-GPU`
+
+Before changing Slurm resource examples, inspect the current README and
+`slurm.conf` in both referenced repositories. Never copy a site-specific
+partition, reservation, account, time limit, CPU count, or memory request into
+NL-BIOMERO's active examples. Prefer leaving partition and time unset when their
+scheduler defaults are portable. Current portable image-pull settings are 1 CPU,
+2G memory, bounded concurrency 2, and empty time/partition values; revalidate
+them if either local cluster topology changes.
+
+Documentation is for users: show only valid, positive examples. Do not preserve
+site-specific or invalid values as negative examples explaining what not to use.
+
+For temporary cross-repository proof-of-concept testing, switch unpublished
+BIOMERO, OMERO.biomero, and biomero-scripts references directly in their
+corresponding Dockerfiles, following the development blocks already present
+there. Do not add temporary branch selectors to Compose files or `.env`.
+Explicitly install the matching BIOMERO core branch in the web image before the
+OMERO.biomero branch, or declare that matching core branch as a PEP 508 direct
+dependency in OMERO.biomero's feature `setup.py` and install OMERO.biomero once.
+Use the direct dependency when the core branch's generated development version
+does not satisfy OMERO.biomero's next-release lower bound. Restore released
+dependency ranges and release-based Dockerfile installs when testing is
+complete.
+
 ## Stack Root
 
 The stack root is the directory containing `docker-compose.yml` and all stack subdirectories (`web/`, `logs/`, `metabase/`, `.ssh/`, etc.). All relative paths in this runbook assume you are working from `<stack-root>`.

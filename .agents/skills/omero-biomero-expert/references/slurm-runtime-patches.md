@@ -1,5 +1,32 @@
 # Slurm / HPC Runtime Configuration
 
+## NL-BIOMERO Local-Demo Boundary
+
+The checked-in NL-BIOMERO Compose and INI examples target the documented local
+Slurm demonstrations, not Spider or any other institutional HPC. Site-specific
+deployment values belong in that site's deployment repository.
+
+Validate concrete scheduler examples against both local clusters before
+publishing them. The CPU-only cluster currently has two 4-CPU/5120-MB nodes and
+uses `test` as its default partition. The GPU-enabled cluster has three
+8-CPU/5120-MB nodes, uses `normal` as its default CPU partition, and reserves
+`gpu` for its single GPU node.
+
+For image-pull arrays, the shared portable example is:
+
+```ini
+slurm_image_pull_via_sbatch=true
+image_pull_cpus=1
+image_pull_mem=2G
+image_pull_time=
+image_pull_concurrency=2
+image_pull_partition=
+```
+
+Leaving time and partition empty intentionally inherits each demo scheduler's
+valid defaults. Re-check the two local cluster READMEs and `slurm.conf` files if
+their topology changes instead of treating these values as universal HPC advice.
+
 This deployment carried a compatibility patch (`patch_biomero_runtime.py`) for a pinned BIOMERO version. As of `BIOMERO v2.6.0+`, all of that behavior is upstreamed into core BIOMERO and enabled through standard config options (env vars + `slurm-config.ini`). The patch file and `biomeroworker/patches/` are gone.
 Treat the settings below as intentional deployment config, not accidental hacks.
 
