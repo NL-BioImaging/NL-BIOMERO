@@ -387,9 +387,10 @@ the deployed Glencoe exporter/importer tooling and the OMERO Zarr PixelBuffer
 that must serve registered pixels; accepting a newer, valid NGFF version in one
 component would not help if the rest of the OMERO path could not read it.
 
-Workflow providers should therefore consume and emit that profile today. See
-[Zarr workflow provider guidance](zarr-workflow-provider-guidance.md) for the
-short external contract. BIOMERO will advance the profile as Glencoe and OMERO
+Workflows do not need to know about BIOMERO's shallow-storage representation.
+They receive a complete Zarr and should return an ordinary, valid OME-Zarr in
+the supported profile. BIOMERO inspects and optimizes that result only after the
+workflow has finished. BIOMERO will advance the profile as Glencoe and OMERO
 releases add compatible support. The private shallow reader remains versioned
 so older managed results can be reconstructed during such a transition.
 
@@ -567,5 +568,3 @@ not by silently changing the meaning of existing managed results.
 - [ISCC-BIO and IMAGEWALK](https://github.com/bio-codes/iscc-bio)
 - [IEP-0017: TREEWALK](https://ieps.iscc.codes/iep-0017/)
 - [IEP-0018: IMAGEWALK](https://ieps.iscc.codes/iep-0018/)
-- [Zarr workflow provider guidance](zarr-workflow-provider-guidance.md)
-- [Implementation plan and validation ledger](zarr-component-input-selection-plan.md)
