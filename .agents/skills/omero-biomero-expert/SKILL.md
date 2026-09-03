@@ -38,8 +38,12 @@ BIOMERO, OMERO.biomero, and biomero-scripts references directly in their
 corresponding Dockerfiles, following the development blocks already present
 there. Do not add temporary branch selectors to Compose files or `.env`.
 Explicitly install the matching BIOMERO core branch in the web image before the
-OMERO.biomero branch so dependency resolution cannot select the released core
-package. Restore release-based Dockerfile installs when testing is complete.
+OMERO.biomero branch, or declare that matching core branch as a PEP 508 direct
+dependency in OMERO.biomero's feature `setup.py` and install OMERO.biomero once.
+Use the direct dependency when the core branch's generated development version
+does not satisfy OMERO.biomero's next-release lower bound. Restore released
+dependency ranges and release-based Dockerfile installs when testing is
+complete.
 
 ## Stack Root
 

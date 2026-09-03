@@ -5,9 +5,7 @@ ARG OMERO_BIOMERO_VERSION
 
 # Development-only branch wiring for the scheduler-native image-pull proof of
 # concept. Restore the versioned OMERO.biomero install below after testing.
-ARG BIOMERO_BRANCH=feature/slurm-image-pull-array
 ARG OMERO_BIOMERO_BRANCH=feature/slurm-image-pull-array
-ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_BRANCH}" /latest_commit_biomero
 ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BIOMERO_BRANCH}" /latest_commit_omero_biomero
 
 USER root
@@ -46,10 +44,9 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 ### Install OMERO.biomero first ###
 ### BIOMERO.importer and BIOMERO.analyzer will be installed as a dependency of OMERO.biomero ###
 
-# Install the matching BIOMERO core branch first so OMERO.biomero's dependency
-# resolution cannot fall back to the released core package.
+# The OMERO.biomero feature branch declares its matching BIOMERO core branch as
+# a direct dependency, avoiding a conflict with its next-release version bound.
 RUN /opt/omero/web/venv3/bin/pip install \
-        "biomero @ git+https://github.com/NL-BioImaging/biomero.git@${BIOMERO_BRANCH}" \
         "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
