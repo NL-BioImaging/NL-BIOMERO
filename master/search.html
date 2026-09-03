@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Search &mdash; NL-BIOMERO 1.7.1 documentation</title>
+  <title>Search &mdash; NL-BIOMERO 1.8.0b1 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     
@@ -399,7 +399,7 @@ window.addEventListener("load", load);
             NL-BIOMERO
           </a>
               <div class="version">
-                1.7.1
+                1.8.0b1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="#" method="get">
@@ -728,7 +728,10 @@ window.addEventListener("load", load);
 </li>
 <li class="toctree-l2"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html#non-docker-deployments">Non-Docker deployments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html#validating-the-setup">Validating the setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html#zarr-workflow-support">Zarr Workflow Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html#zarr-workflow-support">Zarr Workflow Support</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html#experimental-shallow-zarr-storage">Experimental shallow Zarr storage</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html#troubleshooting">Troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html#related-documentation">Related documentation</a></li>
 </ul>
@@ -831,6 +834,44 @@ window.addEventListener("load", load);
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="developer/bilayers-workflows.html#bilayers-features-not-supported-by-biomero">Bilayers Features Not Supported by BIOMERO</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developer/zarr-workflow-development.html">Developing OME-Zarr workflows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="developer/zarr-workflow-development.html#the-workflow-boundary">The workflow boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/zarr-workflow-development.html#returning-results">Returning results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/zarr-workflow-development.html#current-compatibility">Current compatibility</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developer/biomero-shallow-zarr.html">Experimental BIOMERO shallow OME-Zarr storage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#one-managed-result-several-omero-views">One managed result, several OMERO views</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#why-shallow-results-exist">Why shallow results exist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#which-zarr-is-which">Which Zarr is which?</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="developer/biomero-shallow-zarr.html#what-the-workflow-actually-receives">What the workflow actually receives</a></li>
+<li class="toctree-l3"><a class="reference internal" href="developer/biomero-shallow-zarr.html#labels-across-workflow-generations">Labels across workflow generations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#lifecycle">Lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#relationship-to-ome-ngff-rfc-8">Relationship to OME-NGFF RFC 8</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="developer/biomero-shallow-zarr.html#ngff-label-source">NGFF label <code class="docutils literal notranslate"><span class="pre">source</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#the-biomero-storage-contract">The BIOMERO storage contract</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#pixel-identity-with-iscc-bio">Pixel identity with ISCC-BIO</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="developer/biomero-shallow-zarr.html#why-treewalk-is-not-the-equality-check">Why TREEWALK is not the equality check</a></li>
+<li class="toctree-l3"><a class="reference internal" href="developer/biomero-shallow-zarr.html#embedded-attrs-iscc">Embedded <code class="docutils literal notranslate"><span class="pre">attrs.iscc</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#eligibility-and-failure-behavior">Eligibility and failure behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#images-plates-and-omero-representation">Images, Plates, and OMERO representation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#compatibility-profile">Compatibility profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#operational-trade-off-storage-versus-import-time">Operational trade-off: storage versus import time</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="developer/biomero-shallow-zarr.html#parallel-identity-workers-and-scaling">Parallel identity workers and scaling</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#enabling-and-observing-the-feature">Enabling and observing the feature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#validation-status">Validation status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#expected-evolution">Expected evolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#further-reading">Further reading</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="developer/containers/index.html">Container Development</a><ul>

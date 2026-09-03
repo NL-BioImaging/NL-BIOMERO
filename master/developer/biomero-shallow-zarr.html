@@ -1,0 +1,1949 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Experimental BIOMERO shallow OME-Zarr storage &mdash; NL-BIOMERO 1.8.0b1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+        <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs"></script>
+        <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.2.0/dist/mermaid-layout-elk.esm.min.mjs"></script>
+        <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.2.0/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+        <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+        <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+const defaultStyle = document.createElement('style');
+defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+`;
+document.head.appendChild(defaultStyle);
+
+const fullscreenStyle = document.createElement('style');
+fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+document.head.appendChild(fullscreenStyle);
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        return brightness < 128;
+    }
+    return false;
+};
+
+const load = async () => {
+    await mermaid.run();
+
+    const all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(load, 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(load, 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(load, 200);
+        return;
+    }
+
+    const darkTheme = isDarkTheme();
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    const modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    const modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    let previousScrollOffset = [window.scrollX, window.scrollY];
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    const allButtons = [];
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+
+        container.appendChild(fullscreenBtn);
+        allButtons.push(fullscreenBtn);
+    });
+
+    // Update theme classes when theme changes
+    const updateTheme = () => {
+        const dark = isDarkTheme();
+        allButtons.forEach(btn => {
+            if (dark) {
+                btn.classList.add('dark-theme');
+            } else {
+                btn.classList.remove('dark-theme');
+            }
+        });
+        if (dark) {
+            modal.classList.add('dark-theme');
+            modalContent.classList.add('dark-theme');
+            closeBtn.classList.add('dark-theme');
+        } else {
+            modal.classList.remove('dark-theme');
+            modalContent.classList.remove('dark-theme');
+            closeBtn.classList.remove('dark-theme');
+        }
+    };
+
+    // Watch for theme changes
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    observer.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style']
+    });
+};
+
+window.addEventListener("load", load);
+</script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Container Development" href="containers/index.html" />
+    <link rel="prev" title="Developing OME-Zarr workflows" href="zarr-workflow-development.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL-BIOMERO
+          </a>
+              <div class="version">
+                1.8.0b1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">BIOMERO Videos</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../overview.html#conceptual-introduction">Conceptual introduction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../overview.html#biomero-explained-a-conceptual-introduction">BIOMERO explained: a conceptual introduction</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../overview.html#technical-architecture-clips">Technical architecture clips</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../overview.html#what-nl-biomero-adds-to-omero">What NL-BIOMERO adds to OMERO</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview.html#one-format-flexible-workflows">One format, flexible workflows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview.html#in-place-importing">In-place importing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview.html#provenance-while-the-work-happens">Provenance while the work happens</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview.html#adding-an-analysis-workflow">Adding an analysis workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../overview.html#live-demonstration">Live demonstration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../overview.html#nl-biomero-in-practice">NL-BIOMERO in practice</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing NL-BIOMERO and BIOMERO</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#which-paper-should-i-cite">Which paper should I cite?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#biomero-2-0-nl-biomero">BIOMERO 2.0 / NL-BIOMERO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#biomero-analysis-framework">BIOMERO analysis framework</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#software-citation-metadata">Software citation metadata</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">System Administration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/development-setup.html">Development &amp; Demo Setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/development-setup.html#quick-links-to-other-guides">Quick Links to Other Guides</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/development-setup.html#windows-development-setup">Windows Development Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/development-setup.html#prerequisites"><strong>Prerequisites</strong></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/development-setup.html#quick-setup-steps"><strong>Quick Setup Steps</strong></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/development-setup.html#container-management">Container Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/development-setup.html#configuration-overview">Configuration Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/development-setup.html#biomero-101-installation-guide">BIOMERO 101 Installation Guide</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/deployment.html">Advanced Deployment Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/deployment.html#nl-biomero-deployment-upgrade-guide">NL-BIOMERO Deployment &amp; Upgrade Guide</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#scenario-0-development-demo">Scenario 0: Development &amp; Demo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#scenario-1-fresh-deployment-no-existing-data">Scenario 1: Fresh Deployment (no existing data)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#scenario-2-fresh-deployment-with-existing-data">Scenario 2: Fresh Deployment with Existing Data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#scenario-3-hybrid-deployment-with-existing-omero-server">Scenario 3: Hybrid Deployment with Existing OMERO Server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#scenario-4-full-non-docker-install-not-recommended">Scenario 4: Full Non-Docker Install (Not Recommended)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#notes">Notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#upgrading-biomero-components">Upgrading BIOMERO Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/deployment.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html">Docker Compose Scenarios</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#nl-biomero-deployment-scenarios-and-docker-compose-files">NL-BIOMERO Deployment Scenarios and Docker Compose Files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#important-usage-note">Important Usage Note</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-0-development-demo">Scenario 0: Development &amp; Demo</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-0-1-local-development-setup">Scenario 0.1: Local Development Setup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-0-2-default-local-build">Scenario 0.2: Default (Local Build)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-1-fresh-deployment-no-existing-data">Scenario 1: Fresh Deployment (no existing data)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-1-1-standard-production-deployment">Scenario 1.1: Standard Production Deployment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-1-2-production-with-ssl-ubuntu">Scenario 1.2: Production with SSL (Ubuntu)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-2-fresh-deployment-with-existing-data">Scenario 2: Fresh Deployment with Existing Data</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-2-1-restore-from-omero-backup">Scenario 2.1: Restore from OMERO Backup</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-3-hybrid-deployment-with-existing-omero-server">Scenario 3: Hybrid Deployment with Existing OMERO Server</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-3-1-biomero-only-external-omero">Scenario 3.1: BIOMERO Only (External OMERO)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#scenario-3-2-biomero-importer-only-external-omero">Scenario 3.2: BIOMERO.importer Only (External OMERO)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#additional-configurations">Additional Configurations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#component-selection-with-profiles">Component Selection with Profiles</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#toggle-ui-modules-omero-biomero-plugin">Toggle UI Modules (OMERO.biomero plugin)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#environment-customization">Environment Customization</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/docker-compose-scenarios.html#creating-a-custom-deployment">Creating a Custom Deployment</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/linux-deployment.html">Linux/Ubuntu Deployment</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/linux-deployment.html#nlbiomero-ubuntu-linux">NL‑BIOMERO (Ubuntu/Linux) 🚀</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#prerequisites">🧰 Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#key-differences-from-windows-docker-desktop">🔧 Key Differences from Windows Docker Desktop</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#postgresql-image">1. PostgreSQL Image</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#privileged-access-needed">2. Privileged Access Needed</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#ssh-permissions-in-biomero-worker">3. SSH Permissions in biomero-worker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#containerized-slurm-build">4. Containerized Slurm Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#host-networking-host-docker-internal-replacement">5. Host Networking (host.docker.internal Replacement)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#volume-permission-fixes">6. Volume Permission Fixes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#secrets-metabase-setup">7. Secrets &amp; Metabase Setup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#https-via-nginx-reverse-proxy">8. HTTPS via Nginx Reverse Proxy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/linux-deployment.html#persistent-logs">9. Persistent Logs</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#quick-start-ubuntu">✅ Quick Start (Ubuntu)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#troubleshooting-tips">🛠️ Troubleshooting Tips</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#lessons-learned">🧠 Lessons Learned</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#tl-dr">📋 TL;DR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/linux-deployment.html#additional-resources">🔗 Additional Resources</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/backup-restore.html">Backup and Restore</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/backup-restore.html#nl-biomero-backup-restore-scripts">NL-BIOMERO Backup &amp; Restore Scripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#key-features">Key Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#master-backup-recommended">Master Backup (Recommended)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#common-options">Common Options</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#typical-backup-workflow">Typical Backup Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#typical-restore-workflow">Typical Restore Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#individual-script-usage">Individual Script Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#database-backup">Database Backup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#server-backup">Server Backup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/backup-restore.html#metabase-backup">Metabase Backup</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#restore-scripts">Restore Scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#omero-configuration-hierarchy">OMERO Configuration Hierarchy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#example-backup-omero-from-host-folder">Example: Backup OMERO from Host Folder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#example-backup-metabase-from-host-folder">Example: Backup Metabase from Host Folder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#requirements">Requirements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/backup-restore.html#help">Help</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/ui-customization.html">UI Customization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/ui-customization.html#login-page-branding">Login Page Branding</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html">OMERO.biomero Plugin Administration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#accessing-admin-interfaces">Accessing Admin Interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#importer-admin-configuration">Importer Admin Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#group-folder-mappings">Group Folder Mappings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#configuration-file-management">Configuration File Management</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#analyzer-admin-configuration">Analyzer Admin Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#configuration-management">Configuration Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#settings-interface-usage">Settings Interface Usage</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#settings-categories">Settings Categories</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#ssh-settings">SSH Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#slurm-settings">SLURM Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#analytics-settings">Analytics Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#converters-settings">Converters Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#workflows-settings">Workflows Settings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#adding-new-workflows">Adding New Workflows</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#common-sbatch-parameters">Common SBATCH Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#editing-existing-workflows">Editing Existing Workflows</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#required-follow-up-actions">Required Follow-up Actions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#zarr-and-plate-workflow-types">Zarr and Plate Workflow Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#zarr-workflow">Zarr Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#zarr-plate-workflow">Zarr Plate Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#biaflows-descriptors-and-zarr-auto-detection">BIAFLOWS descriptors and Zarr auto-detection</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#slurm-check-setup-output">Slurm Check Setup Output</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#interface-troubleshooting">Interface Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/omero-biomero-admin.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/resumable-uploader.html">Resumable Web Uploader</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/resumable-uploader.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/resumable-uploader.html#administrative-configuration">Administrative Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/resumable-uploader.html#uploader-settings">Uploader Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/resumable-uploader.html#storage-configuration">Storage Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/resumable-uploader.html#infrastructure-permission-requirements">Infrastructure &amp; Permission Requirements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/resumable-uploader.html#nginx-configuration">Nginx Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/resumable-uploader.html#cross-container-permission-requirements">Cross-Container Permission Requirements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/resumable-uploader.html#deployment-options">Deployment Options</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/resumable-uploader.html#uploader-data-flow">Uploader Data Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/resumable-uploader.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/resumable-uploader.html#upload-hangs-or-resets">Upload Hangs or Resets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/resumable-uploader.html#import-not-triggered">Import Not Triggered</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/resumable-uploader.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/metabase-admin.html">Metabase Administration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/metabase-admin.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/metabase-admin.html#initial-security-setup">Initial Security Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#after-first-deployment">After First Deployment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/metabase-admin.html#database-connection-management">Database Connection Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#adding-database-connections">Adding Database Connections</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#testing-connections">Testing Connections</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#database-connection-encryption">Database Connection Encryption</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/metabase-admin.html#dashboard-management">Dashboard Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#standard-dashboards">Standard Dashboards</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#embedding-configuration">Embedding Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#editing-dashboards">Editing Dashboards</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/metabase-admin.html#user-account-management">User Account Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#admin-account">Admin Account</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#additional-users">Additional Users</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/metabase-admin.html#backup-and-migration">Backup and Migration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#database-file-management">Database File Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#upgrading-dashboards">Upgrading Dashboards</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/metabase-admin.html#environment-configuration">Environment Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#docker-compose-setup">Docker Compose Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#integration-with-omero-web">Integration with OMERO.web</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/metabase-admin.html#security-considerations">Security Considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#network-access">Network Access</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#data-protection">Data Protection</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/metabase-admin.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#common-issues">Common Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/metabase-admin.html#performance-issues">Performance Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/metabase-admin.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/slurm-integration.html">BIOMERO.analyzer SLURM Integration for NL-BIOMERO</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#ssh-key-management-for-container-deployment">SSH Key Management for Container Deployment</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#development-docker-compose-setup">Development/Docker Compose Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#production-podman-deployment-with-secrets">Production/Podman Deployment with Secrets</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#configuration-files">Configuration Files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#container-file-sharing-setup">Container File Sharing Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#configuration-content-structure">Configuration Content Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#ssh-configuration">SSH Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#slurm-environment-setup">SLURM Environment Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#web-based-configuration-recommended">Web-Based Configuration (Recommended)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#manual-slurm-cluster-setup">Manual SLURM Cluster Setup</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#security-considerations">Security Considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#file-permissions">File Permissions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#ssh-access-security">SSH Access Security</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#database-access">Database Access</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#manual-verification">Manual Verification</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#network-security">Network Security</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#required-network-access">Required Network Access</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#firewall-configuration">Firewall Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#service-account-architecture">Service Account Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#single-service-account">Single Service Account</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#account-requirements">Account Requirements</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#deployment-specific-examples">Deployment-Specific Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#local-development-docker-compose">Local Development (docker-compose)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#production-podman-with-secrets">Production (Podman with Secrets)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#ssh-connection-issues">SSH Connection Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#slurm-job-issues">SLURM Job Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/slurm-integration.html#configuration-validation">Configuration Validation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#advanced-biomero-environment-variable-overrides">Advanced: BIOMERO Environment Variable Overrides</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#further-reading">Further Reading</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html">BIOMERO.analyzer + BIOMERO.importer Integration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#required-configuration-changes">Required configuration changes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#env"><code class="docutils literal notranslate"><span class="pre">.env</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#docker-compose-yml-biomeroworker-service"><code class="docutils literal notranslate"><span class="pre">docker-compose.yml</span></code> — biomeroworker service</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#storage-and-file-system-setup">Storage and file-system setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#shared-mount">Shared mount</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#result-folder-structure">Result folder structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#group-path-resolution">Group path resolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#permissions">Permissions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#non-docker-deployments">Non-Docker deployments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#validating-the-setup">Validating the setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#zarr-workflow-support">Zarr Workflow Support</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#experimental-shallow-zarr-storage">Experimental shallow Zarr storage</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#related-documentation">Related documentation</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#system-architecture-diagram">System Architecture Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#core-components">Core Components</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#biomero-2-0-architecture-overview">BIOMERO 2.0 Architecture Overview</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#container-architecture">Container Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#core-infrastructure">Core Infrastructure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#biomero-services">BIOMERO Services</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#data-flow-architecture">Data Flow Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#in-place-import-pipeline">In-Place Import Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#analysis-pipeline">Analysis Pipeline</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#network-architecture">Network Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#internal-communication">Internal Communication</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#external-access-points">External Access Points</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#storage-architecture">Storage Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#persistent-storage">Persistent Storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#remote-storage-integration">Remote Storage Integration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#compute-integration">Compute Integration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#demo-development-environment">Demo/Development Environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#hpc-integration-production">HPC Integration (Production)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#security-architecture">Security Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#authentication-authorization">Authentication &amp; Authorization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#data-protection">Data Protection</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#monitoring-analytics">Monitoring &amp; Analytics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#workflow-monitoring">Workflow Monitoring</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#data-analytics">Data Analytics</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#extensibility-integration">Extensibility &amp; Integration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#workflow-development">Workflow Development</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#api-integration">API Integration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#deployment-scenarios">Deployment Scenarios</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Developer Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#quick-setup-for-development">Quick Setup for Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#development-features">Development Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#architecture-overview">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#deployment-documentation">Deployment Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="workflow-development.html">Adding Your Workflow to BIOMERO</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="workflow-development.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workflow-development.html#getting-started">Getting Started</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="workflow-development.html#core-documentation">Core Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="workflow-development.html#workflow-types-tutorials">Workflow Types &amp; Tutorials</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="workflow-development.html#cellprofiler-workflows">CellProfiler Workflows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="workflow-development.html#python-workflows">Python Workflows</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="workflow-development.html#fair-workflow-packaging">FAIR Workflow Packaging</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="workflow-development.html#workshop-materials">Workshop Materials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="workflow-development.html#real-world-example-stardist-workflow">Real-World Example: Stardist Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="workflow-development.html#additional-resources">Additional Resources</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="workflow-development.html#biaflows-integration">BIAFLOWS Integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="workflow-development.html#multiple-descriptors-multiple-uis-per-repository">Multiple Descriptors / Multiple UIs per Repository</a></li>
+<li class="toctree-l3"><a class="reference internal" href="workflow-development.html#zarr-workflow-types-biomero-2-4-0">Zarr Workflow Types (BIOMERO ≥ 2.4.0)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="workflow-development.html#development-workflow">Development Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workflow-development.html#next-steps">Next Steps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workflow-development.html#community-support">Community Support</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bilayers-workflows.html">Bilayers Workflows in BIOMERO</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#why-bilayers">Why Bilayers?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#how-biomero-reads-a-bilayers-descriptor">How BIOMERO Reads a Bilayers Descriptor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#i-o-directory-handling">I/O Directory Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#parameter-choices-radio-dropdown">Parameter Choices (radio / dropdown)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#minimal-working-example">Minimal Working Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#adding-a-bilayers-workflow-to-your-biomero-instance">Adding a Bilayers Workflow to Your BIOMERO Instance</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bilayers-workflows.html#pointing-to-a-specific-descriptor-file">Pointing to a Specific Descriptor File</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="bilayers-workflows.html#bilayers-features-not-supported-by-biomero">Bilayers Features Not Supported by BIOMERO</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="zarr-workflow-development.html">Developing OME-Zarr workflows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="zarr-workflow-development.html#the-workflow-boundary">The workflow boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zarr-workflow-development.html#returning-results">Returning results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zarr-workflow-development.html#current-compatibility">Current compatibility</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Experimental BIOMERO shallow OME-Zarr storage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#one-managed-result-several-omero-views">One managed result, several OMERO views</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-shallow-results-exist">Why shallow results exist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#which-zarr-is-which">Which Zarr is which?</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#what-the-workflow-actually-receives">What the workflow actually receives</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#labels-across-workflow-generations">Labels across workflow generations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#lifecycle">Lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#relationship-to-ome-ngff-rfc-8">Relationship to OME-NGFF RFC 8</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ngff-label-source">NGFF label <code class="docutils literal notranslate"><span class="pre">source</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#the-biomero-storage-contract">The BIOMERO storage contract</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pixel-identity-with-iscc-bio">Pixel identity with ISCC-BIO</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#why-treewalk-is-not-the-equality-check">Why TREEWALK is not the equality check</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#embedded-attrs-iscc">Embedded <code class="docutils literal notranslate"><span class="pre">attrs.iscc</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#eligibility-and-failure-behavior">Eligibility and failure behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#images-plates-and-omero-representation">Images, Plates, and OMERO representation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#compatibility-profile">Compatibility profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#operational-trade-off-storage-versus-import-time">Operational trade-off: storage versus import time</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#parallel-identity-workers-and-scaling">Parallel identity workers and scaling</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#enabling-and-observing-the-feature">Enabling and observing the feature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#validation-status">Validation status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#expected-evolution">Expected evolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#further-reading">Further reading</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="containers/index.html">Container Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="containers/omeroserver.html">OMERO Server Container</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroserver.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroserver.html#key-customizations">Key Customizations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#script-installation">Script Installation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#automated-configuration-restoration">Automated Configuration Restoration</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroserver.html#dockerfile-key-changes">Dockerfile Key Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroserver.html#development-guidelines">Development Guidelines</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#configuration-changes">Configuration Changes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#adding-new-scripts">Adding New Scripts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroserver.html#testing-changes">Testing Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroserver.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="containers/omeroweb.html">OMERO Web Container</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html#development-workflow">Development Workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#development-mode">Development Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#omero-biomero-plugin-development">OMERO.biomero Plugin Development</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html#key-installed-plugins">Key Installed Plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#core-omero-plugins">Core OMERO Plugins</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#supporting-libraries">Supporting Libraries</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html#custom-interface-modifications">Custom Interface Modifications</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html#dockerfile-key-sections">Dockerfile Key Sections</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html#development-guidelines">Development Guidelines</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#starting-development">Starting Development</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#making-changes">Making Changes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#customizing-login-page-with-volume-mounts">Customizing Login Page with Volume Mounts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/omeroweb.html#testing">Testing</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/omeroweb.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="containers/biomeroworker.html">BIOMERO Worker Container</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#key-features">Key Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#container-customizations">Container Customizations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#ssh-integration">SSH Integration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#database-integration">Database Integration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#data-export-pipeline">Data Export Pipeline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#biomero-library-integration">BIOMERO Library Integration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#custom-processor-implementation">Custom Processor Implementation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#configuration-management">Configuration Management</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#slurm-configuration">Slurm Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#analytics-configuration">Analytics Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#worker-startup-process">Worker Startup Process</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#configuration-generation">Configuration Generation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#development-guidelines">Development Guidelines</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#biomero-script-development">BIOMERO Script Development</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#ssh-key-management">SSH Key Management</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#configuration-testing">Configuration Testing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#eventsourcing">Eventsourcing</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#common-issues">Common Issues</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#performance-optimization">Performance Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#upgrade-considerations">Upgrade Considerations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#biomero-library-updates">BIOMERO Library Updates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/biomeroworker.html#processor-py-maintenance">Processor.py Maintenance</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#related-documentation">Related Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomeroworker.html#external-resources">External Resources</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="containers/database.html">Database Containers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#key-components">Key Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#schema-customization">Schema customization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#migration">Migration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#performance-tuning">Performance tuning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#backup-automation">Backup automation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#accessing-postgresql">Accessing PostgreSQL</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/database.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="containers/metabase.html">Metabase Container</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/metabase.html#why-metabase">Why Metabase?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/metabase.html#dashboard-development">Dashboard Development</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#access">Access</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#dashboards-in-use">Dashboards in use</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#embedding-in-omero-web">Embedding in OMERO.web</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#editing-dashboards">Editing dashboards</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#adding-a-new-dashboard">Adding a new dashboard</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#browse-attached-databases">Browse attached databases</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#managing-database-connections">Managing database connections</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#user-account-and-password">User account and password</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#versioning-and-migration">Versioning and migration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#upgrading-metabase-dashboards">Upgrading Metabase Dashboards</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/metabase.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/metabase.html#common-issues-and-solutions">Common Issues and Solutions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/metabase.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="containers/biomero-importer.html">BIOMERO.importer Container</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#import-workflow">Import Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#import-order-creation-and-management">Import order creation and management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#file-system-monitoring-and-processing">File system monitoring and processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#integration-with-omero-server">Integration with OMERO server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#custom-import-pipeline-development">Custom import pipeline development</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#error-handling-and-retry-mechanisms">Error handling and retry mechanisms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#security-and-runtime-requirements">Security and runtime requirements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/biomero-importer.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="containers/analyzer-importer-integration.html">Analyzer → Importer Integration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/analyzer-importer-integration.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/analyzer-importer-integration.html#how-it-works">How it works</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/analyzer-importer-integration.html#script-selection">Script selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/analyzer-importer-integration.html#permanent-storage-layout">Permanent storage layout</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/analyzer-importer-integration.html#group-base-path-resolution">Group base path resolution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/analyzer-importer-integration.html#permission-requirements">Permission requirements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/analyzer-importer-integration.html#upload-order-and-in-place-import">Upload order and in-place import</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/analyzer-importer-integration.html#progress-tracking">Progress tracking</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/analyzer-importer-integration.html#infrastructure-requirements">Infrastructure requirements</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/analyzer-importer-integration.html#shared-storage-mount">Shared storage mount</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/analyzer-importer-integration.html#environment-variables-for-biomeroworker">Environment variables for biomeroworker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/analyzer-importer-integration.html#volume-mounts-for-biomeroworker">Volume mounts for biomeroworker</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/analyzer-importer-integration.html#docker-compose-changes">Docker Compose changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/analyzer-importer-integration.html#non-docker-deployments">Non-Docker deployments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/analyzer-importer-integration.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/analyzer-importer-integration.html#results-end-up-on-omero-server-storage-instead-of-remote-storage">Results end up on OMERO server storage instead of remote storage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/analyzer-importer-integration.html#upload-order-created-but-import-never-completes">Upload order created but import never completes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/analyzer-importer-integration.html#files-not-found-at-expected-path">Files not found at expected path</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/analyzer-importer-integration.html#permissionerror-writing-to-analyzed-folder">PermissionError writing to <code class="docutils literal notranslate"><span class="pre">.analyzed</span></code> folder</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/analyzer-importer-integration.html#import-polling-times-out">Import polling times out</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/analyzer-importer-integration.html#related-documentation">Related documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="containers/releases.html">Container Releases</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#release-overview">Release Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#release-workflow">Release Workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#container-build-automation">Container Build Automation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#typical-release-process">Typical Release Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#versioning-guidelines">Versioning Guidelines</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#semantic-versioning">Semantic Versioning</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#pre-release-versions">Pre-release Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#release-examples">Release Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#dependency-management">Dependency Management</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#library-updates">Library Updates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#example-dependency-update">Example Dependency Update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#omero-adi-submodule">OMERO ADI Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#special-handling">Special Handling</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#docker-hub-management">Docker Hub Management</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#container-registry">Container Registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#repository-management">Repository Management</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#communication-announcements">Communication &amp; Announcements</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#release-communication">Release Communication</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#release-notes-template">Release Notes Template</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#troubleshooting-releases">Troubleshooting Releases</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#common-issues">Common Issues</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#emergency-releases">Emergency Releases</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#best-practices">Best Practices</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#release-checklist">Release Checklist</a></li>
+<li class="toctree-l4"><a class="reference internal" href="containers/releases.html#release-quality">Release Quality</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="containers/releases.html#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../user/getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#before-you-start">Before You Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#interface-at-a-glance">Interface at a Glance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#how-do-i-add-data-already-on-remote-storage">How Do I Add Data Already on Remote Storage?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#how-do-i-add-data-directly-from-the-web">How Do I Add Data Directly from the Web?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#how-do-i-run-a-workflow-on-my-images">How Do I Run a Workflow on My Images?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#how-do-i-get-a-new-workflow-into-biomero">How Do I Get a New Workflow into BIOMERO?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/getting-started.html#frequently-asked-questions">Frequently Asked Questions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#i-cannot-find-my-folder-on-the-remote-disk">I cannot find my folder on the remote disk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#the-upload-images-tab-is-missing">The Upload Images tab is missing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#the-workflow-i-need-is-missing">The workflow I need is missing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#my-import-or-workflow-is-not-progressing">My import or workflow is not progressing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#where-are-my-workflow-results">Where are my workflow results?</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL-BIOMERO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Experimental BIOMERO shallow OME-Zarr storage</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/developer/biomero-shallow-zarr.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+
+<div class="admonition warning" style="margin-bottom: 1em;">
+  <p class="admonition-title">📋 Documentation Version Notice</p>
+  <p>
+    <strong>
+      
+      You're reading the documentation for a development version (<strong>master</strong>).
+      For the latest released version, please have a look at <a href="../../v1.7.0/index.html">v1.7</a>.
+      
+    </strong>
+  </p>
+</div>
+
+
+  <section id="experimental-biomero-shallow-ome-zarr-storage">
+<h1>Experimental BIOMERO shallow OME-Zarr storage<a class="headerlink" href="#experimental-biomero-shallow-ome-zarr-storage" title="Permalink to this heading"></a></h1>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This is an experimental, private BIOMERO storage contract. It is inspired by
+the shallow-copy use case in OME-NGFF RFC 8, but
+<code class="docutils literal notranslate"><span class="pre">.biomero-shallow.json</span></code> is <strong>not</strong> an RFC 8 Collection and is not a portable
+OME-NGFF standard. The current wire schema is version 1 and will evolve through
+versioned readers and upcasters.</p>
+</div>
+<section id="one-managed-result-several-omero-views">
+<h2>One managed result, several OMERO views<a class="headerlink" href="#one-managed-result-several-omero-views" title="Permalink to this heading"></a></h2>
+<p>The most useful way to understand this design is as <strong>one managed data graph
+with several views</strong>, similar to database views over shared stored data.
+BIOMERO.importer keeps the shallow result once, in place, in <code class="docutils literal notranslate"><span class="pre">.analyzed</span></code>. OMERO
+then registers lightweight objects whose PixelBuffer routes to the appropriate
+part of that result graph:</p>
+<ul class="simple">
+<li><p>a source-backed Plate view displays the managed original intensity pixels;</p></li>
+<li><p>an optional label-backed Plate view displays one selected label at the same
+well and field positions; and</p></li>
+<li><p>Image results can expose each newly produced label as a separate mask Image.</p></li>
+</ul>
+<p>These views do not each receive another copy of the Zarr arrays. They add OMERO
+database objects, hierarchy, and provenance, but reuse the managed source and
+label storage. The same shallow result can therefore look like the original
+Plate in one OMERO view and like a segmentation Plate in another, while still
+remaining one authoritative workflow result for later reconstruction.</p>
+<pre  class="mermaid">
+        flowchart TB
+    S[Read-only managed source pixels]
+    R[One in-place shallow result&lt;br/&gt;metadata + local labels + managed references]
+    S --&gt; R
+    R --&gt; P[Source-backed OMERO Plate&lt;br/&gt;PixelBuffer displays intensity pixels]
+    R --&gt; L[Optional label-backed OMERO Plate&lt;br/&gt;PixelBuffer displays one selected label]
+    R --&gt; I[OMERO label Images&lt;br/&gt;PixelBuffer displays individual new labels]
+    S --&gt; F[Temporary reconstructed full Zarr]
+    R --&gt; F
+    F --&gt; W[Next Zarr-native workflow]
+    </pre><p>The Plate views are cheap in pixel-storage terms, but not completely free:
+each additional view still creates another OMERO Plate/Well/WellSample/Image
+hierarchy. BIOMERO therefore creates one source-backed Plate by default and at
+most one explicitly requested label-backed preview, rather than automatically
+registering a Plate for every label.</p>
+<p>Standards status at a glance:</p>
+<ul class="simple">
+<li><p>RFC 8 is a proposal, not a released OME-NGFF Collections specification;</p></li>
+<li><p>BIOMERO emulates its composition idea with a private managed sidecar rather
+than claiming standards compliance;</p></li>
+<li><p>the current workflow interchange profile is OME-NGFF 0.4 on Zarr v2, not the
+newest draft NGFF/Zarr feature set, because the Glencoe exporter and OMERO
+Zarr PixelBuffer must both be able to serve the result; and</p></li>
+<li><p>generic readers are only expected to read a BIOMERO result after it has been
+reconstructed into a conventional full Zarr.</p></li>
+</ul>
+<p>BIOMERO can store a label-producing Zarr workflow result without keeping a
+second copy of the unchanged input pixels. The retained result contains its
+labels, the structural metadata needed to describe them, and managed references
+to a full source Zarr. When that result is selected for a Zarr-consuming
+workflow, BIOMERO reconstructs an ordinary, self-contained OME-Zarr before
+transfer.</p>
+<p>The feature deliberately applies only to <strong>derived workflow results</strong>. It never
+removes or rewrites the user’s original raw data or the managed full source.
+When BIOMERO cannot establish that returned pixels are unchanged, it keeps the
+returned Zarr in full. A workflow result can also be regenerated from its
+original input and parameters, so the optimization has a smaller risk boundary
+than deduplicating primary data.</p>
+</section>
+<section id="why-shallow-results-exist">
+<h2>Why shallow results exist<a class="headerlink" href="#why-shallow-results-exist" title="Permalink to this heading"></a></h2>
+<p>A typical segmentation workflow receives a full OME-Zarr, copies its image
+arrays to the output, and adds one or more NGFF labels. Persisting every such
+output duplicates the largest part of the data. This becomes costly for Plates:
+several segmentation and analysis runs can otherwise create several copies of
+the same hundreds of gigabytes or terabytes of intensity data.</p>
+<p>The shallow result is a managed composition:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>full managed source pixels ───────────────┐
+                                          ├─ reconstruct ─&gt; full workflow input
+derived result metadata + local labels ───┘
+</pre></div>
+</div>
+<p>This is primarily a <strong>storage optimization</strong>, not an interchange format.
+Zarr-consuming workflows normally receive the reconstructed full Zarr so that
+generic tools can use intensity pixels, physical metadata, inherited labels,
+and new labels without understanding BIOMERO. A TIFF-consuming workflow is the
+intentional exception: its temporary Zarr conversion material represents the
+exact OMERO Image pixels the user selected, such as one registered mask Image,
+rather than the complete shallow collection.</p>
+</section>
+<section id="which-zarr-is-which">
+<h2>Which Zarr is which?<a class="headerlink" href="#which-zarr-is-which" title="Permalink to this heading"></a></h2>
+<p>There can be several Zarr directories during one workflow, but they have
+different owners and lifetimes. They must not all be interpreted as the same
+scientific object.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Artifact</p></th>
+<th class="head"><p>Typical location</p></th>
+<th class="head"><p>What it contains</p></th>
+<th class="head"><p>Who consumes it</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Managed source or canonical Zarr</p></td>
+<td><p>Original managed location or <code class="docutils literal notranslate"><span class="pre">.processed</span></code></p></td>
+<td><p>Complete image pixels and NGFF structure; it may already contain labels</p></td>
+<td><p>BIOMERO as the read-only pixel source</p></td>
+</tr>
+<tr class="row-odd"><td><p>Temporary transfer Zarr</p></td>
+<td><p>Workflow-specific transfer directory</p></td>
+<td><p>A complete, ordinary Zarr assembled for this workflow</p></td>
+<td><p>A Zarr-native workflow on HPC</p></td>
+</tr>
+<tr class="row-even"><td><p>Full returned Zarr</p></td>
+<td><p>Temporary result, then <code class="docutils literal notranslate"><span class="pre">.analyzed</span></code></p></td>
+<td><p>Whatever the workflow produced, often copied input pixels plus labels</p></td>
+<td><p>BIOMERO.importer before normalization</p></td>
+</tr>
+<tr class="row-odd"><td><p>Stored shallow result</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.analyzed</span></code></p></td>
+<td><p>Result metadata, locally new or changed labels, and managed references to unchanged pixels and inherited labels</p></td>
+<td><p>BIOMERO, OMERO registration, and later reconstruction</p></td>
+</tr>
+<tr class="row-even"><td><p>OMERO label Image</p></td>
+<td><p>OMERO metadata plus PixelBuffer path</p></td>
+<td><p>A view of one label node, not another copy of the whole collection</p></td>
+<td><p>iViewer, thumbnails, ROI conversion, and user selection</p></td>
+</tr>
+<tr class="row-odd"><td><p>Reconstructed follow-up input</p></td>
+<td><p>Temporary transfer directory</p></td>
+<td><p>Source pixels plus all inherited and local labels, materialized as one conventional Zarr</p></td>
+<td><p>The next Zarr-native workflow</p></td>
+</tr>
+</tbody>
+</table>
+<p>The stored shallow directory is therefore often <strong>not byte-for-byte the Zarr
+that the workflow received</strong>. It is the compact, authoritative result in
+BIOMERO-managed storage. At the workflow boundary BIOMERO turns it back into a
+normal Zarr.</p>
+<pre  class="mermaid">
+        flowchart LR
+    A[OMERO selection] --&gt; B{Workflow input format}
+    B --&gt;|Zarr-native| C[Full temporary Zarr]
+    B --&gt;|TIFF / BIAFLOWS| D[Disposable Zarr from selected PixelBuffer]
+    D --&gt; E[TIFF input]
+    C --&gt; F[Workflow]
+    E --&gt; F
+    F --&gt; G{Returned a Zarr?}
+    G --&gt;|no| H[Legacy result import]
+    G --&gt;|yes| I[Verify image and label identities]
+    I --&gt;|image pixels changed or uncertain| J[Keep full returned Zarr]
+    I --&gt;|image pixels unchanged| K[Store shallow result]
+    K --&gt; L[Keep new or changed labels locally]
+    K --&gt; M[Reference unchanged pixels and inherited labels]
+    L --&gt; N[Create new OMERO label views]
+    M --&gt; O[Reconstruct when selected for another Zarr workflow]
+    L --&gt; O
+    </pre><section id="what-the-workflow-actually-receives">
+<h3>What the workflow actually receives<a class="headerlink" href="#what-the-workflow-actually-receives" title="Permalink to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>User selection and workflow</p></th>
+<th class="head"><p>Data delivered to the workflow</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Ordinary Image selected for a Zarr-native workflow</p></td>
+<td><p>A complete Zarr copied from an existing managed Zarr or reusable canonical conversion</p></td>
+</tr>
+<tr class="row-odd"><td><p>Shallow label result selected for a Zarr-native workflow</p></td>
+<td><p>A newly materialized full Zarr containing the original intensity pixels, every inherited label, and every label stored by the selected result</p></td>
+</tr>
+<tr class="row-even"><td><p>Ordinary or label Image selected for a TIFF/BIAFLOWS workflow</p></td>
+<td><p>TIFF converted from the selected OMERO PixelBuffer; for a label Image this means mask pixels, not reconstructed intensity pixels</p></td>
+</tr>
+<tr class="row-odd"><td><p>Plate selected for a workflow</p></td>
+<td><p>A complete Plate Zarr; Plates remain Zarr-only and are never flattened into the TIFF exception</p></td>
+</tr>
+<tr class="row-even"><td><p>Zarr uploaded directly through BIOMERO.importer</p></td>
+<td><p>The submitted Zarr is imported normally; no workflow input snapshot exists, so BIOMERO does not automatically shallow it</p></td>
+</tr>
+</tbody>
+</table>
+<p>The temporary Zarr used before a TIFF conversion is an implementation detail
+of the older transfer path. The TIFF workflow never receives that Zarr. It is
+also excluded from canonical promotion and return-side Zarr matching.</p>
+</section>
+<section id="labels-across-workflow-generations">
+<h3>Labels across workflow generations<a class="headerlink" href="#labels-across-workflow-generations" title="Permalink to this heading"></a></h3>
+<p>BIOMERO identifies label pixels independently from image pixels. A follow-up
+workflow may receive five existing label layers and add four more. On return:</p>
+<ul class="simple">
+<li><p>the five unchanged inherited labels remain members of the logical result but
+become references to their existing managed locations;</p></li>
+<li><p>the four new labels remain physically stored in the new shallow result;</p></li>
+<li><p>only the four new labels become new OMERO mask Images by default; and</p></li>
+<li><p>the next reconstruction contains all nine labels exactly once.</p></li>
+</ul>
+<p>This is label deduplication as well as image-pixel deduplication. Labels are
+not forgotten merely because their chunks are not copied into every result.
+If a workflow changes an existing label at the same logical path, its ISCC-BIO
+identity changes and BIOMERO stores that changed label as a new component.</p>
+</section>
+</section>
+<section id="lifecycle">
+<h2>Lifecycle<a class="headerlink" href="#lifecycle" title="Permalink to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Image Transfer resolves or creates a full managed Zarr for every selected
+OMERO Image or Plate. A non-Zarr original may therefore acquire a reusable
+canonical representation in <code class="docutils literal notranslate"><span class="pre">.processed</span></code>; an already managed Zarr can be
+used directly without making another canonical copy.</p></li>
+<li><p>BIOMERO calculates per-image and per-label pixel identities and stores the
+authoritative ordered input snapshot in its workflow event store.</p></li>
+<li><p>Each task-local input copy receives <code class="docutils literal notranslate"><span class="pre">.biomero-input.json</span></code>. This small marker
+identifies the selected input even when several inputs contain identical
+pixels or a workflow renames its result. It is not a workflow-provider
+contract and is removed from the stored result.</p></li>
+<li><p>The workflow runs against a normal, full OME-Zarr. It may ignore and simply
+copy BIOMERO metadata.</p></li>
+<li><p>On return, BIOMERO.importer recomputes the decoded pixel identities. If the
+image pixels match the corresponding source and useful labels are present,
+it transactionally removes the duplicated image arrays and writes
+<code class="docutils literal notranslate"><span class="pre">.biomero-shallow.json</span></code>. Changed or uncertain results stay full.</p></li>
+<li><p>OMERO registers viewable projections of the result while the authoritative
+shallow collection remains in managed <code class="docutils literal notranslate"><span class="pre">.analyzed</span></code> storage.</p></li>
+<li><p>Selecting a shallow result for a later Zarr workflow causes Image Transfer
+to materialize a temporary full Zarr containing the source pixels, inherited
+labels, and locally retained labels. For a workflow that will convert its
+inputs to TIFF, Image Transfer instead uses the established OMERO CLI Zarr
+export route for the selected OMERO Image. The registered PixelBuffer then
+remains the authority, so selecting a label Image exports that label rather
+than reconstructing and accidentally converting the original image. This
+conversion artifact is not promoted as a canonical source and carries no
+returned-Zarr matching contract. Temporary inputs are removed after
+transfer.</p></li>
+</ol>
+<p>Return-side identity work and normalization belong to BIOMERO.importer. They
+are not tied to the lifetime of the OMERO.web request that submitted the
+workflow. The OMERO script currently waits for the import status, but an ended
+web session does not terminate importer-owned processing.</p>
+</section>
+<section id="relationship-to-ome-ngff-rfc-8">
+<h2>Relationship to OME-NGFF RFC 8<a class="headerlink" href="#relationship-to-ome-ngff-rfc-8" title="Permalink to this heading"></a></h2>
+<p><a class="reference external" href="https://ngff.openmicroscopy.org/rfc/8/">RFC 8</a> proposes Collections and, as a
+motivating use case, shallow copies of images with segmentations. BIOMERO mirrors
+the following design ideas:</p>
+<ul class="simple">
+<li><p>unchanged image data can remain in a separately managed source;</p></li>
+<li><p>a derived collection can retain labels and refer back to that source;</p></li>
+<li><p>collection members can be composed into a complete view at a system
+boundary; and</p></li>
+<li><p>a Plate can refer to source images per field rather than inventing one
+Plate-wide pixel checksum.</p></li>
+</ul>
+<p>BIOMERO currently adds private machinery that RFC 8 does not define: OMERO
+object IDs and generations, logical storage roots, relative managed paths,
+workflow and transfer identifiers, an event-store input snapshot, ISCC-BIO
+pixel identities, and registration projections for the current OMERO
+PixelBuffer.</p>
+<p>Consequently, a BIOMERO shallow result must not be presented as a standardized
+RFC 8 Collection. Generic OME-Zarr readers are not expected to follow its
+managed references. Once a compatible Collections model is released and
+supported by the surrounding OMERO stack, the private schema can be migrated or
+adapted behind its versioned reader.</p>
+<section id="ngff-label-source">
+<h3>NGFF label <code class="docutils literal notranslate"><span class="pre">source</span></code><a class="headerlink" href="#ngff-label-source" title="Permalink to this heading"></a></h3>
+<p>A retained label still has the standard NGFF 0.4 relationship:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"image-label"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"source"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"image"</span><span class="p">:</span><span class="w"> </span><span class="s2">"../../"</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.4"</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>That relative path describes the label’s logical image inside the reconstructed
+Zarr. While the result is shallow, the local image arrays may be absent, so the
+BIOMERO sidecar is the authority for locating the externally managed pixels.
+Reconstruction makes the ordinary relative NGFF relationship valid again. We
+do not overload <code class="docutils literal notranslate"><span class="pre">image-label.source.image</span></code> with a deployment-specific absolute
+filesystem or object-store path.</p>
+</section>
+</section>
+<section id="the-biomero-storage-contract">
+<h2>The BIOMERO storage contract<a class="headerlink" href="#the-biomero-storage-contract" title="Permalink to this heading"></a></h2>
+<p>The Pydantic models in
+<a class="reference external" href="https://nl-bioimaging.github.io/biomero-schema/"><code class="docutils literal notranslate"><span class="pre">biomero-schema</span></code></a> are the
+shared contract between BIOMERO, BIOMERO.importer, and the OMERO scripts.
+Services must use those models instead of independently constructing JSON. The
+principal markers are:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Marker</p></th>
+<th class="head"><p>Lifetime and purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">.biomero-canonical.json</span></code></p></td>
+<td><p>Identifies a committed reusable full source representation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">.biomero-input.json</span></code></p></td>
+<td><p>Task-local input hint, validated against the workflow event snapshot and removed on return.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">.biomero-shallow.json</span></code></p></td>
+<td><p>Authoritative manifest for a stored derived result whose image arrays were omitted.</p></td>
+</tr>
+</tbody>
+</table>
+<p>An abbreviated Image result looks like this:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"schema"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"model"</span><span class="p">:</span><span class="w"> </span><span class="s2">"rfc8-shallow-copy"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"workflowId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;workflow-id&gt;"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"transferArtifact"</span><span class="p">:</span><span class="w"> </span><span class="s2">"segmentation-result.ome.zarr"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"interchangeProfile"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ngff-0.4-zarr-v2"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"images"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+<span class="w">    </span><span class="nt">"imageNodePath"</span><span class="p">:</span><span class="w"> </span><span class="s2">"."</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"source"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"storageRoot"</span><span class="p">:</span><span class="w"> </span><span class="s2">"group-0-data"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"relativePath"</span><span class="p">:</span><span class="w"> </span><span class="s2">".processed/canonical-image.ome.zarr"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"sourceObjectType"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Image"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"sourceObjectId"</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"sourceGeneration"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"nodePath"</span><span class="p">:</span><span class="w"> </span><span class="s2">"."</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"pixelIdentity"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"iscc-bio/imagewalk"</span><span class="p">,</span><span class="w"> </span><span class="nt">"role"</span><span class="p">:</span><span class="w"> </span><span class="s2">"image"</span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"returnedPixelIdentity"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"iscc-bio/imagewalk"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"role"</span><span class="p">:</span><span class="w"> </span><span class="s2">"image"</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"labelNodePaths"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"labels/labels_nuclei"</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"labelComponents"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+<span class="w">      </span><span class="nt">"logicalNodePath"</span><span class="p">:</span><span class="w"> </span><span class="s2">"labels/labels_nuclei"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"source"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"pixelIdentity"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"iscc-bio/imagewalk"</span><span class="p">,</span><span class="w"> </span><span class="nt">"role"</span><span class="p">:</span><span class="w"> </span><span class="s2">"label"</span><span class="p">}</span>
+<span class="w">    </span><span class="p">}]</span>
+<span class="w">  </span><span class="p">}]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The actual identity objects also contain the ISCC codes, shape, dtype, axes,
+coordinate transformations, tool version, and IMAGEWALK revision. A Plate has
+one <code class="docutils literal notranslate"><span class="pre">images</span></code> entry for every retained field such as <code class="docutils literal notranslate"><span class="pre">A/1/0</span></code>; each entry points
+to that field in the managed source Plate.</p>
+<p><code class="docutils literal notranslate"><span class="pre">source:</span> <span class="pre">null</span></code> on a label component means the label is stored locally in this
+result. A managed source on a label component means it is inherited from an
+earlier shallow result. This distinction lets multi-stage workflows derive new
+masks from existing masks and later analyze the combined label set without
+repeatedly storing unchanged label pixels.</p>
+<p>The Zarr root also carries a small <code class="docutils literal notranslate"><span class="pre">biomero</span></code> pointer to the manifest, but the
+sidecar is authoritative. A shallow root is not a synthetic black image: its
+duplicated multiscale image arrays are absent. This avoids storing even a fake
+pixel pyramid and prevents readers from mistaking zeros for scientific data.</p>
+</section>
+<section id="pixel-identity-with-iscc-bio">
+<h2>Pixel identity with ISCC-BIO<a class="headerlink" href="#pixel-identity-with-iscc-bio" title="Permalink to this heading"></a></h2>
+<p>The BIOMERO Schema documentation provides the normative, field-by-field
+<a class="reference external" href="https://nl-bioimaging.github.io/biomero-schema/pixel-identity/"><code class="docutils literal notranslate"><span class="pre">PixelIdentity</span></code> reference</a>,
+including the exact equality predicate and a complete JSON example. This page
+focuses on how that contract participates in shallow storage.</p>
+<p>BIOMERO uses the experimental
+<a class="reference external" href="https://github.com/bio-codes/iscc-bio">ISCC-BIO</a> IMAGEWALK implementation.
+IMAGEWALK traverses decoded level-0 bioimage planes deterministically and is
+designed to identify the logical pixels independently of their container,
+chunking, compression, extra pyramid levels, labels, and ordinary metadata
+changes. In principle this also lets BIOMERO recognize the same pixels in a raw
+format and in its canonical OME-Zarr representation.</p>
+<p>For every image or label node BIOMERO records:</p>
+<ul class="simple">
+<li><p>the combined ISCC value, Data-Code, and Instance-Code;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">shape</span></code>, <code class="docutils literal notranslate"><span class="pre">dtype</span></code>, axes, and coordinate transformations;</p></li>
+<li><p>the node role (<code class="docutils literal notranslate"><span class="pre">image</span></code> or <code class="docutils literal notranslate"><span class="pre">label</span></code>) and logical node path; and</p></li>
+<li><p>the ISCC-BIO version and IMAGEWALK implementation revision.</p></li>
+</ul>
+<p>The current exact equality predicate compares the <strong>Instance-Code</strong> together
+with the role, shape, dtype, axes, and coordinate transformations. Node paths
+and aggregate/Data-Codes are not used to disambiguate otherwise identical
+selected images. The task-local marker and ordered event snapshot provide that
+mapping.</p>
+<p>An embedded code is a claim, not proof that a workflow preserved the pixels.
+BIOMERO therefore records the input identity before execution and recomputes
+the returned pixels before removing anything. Copying a stale metadata field
+does not make changed pixels eligible. This is not intended as adversarial
+cryptographic attestation; it is a conservative decision about whether to keep
+more or less of a reproducible derived result.</p>
+<section id="why-treewalk-is-not-the-equality-check">
+<h3>Why TREEWALK is not the equality check<a class="headerlink" href="#why-treewalk-is-not-the-equality-check" title="Permalink to this heading"></a></h3>
+<p>An ISCC-SUM TREEWALK over an entire Zarr answers whether the stored fileset is
+bit-identical. It changes when chunks are recompressed or rechunked, metadata or
+scales change, or labels are added—the exact changes a Zarr workflow may make
+without modifying the original image pixels. It is therefore the wrong signal
+for shallow eligibility.</p>
+<p>TREEWALK remains interesting for future whole-store integrity,
+deduplication, version tracking, or citation. Its convention excludes a
+<code class="docutils literal notranslate"><span class="pre">.iscc.json</span></code> sidecar and supports <code class="docutils literal notranslate"><span class="pre">.isccignore</span></code>, avoiding a circular whole-store
+identifier. The schema already leaves room for a separate <code class="docutils literal notranslate"><span class="pre">storeIdentity</span></code>, but
+BIOMERO does not currently require one.</p>
+</section>
+<section id="embedded-attrs-iscc">
+<h3>Embedded <code class="docutils literal notranslate"><span class="pre">attrs.iscc</span></code><a class="headerlink" href="#embedded-attrs-iscc" title="Permalink to this heading"></a></h3>
+<p>The intended portable direction is to publish an IMAGEWALK identity in the
+user attributes of each Image group—for Zarr v3, <code class="docutils literal notranslate"><span class="pre">attributes.iscc</span></code> as a sibling
+of the versioned <code class="docutils literal notranslate"><span class="pre">attributes.ome</span></code> namespace. That makes a derived Zarr carry a
+path-independent identity for its source. Current BIOMERO matching does <strong>not</strong>
+assume this attribute exists: identities are held in the managed markers and
+event provenance, and returned pixels are recomputed. Embedding and consuming
+the group attribute consistently is remaining interoperability work and may
+change with ISCC-BIO and NGFF guidance.</p>
+</section>
+</section>
+<section id="eligibility-and-failure-behavior">
+<h2>Eligibility and failure behavior<a class="headerlink" href="#eligibility-and-failure-behavior" title="Permalink to this heading"></a></h2>
+<p>The normalizer is intentionally conservative:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Returned result</p></th>
+<th class="head"><p>Storage outcome</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Source pixels match and at least one local or inherited label exists</p></td>
+<td><p>Store shallow collection.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Source pixels changed</p></td>
+<td><p>Keep full returned Zarr.</p></td>
+</tr>
+<tr class="row-even"><td><p>Identity, source, field mapping, or schema is missing/ambiguous</p></td>
+<td><p>Keep full returned Zarr.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Label-free pass-through duplicates only the input</p></td>
+<td><p>Do not create a useless derived shallow result.</p></td>
+</tr>
+<tr class="row-even"><td><p>Feature flag disabled</p></td>
+<td><p>Preserve the legacy full-result import path.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Importer integration disabled</p></td>
+<td><p>Preserve the independent Get Results path.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Normalization uses a same-filesystem rollback journal. Duplicate array
+directories are moved into the journal first, the sidecar and remaining
+metadata are committed, and only then is the journal deleted. A failure before
+commit restores the result. The full managed source is read-only throughout.</p>
+</section>
+<section id="images-plates-and-omero-representation">
+<h2>Images, Plates, and OMERO representation<a class="headerlink" href="#images-plates-and-omero-representation" title="Permalink to this heading"></a></h2>
+<p>For an Image result, BIOMERO can register retained label nodes as separate
+viewable OMERO Images. This makes masks available to today’s PixelBuffer and
+iViewer and permits optional conversion to ROIs. The authoritative shallow
+collection stays in <code class="docutils literal notranslate"><span class="pre">.analyzed</span></code>; the OMERO objects carry compact managed
+references and provenance rather than a copy of the entire manifest.</p>
+<p>For a chained result, the importer projects locally new or changed labels by
+default. Unchanged inherited labels remain in the shallow manifest and are
+included in later reconstruction, but do not create duplicate OMERO mask
+Images. An explicit re-projection option may be added later for users who need
+another OMERO view of an inherited mask.</p>
+<p>For a Plate, labels live below each Plate image/field in NGFF. Importing every
+label from a large Plate as unrelated Images would lose the useful Plate
+organization and could create thousands of OMERO objects. BIOMERO therefore
+keeps one authoritative derived Plate representation. It can register:</p>
+<ul class="simple">
+<li><p>a source-backed Plate whose ordinary pixels come from the original managed
+Zarr; and</p></li>
+<li><p>optionally, a label-backed Plate preview when one requested label name is
+present consistently across the fields.</p></li>
+</ul>
+<p>The preview is a convenience for current OMERO viewing, not another authority.
+Native label overlays and complete RFC 8 traversal depend on future OMERO and
+viewer support. Per-field identities and mappings remain in the storage
+sidecar; OMERO gets one compact Plate-level reference instead of hundreds or
+thousands of repeated key-value annotations.</p>
+</section>
+<section id="compatibility-profile">
+<h2>Compatibility profile<a class="headerlink" href="#compatibility-profile" title="Permalink to this heading"></a></h2>
+<p>BIOMERO currently exchanges <strong>OME-NGFF 0.4 on Zarr v2</strong>. This is determined by
+the deployed Glencoe exporter/importer tooling and the OMERO Zarr PixelBuffer
+that must serve registered pixels; accepting a newer, valid NGFF version in one
+component would not help if the rest of the OMERO path could not read it.</p>
+<p>Workflows do not need to know about BIOMERO’s shallow-storage representation.
+BIOMERO inspects and optimizes ordinary workflow results only after the workflow
+has finished. The workflow-facing image and label contract is documented under
+<a class="reference internal" href="zarr-workflow-development.html"><span class="std std-doc">Developing OME-Zarr workflows</span></a>. BIOMERO will
+advance the profile as Glencoe and OMERO releases add compatible support. The
+private shallow reader remains versioned so older managed results can be
+reconstructed during such a transition.</p>
+</section>
+<section id="operational-trade-off-storage-versus-import-time">
+<h2>Operational trade-off: storage versus import time<a class="headerlink" href="#operational-trade-off-storage-versus-import-time" title="Permalink to this heading"></a></h2>
+<p>Shallow normalization trades importer CPU and storage I/O for lower persistent
+storage use. It is opt-in because a deployment with small results or a slow,
+metadata-heavy filesystem may value latency more than the saved capacity.</p>
+<p>The current production-path Plate benchmark used an 18-field Plate returned by
+a Zarr-to-Zarr segmentation workflow, with one new label per field and 1,722
+files. It ran inside the Linux importer container against the real <code class="docutils literal notranslate"><span class="pre">/data</span></code>
+mount; preparing disposable benchmark copies was excluded.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Measurement</p></th>
+<th class="head text-right"><p>Result</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Full returned Plate</p></td>
+<td class="text-right"><p>146,143,912 bytes</p></td>
+</tr>
+<tr class="row-odd"><td><p>Stored shallow Plate</p></td>
+<td class="text-right"><p>10,775,929 bytes</p></td>
+</tr>
+<tr class="row-even"><td><p>Storage removed</p></td>
+<td class="text-right"><p>135,367,983 bytes (92.6%)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Read-only ISCC-BIO verification</p></td>
+<td class="text-right"><p>12.653 s mean</p></td>
+</tr>
+<tr class="row-even"><td><p>Transactional normalization</p></td>
+<td class="text-right"><p>12.729 s mean</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Added importer processing</strong></p></td>
+<td class="text-right"><p><strong>about 25.4 s</strong></p></td>
+</tr>
+</tbody>
+</table>
+<p>The first diagnostic implementation took roughly 196 seconds to normalize the
+same Plate. Same-filesystem moves, avoiding a copy of the retained label tree,
+and avoiding recursive before/after byte scans reduced normalization to 12.7
+seconds.</p>
+<p>The following observations put the Plate benchmark alongside the live Image
+paths tested so far. <code class="docutils literal notranslate"><span class="pre">Estimated</span> <span class="pre">full</span></code> means the size of the pixels and label
+components if they were materialized together; production deliberately skips
+an exact recursive pre-normalization size scan because that scan can cost more
+than normalization itself.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Scenario</p></th>
+<th class="head"><p>Logical content</p></th>
+<th class="head text-right"><p>Full or estimated full</p></th>
+<th class="head text-right"><p>Stored shallow</p></th>
+<th class="head text-right"><p>Storage avoided</p></th>
+<th class="head text-right"><p>Return-path shallow processing</p></th>
+<th class="head text-right"><p>Outbound reconstruction</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>18-field Plate benchmark</p></td>
+<td><p>18 fields, one new label per field</p></td>
+<td class="text-right"><p>146,143,912 bytes</p></td>
+<td class="text-right"><p>10,775,929 bytes</p></td>
+<td class="text-right"><p>135,367,983 bytes (92.6%)</p></td>
+<td class="text-right"><p>25.4 s mean</p></td>
+<td class="text-right"><p>not measured</p></td>
+</tr>
+<tr class="row-odd"><td><p>Five-Image live batch</p></td>
+<td><p>five Images with new and inherited labels</p></td>
+<td class="text-right"><p>28.463 MiB estimated</p></td>
+<td class="text-right"><p>2.319 MiB</p></td>
+<td class="text-right"><p>26.144 MiB (91.9%)</p></td>
+<td class="text-right"><p>about 10 s total</p></td>
+<td class="text-right"><p>not measured</p></td>
+</tr>
+<tr class="row-even"><td><p>Multi-generation Image chain</p></td>
+<td><p>one Image, five inherited labels and four new labels</p></td>
+<td class="text-right"><p>8,956,291 bytes estimated</p></td>
+<td class="text-right"><p>990,300 bytes</p></td>
+<td class="text-right"><p>7,965,991 bytes (88.9%)</p></td>
+<td class="text-right"><p>19.7 s observed</p></td>
+<td class="text-right"><p>7.6 s observed</p></td>
+</tr>
+<tr class="row-odd"><td><p>Earlier individual Image</p></td>
+<td><p>one Image result</p></td>
+<td class="text-right"><p>6,848,883 bytes</p></td>
+<td class="text-right"><p>185,072 bytes</p></td>
+<td class="text-right"><p>6,663,811 bytes (97.3%)</p></td>
+<td class="text-right"><p>not measured</p></td>
+<td class="text-right"><p>not measured</p></td>
+</tr>
+</tbody>
+</table>
+<p>The multi-generation observation started from one shallow Image referencing
+canonical intensity pixels and five inherited label layers. A Zarr-to-Zarr
+segmentation reconstructed that complete collection and appended four new
+labels. Reconstruction took 7.6 seconds. On return, the importer spent 18.3
+seconds evaluating image and label identities with four workers and 1.4
+seconds transactionally retaining only the four new layers. The five inherited
+label directories were absent from the new physical store but remained present
+as managed components in <code class="docutils literal notranslate"><span class="pre">.biomero-shallow.json</span></code>. Only the four new labels were
+registered as new OMERO Images. The estimated 8,956,291-byte full footprint is
+the sum of the referenced canonical pixels and all nine logical label
+components, not a recursive pre-normalization tree scan. This is one warm-system
+observation rather than a statistically stable benchmark.</p>
+<p>A later live run processed five Image results with both new and inherited
+labels. Their estimated full size was 28.463 MiB and their stored shallow size
+was 2.319 MiB: 26.144 MiB, or <strong>91.9%</strong>, was avoided. Importer identity and
+normalization work took approximately 10 seconds in total with four workers.
+One earlier individual Image example occupied 185,072 bytes shallow versus a
+6,848,883-byte full source Zarr, a 97.3% size difference; that individual
+observation did not include a comparable end-to-end timing.</p>
+<section id="parallel-identity-workers-and-scaling">
+<h3>Parallel identity workers and scaling<a class="headerlink" href="#parallel-identity-workers-and-scaling" title="Permalink to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR_WORKERS</span></code> controls a bounded importer thread pool for
+per-image and per-label identity generation. It defaults to <code class="docutils literal notranslate"><span class="pre">4</span></code> in the
+NL-BIOMERO deployment. Discovery, transactional moves, and journal deletion are
+not parallelized.</p>
+<p>A preliminary read-only sweep of the 18-image/18-label Plate produced:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-right"><p>Workers</p></th>
+<th class="head text-right"><p>Verification time</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-right"><p>1</p></td>
+<td class="text-right"><p>14.524 s mean</p></td>
+</tr>
+<tr class="row-odd"><td class="text-right"><p>2</p></td>
+<td class="text-right"><p>11.988 s mean</p></td>
+</tr>
+<tr class="row-even"><td class="text-right"><p>4</p></td>
+<td class="text-right"><p>9.401 s mean</p></td>
+</tr>
+<tr class="row-odd"><td class="text-right"><p>8</p></td>
+<td class="text-right"><p>12.569 s observed</p></td>
+</tr>
+<tr class="row-even"><td class="text-right"><p>16</p></td>
+<td class="text-right"><p>13.857 s observed</p></td>
+</tr>
+<tr class="row-odd"><td class="text-right"><p>32</p></td>
+<td class="text-right"><p>13.201 s observed</p></td>
+</tr>
+</tbody>
+</table>
+<p>Four workers performed best on this development mount. Higher counts increased
+I/O contention, and variance was material. Sites should benchmark their own
+storage with 1, 2, and 4 workers before increasing the value.</p>
+<p>The 18-field result does not establish linear scaling. A deliberately crude
+linear extrapolation of 25.4 seconds would be about 24 minutes for 1,000 equally
+sized fields. Actual time depends on decoded pixel volume, label and file
+counts, chunking, cache state, filesystem metadata latency, and concurrent I/O;
+a very large or badly chunked Plate could still take hours. A representative
+large-Plate benchmark remains necessary before broad production enablement.</p>
+</section>
+</section>
+<section id="enabling-and-observing-the-feature">
+<h2>Enabling and observing the feature<a class="headerlink" href="#enabling-and-observing-the-feature" title="Permalink to this heading"></a></h2>
+<p>The NL-BIOMERO Compose deployment uses:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>IMPORTER_ENABLED=true
+BIOMERO_SHALLOW_ZARR=true
+BIOMERO_SHALLOW_ZARR_WORKERS=4
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR</span></code> defaults off, preserving the old export/import behavior.
+The worker flag crosses the OMERO processor environment allow-list; the worker
+count belongs to the importer service. Shallow processing also requires the
+BIOMERO.importer <code class="docutils literal notranslate"><span class="pre">identity</span></code> extra, which supplies ISCC-BIO. The shipped
+NL-BIOMERO importer image installs that extra. A custom importer installation
+must use <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;biomero-importer[identity]&quot;</span></code>; when it is absent, the
+importer reports the missing capability and rejects only shallow lifecycle
+orders while ordinary imports continue. Monitor image/field count, label count,
+bytes before and after, identity time, normalization time, and total import
+time. Disable the feature if its measured latency is not justified by the
+storage saved.</p>
+<p>Useful logs distinguish:</p>
+<ul class="simple">
+<li><p>calculation versus reuse of canonical source identities;</p></li>
+<li><p>the selected source and transfer marker;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">eligible</span> <span class="pre">(input-image-unchanged)</span></code> versus a conservative keep-full reason;</p></li>
+<li><p>identity generation and normalization durations; and</p></li>
+<li><p>stored full versus shallow outcomes.</p></li>
+</ul>
+</section>
+<section id="validation-status">
+<h2>Validation status<a class="headerlink" href="#validation-status" title="Permalink to this heading"></a></h2>
+<p>The feature branch has verified the following live paths:</p>
+<ul class="simple">
+<li><p>full canonical creation and later reuse during Image Transfer;</p></li>
+<li><p>ordered event provenance and task-local markers, including five selected
+Images with identical pixels and renamed outputs;</p></li>
+<li><p>five Image results normalized to 91.9% smaller shallow collections while
+retaining multiple and inherited labels;</p></li>
+<li><p>label-Image registration, non-image attachments, and ROI creation for those
+Image results;</p></li>
+<li><p>an 18-field Plate normalized to 92.6% smaller storage, with one compact
+derived Plate reference and optional label-backed preview;</p></li>
+<li><p>a complete chained Zarr workflow: five inherited labels were reconstructed,
+four appended labels were retained, unchanged inherited label chunks were
+referenced rather than copied, and only the four new labels became OMERO
+Images;</p></li>
+<li><p>focused reconstruction of a shallow Image into a temporary full Zarr;</p></li>
+<li><p>a live and unit-covered TIFF-bound exception, where a selected shallow label
+Image is exported from its registered OMERO PixelBuffer instead of being
+reconstructed with the original pixels; and</p></li>
+<li><p>compatibility readers/tests for older event streams and absent optional
+shallow settings.</p></li>
+</ul>
+<p>The following remain release gates or scale validation:</p>
+<ul class="simple">
+<li><p>a live changed-pixel Image and changed-pixel Plate must remain full;</p></li>
+<li><p>a full canonical Zarr that already contains labels must be repeated live
+after the canonical-input inventory regression fix; unit coverage verifies
+that an empty preliminary inventory now triggers label discovery;</p></li>
+<li><p>feature-off behavior and importer-disabled Get Results need live controls;</p></li>
+<li><p>unsupported/newer NGFF input must fail or fall back clearly; and</p></li>
+<li><p>a representative large high-content Plate needs storage-local timing and
+capacity measurements.</p></li>
+</ul>
+</section>
+<section id="expected-evolution">
+<h2>Expected evolution<a class="headerlink" href="#expected-evolution" title="Permalink to this heading"></a></h2>
+<p>The present contract fixes <code class="docutils literal notranslate"><span class="pre">schema:</span> <span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">model:</span> <span class="pre">&quot;rfc8-shallow-copy&quot;</span></code>, and the
+<code class="docutils literal notranslate"><span class="pre">ngff-0.4-zarr-v2</span></code> interchange profile. Recorded identities also pin the
+ISCC-BIO version and IMAGEWALK revision because ISCC-BIO is itself early-stage.</p>
+<p>Viewer support can evolve independently of this storage contract. Today,
+BIOMERO registers source-backed and label-backed PixelBuffer views so that
+OMERO.iViewer can show either the intensity image or a selected mask as an
+ordinary Image or Plate. A label-aware viewer can instead follow the shallow
+references and present labels as overlays on the source pixels, which is the
+more natural NGFF experience; OME’s
+<a class="reference external" href="https://github.com/ome/napari-ome-zarr">napari-ome-zarr</a> already exposes NGFF
+labels as label layers. As native label support reaches OMERO viewers, and as
+the viewer integration being developed alongside BIOMERO matures, users should
+be able to open one managed result and switch or overlay its labels directly.
+That may make some convenience mask registrations optional, but it does not
+need to change the stored result, provenance, pixel identities, or
+reconstruction contract.</p>
+<p>Likely future changes include migration toward a released NGFF Collections
+model, newer Zarr/NGFF profiles as OMERO PixelBuffer support advances,
+standardized embedded Image identities, object-store-aware references, and
+asynchronous or differently scheduled processing for very large Plates. Those
+changes should be introduced through new schema/profile versions and upcasters,
+not by silently changing the meaning of existing managed results.</p>
+</section>
+<section id="further-reading">
+<h2>Further reading<a class="headerlink" href="#further-reading" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://nl-bioimaging.github.io/biomero-schema/zarr-contracts/">BIOMERO Schema: Zarr contracts</a></p></li>
+<li><p><a class="reference external" href="https://nl-bioimaging.github.io/biomero-schema/pixel-identity/">BIOMERO Schema: Pixel identity</a></p></li>
+<li><p><a class="reference external" href="https://ngff.openmicroscopy.org/rfc/8/">OME-NGFF RFC 8: Collections and Extensibility</a></p></li>
+<li><p><a class="reference external" href="https://github.com/bio-codes/iscc-bio">ISCC-BIO and IMAGEWALK</a></p></li>
+<li><p><a class="reference external" href="https://ieps.iscc.codes/iep-0017/">IEP-0017: TREEWALK</a></p></li>
+<li><p><a class="reference external" href="https://ieps.iscc.codes/iep-0018/">IEP-0018: IMAGEWALK</a></p></li>
+</ul>
+</section>
+</section>
+
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="zarr-workflow-development.html" class="btn btn-neutral float-left" title="Developing OME-Zarr workflows" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="containers/index.html" class="btn btn-neutral float-right" title="Container Development" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Core Facility Cellular Imaging.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: master
+    <span class="fa fa-caret-down"></span>
+  </span>
+  <div class="rst-other-versions">
+    <dl>
+      <dt>Tags</dt>
+      <dd><a href="../../v1.7.0/index.html">v1.7 (Latest)</a></dd>
+      <dd><a href="../../v1.6.0/index.html">v1.6</a></dd>
+      <dd><a href="../../v1.5.0/index.html">v1.5</a></dd>
+      <dd><a href="../../v1.4.0/index.html">v1.4</a></dd>
+      <dd><a href="../../v1.3.0/index.html">v1.3</a></dd>
+      <dd><a href="../../v1.2.0/index.html">v1.2</a></dd>
+      <dd><a href="../../v1.1.0/index.html">v1.1</a></dd>
+      <dd><a href="../../v1.0.0/index.html">v1</a></dd>
+    </dl>
+    <dl>
+      <dt>Branches</dt>
+      <dd><a href="biomero-shallow-zarr.html">master</a></dd>
+    </dl>
+  </div>
+</div>
+<div class="admonition warning" style="margin-top: 1em;">
+    <p class="admonition-title">📋 You're viewing older documentation</p>
+    <p>This is documentation for <strong>master</strong>. 
+       <a href="../../v1.7.0/index.html">Click here for the latest version (v1.7)</a></p>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
