@@ -1,7 +1,19 @@
 FROM openmicroscopy/omero-server:5.6.18
 
 ARG BIOMERO_VERSION
-ARG BIOMERO_IMPORTER_VERSION
+
+# Development-only branch wiring. Uncomment the matching ARGs, branch-head
+# cache busters, and direct-reference installs together for unpublished work.
+# ARG BIOMERO_SCHEMA_BRANCH=main
+# ARG BIOMERO_BRANCH=fix/full-runtime-dependencies
+# ARG BIOMERO_IMPORTER_BRANCH=main
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_BRANCH}" /latest_commit_biomero_schema
+# ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.importer/commits/${BIOMERO_IMPORTER_BRANCH}" /latest_commit_biomero_importer
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_BRANCH}" /latest_commit_biomero
+# RUN $VIRTUAL_ENV/bin/python -m pip install \
+#     "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
+#     "biomero-importer[identity] @ git+https://github.com/NL-BioImaging/BIOMERO.importer.git@${BIOMERO_IMPORTER_BRANCH}" \
+#     "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@${BIOMERO_BRANCH}"
 
 USER root
 
@@ -40,16 +52,14 @@ ENV PATH="$PATH:/opt/bioformats2raw-0.12.0-rc1/bin"
 ## Add BIOMERO Omero Slurm Client
 RUN yum -y install ack
 
-# force zarr < 3 for compatibility w/ omero-cli-zarr by installing biomero AFTER the importer
-# To track a branch instead of a release, uncomment the cache-bust line and use the git install:
-# ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/surf" /latest_commit_biomero
-# && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@surf"
+# Install the complete BIOMERO.scripts runtime from BIOMERO's full extra.
+# BIOMERO.importer, biomero-schema, and the image-processing dependencies are
+# resolved transitively from its compatible constraints.
 RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
-    && $VIRTUAL_ENV/bin/python -m pip install --ignore-requires-python biomero-importer==${BIOMERO_IMPORTER_VERSION} \
-    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full]==${BIOMERO_VERSION}" \
     && $VIRTUAL_ENV/bin/python -m pip install \
-        scikit-image==0.25.2 omero-rois==0.4.1
+        "biomero[full]==${BIOMERO_VERSION}" \
+    && $VIRTUAL_ENV/bin/python -m pip check
 
 ## Adjust processor code with BIOMERO Processor
 # This version forwards HTTP(S) PROXY environment variables to the subprocesses (scripts)

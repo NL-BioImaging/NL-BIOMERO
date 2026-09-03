@@ -1,5 +1,8 @@
 # OMERO.web configuration
 
+# Preserve line breaks and monospace alignment in script activity messages.
+config set -- omero.web.base_include_template webclient/base/includes/biomero-base-include.html
+
 # whitenoise
 config append -- omero.web.middleware '{"index": 0, "class": "whitenoise.middleware.WhiteNoiseMiddleware"}'
 

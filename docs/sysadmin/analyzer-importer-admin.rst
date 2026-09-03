@@ -230,6 +230,37 @@ have no effect and workflows will fall back to standard TIFF-based processing.
 For per-workflow configuration of Zarr types, see :ref:`zarr-workflow-types`
 in :doc:`omero-biomero-admin`.
 
+Experimental shallow Zarr storage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sites may opt into BIOMERO's experimental shallow-result storage for
+label-producing Zarr workflows. The importer verifies that returned image
+pixels still match the managed workflow input, retains the labels, and omits
+the duplicated image arrays. A later workflow selection is reconstructed into
+a normal, full OME-Zarr before transfer. Original/raw data and the managed full
+source are never modified.
+
+Enable it explicitly in ``.env``::
+
+   IMPORTER_ENABLED=true
+   BIOMERO_SHALLOW_ZARR=true
+   BIOMERO_SHALLOW_ZARR_WORKERS=4
+
+The feature defaults off. ``BIOMERO_SHALLOW_ZARR_WORKERS`` controls bounded
+parallel identity generation in BIOMERO.importer; increasing it can make a
+metadata-heavy storage mount slower through I/O contention. Enabling the
+feature is a storage-versus-import-time choice: current development examples
+saved about 92% of returned Zarr storage, but large Plates still need
+site-specific timing before broad deployment. Custom importer installations
+must include the identity extra (``pip install "biomero-importer[identity]"``).
+The NL-BIOMERO importer image already includes it. If the flag is enabled
+without ISCC-BIO, only shallow lifecycle orders are rejected; normal imports
+remain available.
+
+See :doc:`../developer/biomero-shallow-zarr` for the storage contract, measured
+trade-offs, RFC 8 relationship, ISCC identity rules, and current validation
+status.
+
 Troubleshooting
 ---------------
 
@@ -260,3 +291,4 @@ Related documentation
 * :doc:`../developer/containers/biomero-importer` — BIOMERO.importer container reference
 * :doc:`../developer/containers/biomeroworker` — biomeroworker container reference
 * :doc:`omero-biomero-admin` — Zarr workflow type configuration in the Analyzer Admin UI
+* :doc:`../developer/biomero-shallow-zarr` — experimental shallow Zarr storage

@@ -49,6 +49,22 @@ nl-biomero-database-1
 nl-biomero-database-biomero-1
 ```
 
+## OMERO Script Processor Environment
+
+Environment variables configured on the `biomeroworker` Compose service are
+not automatically inherited by downloaded OMERO script subprocesses. The
+repository overrides OMERO's processor at `biomeroworker/processor.py`; its
+`ProcessI.make_env()` method contains the explicit allowlist passed to scripts.
+
+When a BIOMERO script starts reading a new environment variable, update both
+the Compose service and this processor allowlist. Variables represented in
+`biomero.constants.slurm_env` are forwarded dynamically, while non-BIOMERO
+integration variables such as `IMPORTER_ENABLED`, `IMPORT_MOUNT_PATH`, and
+`OMERO_BIOMERO_*` must be listed explicitly unless they are deliberately added
+to that shared constants class. Rebuild/recreate `biomeroworker` after changing
+the processor override; restarting a container built from the old image is not
+enough.
+
 Quick status:
 
 ```bash
