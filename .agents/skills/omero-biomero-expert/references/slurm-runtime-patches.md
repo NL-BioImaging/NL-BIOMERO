@@ -121,7 +121,7 @@ Mapping from old patch behavior to current config (env vars set in `docker-compo
 | conditional `--nv` (GPU_FLAG per job) | `BIOMERO_INJECT_GPU_FLAG=true` |
 | GPU partition/gres/gpus | `BIOMERO_GPU_PARTITION` / `BIOMERO_GPU_GRES` / `BIOMERO_GPU_GPUS` + `[WORKFLOWS]` keys |
 | generic fallback partition | `BIOMERO_DEFAULT_PARTITION` |
-| image pulls via Slurm | `BIOMERO_IMAGE_PULL_VIA_SBATCH=true`, `BIOMERO_PULL_CPUS`, `BIOMERO_PULL_MEM` |
+| image pulls via Slurm | `BIOMERO_IMAGE_PULL_VIA_SBATCH=true`; optional `BIOMERO_PULL_CPUS`, `BIOMERO_PULL_MEM`, `BIOMERO_PULL_TIME`, `BIOMERO_PULL_CONCURRENCY`, and `BIOMERO_PULL_PARTITION` overrides |
 | Apptainer dirs | `apptainer_tmpdir` / `apptainer_cachedir` in `[SLURM]` |
 
 ## Slurm Config Rendering
@@ -138,22 +138,22 @@ It substitutes HPC credential env vars (e.g. `SPIDER_USER` and `SPIDER_PROJECT` 
 
 ## Image Pulls and Apptainer
 
-With `BIOMERO_IMAGE_PULL_VIA_SBATCH=true`, BIOMERO submits pull jobs via Slurm, uses `apptainer_tmpdir` / `apptainer_cachedir` from `[SLURM]`, and emits real failures. Image initialization should not run parallel background pulls on the login node.
+With `BIOMERO_IMAGE_PULL_VIA_SBATCH=true`, BIOMERO submits workflow and converter pulls as a bounded Slurm array, uses `apptainer_tmpdir` / `apptainer_cachedir` from `[SLURM]`, and emits real failures. Dedicated image-pull values override the generic `sbatch_*` values; blank dedicated values inherit the generic values and then the scheduler defaults. Image initialization should not run background pulls on the login node.
 
-If image initialization appears successful but SIFs are missing:
+Use the latest submission directory to inspect the machine-readable result and the live output of each array task:
 
 ```bash
-# Replace <hpc-alias> and <HPC_PROJECT> with your deployment values:
-ssh <hpc-alias> 'find /project/<HPC_PROJECT>/Share/biomero -name "pull_*-%j.log" -o -name "sing.log"'
+# Run on the Slurm login node. Replace the path with slurm_script_path.
+pull_root=/data/my-scratch/slurm-scripts/image-pulls
+latest=$(cat "$pull_root/latest")
+cat "$latest/submission.meta"
+cat "$latest"/status-*.status
+tail -f "$latest"/pull-image-*.log
 ```
 
-Check for:
+A numeric `array_job_id` in `submission.meta` (and `pull-image-<job>_<task>.log`) confirms scheduler submission. `array_job_id` empty/`None`, a `direct-...` status reason, or `pull-image-direct_<task>.log` means sbatch pulling was disabled and the backward-compatible login-node path was used.
 
-```text
-failed <path> <version> exit=<code>
-No space left on device
-permission denied
-```
+Each status record reports the image kind, name, version, `READY`/`RUNNING`/`FAILED`, exit code, concise reason, and destination. For example, a missing registry tag should become one `FAILED` record with reason `manifest unknown`; it must not create an empty available version or retry as a transient failure. The corresponding task log contains the streamed Apptainer/Singularity diagnostics.
 
 ## Generated Job Script Normalization
 
