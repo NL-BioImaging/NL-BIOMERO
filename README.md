@@ -75,7 +75,12 @@ First, customize your environment file `.env`:
 # ANALYZER_ENABLED=TRUE   # Enables the BIOMERO.analyzer UI module
 # BIOMERO_SHALLOW_ZARR=FALSE  # Opt in to canonical-cache/shallow-result handling
 # BIOMERO_SHALLOW_ZARR_WORKERS=4  # Optional importer-side identity workers
-# Set either to FALSE to hide that module from OMERO.web without removing containers
+# BIOMERO_DETACHED_WORKFLOWS=TRUE  # Queue runs for the worker supervisor
+# BIOMERO_MAX_ACTIVE_WORKFLOWS=4  # Maximum concurrent non-batched runs
+# BIOMERO_SUPERVISOR_POLL_SECONDS=10  # Queue polling interval
+# BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS=60  # Delay before recovery polling
+# Set IMPORTER_ENABLED or ANALYZER_ENABLED to FALSE to hide that UI module
+# from OMERO.web without removing containers
 ```
 
 `BIOMERO_SHALLOW_ZARR` is effective only when `IMPORTER_ENABLED=TRUE`. With the
@@ -84,6 +89,16 @@ export/import behavior. `BIOMERO_SHALLOW_ZARR_WORKERS` is an importer-service
 setting and defaults to `4` in this deployment. Installations may override it
 to match their local CPU and storage capacity. It is not forwarded to OMERO
 scripts and is unused while shallow mode is disabled.
+
+`BIOMERO_DETACHED_WORKFLOWS` lets workflow runs outlive the requesting OMERO
+session by handing them to the worker supervisor. The other detached settings
+control its concurrency, queue polling interval, and startup grace period. This
+stack enables detached execution in `.env`; set the switch to `FALSE` to
+restore inline execution. The enable switch is passed to both `biomeroworker`
+and `omeroweb`; the latter uses it to show correct session guidance. See the
+[detached workflows administrator guide](docs/sysadmin/detached-workflows.rst)
+for enablement, recovery behavior, verification, and why infinite OMERO
+sessions are unnecessary.
 
 ### 3. Setup Slurm Connection (Optional)
 For local testing with a containerized Slurm cluster:

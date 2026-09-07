@@ -21,6 +21,7 @@
    sysadmin/resumable-uploader
    sysadmin/metabase-admin
    sysadmin/slurm-integration
+   sysadmin/detached-workflows
    sysadmin/analyzer-importer-admin
 
 .. toctree::

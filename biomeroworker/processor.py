@@ -39,6 +39,7 @@ try:
         if not k.startswith("_") and isinstance(v, str)
     ]
 except ImportError:
+    _slurm_env = None
     _BIOMERO_ENV_VARS = []
 
 sys = __import__("sys")
@@ -774,15 +775,21 @@ from threading import Thread, Lock, Event
 
 # How many workflows to drive at once. Batched parents do not count: they only
 # wait for their children, and counting them could starve those children.
-MAX_ACTIVE_WORKFLOWS = int(os.environ.get("BIOMERO_MAX_ACTIVE_WORKFLOWS", "4"))
+MAX_ACTIVE_WORKFLOWS = int(os.environ.get(
+    getattr(_slurm_env, "BIOMERO_MAX_ACTIVE_WORKFLOWS",
+            "BIOMERO_MAX_ACTIVE_WORKFLOWS"), "4"))
 # How often to look for newly queued workflows.
 SUPERVISOR_POLL_SECONDS = int(
-    os.environ.get("BIOMERO_SUPERVISOR_POLL_SECONDS", "10"))
+    os.environ.get(
+        getattr(_slurm_env, "BIOMERO_SUPERVISOR_POLL_SECONDS",
+                "BIOMERO_SUPERVISOR_POLL_SECONDS"), "10"))
 # How long to hold off the first poll. A run needs sub-scripts, which cannot
 # start until this processor is registered and the server is routing work to
 # it, so resuming a run the moment the process comes up would fail it.
 SUPERVISOR_STARTUP_GRACE_SECONDS = int(
-    os.environ.get("BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS", "60"))
+    os.environ.get(
+        getattr(_slurm_env, "BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS",
+                "BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS"), "60"))
 # A sub-script launch is retried while the server reports no processor, which
 # it does until registration has gone through after a restart.
 SCRIPT_START_RETRY_SECONDS = 180

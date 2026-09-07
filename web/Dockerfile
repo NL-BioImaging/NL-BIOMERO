@@ -2,21 +2,12 @@ FROM openmicroscopy/omero-web-standalone:5.31.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
-
-# Development-only branch wiring. Uncomment the matching ARGs, branch-head
-# cache busters, and direct-reference installs together for unpublished work.
-# ARG OMERO_BIOMERO_BRANCH=main
-# ARG BIOMERO_SCHEMA_BRANCH=main
-# ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_BRANCH}" /latest_commit_biomero_schema
-# ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BIOMERO_BRANCH}" /latest_commit_omero_biomero
-# RUN /opt/omero/web/venv3/bin/pip install \
-#     "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
-#     "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}"
+ARG OMERO_BIOMERO_BRANCH=session-poller
 
 USER root
 
 # Install system dependencies needed for psycopg2 and other packages
-RUN dnf -y install postgresql-devel gcc make gettext openssl-devel libffi-devel
+RUN dnf -y install postgresql-devel gcc make gettext openssl-devel libffi-devel git
 
 # Create L-Drive directory and set permissions
 RUN mkdir -p /L-Drive && \
@@ -49,11 +40,20 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 ### Install OMERO.biomero first ###
 ### BIOMERO.importer and BIOMERO.analyzer will be installed as a dependency of OMERO.biomero ###
 
-# Install the released OMERO.biomero package from PyPI. Its BIOMERO,
-# BIOMERO.importer, and biomero-schema dependencies resolve transitively.
-RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1)
-RUN /opt/omero/web/venv3/bin/pip install "omero-biomero==${OMERO_BIOMERO_VERSION}" \
+# Development option: install an unpublished OMERO.biomero feature branch.
+# Querying its branch head invalidates this layer when new commits are pushed
+# to the same branch. Comment this ADD/RUN pair when using the release option.
+ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BIOMERO_BRANCH}" /latest_commit_omero_biomero
+RUN /opt/omero/web/venv3/bin/pip install \
+        "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
+
+# Release option: install the version selected in OMERO_BIOMERO_VERSION from
+# PyPI. Uncomment this pair and comment the development ADD/RUN pair above.
+# RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1)
+# RUN /opt/omero/web/venv3/bin/pip install \
+#         "omero-biomero==${OMERO_BIOMERO_VERSION}" \
+#     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 ### Install OMERO.forms ###
 

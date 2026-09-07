@@ -198,12 +198,24 @@ submitting it twice.
    * - ``BIOMERO_SUPERVISOR_POLL_SECONDS``
      - ``10``
      - How often to look for newly queued workflows.
+   * - ``BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS``
+     - ``60``
+     - How long to wait after processor startup before recovering queued or
+       interrupted workflows.
 
 .. note::
-   The switch is read by the *script* subprocess, so it has to be declared in
-   ``biomero.constants.slurm_env`` for this processor to forward it. Detached
-   mode also needs a ``biomero`` that ships ``biomero.detached``; without it
-   the scripts run inline as before, and the supervisor does not start.
+   Set these variables in this stack's ``.env`` file; Compose forwards them to
+   the worker container. The enable switch is also forwarded to ``omeroweb``
+   so OMERO.biomero can display the correct session guidance. All four names
+   are centralized in ``biomero.constants.slurm_env``. The enable switch is
+   also read by the *script* subprocess and is forwarded there by this
+   processor. Detached mode needs a ``biomero`` that ships
+   ``biomero.detached``; without it the scripts run inline as before, and the
+   supervisor does not start.
+
+.. seealso::
+   :doc:`../../sysadmin/detached-workflows` for the complete enablement,
+   session-timeout, recovery, verification, and troubleshooting guide.
 
 Configuration Management
 -----------------------
