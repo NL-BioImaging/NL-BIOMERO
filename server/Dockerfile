@@ -1,7 +1,15 @@
 FROM openmicroscopy/omero-server:5.6.18
 
-ARG BIOMERO_VERSION
+ARG BIOMERO_SCRIPTS_VERSION
+ARG LABEL2ROIS_VERSION
 ARG OMERO_ZARR_PIXEL_BUFFER_VERSION
+
+# Development-only branch wiring. Uncomment the ARG, cache buster, and clone
+# target together when testing unpublished biomero-scripts changes.
+# ARG BIOMERO_SCRIPTS_BRANCH=main
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/${BIOMERO_SCRIPTS_BRANCH}" /latest_commit_biomero_scripts
+# RUN git clone --depth 1 --branch ${BIOMERO_SCRIPTS_BRANCH} --single-branch \
+#     https://github.com/NL-BioImaging/biomero-scripts.git biomero
 
 ENV OMERO_DIST=/opt/omero/server/OMERO.server
 ENV OMERO_ZARR_PIXEL_BUFFER_REPO=https://artifacts.glencoesoftware.com:443/artifactory/gs-omero-snapshots-local/com/glencoesoftware/omero/omero-zarr-pixel-buffer
@@ -19,7 +27,7 @@ ADD server/00-restore-config.sh* /startup/
 # LDAP configuration - add with correct values
 # ADD server/01-ldap-config.omero /opt/omero/server/config/
 
-# Clone tagged release
+# Install the merged biomero-scripts branch while detached mode is under test.
 ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/session-poller" /latest_commit_biomero
 RUN cd $OMERO_DIST/lib/scripts/ && \
     git clone --depth 1 --branch session-poller --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
@@ -35,7 +43,7 @@ RUN curl -o $OMERO_DIST/lib/scripts/omero/figure_scripts/Figure_To_Pdf.py \
 
 # Install Labels2Rois (versioned)
 RUN curl -o $OMERO_DIST/lib/scripts/omero/util_scripts/Labels2Rois.py \
-    https://raw.githubusercontent.com/Cellular-Imaging-Amsterdam-UMC/label2rois/v1.0.1/Labels2Rois.py
+    https://raw.githubusercontent.com/Cellular-Imaging-Amsterdam-UMC/label2rois/${LABEL2ROIS_VERSION}/Labels2Rois.py
 
 # Overwrite ICE configuration
 # COPY ice.config $OMERO_DIST/etc/templates/

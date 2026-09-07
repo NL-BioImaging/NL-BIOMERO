@@ -152,6 +152,10 @@ format, why auto-detection is not currently possible, and plans for CWL-based
 descriptor support, see :ref:`biaflows-descriptor-note` in
 :doc:`../sysadmin/omero-biomero-admin`.
 
+For the data contract used by workflows that consume or produce OME-Zarr,
+including how image and label inputs are represented, see
+:doc:`zarr-workflow-development`.
+
 Development Workflow
 --------------------
 

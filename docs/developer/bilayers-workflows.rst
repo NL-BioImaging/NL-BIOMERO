@@ -131,6 +131,10 @@ entry.  Results are collected from ``$DATA_PATH/data/out``, which is the path pa
 every ``outputs`` entry and every ``output_dir_set`` parameter.  All required ``inputs``
 entries share the same ``data/in`` directory; all outputs share ``data/out``.
 
+For OME-Zarr workflows, the directory contains a conventional OME-Zarr rather
+than a BIOMERO-specific interchange format. See :doc:`zarr-workflow-development`
+for the image and label data contract.
+
 .. note::
    Extra files such as model weights or CSV files are not yet supported as inputs.
    For now, workflows that need additional files should either download them at runtime
