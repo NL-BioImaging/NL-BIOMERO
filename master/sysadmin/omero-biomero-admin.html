@@ -1092,23 +1092,28 @@ progress (TBC).</p>
 <h3>Slurm Check Setup Output<a class="headerlink" href="#slurm-check-setup-output" title="Permalink to this heading"></a></h3>
 <p>The “Slurm Check Setup” script provides:</p>
 <ul class="simple">
-<li><p><strong>Available Models</strong> (with versions)</p></li>
-<li><p><strong>Pending Models</strong></p></li>
+<li><p>Exact <strong>READY</strong>, <strong>RUNNING</strong>, and <strong>FAILED</strong> image counts</p></li>
+<li><p>Concise per-image failure reasons</p></li>
+<li><p><strong>Available Models</strong> with validated, non-empty versions</p></li>
 <li><p><strong>Available Converters</strong></p></li>
 <li><p><strong>Available Data</strong></p></li>
-<li><p><strong>Singularity Log</strong> for download progress monitoring</p></li>
+<li><p>The location of per-image array logs and structured status</p></li>
 </ul>
 <p><strong>Example Output</strong>:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>starting cellpose v1.3.1
-starting stardist v1.3.2
-FATAL: Image file already exists: "cellpose/w_nucleisegmentation-cellpose_v1.3.1.sif" - will not overwrite
-finished cellpose v1.3.1
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Image initialization:
+  READY: 15
+  RUNNING: 0
+  FAILED: 1
+  Failure details:
+    imagej:v2 - manifest unknown (exit 22)
 </pre></div>
 </div>
-<p><strong>Status Indicators</strong>:
-- <code class="docutils literal notranslate"><span class="pre">FATAL:</span> <span class="pre">Image</span> <span class="pre">file</span> <span class="pre">already</span> <span class="pre">exists</span></code> - Good (no redownload needed)
-- <code class="docutils literal notranslate"><span class="pre">ERROR</span></code> - Problem occurred
-- <code class="docutils literal notranslate"><span class="pre">starting/finished</span></code> - Normal download process</p>
+<p><strong>Status Indicators</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">READY</span></code> - the existing or newly built SIF passed runtime inspection</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RUNNING</span></code> - the array task is queued or building</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FAILED</span></code> - the task ended with a concise permanent or exhausted-retry reason</p></li>
+</ul>
 </section>
 </section>
 <section id="interface-troubleshooting">

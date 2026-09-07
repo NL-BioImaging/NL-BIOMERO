@@ -341,25 +341,29 @@ Slurm Check Setup Output
 
 The "Slurm Check Setup" script provides:
 
-- **Available Models** (with versions)
-- **Pending Models** 
+- Exact **READY**, **RUNNING**, and **FAILED** image counts
+- Concise per-image failure reasons
+- **Available Models** with validated, non-empty versions
 - **Available Converters**
 - **Available Data**
-- **Singularity Log** for download progress monitoring
+- The location of per-image array logs and structured status
 
 **Example Output**:
 
 .. code-block:: text
 
-   starting cellpose v1.3.1
-   starting stardist v1.3.2
-   FATAL: Image file already exists: "cellpose/w_nucleisegmentation-cellpose_v1.3.1.sif" - will not overwrite
-   finished cellpose v1.3.1
+   Image initialization:
+     READY: 15
+     RUNNING: 0
+     FAILED: 1
+     Failure details:
+       imagej:v2 - manifest unknown (exit 22)
 
 **Status Indicators**:
-- ``FATAL: Image file already exists`` - Good (no redownload needed)
-- ``ERROR`` - Problem occurred
-- ``starting/finished`` - Normal download process
+
+- ``READY`` - the existing or newly built SIF passed runtime inspection
+- ``RUNNING`` - the array task is queued or building
+- ``FAILED`` - the task ended with a concise permanent or exhausted-retry reason
 
 
 
