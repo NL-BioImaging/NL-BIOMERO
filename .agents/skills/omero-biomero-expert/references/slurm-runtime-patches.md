@@ -153,6 +153,8 @@ tail -f "$latest"/pull-image-*.log
 
 A numeric `array_job_id` in `submission.meta` (and `pull-image-<job>_<task>.log`) confirms scheduler submission. `array_job_id` empty/`None`, a `direct-...` status reason, or `pull-image-direct_<task>.log` means sbatch pulling was disabled and the backward-compatible login-node path was used.
 
+In direct mode, `nohup` returning successfully only confirms that the background task was launched; it cannot synchronously return the eventual image-build result. Follow the per-image status record until it reaches `READY` or `FAILED`. A failed direct task still writes its terminal exit code and reason, removes temporary data, and must not publish a destination SIF.
+
 Each status record reports the image kind, name, version, `READY`/`RUNNING`/`FAILED`, exit code, concise reason, and destination. For example, a missing registry tag should become one `FAILED` record with reason `manifest unknown`; it must not create an empty available version or retry as a transient failure. The corresponding task log contains the streamed Apptainer/Singularity diagnostics.
 
 ## Generated Job Script Normalization
