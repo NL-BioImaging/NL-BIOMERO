@@ -137,6 +137,20 @@ from the browser, retain their own session and timeout requirements. Detached
 mode also does not override a Slurm wall-time limit, importer timeout, storage
 failure, or unavailable external service.
 
+The supplied environment files use OMERO's ordinary timeout values rather than
+the previous seven-day overrides::
+
+   OMERO_SCRIPTS_TIMEOUT=3600000
+   OMERO_SESSIONS_TIMEOUT=600000
+   OMERO_WEB_SESSION_COOKIE_AGE=86400
+
+For the detached-workflow session-expiry test, they keep
+``OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE=false``. Closing the browser then
+leaves the web cookie in place while the underlying OMERO session reaches its
+10-minute idle timeout. The one-day cookie does not extend that server session.
+Deployments that prefer browser-length cookies can set this value to ``true``;
+detached workflows do not depend on either choice.
+
 Recovery behavior
 -----------------
 

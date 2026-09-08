@@ -191,6 +191,7 @@ services:
       BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
       CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
       CONFIG_omero_web_session__expire__at__browser__close: "${OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE}"
+      CONFIG_omero_web_session__cookie__age: ${OMERO_WEB_SESSION_COOKIE_AGE}
       ENV: ${OMERO_WEB_ENV}
       OMERO_BIOMERO_CONFIG_FILE: ${OMERO_BIOMERO_CONFIG_FILE}
       OMERO_BIOMERO_GROUP_MAPPINGS_FILE: ${OMERO_BIOMERO_GROUP_MAPPINGS_FILE}
