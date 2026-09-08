@@ -30,6 +30,7 @@
    :maxdepth: 2
 
    developer/architecture
+   developer/detached-workflow-supervisor
    developer/getting-started
    developer/workflow-development
    developer/bilayers-workflows

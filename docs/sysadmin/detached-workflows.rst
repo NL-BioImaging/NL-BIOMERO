@@ -51,6 +51,13 @@ Set the following value in the NL-BIOMERO ``.env`` file:
 The supplied Compose files pass this feature flag to the required services. If
 the flag is absent or ``FALSE``, workflows use inline execution.
 
+.. important::
+   Update ``biomeroworker`` to the corresponding NL-BIOMERO release before
+   enabling detached workflows.
+
+   Detached mode currently supports one active ``biomeroworker`` per BIOMERO
+   tracking database. Multiple worker replicas are not supported.
+
 The background worker can be tuned with these optional settings:
 
 .. list-table::
@@ -156,3 +163,4 @@ See also
 * :doc:`slurm-integration`
 * :doc:`analyzer-importer-admin`
 * :doc:`../developer/containers/biomeroworker`
+* :doc:`../developer/detached-workflow-supervisor`

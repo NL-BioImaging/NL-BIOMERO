@@ -151,6 +151,7 @@ Custom Processor Implementation
    **Key Changes**:
    * Environment variable forwarding to subprocesses (HTTP_PROXY, etc.)
    * Enhanced subprocess handling for BIOMERO workflows
+   * Detached workflow supervision, recovery, and OMERO sub-script polling
    
    **Maintenance Required**: Periodically merge important changes from upstream OMERO processor.py to maintain compatibility.
 
@@ -216,6 +217,10 @@ submitting it twice.
 .. seealso::
    :doc:`../../sysadmin/detached-workflows` for the complete enablement,
    session-timeout, recovery, verification, and troubleshooting guide.
+
+   :doc:`../detached-workflow-supervisor` for the launcher contract, claim and
+   recovery semantics, concurrency behavior, and supported deployment
+   topology.
 
 Configuration Management
 -----------------------
@@ -465,7 +470,8 @@ Common Issues
 
 * Verify grid role assignment in docker-compose
 * Check OMERO.grid node status: ``omero admin diagnostics``
-* Ensure only one Processor-0 node is active
+* Ensure only one detached supervisor is active for each BIOMERO tracking
+  database
 
 **BIOMERO Script Failures**:
 
@@ -524,13 +530,15 @@ Processor.py Maintenance
 
 1. **Monitor** `OMERO processor.py updates <https://github.com/ome/omero-py/commits/master/src/omero/processor.py>`_
 2. **Review changes** for compatibility and security fixes
-3. **Merge important updates** while preserving custom environment variable handling
+3. **Merge important updates** while preserving the NL-BIOMERO extensions
 4. **Test thoroughly** before deploying to production
 
 **Current Custom Features**:
 
 * HTTP_PROXY and HTTPS_PROXY forwarding to subprocesses
 * Enhanced environment variable support for BIOMERO workflows
+* Detached workflow supervision, restart recovery, and OMERO sub-script
+  polling
 
 Related Documentation
 ---------------------
