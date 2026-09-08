@@ -94,13 +94,13 @@ setting and defaults to `4` in this deployment. Installations may override it
 to match their local CPU and storage capacity. It is not forwarded to OMERO
 scripts and is unused while shallow mode is disabled.
 
-> **New in NL-BIOMERO 1.8 — optional detached workflows:**
-> `BIOMERO_DETACHED_WORKFLOWS` allows an accepted workflow to continue after
-> the requesting OMERO session ends. The fresh demo configuration supplied in
-> this repository enables the feature to showcase the complete stack. Existing
-> and custom deployments remain on the established inline behavior when the
-> variable is absent or set to `FALSE`; administrators must explicitly enable
-> it during their upgrade.
+> **New in NL-BIOMERO 1.8 — opt-in detached-workflow feature:**
+> The `BIOMERO_DETACHED_WORKFLOWS` feature flag allows an accepted workflow to
+> continue after the requesting OMERO session ends. The fresh demo configuration
+> supplied in this repository enables the feature to showcase the complete
+> stack. Existing and custom deployments remain on the established inline
+> behavior when the feature flag is absent or set to `FALSE`; administrators
+> must explicitly enable it during their upgrade.
 
 With detached mode enabled, the complete Slurm runtime no longer requires an
 open browser, an extended OMERO session, or a seven-day web cookie. With

@@ -5,7 +5,7 @@ Detached BIOMERO Workflows
 
 .. versionadded:: 1.8.0
 
-   Detached workflow execution is an optional feature. The fresh NL-BIOMERO
+   Detached workflow execution is controlled by an opt-in feature flag. The fresh NL-BIOMERO
    demo configuration enables it, but existing and custom deployments continue
    to use inline execution until ``BIOMERO_DETACHED_WORKFLOWS`` is explicitly
    enabled.
@@ -48,8 +48,8 @@ Set the following value in the NL-BIOMERO ``.env`` file:
 
    BIOMERO_DETACHED_WORKFLOWS=TRUE
 
-The supplied Compose files pass this setting to the required services. If the
-setting is absent or ``FALSE``, workflows use inline execution.
+The supplied Compose files pass this feature flag to the required services. If
+the flag is absent or ``FALSE``, workflows use inline execution.
 
 The background worker can be tuned with these optional settings:
 
