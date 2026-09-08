@@ -17,6 +17,11 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
+
+    - name: Ensure master is available to Sphinx
+      # Release checkouts have a detached HEAD; Sphinx includes local branches only.
+      if: github.event_name == 'release'
+      run: git branch --force master origin/master
         
     - name: Setup Python
       uses: actions/setup-python@v4
