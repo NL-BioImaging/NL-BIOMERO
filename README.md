@@ -75,7 +75,7 @@ First, customize your environment file `.env`:
 # ANALYZER_ENABLED=TRUE   # Enables the BIOMERO.analyzer UI module
 # BIOMERO_SHALLOW_ZARR=FALSE  # Opt in to canonical-cache/shallow-result handling
 # BIOMERO_SHALLOW_ZARR_WORKERS=4  # Optional importer-side identity workers
-# BIOMERO_DETACHED_WORKFLOWS=TRUE  # Queue runs for the worker supervisor
+# BIOMERO_DETACHED_WORKFLOWS=TRUE  # Enabled in this fresh demo configuration
 # BIOMERO_MAX_ACTIVE_WORKFLOWS=4  # Maximum concurrent non-batched runs
 # BIOMERO_SUPERVISOR_POLL_SECONDS=10  # Queue polling interval
 # BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS=60  # Delay before recovery polling
@@ -94,18 +94,23 @@ setting and defaults to `4` in this deployment. Installations may override it
 to match their local CPU and storage capacity. It is not forwarded to OMERO
 scripts and is unused while shallow mode is disabled.
 
-`BIOMERO_DETACHED_WORKFLOWS` lets workflow runs outlive the requesting OMERO
-session by handing them to the worker supervisor. The other detached settings
-control its concurrency, queue polling interval, and startup grace period. This
-stack enables detached execution in `.env`; set the switch to `FALSE` to
-restore inline execution. The enable switch is passed to both `biomeroworker`
-and `omeroweb`; the latter uses it to show correct session guidance. See the
-[detached workflows administrator guide](docs/sysadmin/detached-workflows.rst)
-for enablement, recovery behavior, verification, and why infinite OMERO
-sessions, seven-day cookie ages, and keeping the browser open are unnecessary.
-The supplied timeout values use OMERO's normal defaults. Set
-`OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE` according to the local browser
-session policy; detached workflows support either value.
+> **New in NL-BIOMERO 1.8 — optional detached workflows:**
+> `BIOMERO_DETACHED_WORKFLOWS` allows an accepted workflow to continue after
+> the requesting OMERO session ends. The fresh demo configuration supplied in
+> this repository enables the feature to showcase the complete stack. Existing
+> and custom deployments remain on the established inline behavior when the
+> variable is absent or set to `FALSE`; administrators must explicitly enable
+> it during their upgrade.
+
+With detached mode enabled, the complete Slurm runtime no longer requires an
+open browser, an extended OMERO session, or a seven-day web cookie. With
+detached mode disabled, the script runs inline: the user must keep the session
+active and administrators may still need longer timeouts for long workflows.
+The other detached settings control concurrency, queue polling, and startup
+grace. Set `OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE` according to local
+browser-session policy. See the [detached workflows administrator
+guide](docs/sysadmin/detached-workflows.rst) for configuration and operational
+details.
 
 ### 3. Setup Slurm Connection (Optional)
 For local testing with a containerized Slurm cluster:

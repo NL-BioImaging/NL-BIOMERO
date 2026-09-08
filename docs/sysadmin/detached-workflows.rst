@@ -3,13 +3,20 @@
 Detached BIOMERO Workflows
 ==========================
 
+.. versionadded:: 1.8.0
+
+   Detached workflow execution is an optional feature. The fresh NL-BIOMERO
+   demo configuration enables it, but existing and custom deployments continue
+   to use inline execution until ``BIOMERO_DETACHED_WORKFLOWS`` is explicitly
+   enabled.
+
 .. note::
    **Summary for system administrators:**
 
    * Enable detached analysis with ``BIOMERO_DETACHED_WORKFLOWS=TRUE``.
    * Detached workflows continue when the submitting OMERO.web session ends.
-   * Keep normal OMERO session and script timeouts; they do not need to cover
-     the complete Slurm runtime.
+   * When detached mode is enabled, OMERO session and script timeouts do not
+     need to cover the complete Slurm runtime.
    * The setting applies to BIOMERO analysis workflows, not browser uploads.
 
 Overview
@@ -41,8 +48,8 @@ Set the following value in the NL-BIOMERO ``.env`` file:
 
    BIOMERO_DETACHED_WORKFLOWS=TRUE
 
-The supplied Compose files pass this setting to the required services. Set it
-to ``FALSE`` only when inline execution is required.
+The supplied Compose files pass this setting to the required services. If the
+setting is absent or ``FALSE``, workflows use inline execution.
 
 The background worker can be tuned with these optional settings:
 
@@ -88,6 +95,12 @@ The supplied environment files use the standard timeout values:
 These values correspond to a one-hour OMERO script timeout, a ten-minute OMERO
 session idle timeout, and a one-day OMERO.web cookie age. They remain
 configurable in ``.env`` according to local security and access policies.
+
+.. important::
+   These standard values remove the need to extend a session over the complete
+   workflow only when detached mode is enabled. In inline mode, the requesting
+   session and top-level script remain involved until result import completes;
+   long workflows may therefore require longer timeout values.
 
 ``OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE`` controls browser cookie behavior
 and may be set independently. Detached analysis does not require this setting
