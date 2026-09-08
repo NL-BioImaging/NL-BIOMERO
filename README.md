@@ -79,6 +79,10 @@ First, customize your environment file `.env`:
 # BIOMERO_MAX_ACTIVE_WORKFLOWS=4  # Maximum concurrent non-batched runs
 # BIOMERO_SUPERVISOR_POLL_SECONDS=10  # Queue polling interval
 # BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS=60  # Delay before recovery polling
+# OMERO_SCRIPTS_TIMEOUT=3600000  # Normal OMERO default: 1 hour
+# OMERO_SESSIONS_TIMEOUT=600000  # Normal OMERO default: 10 minutes idle
+# OMERO_WEB_SESSION_COOKIE_AGE=86400  # Normal OMERO.web default: 1 day
+# OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE=false  # Local browser-cookie policy
 # Set IMPORTER_ENABLED or ANALYZER_ENABLED to FALSE to hide that UI module
 # from OMERO.web without removing containers
 ```
@@ -98,7 +102,10 @@ restore inline execution. The enable switch is passed to both `biomeroworker`
 and `omeroweb`; the latter uses it to show correct session guidance. See the
 [detached workflows administrator guide](docs/sysadmin/detached-workflows.rst)
 for enablement, recovery behavior, verification, and why infinite OMERO
-sessions are unnecessary.
+sessions, seven-day cookie ages, and keeping the browser open are unnecessary.
+The supplied timeout values use OMERO's normal defaults. Set
+`OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE` according to the local browser
+session policy; detached workflows support either value.
 
 ### 3. Setup Slurm Connection (Optional)
 For local testing with a containerized Slurm cluster:
