@@ -1,0 +1,9 @@
+# Optional standalone image build from sibling source checkouts.
+# docker compose -f docker-compose.shallower-build.yml build biomero-shallower
+services:
+  biomero-shallower:
+    profiles: ["build-tools"]
+    image: cellularimagingcf/biomero-shallower:0.1.0
+    build:
+      context: ..
+      dockerfile: biomero-shallower/Dockerfile
