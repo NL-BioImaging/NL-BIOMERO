@@ -111,6 +111,14 @@ The three containers below must all mount the same storage at the **same contain
      - Resolves symlinks after in-place import
      - ``./web/L-Drive:/data``
 
+.. note::
+
+   The ``.processed`` subfolder name can be changed with the
+   ``PROCESSED_DATA_FOLDER`` environment variable in the importer container;
+   leaving it unset preserves the default. See
+   :doc:`../developer/containers/biomero-importer` for details. This does not
+   change the separate ``.analyzed`` results folder.
+
 Result folder structure
 ~~~~~~~~~~~~~~~~~~~~~~~
 

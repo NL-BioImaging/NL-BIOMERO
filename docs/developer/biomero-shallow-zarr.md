@@ -110,6 +110,13 @@ scientific object.
 | OMERO label Image | OMERO metadata plus PixelBuffer path | A view of one label node, not another copy of the whole collection | iViewer, thumbnails, ROI conversion, and user selection |
 | Reconstructed follow-up input | Temporary transfer directory | Source pixels plus all inherited and local labels, materialized as one conventional Zarr | The next Zarr-native workflow |
 
+```{note}
+The `.processed` default can be changed with `PROCESSED_DATA_FOLDER` in the
+Python process creating canonical Zarrs, using an importer release that supports
+this option. For OMERO scripts, forward it through the worker's script
+environment. Existing stored paths are not migrated.
+```
+
 The stored shallow directory is therefore often **not byte-for-byte the Zarr
 that the workflow received**. It is the compact, authoritative result in
 BIOMERO-managed storage. At the workflow boundary BIOMERO turns it back into a
