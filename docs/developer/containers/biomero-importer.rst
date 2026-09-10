@@ -56,6 +56,20 @@ File system monitoring and processing
 - All imports are in-place. OMERO.server must mount the same storage at the same path for symlink-based imports to work.
 - For large/long imports, enable preprocessing: after preprocessing BIOMERO.importer imports from local temporary storage on OMERO.server, then redirects symlinks to the network location afterward. This reduces network risk during in-place import.
 
+.. note::
+
+   ``.processed`` is the default subfolder name. With an importer release that
+   supports this option, set ``PROCESSED_DATA_FOLDER`` in the importer container's
+   environment (for example, ``PROCESSED_DATA_FOLDER=.import``) to change it.
+   The value is used as supplied. Existing data is not migrated; keep its original
+   paths accessible to OMERO.
+
+   If ``BIOMERO_SHALLOW_ZARR=true`` and you use a custom folder, also set the same
+   value on ``biomeroworker`` for new canonical Zarr copies. Its processor forwards
+   the name from ``biomero.constants.slurm_env``; the worker needs BIOMERO and
+   importer versions supporting this option. With shallow-Zarr disabled, only
+   the importer container needs the value.
+
 Configuration
 -------------
 

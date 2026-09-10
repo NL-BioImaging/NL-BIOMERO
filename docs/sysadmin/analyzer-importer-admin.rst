@@ -111,6 +111,18 @@ The three containers below must all mount the same storage at the **same contain
      - Resolves symlinks after in-place import
      - ``./web/L-Drive:/data``
 
+.. note::
+
+   The ``.processed`` subfolder name can be changed with the
+   ``PROCESSED_DATA_FOLDER`` environment variable in the importer container;
+   leaving it unset preserves the default. See
+   :doc:`../developer/containers/biomero-importer` for details. This does not
+   change the separate ``.analyzed`` results folder.
+
+   For a custom folder with ``BIOMERO_SHALLOW_ZARR=true``, also set the same value
+   on ``biomeroworker`` so new canonical Zarr copies use that folder. No worker
+   setting is needed when shallow-Zarr is disabled.
+
 Result folder structure
 ~~~~~~~~~~~~~~~~~~~~~~~
 
