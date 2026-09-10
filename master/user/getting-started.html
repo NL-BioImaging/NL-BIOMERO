@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Getting Started &mdash; NL-BIOMERO 1.8.0b1 documentation</title>
+  <title>Getting Started &mdash; NL-BIOMERO 1.8.0b2 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -33,7 +33,7 @@
             NL-BIOMERO
           </a>
               <div class="version">
-                1.8.0b1
+                1.8.0b2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -346,6 +346,15 @@
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/slurm-integration.html#further-reading">Further Reading</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/detached-workflows.html">Detached BIOMERO Workflows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/detached-workflows.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/detached-workflows.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/detached-workflows.html#session-and-timeout-settings">Session and timeout settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/detached-workflows.html#operational-behavior">Operational behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/detached-workflows.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/detached-workflows.html#see-also">See also</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html">BIOMERO.analyzer + BIOMERO.importer Integration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#required-configuration-changes">Required configuration changes</a><ul>
@@ -421,6 +430,17 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/architecture.html#deployment-scenarios">Deployment Scenarios</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/architecture.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../developer/detached-workflow-supervisor.html">Detached Workflow Supervisor</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#components-and-responsibilities">Components and responsibilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#worker-identity-and-omero-access">Worker identity and OMERO access</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#discovery-and-concurrency">Discovery and concurrency</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#claim-and-recovery-semantics">Claim and recovery semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#startup-shutdown-and-failures">Startup, shutdown, and failures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#deployment-compatibility">Deployment compatibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#diagnostics">Diagnostics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#see-also">See also</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../developer/getting-started.html">Developer Getting Started</a><ul>
@@ -559,6 +579,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/biomeroworker.html#data-export-pipeline">Data Export Pipeline</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/biomeroworker.html#biomero-library-integration">BIOMERO Library Integration</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../developer/containers/biomeroworker.html#custom-processor-implementation">Custom Processor Implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../developer/containers/biomeroworker.html#detached-workflow-execution">Detached Workflow Execution</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../developer/containers/biomeroworker.html#configuration-management">Configuration Management</a><ul>
@@ -785,11 +806,14 @@ running a workflow, monitoring progress, and finding results.</p>
 the <strong>BIOMERO</strong> panel from the top navigation bar. The active OMERO group matters:
 it controls which remote-storage folder you can browse and where imported or
 analyzed data is placed.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Do not log out while an import or analysis is running. Closing the browser
-keeps the OMERO session alive until its configured timeout, but logging out
-ends the session immediately and may leave active work unable to finish.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Follow the confirmation shown after submitting an analysis. If it says the
+workflow runs in the background, detached mode is active and you may close
+the tab or log out. If it warns you to keep the session active, the workflow
+is running inline and logging out may prevent it from finishing. Do not
+assume that detached analysis also applies to a browser upload that is still
+transferring data.</p>
 </div>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
@@ -909,10 +933,12 @@ Workflows</span></a>.</p>
 </section>
 <section id="my-import-or-workflow-is-not-progressing">
 <h3>My import or workflow is not progressing<a class="headerlink" href="#my-import-or-workflow-is-not-progressing" title="Permalink to this heading"></a></h3>
-<p>Keep the OMERO session active, check <strong>Import &gt; Monitor</strong> or <strong>Analyze &gt; Status</strong>,
-and copy the order or Workflow UUID. Send that UUID and the approximate start
-time to your administrator; those identifiers connect the interface entry to
-the BIOMERO database and service logs.</p>
+<p>Check <strong>Import &gt; Monitor</strong> or <strong>Analyze &gt; Status</strong> and copy the order or Workflow
+UUID. A detached analysis does not require the original OMERO session to remain
+active; an inline analysis does. Send the UUID and approximate start time to
+your administrator, since those identifiers connect the interface entry to the
+BIOMERO database and service logs. Administrators can review
+<a class="reference internal" href="../sysadmin/detached-workflows.html"><span class="doc">Detached BIOMERO Workflows</span></a>.</p>
 </section>
 <section id="where-are-my-workflow-results">
 <h3>Where are my workflow results?<a class="headerlink" href="#where-are-my-workflow-results" title="Permalink to this heading"></a></h3>

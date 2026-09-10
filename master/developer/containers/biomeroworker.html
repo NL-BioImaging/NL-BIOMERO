@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BIOMERO Worker Container &mdash; NL-BIOMERO 1.8.0b1 documentation</title>
+  <title>BIOMERO Worker Container &mdash; NL-BIOMERO 1.8.0b2 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -34,7 +34,7 @@
             NL-BIOMERO
           </a>
               <div class="version">
-                1.8.0b1
+                1.8.0b2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -347,6 +347,15 @@
 <li class="toctree-l2"><a class="reference internal" href="../../sysadmin/slurm-integration.html#further-reading">Further Reading</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../sysadmin/detached-workflows.html">Detached BIOMERO Workflows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../sysadmin/detached-workflows.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../sysadmin/detached-workflows.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../sysadmin/detached-workflows.html#session-and-timeout-settings">Session and timeout settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../sysadmin/detached-workflows.html#operational-behavior">Operational behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../sysadmin/detached-workflows.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../sysadmin/detached-workflows.html#see-also">See also</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../sysadmin/analyzer-importer-admin.html">BIOMERO.analyzer + BIOMERO.importer Integration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../sysadmin/analyzer-importer-admin.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../sysadmin/analyzer-importer-admin.html#required-configuration-changes">Required configuration changes</a><ul>
@@ -422,6 +431,17 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../architecture.html#deployment-scenarios">Deployment Scenarios</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../architecture.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../detached-workflow-supervisor.html">Detached Workflow Supervisor</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#components-and-responsibilities">Components and responsibilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#worker-identity-and-omero-access">Worker identity and OMERO access</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#discovery-and-concurrency">Discovery and concurrency</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#claim-and-recovery-semantics">Claim and recovery semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#startup-shutdown-and-failures">Startup, shutdown, and failures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#deployment-compatibility">Deployment compatibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#diagnostics">Diagnostics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#see-also">See also</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../getting-started.html">Developer Getting Started</a><ul>
@@ -560,6 +580,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#data-export-pipeline">Data Export Pipeline</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#biomero-library-integration">BIOMERO Library Integration</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#custom-processor-implementation">Custom Processor Implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#detached-workflow-execution">Detached Workflow Execution</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#configuration-management">Configuration Management</a><ul>
@@ -906,10 +927,79 @@
 <p><strong>Maintenance Alert</strong>: This file overrides the base OMERO processor.py and may conflict with future OMERO updates.</p>
 <p><strong>Key Changes</strong>:
 * Environment variable forwarding to subprocesses (HTTP_PROXY, etc.)
-* Enhanced subprocess handling for BIOMERO workflows</p>
+* Enhanced subprocess handling for BIOMERO workflows
+* Detached workflow supervision, recovery, and OMERO sub-script polling</p>
 <p><strong>Maintenance Required</strong>: Periodically merge important changes from upstream OMERO processor.py to maintain compatibility.</p>
 </div>
 <p><strong>Original Source</strong>: <a class="reference external" href="https://raw.githubusercontent.com/ome/omero-py/master/src/omero/processor.py">ome/omero-py processor.py</a></p>
+</section>
+<section id="detached-workflow-execution">
+<h3>Detached Workflow Execution<a class="headerlink" href="#detached-workflow-execution" title="Permalink to this heading"></a></h3>
+<p>A workflow run outlives the OMERO session that asks for it: data transfer,
+conversion, Slurm execution and result import together take longer than a
+browser tab, or an OMERO session timeout, can be relied on to last.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">BIOMERO_DETACHED_WORKFLOWS</span></code> enabled, <code class="docutils literal notranslate"><span class="pre">SLURM_Run_Workflow.py</span></code> and
+<code class="docutils literal notranslate"><span class="pre">SLURM_Run_Workflow_Batched.py</span></code> no longer run the pipeline themselves. They
+validate the request, start the workflow in the tracker, record everything the
+run needs in a <em>launcher task</em> and return, so the user can close the tab. A
+<code class="docutils literal notranslate"><span class="pre">WorkflowSupervisor</span></code> thread in this processor then finds those queued runs
+and executes each one in a worker thread, calling the same
+<code class="docutils literal notranslate"><span class="pre">execute_workflow_pipeline()</span></code> the script would have called inline.</p>
+<p>Each worker connects as the processor’s own OMERO user and sudoes into the
+requesting user’s account and group, so results are created and owned exactly
+as an inline run creates them.</p>
+<p>An interrupted run (worker crash, container restart) is picked up again on the
+next poll: the pipeline skips a transfer or conversion that already completed
+and resumes monitoring a Slurm job it already submitted, rather than
+submitting it twice.</p>
+<p><strong>Settings</strong>:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BIOMERO_DETACHED_WORKFLOWS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code> (<code class="docutils literal notranslate"><span class="pre">true</span></code> in this stack’s compose file)</p></td>
+<td><p>Queue workflow runs for the supervisor instead of running them inline.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BIOMERO_MAX_ACTIVE_WORKFLOWS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">4</span></code></p></td>
+<td><p>How many workflows to drive at once. Batched parents do not count
+towards this, since they only wait for their children.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BIOMERO_SUPERVISOR_POLL_SECONDS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">10</span></code></p></td>
+<td><p>How often to look for newly queued workflows.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">60</span></code></p></td>
+<td><p>How long to wait after processor startup before recovering queued or
+interrupted workflows.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Set these variables in this stack’s <code class="docutils literal notranslate"><span class="pre">.env</span></code> file; Compose forwards them to
+the worker container. The enable switch is also forwarded to <code class="docutils literal notranslate"><span class="pre">omeroweb</span></code>
+so OMERO.biomero can display the correct session guidance. All four names
+are centralized in <code class="docutils literal notranslate"><span class="pre">biomero.constants.slurm_env</span></code>. The enable switch is
+also read by the <em>script</em> subprocess and is forwarded there by this
+processor. Detached mode needs a <code class="docutils literal notranslate"><span class="pre">biomero</span></code> that ships
+<code class="docutils literal notranslate"><span class="pre">biomero.detached</span></code>; without it the scripts run inline as before, and the
+supervisor does not start.</p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../sysadmin/detached-workflows.html"><span class="doc">Detached BIOMERO Workflows</span></a> for the complete enablement,
+session-timeout, recovery, verification, and troubleshooting guide.</p>
+<p><a class="reference internal" href="../detached-workflow-supervisor.html"><span class="doc">Detached Workflow Supervisor</span></a> for the launcher contract, claim and
+recovery semantics, concurrency behavior, and supported deployment
+topology.</p>
+</div>
 </section>
 </section>
 <section id="configuration-management">
@@ -1122,7 +1212,8 @@ python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"from b
 <ul class="simple">
 <li><p>Verify grid role assignment in docker-compose</p></li>
 <li><p>Check OMERO.grid node status: <code class="docutils literal notranslate"><span class="pre">omero</span> <span class="pre">admin</span> <span class="pre">diagnostics</span></code></p></li>
-<li><p>Ensure only one Processor-0 node is active</p></li>
+<li><p>Ensure only one detached supervisor is active for each BIOMERO tracking
+database</p></li>
 </ul>
 <p><strong>BIOMERO Script Failures</strong>:</p>
 <ul class="simple">
@@ -1180,13 +1271,15 @@ python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"from b
 <ol class="arabic simple">
 <li><p><strong>Monitor</strong> <a class="reference external" href="https://github.com/ome/omero-py/commits/master/src/omero/processor.py">OMERO processor.py updates</a></p></li>
 <li><p><strong>Review changes</strong> for compatibility and security fixes</p></li>
-<li><p><strong>Merge important updates</strong> while preserving custom environment variable handling</p></li>
+<li><p><strong>Merge important updates</strong> while preserving the NL-BIOMERO extensions</p></li>
 <li><p><strong>Test thoroughly</strong> before deploying to production</p></li>
 </ol>
 <p><strong>Current Custom Features</strong>:</p>
 <ul class="simple">
 <li><p>HTTP_PROXY and HTTPS_PROXY forwarding to subprocesses</p></li>
 <li><p>Enhanced environment variable support for BIOMERO workflows</p></li>
+<li><p>Detached workflow supervision, restart recovery, and OMERO sub-script
+polling</p></li>
 </ul>
 </section>
 </section>
