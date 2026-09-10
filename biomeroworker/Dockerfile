@@ -1,6 +1,7 @@
 FROM openmicroscopy/omero-server:5.6.18
 
 ARG BIOMERO_VERSION
+ARG BIOMERO_SCRIPTS_VERSION
 
 # Development-only branch wiring. Uncomment the matching ARGs, branch-head
 # cache busters, and direct-reference installs together for unpublished work.
@@ -55,19 +56,17 @@ RUN yum -y install ack
 # Install the complete BIOMERO.scripts runtime from the merged analyzer branch.
 # BIOMERO.importer, biomero-schema, and the image-processing dependencies are
 # resolved transitively from biomero's compatible full-extra constraints.
-ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/session-poller" /latest_commit_biomero
 RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
-    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@session-poller" \
+    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full]==${BIOMERO_VERSION}" \
     && $VIRTUAL_ENV/bin/python -m pip check
 
-## BIOMERO: the workflow supervisor in our processor drives the pipeline out
-## of the workflow scripts themselves, so this node needs them on disk as well
-## as the server does. Keep the branch in step with server/Dockerfile.
+## The detached supervisor imports the workflow pipeline after the launcher
+## exits, so install the same scripts release as server/Dockerfile.
 ENV OMERO_DIST=/opt/omero/server/OMERO.server
-ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/session-poller" /latest_commit_biomero_scripts
+RUN test -n "$BIOMERO_SCRIPTS_VERSION" || (echo "BIOMERO_SCRIPTS_VERSION build arg is required" >&2; exit 1)
 RUN cd $OMERO_DIST/lib/scripts/ && \
-    git clone --depth 1 --branch session-poller --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
+    git clone --depth 1 --branch ${BIOMERO_SCRIPTS_VERSION} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
     rm -rf biomero/tests
 
 ## Adjust processor code with BIOMERO Processor
