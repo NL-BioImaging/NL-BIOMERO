@@ -64,6 +64,12 @@ File system monitoring and processing
    The value is used as supplied. Existing data is not migrated; keep its original
    paths accessible to OMERO.
 
+   If ``BIOMERO_SHALLOW_ZARR=true`` and you use a custom folder, also set the same
+   value on ``biomeroworker`` for new canonical Zarr copies. Its processor forwards
+   the name from ``biomero.constants.slurm_env``; the worker needs BIOMERO and
+   importer versions supporting this option. With shallow-Zarr disabled, only
+   the importer container needs the value.
+
 Configuration
 -------------
 

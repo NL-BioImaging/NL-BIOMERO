@@ -112,11 +112,14 @@ scientific object.
 
 ```{note}
 `PROCESSED_DATA_FOLDER` is an importer-library setting (default `.processed`).
-Set it on the importer container to change preprocessing output. Image Transfer
-also calls the importer's `CanonicalStore` inside the worker; only pass the
-variable through to that script if its canonical exports should use the custom
-folder too. Both uses require an importer release supporting the option.
-Existing stored paths are not migrated.
+Set it on the importer container to change preprocessing output. With
+`BIOMERO_SHALLOW_ZARR=true` and a custom folder, also set the same value on
+`biomeroworker`: Image Transfer calls the importer's `CanonicalStore` there to
+choose destinations for new canonical Zarr copies. The processor forwards the
+name automatically from `biomero.constants.slurm_env`; the worker needs BIOMERO
+and importer versions supporting this option. With shallow-Zarr disabled, no
+worker setting is needed. Existing locations are read from stored metadata and
+are not migrated when this value changes.
 ```
 
 The stored shallow directory is therefore often **not byte-for-byte the Zarr
