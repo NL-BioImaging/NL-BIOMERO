@@ -9,6 +9,9 @@
 OMERO Grid Processor
 """
 
+import contextlib
+import logging
+from datetime import datetime, timezone
 import os
 import time
 import signal
@@ -36,6 +39,7 @@ try:
         if not k.startswith("_") and isinstance(v, str)
     ]
 except ImportError:
+    _slurm_env = None
     _BIOMERO_ENV_VARS = []
 
 sys = __import__("sys")
@@ -752,11 +756,616 @@ class UseSessionHolder(object):
         pass
 
 
+# ---------------------------------------------------------------------------
+# BIOMERO: detached workflow execution
+# ---------------------------------------------------------------------------
+# A BIOMERO workflow run outlives the OMERO session that asks for it: data
+# transfer, conversion, Slurm execution and result import together take longer
+# than a browser tab or an OMERO session timeout can be relied on to last.
+#
+# So the workflow scripts do not run the pipeline inline. They validate the
+# request, record everything the run needs in a launcher task and return (see
+# biomero.detached). The supervisor thread below runs alongside this processor,
+# finds those queued runs and executes each one in a worker thread, driving the
+# very same pipeline function the script would have called itself.
+#
+# The supervisor only starts when BIOMERO_DETACHED_WORKFLOWS is enabled for
+# this processor, so a stock deployment is unaffected.
+from threading import Thread, Lock, Event
+
+# How many workflows to drive at once. Batched parents do not count: they only
+# wait for their children, and counting them could starve those children.
+MAX_ACTIVE_WORKFLOWS = int(os.environ.get(
+    getattr(_slurm_env, "BIOMERO_MAX_ACTIVE_WORKFLOWS",
+            "BIOMERO_MAX_ACTIVE_WORKFLOWS"), "4"))
+# How often to look for newly queued workflows.
+SUPERVISOR_POLL_SECONDS = int(
+    os.environ.get(
+        getattr(_slurm_env, "BIOMERO_SUPERVISOR_POLL_SECONDS",
+                "BIOMERO_SUPERVISOR_POLL_SECONDS"), "10"))
+# How long to hold off the first poll. A run needs sub-scripts, which cannot
+# start until this processor is registered and the server is routing work to
+# it, so resuming a run the moment the process comes up would fail it.
+SUPERVISOR_STARTUP_GRACE_SECONDS = int(
+    os.environ.get(
+        getattr(_slurm_env, "BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS",
+                "BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS"), "60"))
+# A sub-script launch is retried while the server reports no processor, which
+# it does until registration has gone through after a restart.
+SCRIPT_START_RETRY_SECONDS = 180
+# How often a batched parent checks on its children.
+CHILD_POLL_SECONDS = 15
+# Workflows found not to be ours are remembered so we do not keep inspecting
+# them, but the memory is dropped periodically so that a transient database
+# error cannot sideline a workflow until the next restart.
+IGNORE_CACHE_POLLS = 90
+# A script starts its workflow before it registers the launcher task, so a
+# workflow this young without one is not evidence that it is not ours: it is
+# re-examined on the next poll instead of being remembered.
+IGNORE_MIN_AGE_SECONDS = 300
+
+biomero_logger = logging.getLogger("biomero.detached")
+
+
+def load_biomero_scripts():
+    """Import the BIOMERO workflow scripts installed in this OMERO server.
+
+    The scripts live in OMERO's script directory rather than on sys.path, so
+    the biomero package's search path is extended to reach them.
+
+    Returns:
+        tuple: The SLURM_Run_Workflow and SLURM_Run_Workflow_Batched modules.
+    """
+    omero_home = os.environ.get("OMERODIR", "/opt/omero/server/OMERO.server")
+    scripts_path = os.path.join(omero_home, "lib", "scripts")
+    if scripts_path not in sys.path:
+        sys.path.append(scripts_path)
+    import biomero
+    scripts_biomero_path = os.path.join(scripts_path, "biomero")
+    if scripts_biomero_path not in biomero.__path__:
+        biomero.__path__.append(scripts_biomero_path)
+    import biomero.__workflows.SLURM_Run_Workflow as run_workflow_script
+    import biomero.__workflows.SLURM_Run_Workflow_Batched as batched_script
+    return run_workflow_script, batched_script
+
+
+def wrap_value(value):
+    """Wrap a recorded input value back into the OMERO rtype a script expects."""
+    from omero.rtypes import rbool, rlong, rstring, rlist, rmap, wrap
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return rbool(value)
+    if isinstance(value, int):
+        return rlong(value)
+    if isinstance(value, str):
+        return rstring(value)
+    if isinstance(value, (list, tuple)):
+        return rlist([wrap_value(item) for item in value])
+    if isinstance(value, dict):
+        return rmap({key: wrap_value(item) for key, item in value.items()})
+    try:
+        return wrap(value)
+    except Exception:
+        return value
+
+
+class RecordedInputsClient(object):
+    """Stands in for an OMERO script client, serving a launcher task's inputs.
+
+    The pipeline reads its inputs through client.getInput() and reports
+    progress through client.setOutput(). A detached run has no script session,
+    so the values recorded at launch time are served here instead, and outputs
+    are collected for logging rather than returned to a caller.
+
+    Sub-script launches need a live connection to keep alive while they run;
+    that is carried here so the runner can reach it.
+    """
+
+    def __init__(self, params, conn=None):
+        self.params = params or {}
+        self.conn = conn
+        self.outputs = {}
+
+    def getInput(self, key):
+        return wrap_value(self.params.get(key))
+
+    def getInputs(self, unwrap=False):
+        if unwrap:
+            return dict(self.params)
+        return {key: wrap_value(value) for key, value in self.params.items()}
+
+    def setOutput(self, key, value):
+        self.outputs[key] = value
+
+    def closeSession(self):
+        # The connection belongs to the worker, which closes it when done.
+        pass
+
+
+def polling_script_runner(client, svc, script_id, inputs,
+                          slurmClient=None):
+    """Run an OMERO sub-script and wait for it, without a script session.
+
+    omero.scripts.ProcessCallbackI needs a script session to receive the
+    process callback on, which a detached run does not have. Poll the process
+    instead, keeping the user's connection alive and pumping the workflow
+    progress listener so that the UI keeps moving while the sub-script runs.
+
+    Args:
+        client: The stand-in client for this run (carries the connection).
+        svc: OMERO script service.
+        script_id: ID of the sub-script to run.
+        inputs: Sub-script inputs.
+        slurmClient: Active SLURM client, for its progress listener.
+
+    Returns:
+        tuple: (results, job) exactly as runOMEROScript() returns them.
+    """
+    logger = logging.getLogger("biomero.detached.script")
+    proc = start_script(svc, script_id, inputs, logger)
+    conn = getattr(client, "conn", None)
+    try:
+        next_position = 0
+        if slurmClient is not None and slurmClient.wfProgress is not None:
+            try:
+                next_position = slurmClient.wfProgress.recorder.max_tracking_id(
+                    application_name='WorkflowTracker') or 0
+            except Exception:
+                next_position = 0
+        while proc.poll() is None:
+            if conn is not None:
+                try:
+                    conn.keepAlive()
+                except Exception as e:
+                    logger.debug(f"Could not keep the connection alive: {e}")
+            if slurmClient is not None and slurmClient.wfProgress is not None:
+                try:
+                    slurmClient.bring_listener_uptodate(
+                        slurmClient.wfProgress, start=next_position)
+                except Exception as e:
+                    logger.debug(f"Progress poll skipped: {e}")
+                finally:
+                    try:
+                        next_position = (
+                            slurmClient.wfProgress.recorder.max_tracking_id(
+                                application_name='WorkflowTracker') or 0)
+                    except Exception:
+                        pass
+            time.sleep(2)
+        return proc.getResults(0), proc.getJob()
+    finally:
+        proc.close(False)
+
+
+def start_script(svc, script_id, inputs, logger):
+    """Start a sub-script, waiting out a processor that is not ready yet.
+
+    Right after this processor restarts it is not yet being given work, so a
+    resumed run would otherwise fail on its first sub-script.
+    """
+    deadline = time.time() + SCRIPT_START_RETRY_SECONDS
+    while True:
+        try:
+            return svc.runScript(int(script_id), inputs, None)
+        except omero.NoProcessorAvailable:
+            if time.time() >= deadline:
+                raise
+            logger.info(f"No processor available yet for script {script_id}; "
+                        f"retrying.")
+            time.sleep(10)
+
+
+class WorkflowWorker(Thread):
+    """Runs one queued workflow to completion, in the background."""
+
+    def __init__(self, workflow_id, launcher_task_id, batched, supervisor):
+        super(WorkflowWorker, self).__init__(
+            name=f"WorkflowWorker-{workflow_id}")
+        self.daemon = True
+        self.workflow_id = workflow_id
+        self.launcher_task_id = launcher_task_id
+        self.batched = batched
+        self.supervisor = supervisor
+        # A batched parent only waits for its children, so it must not take up
+        # an execution slot: that could starve the children it is waiting for.
+        self.holds_slot = not batched
+        self.logger = logging.getLogger(f"biomero.detached.{workflow_id}")
+
+    def run(self):
+        self.logger.info(f"Executing queued workflow {self.workflow_id}")
+        try:
+            self.execute()
+            self.logger.info(f"Finished workflow {self.workflow_id}")
+        except Exception as e:
+            self.logger.error(f"Workflow {self.workflow_id} failed: {e}",
+                              exc_info=True)
+            self.fail_workflow(str(e))
+        finally:
+            self.supervisor.remove_worker(self.workflow_id)
+
+    def fail_workflow(self, error):
+        """Record the failure, so the workflow does not sit unfinished."""
+        try:
+            from biomero.database import EngineManager
+            from biomero.slurm_client import SlurmClient
+            EngineManager.create_scoped_session()
+            with SlurmClient.from_config() as slurmClient:
+                slurmClient.workflowTracker.fail_workflow(
+                    self.workflow_id, error)
+        except Exception as e:
+            self.logger.error(f"Could not record the failure of workflow "
+                              f"{self.workflow_id}: {e}")
+
+    def execute(self):
+        """Find this workflow's launcher task and run what it asks for."""
+        from biomero import detached
+        from biomero.database import EngineManager
+        from biomero.slurm_client import SlurmClient
+
+        run_workflow_script, batched_script = load_biomero_scripts()
+        EngineManager.create_scoped_session()
+
+        with SlurmClient.from_config() as slurmClient:
+            tracker = slurmClient.workflowTracker
+            launcher = tracker.repository.get(self.launcher_task_id)
+            if not detached.is_launcher_task(launcher):
+                raise ValueError(f"Task {self.launcher_task_id} is not a "
+                                 f"launcher for workflow {self.workflow_id}")
+            if detached.is_claimed(launcher):
+                # Left behind by a previous processor. The pipeline resumes
+                # from what already happened, so pick it back up.
+                self.logger.info(f"Workflow {self.workflow_id} was already "
+                                 f"claimed; resuming it.")
+            detached.claim_launcher_task(tracker, launcher.id)
+
+            workflow = tracker.repository.get(self.workflow_id)
+            params = launcher.params or {}
+            with self.user_connection(workflow) as conn:
+                client = RecordedInputsClient(params, conn)
+                if self.batched:
+                    self.run_batches(run_workflow_script, batched_script,
+                                     slurmClient, client, conn, workflow,
+                                     params)
+                else:
+                    self.run_single(run_workflow_script, slurmClient, client,
+                                    conn, params)
+
+    @contextlib.contextmanager
+    def user_connection(self, workflow):
+        """Connect to OMERO as the user whose workflow this is.
+
+        The run has no session of its own, so the processor's own credentials
+        are used to sudo into the requesting user's account and group. Results
+        are then created and owned exactly as an inline run would create them.
+        """
+        from omero.gateway import BlitzGateway
+
+        username = os.environ.get("OMERO_USER", "root")
+        password = os.environ.get("OMERO_PASSWORD", "omero")
+        host = os.environ.get("OMERO_HOST", "omeroserver")
+        port = int(os.environ.get("OMERO_PORT", "4064"))
+
+        admin_conn = BlitzGateway(username, password, host=host, port=port,
+                                  secure=True)
+        if not admin_conn.connect():
+            raise ConnectionError(
+                f"Could not connect to OMERO at {host}:{port} as {username} "
+                f"to run workflow {self.workflow_id}")
+        try:
+            user = admin_conn.getObject("Experimenter", workflow.user)
+            if not user:
+                raise ValueError(f"No OMERO user with ID {workflow.user} for "
+                                 f"workflow {self.workflow_id}")
+            self.logger.info(f"Running as {user.getName()} in group "
+                             f"{workflow.group}")
+            # A day of leeway per session refresh; the runner keeps it alive
+            # for as long as the run takes.
+            with admin_conn.suConn(user.getName(), ttl=86400000) as user_conn:
+                user_conn.keepAlive()
+                user_conn.setGroupForSession(workflow.group)
+                yield user_conn
+        finally:
+            admin_conn.close()
+
+    def run_single(self, script, slurmClient, client, conn, params):
+        """Drive the workflow pipeline, the same one an inline run drives."""
+        pipeline_kwargs = script.resolve_pipeline_inputs(
+            client, conn, slurmClient, params)
+        self.logger.info(f"Running workflows {pipeline_kwargs['workflows']} "
+                         f"for workflow {self.workflow_id}")
+        messages = script.execute_workflow_pipeline(
+            client, conn, slurmClient, self.workflow_id, resume=True,
+            **pipeline_kwargs)
+        self.logger.info(f"Workflow {self.workflow_id}: {messages}")
+
+    def run_batches(self, script, batched_script, slurmClient, client, conn,
+                    workflow, params):
+        """Run a batched request as one child workflow per batch.
+
+        Each child is queued exactly as a single run is, so it is executed by
+        the same pipeline and reports its own progress. This parent only
+        spawns the children it does not have yet and then follows them.
+        """
+        from biomero import constants, detached
+
+        tracker = slurmClient.workflowTracker
+        batches = [list(batch) for batch in (params.get("batches") or [])]
+        if not batches:
+            raise ValueError(f"Batched workflow {self.workflow_id} has no "
+                             f"batches recorded")
+        base_inputs = params.get("base_inputs") or {}
+        effective_type = params.get("effective_type")
+        self.logger.info(f"Batched workflow {self.workflow_id}: "
+                         f"{len(batches)} batches")
+
+        # One bookkeeping task per batch on this workflow, holding the child's
+        # ID. Re-running this parent therefore adopts the children it already
+        # has instead of starting the work again.
+        children = {}
+        for task_id in getattr(workflow, "tasks", []):
+            try:
+                task = tracker.repository.get(task_id)
+            except Exception as e:
+                self.logger.warning(f"Could not read task {task_id}: {e}")
+                continue
+            task_params = task.params or {}
+            if "batch_index" in task_params and "child_workflow_id" in task_params:
+                children[task_params["batch_index"]] = (
+                    task_id, uuid.UUID(str(task_params["child_workflow_id"])))
+
+        for index, batch in enumerate(batches):
+            if index in children:
+                continue
+            child_params = dict(base_inputs)
+            child_params[constants.transfer.IDS] = batch
+            if effective_type:
+                child_params[constants.transfer.DATA_TYPE] = effective_type
+            # All batches share one output dataset or screen.
+            child_params[constants.workflow.OUTPUT_DUPLICATES] = False
+            child_params["selected_output"] = params.get("selected_output")
+            child_params["group"] = params.get("group")
+            child_wf_id = tracker.initiate_workflow(
+                f"{workflow.name} (batch {index + 1}/{len(batches)})",
+                "\n".join([workflow.description, script.VERSION]),
+                workflow.user,
+                workflow.group)
+            detached.register_detached_launcher(
+                RecordedInputsClient(child_params, conn), tracker,
+                child_wf_id, constants.RUN_WF_SCRIPT, script.VERSION,
+                params.get("workflows") or [], {})
+            task_id = tracker.add_task_to_workflow(
+                self.workflow_id, constants.RUN_WF_SCRIPT, script.VERSION,
+                batch, {"batch_index": index,
+                        "child_workflow_id": str(child_wf_id)})
+            tracker.start_task(task_id)
+            children[index] = (task_id, child_wf_id)
+            self.logger.info(f"Queued batch {index + 1}/{len(batches)} as "
+                             f"workflow {child_wf_id}")
+
+        failed, pending = self.await_children(
+            slurmClient, conn, batched_script, children, batches, base_inputs,
+            effective_type)
+        if pending:
+            # Shutting down: leave the workflow unfinished so that the next
+            # processor adopts the children it already has.
+            self.logger.info(f"Stopped following {len(pending)} batches of "
+                             f"workflow {self.workflow_id}; they will be "
+                             f"picked up again.")
+            return
+        if failed:
+            tracker.fail_workflow(self.workflow_id,
+                                  f"{failed} of {len(batches)} batches failed")
+        else:
+            tracker.complete_workflow(self.workflow_id)
+
+    def await_children(self, slurmClient, conn, batched_script, children,
+                       batches, base_inputs, effective_type):
+        """Follow the child workflows, annotating each batch as it lands.
+
+        Returns:
+            tuple: How many batches failed, and the batches still unfinished
+                (non-empty only when we stopped following them early).
+        """
+        from biomero.constants import workflow_status as wfs
+        from biomero.database import EngineManager, WorkflowProgressView
+
+        tracker = slurmClient.workflowTracker
+        pending = dict(children)
+        failed = 0
+        while pending and not self.supervisor.shutdown_event.is_set():
+            with EngineManager.get_session() as session:
+                statuses = {
+                    row.workflow_id: row.status
+                    for row in session.query(WorkflowProgressView).filter(
+                        WorkflowProgressView.workflow_id.in_(
+                            [child_wf_id for _, child_wf_id
+                             in pending.values()])).all()}
+            for index, (task_id, child_wf_id) in list(pending.items()):
+                status = statuses.get(child_wf_id)
+                if status == wfs.DONE:
+                    tracker.complete_task(task_id, "Batch completed.")
+                    del pending[index]
+                    try:
+                        batched_script.add_batch_supervisor_metadata_for_batch(
+                            conn, slurmClient, self.workflow_id, index,
+                            batches[index], len(batches), base_inputs,
+                            effective_type)
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Could not annotate batch {index + 1}: {e}")
+                elif status == wfs.FAILED:
+                    tracker.fail_task(task_id, "Batch failed.")
+                    failed += 1
+                    del pending[index]
+                    self.logger.warning(f"Batch {index + 1} failed "
+                                        f"(workflow {child_wf_id})")
+            if pending:
+                try:
+                    conn.keepAlive()
+                except Exception as e:
+                    self.logger.debug(f"Could not keep the connection "
+                                      f"alive: {e}")
+                time.sleep(CHILD_POLL_SECONDS)
+        return failed, pending
+
+
+class WorkflowSupervisor(Thread):
+    """Finds queued workflows and runs each of them in a worker thread."""
+
+    def __init__(self):
+        super(WorkflowSupervisor, self).__init__(name="WorkflowSupervisor")
+        self.daemon = True
+        self.shutdown_event = Event()
+        self.active_workers = {}  # {workflow_id: worker}
+        self.ignored = set()      # workflows that are not ours to run
+        self.tracker = None
+        self.lock = Lock()
+        self.logger = logging.getLogger("biomero.detached.supervisor")
+
+    def run(self):
+        self.logger.info("Starting the BIOMERO workflow supervisor")
+        try:
+            from biomero import detached
+            from biomero.database import EngineManager
+            run_workflow_script, _ = load_biomero_scripts()
+            EngineManager.create_scoped_session()
+            self.tracker = detached.workflow_tracker()
+            # Sub-scripts cannot be waited on with a script callback here, so
+            # the workflow scripts use our polling runner instead.
+            run_workflow_script.SCRIPT_RUNNER = polling_script_runner
+        except Exception as e:
+            self.logger.error(f"Cannot supervise workflows: {e}", exc_info=True)
+            return
+
+        if SUPERVISOR_STARTUP_GRACE_SECONDS:
+            self.logger.info(f"Waiting {SUPERVISOR_STARTUP_GRACE_SECONDS}s "
+                             f"for this processor to start taking work")
+            self.shutdown_event.wait(SUPERVISOR_STARTUP_GRACE_SECONDS)
+
+        polls = 0
+        while not self.shutdown_event.is_set():
+            try:
+                self.prune_workers()
+                if polls % IGNORE_CACHE_POLLS == 0:
+                    with self.lock:
+                        self.ignored.clear()
+                self.spawn_workers()
+            except Exception as e:
+                self.logger.error(f"Supervisor poll failed: {e}", exc_info=True)
+            polls += 1
+            self.shutdown_event.wait(SUPERVISOR_POLL_SECONDS)
+        self.logger.info("Workflow supervisor shutting down")
+
+    def unfinished_workflows(self):
+        """Every workflow that has not reached a final state, with its age.
+
+        The task execution view does not record which workflow a task belongs
+        to, so candidates cannot be narrowed down to queued runs in SQL; that
+        is what the launcher lookup below is for.
+
+        Returns:
+            list: ``(workflow_id, age_in_seconds)`` pairs.
+        """
+        from biomero.constants import workflow_status as wfs
+        from biomero.database import EngineManager, WorkflowProgressView
+
+        now = datetime.now(timezone.utc)
+        with EngineManager.get_session() as session:
+            rows = session.query(
+                WorkflowProgressView.workflow_id,
+                WorkflowProgressView.start_time).filter(
+                    WorkflowProgressView.status.notin_(
+                        [wfs.DONE, wfs.FAILED])).all()
+        workflows = []
+        for workflow_id, start_time in rows:
+            if start_time is None:
+                age = 0.0
+            else:
+                if start_time.tzinfo is None:
+                    start_time = start_time.replace(tzinfo=timezone.utc)
+                age = (now - start_time).total_seconds()
+            workflows.append((workflow_id, age))
+        return workflows
+
+    def spawn_workers(self):
+        """Start a worker for each queued workflow that has none yet."""
+        from biomero import constants, detached
+
+        for wf_id, age in self.unfinished_workflows():
+            with self.lock:
+                if wf_id in self.active_workers or wf_id in self.ignored:
+                    continue
+                busy = sum(1 for worker in self.active_workers.values()
+                           if worker.holds_slot)
+            if busy >= MAX_ACTIVE_WORKFLOWS:
+                self.logger.debug(
+                    f"Running {busy} workflows already; {wf_id} waits.")
+                return
+            launcher = detached.find_launcher_task(self.tracker, wf_id)
+            if launcher is None:
+                if age < IGNORE_MIN_AGE_SECONDS:
+                    # Possibly still being set up by the script that started
+                    # it; look again next time.
+                    continue
+                # Started by a script that runs its own pipeline, so it is not
+                # ours to run. Remembered until the cache is next dropped.
+                self.logger.debug(f"Workflow {wf_id} was not queued for us; "
+                                  f"leaving it alone.")
+                self.ignore(wf_id)
+                continue
+            batched = launcher.task_name == constants.RUN_WF_BATCHED_SCRIPT
+            with self.lock:
+                if wf_id in self.active_workers:
+                    continue
+                worker = WorkflowWorker(wf_id, launcher.id, batched, self)
+                self.active_workers[wf_id] = worker
+            worker.start()
+
+    def prune_workers(self):
+        with self.lock:
+            for wf_id, worker in list(self.active_workers.items()):
+                if not worker.is_alive():
+                    self.active_workers.pop(wf_id)
+
+    def remove_worker(self, wf_id):
+        with self.lock:
+            self.active_workers.pop(wf_id, None)
+
+    def ignore(self, wf_id):
+        """Stop inspecting a workflow that is not ours to run."""
+        with self.lock:
+            self.ignored.add(wf_id)
+
+    def stop(self):
+        self.shutdown_event.set()
+
+
 class ProcessorI(omero.grid.Processor, omero.util.Servant):
 
     def __init__(self, ctx, needs_session=True, use_session=None,
                  accepts_list=None, cfg=None, omero_home=path.getcwd(),
                  category=None):
+
+        # Run queued BIOMERO workflows alongside this processor, if this
+        # deployment asked for detached runs and has a biomero that supports
+        # them. Never let that stop the processor itself from starting.
+        self.supervisor = None
+        try:
+            from biomero import detached
+            if detached.detached_mode_enabled():
+                self.supervisor = WorkflowSupervisor()
+                self.supervisor.start()
+            else:
+                biomero_logger.info(
+                    "BIOMERO_DETACHED_WORKFLOWS is not enabled; workflows "
+                    "run inside the calling session.")
+        except ImportError:
+            biomero_logger.info("No biomero with detached support installed; "
+                                "not supervising workflows.")
+        except Exception as e:
+            biomero_logger.error(f"Could not start the workflow supervisor: "
+                                 f"{e}", exc_info=True)
 
         if accepts_list is None:
             accepts_list = []

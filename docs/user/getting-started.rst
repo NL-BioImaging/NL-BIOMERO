@@ -12,10 +12,13 @@ the **BIOMERO** panel from the top navigation bar. The active OMERO group matter
 it controls which remote-storage folder you can browse and where imported or
 analyzed data is placed.
 
-.. warning::
-   Do not log out while an import or analysis is running. Closing the browser
-   keeps the OMERO session alive until its configured timeout, but logging out
-   ends the session immediately and may leave active work unable to finish.
+.. important::
+   Follow the confirmation shown after submitting an analysis. If it says the
+   workflow runs in the background, detached mode is active and you may close
+   the tab or log out. If it warns you to keep the session active, the workflow
+   is running inline and logging out may prevent it from finishing. Do not
+   assume that detached analysis also applies to a browser upload that is still
+   transferring data.
 
 .. tip::
    🎥 **Live demonstration · 5:39:** :ref:`See NL-BIOMERO in practice
@@ -154,10 +157,12 @@ Workflows <adding-new-workflows>`.
 My import or workflow is not progressing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Keep the OMERO session active, check **Import > Monitor** or **Analyze > Status**,
-and copy the order or Workflow UUID. Send that UUID and the approximate start
-time to your administrator; those identifiers connect the interface entry to
-the BIOMERO database and service logs.
+Check **Import > Monitor** or **Analyze > Status** and copy the order or Workflow
+UUID. A detached analysis does not require the original OMERO session to remain
+active; an inline analysis does. Send the UUID and approximate start time to
+your administrator, since those identifiers connect the interface entry to the
+BIOMERO database and service logs. Administrators can review
+:doc:`../sysadmin/detached-workflows`.
 
 Where are my workflow results?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

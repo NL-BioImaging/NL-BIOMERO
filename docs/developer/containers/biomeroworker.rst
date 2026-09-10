@@ -151,10 +151,76 @@ Custom Processor Implementation
    **Key Changes**:
    * Environment variable forwarding to subprocesses (HTTP_PROXY, etc.)
    * Enhanced subprocess handling for BIOMERO workflows
+   * Detached workflow supervision, recovery, and OMERO sub-script polling
    
    **Maintenance Required**: Periodically merge important changes from upstream OMERO processor.py to maintain compatibility.
 
 **Original Source**: `ome/omero-py processor.py <https://raw.githubusercontent.com/ome/omero-py/master/src/omero/processor.py>`_
+
+Detached Workflow Execution
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A workflow run outlives the OMERO session that asks for it: data transfer,
+conversion, Slurm execution and result import together take longer than a
+browser tab, or an OMERO session timeout, can be relied on to last.
+
+With ``BIOMERO_DETACHED_WORKFLOWS`` enabled, ``SLURM_Run_Workflow.py`` and
+``SLURM_Run_Workflow_Batched.py`` no longer run the pipeline themselves. They
+validate the request, start the workflow in the tracker, record everything the
+run needs in a *launcher task* and return, so the user can close the tab. A
+``WorkflowSupervisor`` thread in this processor then finds those queued runs
+and executes each one in a worker thread, calling the same
+``execute_workflow_pipeline()`` the script would have called inline.
+
+Each worker connects as the processor's own OMERO user and sudoes into the
+requesting user's account and group, so results are created and owned exactly
+as an inline run creates them.
+
+An interrupted run (worker crash, container restart) is picked up again on the
+next poll: the pipeline skips a transfer or conversion that already completed
+and resumes monitoring a Slurm job it already submitted, rather than
+submitting it twice.
+
+**Settings**:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Variable
+     - Default
+     - Meaning
+   * - ``BIOMERO_DETACHED_WORKFLOWS``
+     - ``false`` (``true`` in this stack's compose file)
+     - Queue workflow runs for the supervisor instead of running them inline.
+   * - ``BIOMERO_MAX_ACTIVE_WORKFLOWS``
+     - ``4``
+     - How many workflows to drive at once. Batched parents do not count
+       towards this, since they only wait for their children.
+   * - ``BIOMERO_SUPERVISOR_POLL_SECONDS``
+     - ``10``
+     - How often to look for newly queued workflows.
+   * - ``BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS``
+     - ``60``
+     - How long to wait after processor startup before recovering queued or
+       interrupted workflows.
+
+.. note::
+   Set these variables in this stack's ``.env`` file; Compose forwards them to
+   the worker container. The enable switch is also forwarded to ``omeroweb``
+   so OMERO.biomero can display the correct session guidance. All four names
+   are centralized in ``biomero.constants.slurm_env``. The enable switch is
+   also read by the *script* subprocess and is forwarded there by this
+   processor. Detached mode needs a ``biomero`` that ships
+   ``biomero.detached``; without it the scripts run inline as before, and the
+   supervisor does not start.
+
+.. seealso::
+   :doc:`../../sysadmin/detached-workflows` for the complete enablement,
+   session-timeout, recovery, verification, and troubleshooting guide.
+
+   :doc:`../detached-workflow-supervisor` for the launcher contract, claim and
+   recovery semantics, concurrency behavior, and supported deployment
+   topology.
 
 Configuration Management
 -----------------------
@@ -404,7 +470,8 @@ Common Issues
 
 * Verify grid role assignment in docker-compose
 * Check OMERO.grid node status: ``omero admin diagnostics``
-* Ensure only one Processor-0 node is active
+* Ensure only one detached supervisor is active for each BIOMERO tracking
+  database
 
 **BIOMERO Script Failures**:
 
@@ -463,13 +530,15 @@ Processor.py Maintenance
 
 1. **Monitor** `OMERO processor.py updates <https://github.com/ome/omero-py/commits/master/src/omero/processor.py>`_
 2. **Review changes** for compatibility and security fixes
-3. **Merge important updates** while preserving custom environment variable handling
+3. **Merge important updates** while preserving the NL-BIOMERO extensions
 4. **Test thoroughly** before deploying to production
 
 **Current Custom Features**:
 
 * HTTP_PROXY and HTTPS_PROXY forwarding to subprocesses
 * Enhanced environment variable support for BIOMERO workflows
+* Detached workflow supervision, restart recovery, and OMERO sub-script
+  polling
 
 Related Documentation
 ---------------------
