@@ -9,6 +9,21 @@ Use this skill for NL-BIOMERO work on dev or prod. Prefer inspection over guesse
 
 Never print secrets. Mask `.env`, container env, Metabase datasource JSON, passwords, secret keys, JWTs, and tokens in user-facing output.
 
+## Development Branches and Pull Requests
+
+For NL-BIOMERO and its submodules, including `biomero-importer`, use a dedicated
+branch and a pull request when publishing changes, including hotfixes. Give the
+PR a clear description of the final change and its validation so the user can
+review the work and follow its history.
+
+When the user authorizes integration (for example, "merge it"), merge through
+the PR after the relevant checks pass. Prefer squash merging so each PR becomes
+one logical commit that can be reverted as a unit, unless the user requests a
+different merge strategy. Do not interpret the integration instruction as a
+request to push directly to `main` or `master`; use a direct push only when the
+user explicitly requests that exception. This workflow preference does not by
+itself authorize publication or merging of otherwise local work.
+
 ## Repository Scope and Example Contract
 
 `NL-BIOMERO` is the runnable local Docker Compose demonstration and the source

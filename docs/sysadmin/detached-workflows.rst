@@ -15,8 +15,9 @@ Detached BIOMERO Workflows
 
    * Enable detached analysis with ``BIOMERO_DETACHED_WORKFLOWS=TRUE``.
    * Detached workflows continue when the submitting OMERO.web session ends.
-   * When detached mode is enabled, OMERO session and script timeouts do not
-     need to cover the complete Slurm runtime.
+   * When detached mode is enabled, the user's OMERO session does not need to
+     cover the complete Slurm runtime. The OMERO script timeout must still
+     accommodate long server-side transfer and import operations.
    * The setting applies to BIOMERO analysis workflows, not browser uploads.
 
 Overview
@@ -90,24 +91,28 @@ services:
 Session and timeout settings
 ----------------------------
 
-Detached workflows are designed to run with ordinary OMERO session settings.
-The supplied environment files use the standard timeout values:
+Detached workflows are designed to run with ordinary user-session settings.
+The supplied environment files keep user sessions short while allowing
+server-side scripts to complete long transfer and import operations:
 
 .. code-block:: ini
 
-   OMERO_SCRIPTS_TIMEOUT=3600000
+   OMERO_SCRIPTS_TIMEOUT=604800000
    OMERO_SESSIONS_TIMEOUT=600000
    OMERO_WEB_SESSION_COOKIE_AGE=86400
 
-These values correspond to a one-hour OMERO script timeout, a ten-minute OMERO
-session idle timeout, and a one-day OMERO.web cookie age. They remain
-configurable in ``.env`` according to local security and access policies.
+These values correspond to a seven-day OMERO script timeout, a ten-minute OMERO
+session idle timeout, and a one-day OMERO.web cookie age. The long script
+timeout accommodates operations such as importer polling, which may continue
+for several hours. It does not extend the submitting user's session. These
+values remain configurable in ``.env`` according to local security and access
+policies.
 
 .. important::
-   These standard values remove the need to extend a session over the complete
-   workflow only when detached mode is enabled. In inline mode, the requesting
-   session and top-level script remain involved until result import completes;
-   long workflows may therefore require longer timeout values.
+   The short session timeout is suitable for long workflows only when detached
+   mode is enabled. In inline mode, the requesting session and top-level script
+   remain involved until result import completes; long workflows may therefore
+   require a longer session timeout as well.
 
 ``OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE`` controls browser cookie behavior
 and may be set independently. Detached analysis does not require this setting
