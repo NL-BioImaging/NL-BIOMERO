@@ -111,10 +111,12 @@ scientific object.
 | Reconstructed follow-up input | Temporary transfer directory | Source pixels plus all inherited and local labels, materialized as one conventional Zarr | The next Zarr-native workflow |
 
 ```{note}
-The `.processed` default can be changed with `PROCESSED_DATA_FOLDER` in the
-Python process creating canonical Zarrs, using an importer release that supports
-this option. For OMERO scripts, forward it through the worker's script
-environment. Existing stored paths are not migrated.
+`PROCESSED_DATA_FOLDER` is an importer-library setting (default `.processed`).
+Set it on the importer container to change preprocessing output. Image Transfer
+also calls the importer's `CanonicalStore` inside the worker; only pass the
+variable through to that script if its canonical exports should use the custom
+folder too. Both uses require an importer release supporting the option.
+Existing stored paths are not migrated.
 ```
 
 The stored shallow directory is therefore often **not byte-for-byte the Zarr
