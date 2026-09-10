@@ -16,13 +16,25 @@ branch and a pull request when publishing changes, including hotfixes. Give the
 PR a clear description of the final change and its validation so the user can
 review the work and follow its history.
 
+On an existing non-default branch intended for a pull request, make focused,
+coherent commits and push them as normal completion of authorized development
+work. Do not hold the branch locally merely to run a slow full suite: run cheap,
+relevant checks that catch immediate mistakes, inspect the diff, then let the
+required GitHub Actions checks be the full-suite gate. If CI fails, inspect it
+and push a follow-up fix. Incremental branch commits may stay small because the
+pull request will normally be squash-merged.
+
 When the user authorizes integration (for example, "merge it"), merge through
 the PR after the relevant checks pass. Prefer squash merging so each PR becomes
 one logical commit that can be reverted as a unit, unless the user requests a
 different merge strategy. Do not interpret the integration instruction as a
 request to push directly to `main` or `master`; use a direct push only when the
-user explicitly requests that exception. This workflow preference does not by
-itself authorize publication or merging of otherwise local work.
+user explicitly requests that exception.
+
+Use proportionate local verification before a direct default-branch push,
+release, change without suitable CI coverage, or higher-risk operation. This
+workflow does not authorize unrelated publication, merging, deployment, or
+destructive actions.
 
 ## Repository Scope and Example Contract
 
