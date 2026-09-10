@@ -1276,6 +1276,18 @@ scientific object.</p>
 </tr>
 </tbody>
 </table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">PROCESSED_DATA_FOLDER</span></code> is an importer-library setting (default <code class="docutils literal notranslate"><span class="pre">.processed</span></code>).
+Set it on the importer container to change preprocessing output. With
+<code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR=true</span></code> and a custom folder, also set the same value on
+<code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code>: Image Transfer calls the importer’s <code class="docutils literal notranslate"><span class="pre">CanonicalStore</span></code> there to
+choose destinations for new canonical Zarr copies. The processor forwards the
+name automatically from <code class="docutils literal notranslate"><span class="pre">biomero.constants.slurm_env</span></code>; the worker needs BIOMERO
+and importer versions supporting this option. With shallow-Zarr disabled, no
+worker setting is needed. Existing locations are read from stored metadata and
+are not migrated when this value changes.</p>
+</div>
 <p>The stored shallow directory is therefore often <strong>not byte-for-byte the Zarr
 that the workflow received</strong>. It is the compact, authoritative result in
 BIOMERO-managed storage. At the workflow boundary BIOMERO turns it back into a

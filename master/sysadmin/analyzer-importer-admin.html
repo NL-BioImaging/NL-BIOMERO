@@ -885,6 +885,17 @@ The worker uses these to resolve the correct destination path for each OMERO gro
 </tr>
 </tbody>
 </table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">.processed</span></code> subfolder name can be changed with the
+<code class="docutils literal notranslate"><span class="pre">PROCESSED_DATA_FOLDER</span></code> environment variable in the importer container;
+leaving it unset preserves the default. See
+<a class="reference internal" href="../developer/containers/biomero-importer.html"><span class="doc">BIOMERO.importer Container</span></a> for details. This does not
+change the separate <code class="docutils literal notranslate"><span class="pre">.analyzed</span></code> results folder.</p>
+<p>For a custom folder with <code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR=true</span></code>, also set the same value
+on <code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code> so new canonical Zarr copies use that folder. No worker
+setting is needed when shallow-Zarr is disabled.</p>
+</div>
 </section>
 <section id="result-folder-structure">
 <h3>Result folder structure<a class="headerlink" href="#result-folder-structure" title="Permalink to this heading"></a></h3>

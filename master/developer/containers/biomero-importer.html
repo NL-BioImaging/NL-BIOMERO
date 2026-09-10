@@ -832,6 +832,19 @@
 <li><p>All imports are in-place. OMERO.server must mount the same storage at the same path for symlink-based imports to work.</p></li>
 <li><p>For large/long imports, enable preprocessing: after preprocessing BIOMERO.importer imports from local temporary storage on OMERO.server, then redirects symlinks to the network location afterward. This reduces network risk during in-place import.</p></li>
 </ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">.processed</span></code> is the default subfolder name. With an importer release that
+supports this option, set <code class="docutils literal notranslate"><span class="pre">PROCESSED_DATA_FOLDER</span></code> in the importer container’s
+environment (for example, <code class="docutils literal notranslate"><span class="pre">PROCESSED_DATA_FOLDER=.import</span></code>) to change it.
+The value is used as supplied. Existing data is not migrated; keep its original
+paths accessible to OMERO.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR=true</span></code> and you use a custom folder, also set the same
+value on <code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code> for new canonical Zarr copies. Its processor forwards
+the name from <code class="docutils literal notranslate"><span class="pre">biomero.constants.slurm_env</span></code>; the worker needs BIOMERO and
+importer versions supporting this option. With shallow-Zarr disabled, only
+the importer container needs the value.</p>
+</div>
 </section>
 <section id="configuration">
 <h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this heading"></a></h2>
