@@ -27,8 +27,7 @@ ADD server/00-restore-config.sh* /startup/
 # LDAP configuration - add with correct values
 # ADD server/01-ldap-config.omero /opt/omero/server/config/
 
-# # Install the merged biomero-scripts branch while detached mode is under test.
-# ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/session-poller" /latest_commit_biomero
+# Install the selected biomero-scripts release.
 RUN test -n "$BIOMERO_SCRIPTS_VERSION" || (echo "BIOMERO_SCRIPTS_VERSION build arg is required" >&2; exit 1)
 RUN cd $OMERO_DIST/lib/scripts/ && \
     git clone --depth 1 --branch ${BIOMERO_SCRIPTS_VERSION} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \

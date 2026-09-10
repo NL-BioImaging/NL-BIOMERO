@@ -54,7 +54,9 @@ the flag is absent or ``FALSE``, workflows use inline execution.
 
 .. important::
    Update ``biomeroworker`` to the corresponding NL-BIOMERO release before
-   enabling detached workflows.
+   enabling detached workflows. The worker must include the same compatible
+   ``biomero-scripts`` release as OMERO.server. The supplied NL-BIOMERO images
+   keep these versions aligned through ``BIOMERO_SCRIPTS_VERSION``.
 
    Detached mode currently supports one active ``biomeroworker`` per BIOMERO
    tracking database. Multiple worker replicas are not supported.
