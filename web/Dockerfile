@@ -3,7 +3,7 @@ FROM openmicroscopy/omero-web-standalone:5.31.1
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
 ARG BIOMERO_SCHEMA_BRANCH=feature/remote-shallower
-ARG BIOMERO_SHALLOWER_BRANCH=main
+ARG BIOMERO_SHALLOWER_BRANCH=feature/remote-shallower
 ARG BIOMERO_IMPORTER_BRANCH=feature/remote-shallower
 ARG BIOMERO_BRANCH=feature/remote-shallower
 ARG OMERO_BIOMERO_BRANCH=main
