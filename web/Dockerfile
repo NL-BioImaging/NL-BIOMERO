@@ -2,6 +2,11 @@ FROM openmicroscopy/omero-web-standalone:5.31.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
+ARG BIOMERO_SCHEMA_BRANCH=feature/remote-shallower
+ARG BIOMERO_SHALLOWER_BRANCH=main
+ARG BIOMERO_IMPORTER_BRANCH=feature/remote-shallower
+ARG BIOMERO_BRANCH=feature/remote-shallower
+ARG OMERO_BIOMERO_BRANCH=main
 
 USER root
 
@@ -39,21 +44,27 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 ### Install OMERO.biomero first ###
 ### BIOMERO.importer and BIOMERO.analyzer will be installed as a dependency of OMERO.biomero ###
 
-# Development option: install an unpublished OMERO.biomero feature branch.
-# Querying its branch head invalidates this layer when new commits are pushed
-# to the same branch. Comment this ADD/RUN pair when using the release option.
-# ARG OMERO_BIOMERO_BRANCH=main
-# ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BIOMERO_BRANCH}" /latest_commit_omero_biomero
-# RUN /opt/omero/web/venv3/bin/pip install \
-#         "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
-#     && /opt/omero/web/venv3/bin/omero-biomero-setup
+# Development option: install the compatible remote-shallower requirements and
+# OMERO.biomero directly from GitHub. Each branch head is a Docker cache buster.
+ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_BRANCH}" /latest_commit_biomero_schema
+ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.shallower/commits/${BIOMERO_SHALLOWER_BRANCH}" /latest_commit_biomero_shallower
+ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.importer/commits/${BIOMERO_IMPORTER_BRANCH}" /latest_commit_biomero_importer
+ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_BRANCH}" /latest_commit_biomero
+ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BIOMERO_BRANCH}" /latest_commit_omero_biomero
+RUN /opt/omero/web/venv3/bin/pip install \
+        "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
+        "biomero-shallower @ git+https://github.com/NL-BioImaging/BIOMERO.shallower.git@${BIOMERO_SHALLOWER_BRANCH}" \
+        "biomero-importer[identity] @ git+https://github.com/NL-BioImaging/BIOMERO.importer.git@${BIOMERO_IMPORTER_BRANCH}" \
+        "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@${BIOMERO_BRANCH}" \
+        "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
+    && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 # Release option: install the version selected in OMERO_BIOMERO_VERSION from
 # PyPI. Uncomment this pair and comment the development ADD/RUN pair above.
-RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1)
-RUN /opt/omero/web/venv3/bin/pip install \
-        "omero-biomero==${OMERO_BIOMERO_VERSION}" \
-    && /opt/omero/web/venv3/bin/omero-biomero-setup
+# RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1)
+# RUN /opt/omero/web/venv3/bin/pip install \
+#         "omero-biomero==${OMERO_BIOMERO_VERSION}" \
+#     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 ### Install OMERO.forms ###
 
