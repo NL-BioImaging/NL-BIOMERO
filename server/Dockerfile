@@ -4,12 +4,7 @@ ARG BIOMERO_SCRIPTS_VERSION
 ARG LABEL2ROIS_VERSION
 ARG OMERO_ZARR_PIXEL_BUFFER_VERSION
 
-# Development-only branch wiring. Uncomment the ARG, cache buster, and clone
-# target together when testing unpublished biomero-scripts changes.
-# ARG BIOMERO_SCRIPTS_BRANCH=main
-# ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/${BIOMERO_SCRIPTS_BRANCH}" /latest_commit_biomero_scripts
-# RUN git clone --depth 1 --branch ${BIOMERO_SCRIPTS_BRANCH} --single-branch \
-#     https://github.com/NL-BioImaging/biomero-scripts.git biomero
+ARG BIOMERO_SCRIPTS_BRANCH=feature/remote-shallower
 
 ENV OMERO_DIST=/opt/omero/server/OMERO.server
 ENV OMERO_ZARR_PIXEL_BUFFER_REPO=https://artifacts.glencoesoftware.com:443/artifactory/gs-omero-snapshots-local/com/glencoesoftware/omero/omero-zarr-pixel-buffer
@@ -27,12 +22,21 @@ ADD server/00-restore-config.sh* /startup/
 # LDAP configuration - add with correct values
 # ADD server/01-ldap-config.omero /opt/omero/server/config/
 
-# Install the selected biomero-scripts release.
-RUN test -n "$BIOMERO_SCRIPTS_VERSION" || (echo "BIOMERO_SCRIPTS_VERSION build arg is required" >&2; exit 1)
+# Development option: install the remote-shallower scripts branch. The branch
+# head invalidates the clone layer when another test commit is pushed.
+ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/${BIOMERO_SCRIPTS_BRANCH}" /latest_commit_biomero_scripts
 RUN cd $OMERO_DIST/lib/scripts/ && \
-    git clone --depth 1 --branch ${BIOMERO_SCRIPTS_VERSION} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
+    git clone --depth 1 --branch ${BIOMERO_SCRIPTS_BRANCH} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
     rm -f biomero/admin/Example_Minimal_Slurm_Script.py && \
     rm -f biomero/__workflows/SLURM_CellPose_Segmentation.py
+
+# Release option: install the tag selected by BIOMERO_SCRIPTS_VERSION.
+# Comment the development ADD/RUN block above and uncomment this block.
+# RUN test -n "$BIOMERO_SCRIPTS_VERSION" || (echo "BIOMERO_SCRIPTS_VERSION build arg is required" >&2; exit 1)
+# RUN cd $OMERO_DIST/lib/scripts/ && \
+#     git clone --depth 1 --branch ${BIOMERO_SCRIPTS_VERSION} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
+#     rm -f biomero/admin/Example_Minimal_Slurm_Script.py && \
+#     rm -f biomero/__workflows/SLURM_CellPose_Segmentation.py
 
 # Do not expose repository tests as runnable OMERO scripts.
 RUN rm -rf $OMERO_DIST/lib/scripts/biomero/tests || true
