@@ -99,6 +99,7 @@ jobs:
           labels: ${{ steps.meta-biomero.outputs.labels }}
           build-args: |
             BIOMERO_VERSION=${{ env.BIOMERO_VERSION }}
+            BIOMERO_SCRIPTS_VERSION=${{ env.BIOMERO_SCRIPTS_VERSION }}
       -
         name: Docker meta WORKER
         id: meta-worker
