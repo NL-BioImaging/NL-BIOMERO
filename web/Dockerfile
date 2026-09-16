@@ -80,6 +80,10 @@ ADD web/local_omeroweb_edits/pretty_login/login_page_images ./webclient/static/w
 ADD web/local_omeroweb_edits/pretty_login/ome.login.css ./webgateway/static/webgateway/css/ome.login.css
 COPY web/local_omeroweb_edits/biomero-base-include.html ./webclient/templates/webclient/base/includes/biomero-base-include.html
 
+# Preserve OMERO's script dialog and override only its Chosen list controls.
+RUN mv ./webclient/templates/webclient/scripts/script_ui.html ./webclient/templates/webclient/scripts/omero_script_ui.html
+COPY web/local_omeroweb_edits/script_ui.html ./webclient/templates/webclient/scripts/script_ui.html
+
 # Configuration file and startup scripts
 ADD web/local_omeroweb_edits/01-default-webapps.omero /opt/omero/web/config/
 ADD web/44-create_forms_user.py /startup/
