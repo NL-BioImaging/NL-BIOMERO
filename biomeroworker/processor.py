@@ -829,6 +829,26 @@ def load_biomero_scripts():
     return run_workflow_script, batched_script
 
 
+def load_metadata_script():
+    """Load the fixed administrative adapter, never a request-supplied module."""
+    load_biomero_scripts()
+    import biomero.admin.SLURM_Init_environment as metadata_script
+    if not hasattr(metadata_script, '_detached_log_handler'):
+        from logging.handlers import RotatingFileHandler
+        omero_home = os.environ.get('OMERODIR', '/opt/omero/server/OMERO.server')
+        handler = RotatingFileHandler(os.path.join(omero_home, 'var', 'log', 'biomero.log'),
+                                      maxBytes=500000000, backupCount=9)
+        handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s [%(name)s] [%(process)d] (%(threadName)s) %(message)s'))
+        metadata_script.logger.addHandler(handler)
+        metadata_script.logger.setLevel(logging.INFO)
+        maintenance_logger = logging.getLogger('biomero.detached.maintenance')
+        maintenance_logger.addHandler(handler)
+        maintenance_logger.setLevel(logging.INFO)
+        metadata_script._detached_log_handler = handler
+    return metadata_script
+
+
 def wrap_value(value):
     """Wrap a recorded input value back into the OMERO rtype a script expects."""
     from omero.rtypes import rbool, rlong, rstring, rlist, rmap, wrap
@@ -1053,6 +1073,7 @@ class WorkflowWorker(Thread):
                 f"Could not connect to OMERO at {host}:{port} as {username} "
                 f"to run workflow {self.workflow_id}")
         try:
+            admin_conn.c.enableKeepAlive(60)
             user = admin_conn.getObject("Experimenter", workflow.user)
             if not user:
                 raise ValueError(f"No OMERO user with ID {workflow.user} for "
@@ -1062,6 +1083,7 @@ class WorkflowWorker(Thread):
             # A day of leeway per session refresh; the runner keeps it alive
             # for as long as the run takes.
             with admin_conn.suConn(user.getName(), ttl=86400000) as user_conn:
+                user_conn.c.enableKeepAlive(60)
                 user_conn.keepAlive()
                 user_conn.setGroupForSession(workflow.group)
                 yield user_conn
@@ -1210,6 +1232,90 @@ class WorkflowWorker(Thread):
         return failed, pending
 
 
+class MaintenanceWorker(WorkflowWorker):
+    """Execute a durable admin request using an independently owned session."""
+
+    def __init__(self, request_id, supervisor):
+        Thread.__init__(self, name=f"MetadataRefresh-{request_id}")
+        self.daemon = True
+        # Reuse user_connection(), not analysis submission or workflow events.
+        self.workflow_id = request_id
+        self.supervisor = supervisor
+        self.logger = logging.getLogger(f"biomero.detached.maintenance.{request_id}")
+
+    def run(self):
+        try:
+            from biomero import WorkflowTracker
+            with WorkflowTracker(env={'CREATE_TABLE': 'no',
+                                      'WORKFLOWTRACKER_CREATE_TABLE': 'no'}) as tracker:
+                request = None
+                try:
+                    request = tracker.repository.get(self.workflow_id)
+                    if request.status not in ('QUEUED', 'RUNNING'):
+                        return
+                    resuming = request.status == 'RUNNING'
+                    script = load_metadata_script()
+                    with self.user_connection(request) as conn:
+                        if not conn.isAdmin():
+                            raise ValueError('Metadata refresh requires an administrator')
+                        self.logger.info('Metadata refresh request %s: %s', self.workflow_id,
+                                         'resuming interrupted sweep' if resuming else 'starting')
+                        request.started()
+                        tracker.save(request)
+                        options = request.options
+                        backup_directory = options.get('backup_directory')
+                        if resuming and backup_directory and options.get('backup_enabled'):
+                            # Previous files must never be overwritten on recovery.
+                            from uuid import uuid4
+                            backup_directory = f'{backup_directory}-resume-{uuid4()}'
+
+                        def progress(report):
+                            request.progressed(report)
+                            tracker.save(request)
+                            self.logger.info('Metadata refresh request %s: %s/%s; %s',
+                                             self.workflow_id, report['processed'],
+                                             report['discovered'], ', '.join(
+                                                 f'{key}={value}' for key, value in report['counts'].items()))
+
+                        workers = options.get('workers', 4)
+                        factory = None
+                        if workers > 1:
+                            from functools import partial
+                            factory = partial(script.metadata_refresh_worker, conn, tracker,
+                                              conn.c.getSessionId())
+                        report = script.refresh_all_metadata(
+                            conn, tracker, view_version=options.get('view_version', 'v0'),
+                            dry_run=False, backup_directory=backup_directory,
+                            backup_enabled=options.get('backup_enabled', False),
+                            workflow_ids=options.get('workflow_ids'), workers=workers,
+                            worker_factory=factory, progress_callback=progress)
+                        compact = {key: report[key] for key in
+                                   ('discovered', 'counts', 'backup_directory') if key in report}
+                        request.finished(compact)
+                        tracker.save(request)
+                        self.logger.info('Metadata refresh request %s: %s; pairs=%s; %s; backups=%s',
+                                         self.workflow_id, request.status, report.get('discovered', 0),
+                                         ', '.join(f'{key}={value}' for key, value in report['counts'].items()),
+                                         report.get('backup_directory') or 'not requested')
+                except Exception as error:
+                    self.logger.exception('Metadata refresh request %s failed', self.workflow_id)
+                    if request is not None and request.status in ('QUEUED', 'RUNNING'):
+                        request.finished(request.report, str(error) or type(error).__name__)
+                        tracker.save(request)
+                finally:
+                    datastore = getattr(tracker.factory, 'datastore', None)
+                    if datastore is not None:
+                        if getattr(datastore, 'scoped_session', None) is not None:
+                            datastore.scoped_session.remove()
+                        elif getattr(datastore, 'engine', None) is not None:
+                            datastore.engine.dispose()
+        except Exception:
+            # A persistence outage leaves QUEUED/RUNNING recoverable, not lost.
+            self.logger.exception('Cannot persist metadata request %s outcome', self.workflow_id)
+        finally:
+            self.supervisor.remove_maintenance_worker(self.workflow_id)
+
+
 class WorkflowSupervisor(Thread):
     """Finds queued workflows and runs each of them in a worker thread."""
 
@@ -1218,6 +1324,9 @@ class WorkflowSupervisor(Thread):
         self.daemon = True
         self.shutdown_event = Event()
         self.active_workers = {}  # {workflow_id: worker}
+        self.maintenance_workers = {}
+        self.maintenance_pending = set()
+        self.maintenance_cursor = 1
         self.ignored = set()      # workflows that are not ours to run
         self.tracker = None
         self.lock = Lock()
@@ -1251,6 +1360,7 @@ class WorkflowSupervisor(Thread):
                     with self.lock:
                         self.ignored.clear()
                 self.spawn_workers()
+                self.spawn_maintenance()
             except Exception as e:
                 self.logger.error(f"Supervisor poll failed: {e}", exc_info=True)
             polls += 1
@@ -1327,6 +1437,26 @@ class WorkflowSupervisor(Thread):
             for wf_id, worker in list(self.active_workers.items()):
                 if not worker.is_alive():
                     self.active_workers.pop(wf_id)
+
+    def spawn_maintenance(self):
+        """One sweep at a time, independent of the analysis concurrency slots."""
+        from biomero import maintenance
+        self.maintenance_cursor, self.maintenance_pending = maintenance.pending_metadata_refreshes(
+            self.tracker, self.maintenance_cursor, self.maintenance_pending)
+        with self.lock:
+            for request_id, worker in list(self.maintenance_workers.items()):
+                if not worker.is_alive():
+                    self.maintenance_workers.pop(request_id)
+            if self.maintenance_workers or not self.maintenance_pending:
+                return
+            request_id = sorted(self.maintenance_pending, key=str)[0]
+            worker = MaintenanceWorker(request_id, self)
+            self.maintenance_workers[request_id] = worker
+        worker.start()
+
+    def remove_maintenance_worker(self, request_id):
+        with self.lock:
+            self.maintenance_workers.pop(request_id, None)
 
     def remove_worker(self, wf_id):
         with self.lock:
