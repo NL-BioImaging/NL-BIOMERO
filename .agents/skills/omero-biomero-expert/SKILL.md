@@ -43,6 +43,19 @@ used to build the project's Docker Hub images. It is not the repository for an
 institution's production HPC deployment; those deployment-specific values live
 in separate site repositories.
 
+### Feature flags and demo defaults
+
+Implement new optional features behind a feature flag. A missing, empty or
+explicitly false flag must leave the feature disabled, preserving existing
+behavior for deployments upgrading without configuration changes.
+
+NL-BIOMERO is the full-featured demonstration: explicitly enable new features
+in its supplied `.env` and `.env.shared` defaults. Keep applicable Compose
+wiring in sync, with false fallbacks for feature-enablement flags rather than
+implicitly enabling them in containers or library defaults. Documentation must
+distinguish the enabled demo configuration from opt-in upgrades elsewhere.
+Verify enabled, false, missing and empty flag behavior when adding a feature.
+
 All enabled values and concrete examples shipped by this repository must work in
 the documented local environments:
 
