@@ -7,9 +7,11 @@ verified canonical pixels already available on the OMERO side. The importer
 validates the helper receipt and registers the result without repeating pixel
 hashing or normalization. Other workflow files follow the existing import path.
 
-The feature is disabled when ``BIOMERO_REMOTE_SHALLOW_ZARR`` is absent or false.
-It is an administrator setting, not a workflow parameter. The existing local
-shallow importer path remains the default.
+Shallow Zarr remains opt-in through ``BIOMERO_SHALLOW_ZARR=true``. When enabled,
+remote shallowing is the default. Administrators can opt out by setting
+``BIOMERO_REMOTE_SHALLOW_ZARR=false`` to use local importer shallowing instead,
+for example when additional Slurm compute costs outweigh the transfer savings.
+This setting does not enable shallow Zarr by itself and is not a workflow parameter.
 
 Requirements and enablement
 ---------------------------
