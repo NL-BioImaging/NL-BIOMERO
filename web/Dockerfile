@@ -6,7 +6,7 @@ ARG BIOMERO_SCHEMA_BRANCH=feature/remote-shallower
 ARG BIOMERO_SHALLOWER_BRANCH=feature/remote-shallower
 ARG BIOMERO_IMPORTER_BRANCH=feature/remote-shallower
 ARG BIOMERO_BRANCH=feature/remote-shallower
-ARG OMERO_BIOMERO_BRANCH=main
+ARG OMERO_BIOMERO_BRANCH=feature/remote-shallower
 
 USER root
 

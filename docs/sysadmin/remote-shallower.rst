@@ -49,6 +49,18 @@ Equivalent ``[SLURM]`` options are ``remote_shallow_zarr``,
 values override ini values. Compose explicitly supplies the environment defaults,
 so use its environment values to enable this feature in the demonstration stack.
 
+Admin settings
+--------------
+
+When shallow Zarr is enabled, OMERO.biomero's admin settings show a Shallow Zarr
+section. Remote shallowing is enabled by default; switching it off hides the
+helper fields without removing their saved values. When enabled, the section
+provides image, tool version, worker count, partition, memory and time settings.
+These fields save the worker's Slurm configuration, not the importer's deployment
+environment. Keep the importer trust settings aligned and remember that deployment
+environment variables override saved configuration. Run Slurm Init after changing
+the helper image.
+
 Failure and observability
 -------------------------
 
