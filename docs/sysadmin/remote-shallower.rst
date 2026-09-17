@@ -13,6 +13,33 @@ remote shallowing is the default. Administrators can opt out by setting
 for example when additional Slurm compute costs outweigh the transfer savings.
 This setting does not enable shallow Zarr by itself and is not a workflow parameter.
 
+Choosing local or remote shallowing
+----------------------------------
+
+Shallow Zarr trades pixel-verification compute and storage I/O for reduced
+persistent disk use. Local and remote shallowing provide the same storage
+optimization; the choice determines where the processing takes place.
+
+Remote shallowing adds a CPU job on the HPC cluster, with any associated
+compute charges and queue wait. In exchange, duplicate pixels do not need to
+be archived, transferred back, or extracted onto importer storage. It is most
+useful when transfer bandwidth or importer storage I/O limits result retrieval.
+Local shallowing avoids that extra HPC job but transfers the full result and
+performs verification and shallowing in the importer.
+
+In an observed 18-image cisegmentation comparison on the Windows/Docker
+development deployment, remote shallowing reduced the returned ZIP from
+153.0 MB to 17.8 MB (88.4%). Combined identity calculation, shallowing,
+archiving, transfer and local extraction fell from 194.4 to 84.4 seconds,
+a saving of approximately 110 seconds (57%). The remote helper occupied one
+allocated CPU for 25 seconds. These observations are deployment-specific,
+not a guaranteed speedup or a measurement of HPC billing costs.
+
+See :doc:`../developer/biomero-shallow-zarr` for the storage model, detailed
+stage measurements, and comparison limitations. Keep remote shallowing enabled
+when these savings justify the cluster allocation; set
+``BIOMERO_REMOTE_SHALLOW_ZARR=false`` when local processing is preferable.
+
 Requirements and enablement
 ---------------------------
 
