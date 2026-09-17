@@ -176,6 +176,7 @@ See also
 --------
 
 * :doc:`slurm-integration`
+* :doc:`metadata-refresh`
 * :doc:`analyzer-importer-admin`
 * :doc:`../developer/containers/biomeroworker`
 * :doc:`../developer/detached-workflow-supervisor`

@@ -22,6 +22,7 @@
    sysadmin/metabase-admin
    sysadmin/slurm-integration
    sysadmin/detached-workflows
+   sysadmin/metadata-refresh
    sysadmin/analyzer-importer-admin
 
 .. toctree::
