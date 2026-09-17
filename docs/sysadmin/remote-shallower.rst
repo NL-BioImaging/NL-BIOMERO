@@ -7,11 +7,14 @@ verified canonical pixels already available on the OMERO side. The importer
 validates the helper receipt and registers the result without repeating pixel
 hashing or shallowing. Other workflow files follow the existing import path.
 
-Shallow Zarr remains opt-in through ``BIOMERO_SHALLOW_ZARR=true``. When enabled,
-remote shallowing is the default. Administrators can opt out by setting
-``BIOMERO_REMOTE_SHALLOW_ZARR=false`` to use local importer shallowing instead,
-for example when additional Slurm compute costs outweigh the transfer savings.
-This setting does not enable shallow Zarr by itself and is not a workflow parameter.
+The NL-BIOMERO demonstration deployment enables both shallow Zarr and remote
+shallowing through its supplied feature flags. Administrators upgrading their
+own deployments should explicitly configure ``BIOMERO_SHALLOW_ZARR=true`` and
+``BIOMERO_REMOTE_SHALLOW_ZARR=true`` when adopting these features; the demo
+configuration is not an upgrade instruction to enable every feature.
+Set ``BIOMERO_REMOTE_SHALLOW_ZARR=false`` to use local importer shallowing
+instead. Remote shallowing does not enable shallow Zarr by itself and is not
+a workflow parameter.
 
 Choosing local or remote shallowing
 ----------------------------------
@@ -27,13 +30,11 @@ useful when transfer bandwidth or importer storage I/O limits result retrieval.
 Local shallowing avoids that extra HPC job but transfers the full result and
 performs verification and shallowing in the importer.
 
-In an observed 18-image cisegmentation comparison on the Windows/Docker
-development deployment, remote shallowing reduced the returned ZIP from
-153.0 MB to 17.8 MB (88.4%). Combined identity calculation, shallowing,
-archiving, transfer and local extraction fell from 194.4 to 84.4 seconds,
-a saving of approximately 110 seconds (57%). The remote helper occupied one
-allocated CPU for 25 seconds. These observations are deployment-specific,
-not a guaranteed speedup or a measurement of HPC billing costs.
+An 18-image segmentation comparison in the demonstration deployment returned
+approximately 88% fewer archive bytes and reduced the measured result-processing
+stages by approximately 57%. These are illustrative observations, not guaranteed
+savings: cluster queues, storage performance and the amount of unchanged data
+determine the benefit for each deployment.
 
 See :doc:`../developer/biomero-shallow-zarr` for the storage model, detailed
 stage measurements, and comparison limitations. Keep remote shallowing enabled
@@ -83,7 +84,7 @@ Admin settings
 --------------
 
 When shallow Zarr is enabled, OMERO.biomero's admin settings show a Shallow Zarr
-section. Remote shallowing is enabled by default; switching it off hides the
+section. The demonstration configuration enables remote shallowing; switching it off hides the
 helper fields without removing their saved values. When enabled, the section
 provides image, tool version, worker count, partition, memory and time settings.
 These fields save the worker's Slurm configuration, not the importer's deployment

@@ -449,8 +449,9 @@ reconstructed during such a transition.
 ## Operational trade-off: storage versus import time
 
 Shallow storage saves persistent disk space at the cost of pixel identity
-calculation and storage I/O. It is opt-in: set `BIOMERO_SHALLOW_ZARR=true`
-to enable it. The unchanged source must remain available because shallow
+calculation and storage I/O. The NL-BIOMERO demo enables it through
+`BIOMERO_SHALLOW_ZARR=true`; administrators adopting it in their own deployments
+enable that feature flag explicitly. The unchanged source must remain available because shallow
 results reference it rather than retain another copy.
 
 Administrators can choose where that processing takes place:
@@ -459,7 +460,7 @@ Administrators can choose where that processing takes place:
 | --- | --- | --- |
 | Full results (shallow Zarr disabled) | No shallow-specific verification or processing | Duplicate pixels remain in transferred and stored results |
 | Local shallowing | Reduced persistent storage without another HPC job | Full results must be transferred and extracted; importer CPU and storage I/O perform the shallowing |
-| Remote shallowing (default when shallow Zarr is enabled) | Reduced persistent storage, smaller transfers, and potentially shorter result retrieval | Additional HPC CPU allocation and any associated charges or queue wait |
+| Remote shallowing (enabled in the demo) | Reduced persistent storage, smaller transfers, and potentially shorter result retrieval | Additional HPC CPU allocation and any associated charges or queue wait |
 
 Both shallow modes preserve new or changed labels and reference verified,
 unchanged pixels. Remote shallowing changes where the work happens, not the
@@ -526,8 +527,10 @@ transfer. The importer validates the resulting receipt and registers the
 shallow result without repeating pixel hashing and shallowing. Removing
 duplicate pixels before transfer also reduces local extraction work.
 
-`BIOMERO_REMOTE_SHALLOW_ZARR` defaults to `true`, conditional on shallow Zarr
-being enabled. Set it to `false` to retain local importer shallowing. Prefer
+The NL-BIOMERO demo explicitly enables `BIOMERO_REMOTE_SHALLOW_ZARR` alongside
+`BIOMERO_SHALLOW_ZARR`. Administrators adopting remote shallowing in their own
+deployments should explicitly enable both flags and prepare the helper image.
+Set the remote flag to `false` to retain local importer shallowing. Prefer
 remote processing when transfer bandwidth or importer storage I/O is the
 bottleneck; prefer local processing when cluster charges, CPU availability,
 or queue delays outweigh those savings. The helper is a CPU job and does not
