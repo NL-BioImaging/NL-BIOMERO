@@ -97,12 +97,14 @@ Set these deployment environment values:
    BIOMERO_REMOTE_SHALLOWER_WORKERS=1
    BIOMERO_REMOTE_SHALLOWER_PARTITION=
 
-Enabling these flags is not sufficient on its own. Configure
-``remote_shallower_image`` and ``remote_shallower_version`` under ``[SLURM]``
-in the worker's ``slurm-config.ini``. Core has no built-in helper release pin;
-the BIOMERO core sample ``resources/slurm-config.ini`` contains a maintained
-release selection. The tool version must match the version written into the
-helper's receipts, including any normalized prerelease suffix.
+Prefer a pinned ``remote_shallower_image`` under ``[SLURM]`` in the worker's
+``slurm-config.ini``. The fallback is
+``cellularimagingcf/biomero-shallower:latest``; the BIOMERO core sample
+``resources/slurm-config.ini`` contains a maintained release selection.
+When ``remote_shallower_version`` is unset, core reads the installed image's
+OCI tool-version label before submitting a new helper task. An explicit value
+must match the version written into receipts, including any normalized
+prerelease suffix. Existing tasks retain their recorded version for recovery.
 
 Set ``BIOMERO_REMOTE_SHALLOWER_IMAGE`` and
 ``BIOMERO_REMOTE_SHALLOWER_VERSION`` on the importer to the same selected
