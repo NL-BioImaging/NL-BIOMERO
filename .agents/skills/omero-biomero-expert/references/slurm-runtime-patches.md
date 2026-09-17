@@ -1,5 +1,12 @@
 # Slurm / HPC Runtime Configuration
 
+Runtime policy is administrator-managed through the canonical
+`web/slurm-config.ini`. The legacy env override names below describe compatibility
+capabilities, not recommended demo defaults. Do not copy resource, partition,
+worker-count or image-selection overrides into Compose environments: they would
+override changes saved through OMERO.biomero. Keep container feature flags in
+the deployment environment.
+
 ## NL-BIOMERO Local-Demo Boundary
 
 The checked-in NL-BIOMERO Compose and INI examples target the documented local

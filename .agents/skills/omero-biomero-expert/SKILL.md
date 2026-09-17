@@ -56,6 +56,28 @@ implicitly enabling them in containers or library defaults. Documentation must
 distinguish the enabled demo configuration from opt-in upgrades elsewhere.
 Verify enabled, false, missing and empty flag behavior when adding a feature.
 
+### Deployment flags versus administrator-managed runtime settings
+
+Container feature flags belong in `.env`/`.env.shared` and applicable Compose
+environments: they control feature availability and may require recreation or
+restart. Do not treat this as permission to put every BIOMERO setting in env.
+
+Runtime and Slurm Init-managed settings belong in the canonical
+`web/slurm-config.ini`, so OMERO.biomero administrators can manage them without
+editing a deployment. This includes worker/CPU counts, partitions, memory/time
+limits, image acquisition settings and helper image/version selection. Keep
+alternative INI examples aligned where applicable. Do not inject matching env
+overrides into web or biomeroworker, including empty values or fallback defaults:
+env precedence prevents the admin interface's saved INI values from taking effect.
+Library support for an env override is not a reason to enable it in the demo.
+
+Respect component boundaries: the importer has its own settings and does not
+read `slurm-config.ini`. Preserve its required validation/trust configuration;
+do not force importer settings into the Slurm INI. Where importer trust settings
+must match a Slurm helper selection, document that alignment without injecting
+the importer's values as overrides into web or biomeroworker. Do not remove
+required validation inputs or weaken validation to simplify configuration.
+
 All enabled values and concrete examples shipped by this repository must work in
 the documented local environments:
 

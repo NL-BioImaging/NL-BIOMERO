@@ -101,8 +101,10 @@ Set these deployment environment values:
    IMPORTER_ENABLED=true
    BIOMERO_SHALLOW_ZARR=true
    BIOMERO_REMOTE_SHALLOW_ZARR=true
-   BIOMERO_REMOTE_SHALLOWER_WORKERS=1
-   BIOMERO_REMOTE_SHALLOWER_PARTITION=
+
+Configure helper runtime settings under ``[SLURM]`` in the shared
+``web/slurm-config.ini`` or through OMERO.biomero's admin settings. Do not supply
+worker runtime overrides in Compose: they take precedence over saved INI values.
 
 Prefer a pinned ``remote_shallower_image`` under ``[SLURM]`` in the worker's
 ``slurm-config.ini``. The fallback is
@@ -115,13 +117,13 @@ prerelease suffix. Existing tasks retain their recorded version for recovery.
 
 Set ``BIOMERO_REMOTE_SHALLOWER_IMAGE`` and
 ``BIOMERO_REMOTE_SHALLOWER_VERSION`` on the importer to the same selected
-values for receipt validation. These environment variables can also override
-the worker's ini settings. For the Compose demonstration, keep the shared
-values in the deployment environment aligned across both services.
+values for receipt validation. The importer has its own settings and does not
+read the Slurm INI. The demonstration supplies these trust values only to the
+importer, not to web or the workflow worker. Keep them aligned when changing
+the helper image through the admin interface.
 
-The worker's processor forwards the new variables through
-``biomero.constants.slurm_env``. Compose supplies matching trust settings to the
-importer. An empty helper partition inherits the generic configured partition,
+The worker loads helper runtime settings from the shared Slurm INI. Compose
+supplies matching trust settings to the importer. An empty helper partition inherits the generic configured partition,
 then the scheduler default; administrators can choose their CPU partition
 explicitly. The helper requests no GPU. It uses its
 worker count as CPUs per task and inherits global memory, time, account,
@@ -134,8 +136,9 @@ setup error identifying the required image; initialize and verify it before retr
 Equivalent ``[SLURM]`` options are ``remote_shallow_zarr``,
 ``remote_shallower_image``, ``remote_shallower_version``,
 ``remote_shallower_workers``, and ``remote_shallower_partition``. Environment
-values override ini values. Compose explicitly supplies the environment defaults,
-so use its environment values to enable this feature in the demonstration stack.
+values override ini values when explicitly supplied. The demonstration keeps
+runtime settings in the INI and supplies only feature flags to the worker through
+the deployment environment.
 
 Admin settings
 --------------
@@ -144,9 +147,8 @@ When shallow Zarr is enabled, OMERO.biomero's admin settings show a Shallow Zarr
 section. The demonstration configuration enables remote shallowing; switching it off hides the
 helper fields without removing their saved values. When enabled, the section
 provides image, tool version, worker count, partition, memory and time settings.
-These fields save the worker's Slurm configuration, not the importer's deployment
-environment. Keep the importer trust settings aligned and remember that deployment
-environment variables override saved configuration. Run Slurm Init after changing
+These fields save the worker's Slurm configuration, not the importer's separate
+settings. Keep the importer trust settings aligned. Run Slurm Init after changing
 the helper image.
 
 Failure and observability
