@@ -131,6 +131,22 @@ or the BIOMERO import provenance map annotation. The viewer supports OME-Zarr
 0.4/Zarr v2 and OME-Zarr 0.5/Zarr v3, including NGFF labels and HCS metadata.
 It is independent of the shallow-Zarr and detached-workflow feature flags.
 
+Compatibility with shallow results
+------------------------------------------
+
+This initial integration pins viewer 0.5.0, which expects a complete physical
+NGFF store. BIOMERO shallow results omit duplicate intensity arrays and retain
+labels in a separate result store. Such results are not yet directly supported
+by this viewer version and can return ``invalid_ome_zarr_metadata``.
+
+The beta.7 compatibility work must validate the ``biomero.zarr.shallow`` index
+against its authoritative ``.biomero-shallow.json`` manifest, then display
+canonical source intensities with the retained or inherited label layers.
+That work is separate from enabling the viewer in the deployment. Before
+releasing the complete beta.7 feature, update the package pin to a published
+viewer version that supports this split-store contract and verify a real
+remote-shallowed result. Complete image and plate stores remain supported.
+
 Verification and troubleshooting
 ----------------------------------------
 
