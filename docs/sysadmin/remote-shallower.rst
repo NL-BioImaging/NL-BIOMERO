@@ -7,39 +7,34 @@ verified canonical pixels already available on the OMERO side. The importer
 validates the helper receipt and registers the result without repeating pixel
 hashing or shallowing. Other workflow files follow the existing import path.
 
-The NL-BIOMERO demonstration deployment enables both shallow Zarr and remote
-shallowing through its supplied feature flags. Administrators upgrading their
-own deployments should explicitly configure ``BIOMERO_SHALLOW_ZARR=true`` and
-``BIOMERO_REMOTE_SHALLOW_ZARR=true`` when adopting these features; the demo
-configuration is not an upgrade instruction to enable every feature.
-Set ``BIOMERO_REMOTE_SHALLOW_ZARR=false`` to use local importer shallowing
-instead. Remote shallowing does not enable shallow Zarr by itself and is not
-a workflow parameter.
+The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
+``BIOMERO_SHALLOW_ZARR=true``. Remote processing is then the default; set
+``BIOMERO_REMOTE_SHALLOW_ZARR=false`` for local importer processing instead.
+Without shallow Zarr enabled, the remote setting has no effect.
 
 Choosing local or remote shallowing
 ----------------------------------
 
-Shallow Zarr trades pixel-verification compute and storage I/O for reduced
-persistent disk use. Local and remote shallowing provide the same storage
-optimization; the choice determines where the processing takes place.
+.. list-table:: Illustrative storage and processing trade-offs
+   :header-rows: 1
+   :widths: 20 30 50
 
-Remote shallowing adds a CPU job on the HPC cluster, with any associated
-compute charges and queue wait. In exchange, duplicate pixels do not need to
-be archived, transferred back, or extracted onto importer storage. It is most
-useful when transfer bandwidth or importer storage I/O limits result retrieval.
-Local shallowing avoids that extra HPC job but transfers the full result and
-performs verification and shallowing in the importer.
+   * - Mode
+     - Result disk space
+     - Time and compute cost
+   * - Full results
+     - No deduplication savings
+     - No shallowing work; full results transferred and stored.
+   * - Local shallow Zarr
+     - Approximately 90% saved in measured examples
+     - Extra importer work: 63 minutes for the 846-image Plate.
+   * - Remote shallow Zarr
+     - Preserves shallow-storage savings
+     - 18-image comparison: 57% less time in measured return stages and 88% fewer transfer bytes; extra HPC CPU job (25 seconds).
 
-An 18-image segmentation comparison in the demonstration deployment returned
-approximately 88% fewer archive bytes and reduced the measured result-processing
-stages by approximately 57%. These are illustrative observations, not guaranteed
-savings: cluster queues, storage performance and the amount of unchanged data
-determine the benefit for each deployment.
-
-See :doc:`../developer/biomero-shallow-zarr` for the storage model, detailed
-stage measurements, and comparison limitations. Keep remote shallowing enabled
-when these savings justify the cluster allocation; set
-``BIOMERO_REMOTE_SHALLOW_ZARR=false`` when local processing is preferable.
+Results depend on data, storage and cluster queues; HPC charges may apply.
+The full-Plate remote speedup has not yet been measured. See
+:doc:`../developer/biomero-shallow-zarr` for the complete timings and limitations.
 
 Requirements and enablement
 ---------------------------
