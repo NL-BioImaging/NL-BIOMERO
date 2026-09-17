@@ -214,6 +214,61 @@ BIOMERO.importer in local mode. They are not tied to the lifetime of the OMERO.w
 workflow. The OMERO script currently waits for the import status, but an ended
 web session does not terminate importer-owned processing.
 
+(reconstruct-shallow-zarr-on-disk)=
+## Reconstruct a standalone Zarr on disk
+
+The filesystem API `biomero_shallower.result_zarr.materialize_shallow_zarr`
+is the same implementation used by Image Transfer, also re-exported through
+`biomero_importer.utils.result_zarr`. It supports Images and Plates without
+an OMERO connection, workflow submission or Slurm job.
+
+From the NL-BIOMERO Compose directory, open Python in the worker:
+
+```sh
+docker compose exec biomeroworker /opt/omero/server/venv3/bin/python
+```
+
+Paste the following, replacing the source and destination with **container
+paths**. For a whole Plate, select the result Zarr root, not an individual label.
+
+```python
+from pathlib import Path
+from biomero_shallower.result_zarr import (
+    load_managed_storage_roots,
+    resolve_shallow_registration,
+    materialize_shallow_zarr,
+)
+
+mount = Path("/data")
+source = Path("/data/Project B/.analyzed/WORKFLOW/TIMESTAMP/result.ome.zarr")
+destination = Path("/data/Project B/reconstructed-result.ome.zarr")
+roots = load_managed_storage_roots(
+    import_mount_path=mount,
+    config_file="/opt/omero/server/biomero-config.json",
+)
+view = resolve_shallow_registration(
+    source, storage_roots=roots, import_mount_path=mount,
+)
+if view is None:
+    raise ValueError("No shallow collection found at the source path")
+result = materialize_shallow_zarr(view.reference, destination, roots)
+print(result.destination)
+```
+
+The configuration path above is the demo worker's mounted group configuration.
+Custom deployments must use their authoritative group mappings: pass
+`group_mappings_file="/path/to/group-mappings.json"` as well when a separate
+mapping file is used. All referenced source and inherited-label stores must
+be readable at the mapped paths. Do not guess mappings from folder names.
+
+The destination must not exist, its parent must be writable, and sufficient
+space must be available for the **full** reconstructed result. The function
+copies pixels and labels into a staging directory and publishes the destination
+after successful assembly. The source and shallow stores remain unchanged.
+The result is a conventional NGFF 0.4 / Zarr v2 store that no longer depends
+on BIOMERO-managed pixel references. This does not register a new OMERO object.
+There is currently no dedicated reconstruction CLI command.
+
 ## Relationship to OME-NGFF RFC 8
 
 [RFC 8](https://ngff.openmicroscopy.org/rfc/8/) proposes Collections and, as a

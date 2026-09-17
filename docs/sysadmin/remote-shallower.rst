@@ -12,6 +12,49 @@ The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
 ``BIOMERO_REMOTE_SHALLOW_ZARR=false`` for local importer processing instead.
 Without shallow Zarr enabled, the remote setting has no effect.
 
+Lifecycle overview
+------------------
+
+Only derived workflow results are shallowed. The managed source remains
+unchanged and must remain available. This diagram shows the Zarr workflow path;
+non-Zarr results continue through their usual import path.
+
+.. mermaid::
+
+   flowchart TD
+       A["Existing managed Zarr"] --> C["Full source Zarr<br/>Retained unchanged"]
+       B["Non-Zarr input"] -->|"Create reusable Zarr"| C
+       C --> I["Record or reuse source<br/>ISCC-BIO pixel identities"]
+       I --> T["Transfer full Zarr to HPC"]
+       T --> H["Workflow produces images and labels"]
+       H --> Q{"Where is eligibility checked?"}
+       Q -->|"Remote"| R["On HPC, before ZIP and transfer"]
+       Q -->|"Local"| L["In importer, after full transfer"]
+       R --> V{"Pixels match source<br/>and result is eligible?"}
+       L --> V
+       I -. "Recorded identities" .-> V
+       V -->|"Changed or uncertain"| F["Keep full result"]
+       V -->|"Verified unchanged"| S["Shallow result<br/>Remove duplicate result arrays<br/>Keep new labels and managed references"]
+       F --> O["Register results in OMERO"]
+       S --> O
+       C -. "PixelBuffer reads source pixels" .-> O
+       S -. "Label views read retained labels" .-> O
+       S --> M["Reconstruct on demand"]
+       C --> M
+       M --> Z["Full, self-contained OME-Zarr<br/>Source pixels and result labels"]
+       Z -->|"Next Zarr workflow"| T
+
+In remote mode, transfer follows the eligibility decision: eligible results
+travel shallow; other results travel in full. New or changed labels are retained;
+unchanged inherited labels may also be referenced instead of duplicated.
+
+A shallow result is a BIOMERO-managed representation, not a self-contained
+OME-Zarr for generic readers. OMERO's registered pixel paths reference the
+managed source or retained labels; OMERO does not invent missing pixels.
+Image Transfer reconstructs a full Zarr for subsequent Zarr workflows.
+For a standalone copy on disk, see
+:ref:`reconstruct-shallow-zarr-on-disk`.
+
 Choosing local or remote shallowing
 ----------------------------------
 
