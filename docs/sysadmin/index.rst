@@ -10,6 +10,7 @@ This section covers all aspects of NL-BIOMERO deployment, from initial setup to 
 * **Slurm Integration** - High-performance computing cluster setup
 * **Detached Workflows** - Run analyses independently of browser sessions
 * :doc:`metadata-refresh` - Preview and refresh searchable workflow annotations
+* :doc:`zarrviewer` - Enable authenticated viewing of physical OME-Zarr images and plates
 * **Docker Compose Scenarios** - Container orchestration configurations
 * **Linux Deployment** - Linux-specific deployment instructions
 * **Development Setup** - Setting up development environments

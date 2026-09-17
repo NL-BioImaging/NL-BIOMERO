@@ -1,0 +1,27 @@
+name: ZarrViewer configuration
+
+on:
+  pull_request:
+    paths:
+      - 'web/55-configure-zarr-viewer.py'
+      - 'web/tests/test_zarr_viewer_config.py'
+      - '.github/workflows/zarrviewer-config.yml'
+  push:
+    paths:
+      - 'web/55-configure-zarr-viewer.py'
+      - 'web/tests/test_zarr_viewer_config.py'
+      - '.github/workflows/zarrviewer-config.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  feature-transitions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Preserve plugins across opt-in and opt-out transitions
+        run: python -m unittest discover -s web/tests -p 'test_zarr_viewer_config.py'

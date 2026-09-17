@@ -2,6 +2,7 @@ FROM openmicroscopy/omero-web-standalone:5.31.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
+ARG BIOMERO_ZARR_VIEWER_VERSION=0.5.0
 # ARG BIOMERO_SCHEMA_BRANCH=main
 # ARG BIOMERO_SHALLOWER_BRANCH=main
 # ARG BIOMERO_IMPORTER_BRANCH=main
@@ -70,6 +71,9 @@ RUN /opt/omero/web/venv3/bin/pip install \
 # Install OMERO.forms from PyPI
 RUN /opt/omero/web/venv3/bin/pip install omero-forms==${OMERO_FORMS_VERSION}
 
+# The published wheel includes the frontend; registration is opt-in at startup.
+RUN /opt/omero/web/venv3/bin/pip install "biomero-zarr-viewer==${BIOMERO_ZARR_VIEWER_VERSION}"
+
 # Set the working directory
 WORKDIR /opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb
 
@@ -87,7 +91,9 @@ COPY web/local_omeroweb_edits/script_ui.html ./webclient/templates/webclient/scr
 ADD web/local_omeroweb_edits/01-default-webapps.omero /opt/omero/web/config/
 ADD web/44-create_forms_user.py /startup/
 ADD web/45-fix-forms-config.sh /startup/
+COPY web/55-configure-zarr-viewer.py /startup/
 RUN chmod +x /startup/45-fix-forms-config.sh && \
+    chmod +x /startup/55-configure-zarr-viewer.py && \
     chmod +x /startup/44-create_forms_user.py && \
     chown -R omero-web:omero-web /opt/omero/web/config && \
     chmod 644 /opt/omero/web/config/01-default-webapps.omero
