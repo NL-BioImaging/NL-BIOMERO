@@ -27,6 +27,10 @@ This is an adaptation of OME's <a href="https://github.com/ome/docker-example-om
 
 - OMERO.server listens on ports `4063` and `4064`  
 - OMERO.web listens on port `4080` (http://localhost:4080/)  
+- The enabled OME-Zarr demo frontend listens on `4081` (http://localhost:4081/).
+  Sign in through this endpoint to use **Open With > OME-Zarr Viewer** on
+  registered OME-Zarr Images and Plates, including segmentation labels.
+  See the [viewer deployment and opt-in upgrade guide](docs/sysadmin/zarrviewer.rst).
 
 > ⚠️ **Warning:** This setup is mainly intended for demonstration or development purposes. For professional deployments, refer to the documented deployment scenarios in our documentation and see the [deployment scenarios](./deployment_scenarios) folder. We **strongly discourage** running Slurm inside Docker Compose for production; connect BIOMERO to a real HPC cluster to ensure stability, full feature support, and performance.
 
@@ -73,6 +77,8 @@ First, customize your environment file `.env`:
 # Toggle UI components (both default to TRUE):
 # IMPORTER_ENABLED=TRUE   # Enables the BIOMERO.importer UI module
 # ANALYZER_ENABLED=TRUE   # Enables the BIOMERO.analyzer UI module
+# BIOMERO_ZARR_VIEWER_ENABLED=TRUE  # Enabled in the supplied demo configuration
+# BIOMERO_ZARR_VIEWER_PROXY_PORT=4081  # Nginx endpoint required for viewer data
 # BIOMERO_SHALLOW_ZARR=FALSE  # Opt in to canonical-cache/shallow-result handling
 # BIOMERO_SHALLOW_ZARR_WORKERS=4  # Optional importer-side identity workers
 # BIOMERO_DETACHED_WORKFLOWS=TRUE  # Enabled in this fresh demo configuration
@@ -93,6 +99,14 @@ export/import behavior. `BIOMERO_SHALLOW_ZARR_WORKERS` is an importer-service
 setting and defaults to `4` in this deployment. Installations may override it
 to match their local CPU and storage capacity. It is not forwarded to OMERO
 scripts and is unused while shallow mode is disabled.
+
+The supplied demo selects `COMPOSE_PROFILES=IMPORTER_ENABLED,ZARR_VIEWER_ENABLED`.
+Existing deployments upgrading their images keep the viewer disabled when
+`BIOMERO_ZARR_VIEWER_ENABLED` is missing, empty or false. To opt in, enable the
+flag and configure the authenticated Nginx storage route; the local proxy is
+started by the `ZARR_VIEWER_ENABLED` profile. The HTTPS scenario extends its
+existing Nginx frontend. Preserve your current environment and site settings
+when upgrading. See the [viewer guide](docs/sysadmin/zarrviewer.rst).
 
 > **New in NL-BIOMERO 1.8 — opt-in detached-workflow feature:**
 > The `BIOMERO_DETACHED_WORKFLOWS` feature flag allows an accepted workflow to

@@ -188,8 +188,11 @@ services:
       args:
         OMERO_BIOMERO_VERSION: ${OMERO_BIOMERO_VERSION}
         OMERO_FORMS_VERSION: ${OMERO_FORMS_VERSION}
+        BIOMERO_ZARR_VIEWER_VERSION: ${BIOMERO_ZARR_VIEWER_VERSION:-0.5.0}
     environment:
       OMEROHOST: omeroserver
+      BIOMERO_ZARR_VIEWER_ENABLED: ${BIOMERO_ZARR_VIEWER_ENABLED:-false}
+      BIOMERO_ZARR_VIEWER_SOURCE_ROOT: ${BIOMERO_ZARR_VIEWER_SOURCE_ROOT:-}
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
       BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
       CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
@@ -230,6 +233,21 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+
+  # Optional HTTP endpoint for authorized physical OME-Zarr reads.
+  zarrviewer-nginx:
+    image: nginx:alpine
+    profiles:
+      - ZARR_VIEWER_ENABLED
+    ports:
+      - "${BIOMERO_ZARR_VIEWER_PROXY_PORT:-4081}:4080"
+    networks:
+      - omero
+    volumes:
+      - "./nginx/zarrviewer.conf:/etc/nginx/nginx.conf:ro"
+      - "${INPLACE_STORAGE_HOST_PATH}:/data:ro"
+    depends_on:
+      - omeroweb
 
   metabase:
     image: metabase/metabase@sha256:f7b5dc52c21aaa2dca910a450e7e6119a975090ce9fc80726aa0742882ca176c

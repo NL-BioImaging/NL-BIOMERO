@@ -23,6 +23,7 @@
    sysadmin/slurm-integration
    sysadmin/detached-workflows
    sysadmin/metadata-refresh
+   sysadmin/zarrviewer
    sysadmin/analyzer-importer-admin
 
 .. toctree::

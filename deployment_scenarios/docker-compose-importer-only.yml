@@ -19,6 +19,8 @@ services:
     image: "cellularimagingcf/omeroweb:${NL_BIOMERO_VERSION:-latest}"
     environment:
       OMEROHOST: ${EXTERNAL_OMERO_HOST}
+      BIOMERO_ZARR_VIEWER_ENABLED: ${BIOMERO_ZARR_VIEWER_ENABLED:-false}
+      BIOMERO_ZARR_VIEWER_SOURCE_ROOT: ${BIOMERO_ZARR_VIEWER_SOURCE_ROOT:-}
       OMEROPORT: ${EXTERNAL_OMERO_PORT:-4064}
       BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
       CONFIG_omero_web_login__logo: "https://cembo.eu/wp-content/uploads/2021/04/Amsterdam-UMC.png"
