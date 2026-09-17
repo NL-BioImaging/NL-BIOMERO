@@ -82,12 +82,10 @@ The full-Plate remote speedup has not yet been measured. See
 Requirements and enablement
 ---------------------------
 
-Install matching BIOMERO core, scripts, importer, ``biomero-shallower==0.1.0``,
-and schema packages containing the version-1 receipt contracts. The initial
-schema build is ``0.2.1.dev1``; use the corresponding published release when
-available. Supply a versioned helper image in a registry accessible to the
-cluster. An immutable ``@sha256:...`` image reference can be used. Configure
-the same image and helper package version on the worker and importer.
+Install compatible BIOMERO core, scripts, importer, shallower and schema
+packages. The Python package installation does not acquire the helper image
+on Slurm. Supply a helper image in a registry accessible to the cluster;
+a pinned tag or immutable ``@sha256:...`` reference is recommended.
 
 Set these deployment environment values:
 
@@ -96,15 +94,27 @@ Set these deployment environment values:
    IMPORTER_ENABLED=true
    BIOMERO_SHALLOW_ZARR=true
    BIOMERO_REMOTE_SHALLOW_ZARR=true
-   BIOMERO_REMOTE_SHALLOWER_IMAGE=cellularimagingcf/biomero-shallower:0.1.0
-   BIOMERO_REMOTE_SHALLOWER_VERSION=0.1.0
    BIOMERO_REMOTE_SHALLOWER_WORKERS=1
    BIOMERO_REMOTE_SHALLOWER_PARTITION=
 
+Enabling these flags is not sufficient on its own. Configure
+``remote_shallower_image`` and ``remote_shallower_version`` under ``[SLURM]``
+in the worker's ``slurm-config.ini``. Core has no built-in helper release pin;
+the BIOMERO core sample ``resources/slurm-config.ini`` contains a maintained
+release selection. The tool version must match the version written into the
+helper's receipts, including any normalized prerelease suffix.
+
+Set ``BIOMERO_REMOTE_SHALLOWER_IMAGE`` and
+``BIOMERO_REMOTE_SHALLOWER_VERSION`` on the importer to the same selected
+values for receipt validation. These environment variables can also override
+the worker's ini settings. For the Compose demonstration, keep the shared
+values in the deployment environment aligned across both services.
+
 The worker's processor forwards the new variables through
 ``biomero.constants.slurm_env``. Compose supplies matching trust settings to the
-importer. An empty partition lets Slurm select its default; administrators can
-choose their CPU partition explicitly. The helper requests no GPU. It uses its
+importer. An empty helper partition inherits the generic configured partition,
+then the scheduler default; administrators can choose their CPU partition
+explicitly. The helper requests no GPU. It uses its
 worker count as CPUs per task and inherits global memory, time, account,
 reservation, and QoS settings. Image acquisition uses the established image-pull
 resource settings. Run ``SLURM_Init_environment`` before running analyses and
