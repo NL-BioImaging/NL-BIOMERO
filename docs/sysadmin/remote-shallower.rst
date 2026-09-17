@@ -12,6 +12,13 @@ The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
 ``BIOMERO_REMOTE_SHALLOW_ZARR=false`` for local importer processing instead.
 Without shallow Zarr enabled, the remote setting has no effect.
 
+The demonstration stack shares ``web/slurm-config.ini`` between OMERO.biomero
+and the workflow worker. ``SLURM_CONFIG_HOST_PATH`` selects this canonical
+configuration in the root Compose files; deployment-scenario files mount the
+same file. The INIs under ``biomeroworker/`` are alternative examples, not
+additional active configurations. Shallow storage and detached execution are
+enabled through the deployment environment, not through INI feature flags.
+
 Lifecycle overview
 ------------------
 
