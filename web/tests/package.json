@@ -1,0 +1,6 @@
+{
+  "name": "nl-biomero-web-regression-tests",
+  "private": true,
+  "scripts": { "test": "node script-list-controls.test.cjs" },
+  "devDependencies": { "jsdom": "16.7.0" }
+}

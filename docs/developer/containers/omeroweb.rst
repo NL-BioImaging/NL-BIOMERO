@@ -106,6 +106,12 @@ Current modifications include:
    - Improved button clarity and UX
    - Modified default OMERO.web templates
 
+**Script List Selectors**
+   The web image preserves OMERO's script-dialog template and extends it with
+   Chosen-aware list controls. Adding or removing a selector updates both the
+   native form element and its searchable widget, so visible selections match
+   the UUIDs submitted to the script.
+
 **Database Pages Integration** *(Deprecated)*
     - *Replaced by OMERO.biomero plugin*
     - *Legacy features:*

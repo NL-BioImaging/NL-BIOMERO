@@ -191,7 +191,8 @@ identity changes and BIOMERO stores that changed label as a new component.
    contract and is removed from the stored result.
 4. The workflow runs against a normal, full OME-Zarr. It may ignore and simply
    copy BIOMERO metadata.
-5. On return, BIOMERO.importer recomputes the decoded pixel identities. If the
+5. After analysis, the remote shallower (or BIOMERO.importer in local mode)
+   recomputes the decoded pixel identities. If the
    image pixels match the corresponding source and useful labels are present,
    it transactionally removes the duplicated image arrays and writes
    `.biomero-shallow.json`. Changed or uncertain results stay full.
@@ -208,10 +209,65 @@ identity changes and BIOMERO stores that changed label as a new component.
    returned-Zarr matching contract. Temporary inputs are removed after
    transfer.
 
-Return-side identity work and normalization belong to BIOMERO.importer. They
-are not tied to the lifetime of the OMERO.web request that submitted the
+Return-side identity work and shallowing run on Slurm in remote mode or in
+BIOMERO.importer in local mode. They are not tied to the lifetime of the OMERO.web request that submitted the
 workflow. The OMERO script currently waits for the import status, but an ended
 web session does not terminate importer-owned processing.
+
+(reconstruct-shallow-zarr-on-disk)=
+## Reconstruct a standalone Zarr on disk
+
+The filesystem API `biomero_shallower.result_zarr.materialize_shallow_zarr`
+is the same implementation used by Image Transfer, also re-exported through
+`biomero_importer.utils.result_zarr`. It supports Images and Plates without
+an OMERO connection, workflow submission or Slurm job.
+
+From the NL-BIOMERO Compose directory, open Python in the worker:
+
+```sh
+docker compose exec biomeroworker /opt/omero/server/venv3/bin/python
+```
+
+Paste the following, replacing the source and destination with **container
+paths**. For a whole Plate, select the result Zarr root, not an individual label.
+
+```python
+from pathlib import Path
+from biomero_shallower.result_zarr import (
+    load_managed_storage_roots,
+    resolve_shallow_registration,
+    materialize_shallow_zarr,
+)
+
+mount = Path("/data")
+source = Path("/data/Project B/.analyzed/WORKFLOW/TIMESTAMP/result.ome.zarr")
+destination = Path("/data/Project B/reconstructed-result.ome.zarr")
+roots = load_managed_storage_roots(
+    import_mount_path=mount,
+    config_file="/opt/omero/server/biomero-config.json",
+)
+view = resolve_shallow_registration(
+    source, storage_roots=roots, import_mount_path=mount,
+)
+if view is None:
+    raise ValueError("No shallow collection found at the source path")
+result = materialize_shallow_zarr(view.reference, destination, roots)
+print(result.destination)
+```
+
+The configuration path above is the demo worker's mounted group configuration.
+Custom deployments must use their authoritative group mappings: pass
+`group_mappings_file="/path/to/group-mappings.json"` as well when a separate
+mapping file is used. All referenced source and inherited-label stores must
+be readable at the mapped paths. Do not guess mappings from folder names.
+
+The destination must not exist, its parent must be writable, and sufficient
+space must be available for the **full** reconstructed result. The function
+copies pixels and labels into a staging directory and publishes the destination
+after successful assembly. The source and shallow stores remain unchanged.
+The result is a conventional NGFF 0.4 / Zarr v2 store that no longer depends
+on BIOMERO-managed pixel references. This does not register a new OMERO object.
+There is currently no dedicated reconstruction CLI command.
 
 ## Relationship to OME-NGFF RFC 8
 
@@ -447,9 +503,24 @@ reconstructed during such a transition.
 
 ## Operational trade-off: storage versus import time
 
-Shallow normalization trades importer CPU and storage I/O for lower persistent
-storage use. It is opt-in because a deployment with small results or a slow,
-metadata-heavy filesystem may value latency more than the saved capacity.
+Shallow storage saves persistent disk space at the cost of pixel identity
+calculation and storage I/O. The NL-BIOMERO demo enables it through
+`BIOMERO_SHALLOW_ZARR=true`; administrators adopting it in their own deployments
+enable that feature flag explicitly. The unchanged source must remain available because shallow
+results reference it rather than retain another copy.
+
+Administrators can choose where that processing takes place:
+
+| Mode | Benefit | Cost |
+| --- | --- | --- |
+| Full results (shallow Zarr disabled) | No shallow-specific verification or processing | Duplicate pixels remain in transferred and stored results |
+| Local shallowing | Reduced persistent storage without another HPC job | Full results must be transferred and extracted; importer CPU and storage I/O perform the shallowing |
+| Remote shallowing (enabled in the demo) | Reduced persistent storage, smaller transfers, and potentially shorter result retrieval | Additional HPC CPU allocation and any associated charges or queue wait |
+
+Both shallow modes preserve new or changed labels and reference verified,
+unchanged pixels. Remote shallowing changes where the work happens, not the
+intended scientific content of the stored result. It does not eliminate the
+verification work or guarantee lower total CPU consumption.
 
 The current production-path Plate benchmark used an 18-field Plate returned by
 a Zarr-to-Zarr segmentation workflow, with one new label per field and 1,722
@@ -504,6 +575,68 @@ One earlier individual Image example occupied 185,072 bytes shallow versus a
 6,848,883-byte full source Zarr, a 97.3% size difference; that individual
 observation did not include a comparable end-to-end timing.
 
+### Remote shallowing: transfer time versus HPC compute cost
+
+Remote shallowing processes eligible results on Slurm **before** archiving and
+transfer. The importer validates the resulting receipt and registers the
+shallow result without repeating pixel hashing and shallowing. Removing
+duplicate pixels before transfer also reduces local extraction work.
+
+The NL-BIOMERO demo explicitly enables `BIOMERO_REMOTE_SHALLOW_ZARR` alongside
+`BIOMERO_SHALLOW_ZARR`. Administrators adopting remote shallowing in their own
+deployments should explicitly enable both flags and prepare the helper image.
+Set the remote flag to `false` to retain local importer shallowing. Prefer
+remote processing when transfer bandwidth or importer storage I/O is the
+bottleneck; prefer local processing when cluster charges, CPU availability,
+or queue delays outweigh those savings. The helper is a CPU job and does not
+request a GPU. See the [remote shallowing administration guide](../sysadmin/remote-shallower.rst)
+for image preparation and resource configuration.
+
+#### Observed 18-image comparison
+
+Two Windows/Docker development runs used the same source Plate (1551),
+`cisegmentation v0.5.0`, and identical analysis parameters apart from their
+workflow-specific paths. Both retained original image data in the analysis
+output and produced four label layers per image. The local result was then
+shallowed by the importer; the remote result was shallowed before transfer.
+
+| Stage | Local shallowing | Remote shallowing | Elapsed saving |
+| --- | ---: | ---: | ---: |
+| Returned-result identity calculation | 57.0 s | 20.7 s | 36.2 s |
+| Shallowing | 14.8 s | 1.4 s | 13.5 s |
+| Result ZIP creation | 3.2 s | 2.3 s | 0.9 s |
+| Transfer and validation | 8.0 s | 0.9 s | 7.1 s |
+| Local archive copy and extraction | 111.5 s | 59.1 s | 52.4 s |
+| **Listed stages combined** | **194.4 s** | **84.4 s** | **110 s (57%)** |
+| **Transferred ZIP size** | **153.0 MB** | **17.8 MB** | **88.4% fewer bytes** |
+
+Totals and differences use unrounded measurements; MB denotes decimal
+megabytes. ZIP size includes accompanying workflow files, not just the Zarr.
+The remote helper used one allocated CPU for a 25-second Slurm job; its
+identity and shallowing timers account for 22.1 seconds of that job.
+
+The local measurement comes from workflow
+`6458ff43-56a6-4b26-9abe-77a765fbd172` on September 15, 2026. That run attempted
+remote processing but transferred the full result and performed shallowing
+locally, as confirmed by the importer logs. The successful remote comparison
+is `c9cf0232-d6ac-4d86-b97a-2dbce214a175` on September 16. Their complete
+workflow durations were 11m08s and 8m54s respectively. That 2m14s difference
+includes the earlier remote attempt, analysis variation, polling and
+orchestration; it is not an isolated measure of shallowing savings. The table
+excludes that earlier helper attempt and reports the actual local work.
+
+These are individual observations, not repeated controlled benchmarks. The
+Windows-backed importer mount and cluster filesystem have different I/O
+characteristics. A smaller ZIP is not a measurement of additional persistent
+storage savings over local shallowing: both modes aim to retain the same
+shallow content. Nor does this small-Plate result establish full-Plate speedup.
+
+For scale context, the 846-image local-shallow control
+`1d531791-ec97-4d9a-b5c1-2f53d325e275` spent 41m59.5s on returned-result
+identity calculation and 21m27.4s on shallowing, in addition to 1h11m34.5s
+copying and extracting full results. These are potential targets for remote
+processing, not measured full-Plate remote savings.
+
 ### Parallel identity workers and scaling
 
 `BIOMERO_SHALLOW_ZARR_WORKERS` controls a bounded importer thread pool for
@@ -530,8 +663,9 @@ The 18-field result does not establish linear scaling. A deliberately crude
 linear extrapolation of 25.4 seconds would be about 24 minutes for 1,000 equally
 sized fields. Actual time depends on decoded pixel volume, label and file
 counts, chunking, cache state, filesystem metadata latency, and concurrent I/O;
-a very large or badly chunked Plate could still take hours. A representative
-large-Plate benchmark remains necessary before broad production enablement.
+a very large or badly chunked Plate can take hours, as the local full-Plate
+observation above illustrates. Measure representative data on the deployment's
+own storage before broad production enablement.
 
 ## Enabling and observing the feature
 
@@ -564,6 +698,32 @@ Useful logs distinguish:
 - stored full versus shallow outcomes.
 
 ## Validation status
+
+### Pending ACC smoke test: remote shallowing without detached execution
+
+Verify the inline execution path independently of the successful detached
+remote-shallower runs. This is a pending test, not a recorded pass.
+
+1. Use ACC's existing 18-image Plate and a known successful cisegmentation
+   configuration. Record the actual ACC Plate ID and reuse the baseline's
+   model, channel, label and import settings; local deployment IDs do not apply.
+   Include original data in the output so that duplicate pixels can be shallowed.
+2. Set `BIOMERO_DETACHED_WORKFLOWS=false`, keeping `IMPORTER_ENABLED=true`,
+   `BIOMERO_SHALLOW_ZARR=true` and `BIOMERO_REMOTE_SHALLOW_ZARR=true` on the
+   worker. Verify the effective configuration and initialized helper image.
+   Keep the user session active throughout this non-detached test.
+3. Confirm that the inline workflow submits and waits for the remote shallower
+   after analysis and before result ZIP creation. Verify a successful shallow
+   receipt, not merely a completed Slurm job or a local fallback.
+4. Confirm that the importer reuses the shallow result without repeating pixel
+   hashing/shallowing; the result Plate has 18 images, the expected labels,
+   working source-backed pixels, workflow metadata and the provenance CSV.
+5. Verify final workflow `DONE` / `100%`, successful import and no session or
+   keepalive errors. Record workflow UUID, analysis/helper job IDs, result Plate,
+   deployed revisions, archive bytes and return-stage timings for comparison
+   with the detached baseline. Restore ACC's intended detached setting afterward.
+
+### Existing coverage
 
 The feature branch has verified the following live paths:
 

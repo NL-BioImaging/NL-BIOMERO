@@ -128,6 +128,14 @@ Slurm queue or running the analysis job.
 Operational behavior
 --------------------
 
+With detached mode enabled, Slurm Init's metadata updates also run in the
+background. The activity result reports a maintenance request ID.
+Run Slurm Check Setup to see active and recent requests with their status and
+counts; uncheck ``Check Slurm`` for maintenance status only, without an HPC
+connection. Detailed progress is in the worker's ``biomero.log``. Metadata
+dry runs remain synchronous, with their previews in the activity log.
+Metadata maintenance does not appear as an analysis workflow or submit Slurm jobs.
+
 Submitted workflows appear in the BIOMERO workflow overview, where their
 progress and final status can be monitored independently of the original web
 session.
@@ -168,6 +176,7 @@ See also
 --------
 
 * :doc:`slurm-integration`
+* :doc:`metadata-refresh`
 * :doc:`analyzer-importer-admin`
 * :doc:`../developer/containers/biomeroworker`
 * :doc:`../developer/detached-workflow-supervisor`
