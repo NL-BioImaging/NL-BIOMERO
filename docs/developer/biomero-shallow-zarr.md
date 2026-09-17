@@ -644,6 +644,32 @@ Useful logs distinguish:
 
 ## Validation status
 
+### Pending ACC smoke test: remote shallowing without detached execution
+
+Verify the inline execution path independently of the successful detached
+remote-shallower runs. This is a pending test, not a recorded pass.
+
+1. Use ACC's existing 18-image Plate and a known successful cisegmentation
+   configuration. Record the actual ACC Plate ID and reuse the baseline's
+   model, channel, label and import settings; local deployment IDs do not apply.
+   Include original data in the output so that duplicate pixels can be shallowed.
+2. Set `BIOMERO_DETACHED_WORKFLOWS=false`, keeping `IMPORTER_ENABLED=true`,
+   `BIOMERO_SHALLOW_ZARR=true` and `BIOMERO_REMOTE_SHALLOW_ZARR=true` on the
+   worker. Verify the effective configuration and initialized helper image.
+   Keep the user session active throughout this non-detached test.
+3. Confirm that the inline workflow submits and waits for the remote shallower
+   after analysis and before result ZIP creation. Verify a successful shallow
+   receipt, not merely a completed Slurm job or a local fallback.
+4. Confirm that the importer reuses the shallow result without repeating pixel
+   hashing/shallowing; the result Plate has 18 images, the expected labels,
+   working source-backed pixels, workflow metadata and the provenance CSV.
+5. Verify final workflow `DONE` / `100%`, successful import and no session or
+   keepalive errors. Record workflow UUID, analysis/helper job IDs, result Plate,
+   deployed revisions, archive bytes and return-stage timings for comparison
+   with the detached baseline. Restore ACC's intended detached setting afterward.
+
+### Existing coverage
+
 The feature branch has verified the following live paths:
 
 - full canonical creation and later reuse during Image Transfer;
