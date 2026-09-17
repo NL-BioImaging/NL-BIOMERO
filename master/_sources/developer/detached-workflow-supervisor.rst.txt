@@ -129,6 +129,48 @@ When upgrading the implementation, pull or rebuild and recreate
 changes to ``ome/omero-py`` must also be reviewed and merged into the custom
 copy when the base image is upgraded.
 
+Metadata maintenance
+--------------------
+
+Slurm Init queues metadata **apply** requests when detached mode is enabled.
+Dry runs remain inline so their field diffs are available in the activity log.
+Slurm setup and analytics rebuilding are not detached by this handoff.
+
+``biomero.maintenance.MetadataRefresh`` is a separate aggregate in the
+``WorkflowTracker`` event store, not an analysis workflow or launcher task.
+It records the requesting administrator and group, selected workflow UUIDs,
+view version, worker count and backup options. No original session credentials
+are recorded. Its lifecycle is ``QUEUED`` → ``RUNNING`` → ``DONE`` or ``FAILED``;
+progress events contain compact counters, not full metadata maps.
+
+The supervisor reads only maintenance notification topics, maintaining a global
+notification cursor. One maintenance thread runs at a time, independently of
+the analysis concurrency limit. It loads the fixed Slurm Init adapter, creates
+an independent session as the requester and rechecks administrator privileges.
+Parallel lanes join that owned session using the existing keepalive and cleanup
+helpers. The request ID, progress, skips, failures and final counts are logged
+to the existing ``biomero.log``.
+
+Slurm Check Setup reads these aggregates directly to show all active requests
+and five recent terminal requests, including counters and errors. Its
+``Check Slurm`` option can be disabled for a tracking-database-only query.
+
+After interruption, ``QUEUED`` and ``RUNNING`` requests are retried from discovery.
+Already refreshed annotations are unchanged on reapplication; this is an
+idempotent sweep, not a per-target checkpoint. Recovery uses a new backup
+directory rather than overwriting snapshots from an interrupted attempt.
+Completed and failed requests are not retried automatically. Target failures
+make the request ``FAILED``; safe skips are counted separately. The same
+single-supervisor topology restriction applies to maintenance.
+
+Inspect a request independently of analysis views:
+
+.. code-block:: python
+
+   from uuid import UUID
+   request = tracker.repository.get(UUID(request_id))
+   print(request.status, request.report, request.error)
+
 Diagnostics
 -----------
 
@@ -137,6 +179,8 @@ The detached implementation uses these logger names:
 * ``biomero.detached.supervisor`` for discovery and worker management;
 * ``biomero.detached.<workflow UUID>`` for an individual workflow; and
 * ``biomero.detached.script`` for OMERO sub-script execution.
+
+Metadata requests use ``biomero.detached.maintenance.<request UUID>``.
 
 Use the event store and aggregate repository to distinguish durable workflow
 state from a projection or metadata problem. In particular, a launcher task at

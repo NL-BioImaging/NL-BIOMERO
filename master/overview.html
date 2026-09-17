@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BIOMERO Videos &mdash; NL-BIOMERO 1.8.0b5 documentation</title>
+  <title>BIOMERO Videos &mdash; NL-BIOMERO 1.8.0-beta.6 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -34,7 +34,7 @@
             NL-BIOMERO
           </a>
               <div class="version">
-                1.8.0b5
+                1.8.0-beta.6
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -356,6 +356,13 @@
 <li class="toctree-l2"><a class="reference internal" href="sysadmin/detached-workflows.html#see-also">See also</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="sysadmin/metadata-refresh.html">Refreshing workflow metadata</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sysadmin/metadata-refresh.html#before-starting">Before starting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sysadmin/metadata-refresh.html#options">Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sysadmin/metadata-refresh.html#progress-and-results">Progress and results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sysadmin/metadata-refresh.html#backups-and-incomplete-updates">Backups and incomplete updates</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html">BIOMERO.analyzer + BIOMERO.importer Integration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sysadmin/analyzer-importer-admin.html#required-configuration-changes">Required configuration changes</a><ul>
@@ -440,6 +447,7 @@
 <li class="toctree-l2"><a class="reference internal" href="developer/detached-workflow-supervisor.html#claim-and-recovery-semantics">Claim and recovery semantics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="developer/detached-workflow-supervisor.html#startup-shutdown-and-failures">Startup, shutdown, and failures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="developer/detached-workflow-supervisor.html#deployment-compatibility">Deployment compatibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/detached-workflow-supervisor.html#metadata-maintenance">Metadata maintenance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="developer/detached-workflow-supervisor.html#diagnostics">Diagnostics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="developer/detached-workflow-supervisor.html#see-also">See also</a></li>
 </ul>
@@ -506,6 +514,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#lifecycle">Lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#reconstruct-a-standalone-zarr-on-disk">Reconstruct a standalone Zarr on disk</a></li>
 <li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#relationship-to-ome-ngff-rfc-8">Relationship to OME-NGFF RFC 8</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="developer/biomero-shallow-zarr.html#ngff-label-source">NGFF label <code class="docutils literal notranslate"><span class="pre">source</span></code></a></li>
 </ul>
@@ -520,11 +529,19 @@
 <li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#images-plates-and-omero-representation">Images, Plates, and OMERO representation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#compatibility-profile">Compatibility profile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#operational-trade-off-storage-versus-import-time">Operational trade-off: storage versus import time</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="developer/biomero-shallow-zarr.html#remote-shallowing-transfer-time-versus-hpc-compute-cost">Remote shallowing: transfer time versus HPC compute cost</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="developer/biomero-shallow-zarr.html#observed-18-image-comparison">Observed 18-image comparison</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="developer/biomero-shallow-zarr.html#parallel-identity-workers-and-scaling">Parallel identity workers and scaling</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#enabling-and-observing-the-feature">Enabling and observing the feature</a></li>
-<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#validation-status">Validation status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#validation-status">Validation status</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="developer/biomero-shallow-zarr.html#pending-acc-smoke-test-remote-shallowing-without-detached-execution">Pending ACC smoke test: remote shallowing without detached execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="developer/biomero-shallow-zarr.html#existing-coverage">Existing coverage</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#expected-evolution">Expected evolution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="developer/biomero-shallow-zarr.html#further-reading">Further reading</a></li>
 </ul>
@@ -755,6 +772,17 @@
 <li class="toctree-l3"><a class="reference internal" href="user/getting-started.html#where-are-my-workflow-results">Where are my workflow results?</a></li>
 </ul>
 </li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Optional result processing</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sysadmin/remote-shallower.html">Optional remote Zarr shallowing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sysadmin/remote-shallower.html#lifecycle-overview">Lifecycle overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sysadmin/remote-shallower.html#choosing-local-or-remote-shallowing">Choosing local or remote shallowing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sysadmin/remote-shallower.html#requirements-and-enablement">Requirements and enablement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sysadmin/remote-shallower.html#admin-settings">Admin settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sysadmin/remote-shallower.html#failure-and-observability">Failure and observability</a></li>
 </ul>
 </li>
 </ul>

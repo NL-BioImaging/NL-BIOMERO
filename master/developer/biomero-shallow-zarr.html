@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Experimental BIOMERO shallow OME-Zarr storage &mdash; NL-BIOMERO 1.8.0b5 documentation</title>
+  <title>Experimental BIOMERO shallow OME-Zarr storage &mdash; NL-BIOMERO 1.8.0-beta.6 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -399,7 +399,7 @@ window.addEventListener("load", load);
             NL-BIOMERO
           </a>
               <div class="version">
-                1.8.0b5
+                1.8.0-beta.6
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -721,6 +721,13 @@ window.addEventListener("load", load);
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/detached-workflows.html#see-also">See also</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/metadata-refresh.html">Refreshing workflow metadata</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/metadata-refresh.html#before-starting">Before starting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/metadata-refresh.html#options">Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/metadata-refresh.html#progress-and-results">Progress and results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/metadata-refresh.html#backups-and-incomplete-updates">Backups and incomplete updates</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html">BIOMERO.analyzer + BIOMERO.importer Integration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/analyzer-importer-admin.html#required-configuration-changes">Required configuration changes</a><ul>
@@ -805,6 +812,7 @@ window.addEventListener("load", load);
 <li class="toctree-l2"><a class="reference internal" href="detached-workflow-supervisor.html#claim-and-recovery-semantics">Claim and recovery semantics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="detached-workflow-supervisor.html#startup-shutdown-and-failures">Startup, shutdown, and failures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="detached-workflow-supervisor.html#deployment-compatibility">Deployment compatibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="detached-workflow-supervisor.html#metadata-maintenance">Metadata maintenance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="detached-workflow-supervisor.html#diagnostics">Diagnostics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="detached-workflow-supervisor.html#see-also">See also</a></li>
 </ul>
@@ -871,6 +879,7 @@ window.addEventListener("load", load);
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#lifecycle">Lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reconstruct-a-standalone-zarr-on-disk">Reconstruct a standalone Zarr on disk</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#relationship-to-ome-ngff-rfc-8">Relationship to OME-NGFF RFC 8</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#ngff-label-source">NGFF label <code class="docutils literal notranslate"><span class="pre">source</span></code></a></li>
 </ul>
@@ -885,11 +894,19 @@ window.addEventListener("load", load);
 <li class="toctree-l2"><a class="reference internal" href="#images-plates-and-omero-representation">Images, Plates, and OMERO representation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#compatibility-profile">Compatibility profile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#operational-trade-off-storage-versus-import-time">Operational trade-off: storage versus import time</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#remote-shallowing-transfer-time-versus-hpc-compute-cost">Remote shallowing: transfer time versus HPC compute cost</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#observed-18-image-comparison">Observed 18-image comparison</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#parallel-identity-workers-and-scaling">Parallel identity workers and scaling</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#enabling-and-observing-the-feature">Enabling and observing the feature</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#validation-status">Validation status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#validation-status">Validation status</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pending-acc-smoke-test-remote-shallowing-without-detached-execution">Pending ACC smoke test: remote shallowing without detached execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#existing-coverage">Existing coverage</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#expected-evolution">Expected evolution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#further-reading">Further reading</a></li>
 </ul>
@@ -1120,6 +1137,17 @@ window.addEventListener("load", load);
 <li class="toctree-l3"><a class="reference internal" href="../user/getting-started.html#where-are-my-workflow-results">Where are my workflow results?</a></li>
 </ul>
 </li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Optional result processing</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/remote-shallower.html">Optional remote Zarr shallowing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/remote-shallower.html#lifecycle-overview">Lifecycle overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/remote-shallower.html#choosing-local-or-remote-shallowing">Choosing local or remote shallowing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/remote-shallower.html#requirements-and-enablement">Requirements and enablement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/remote-shallower.html#admin-settings">Admin settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/remote-shallower.html#failure-and-observability">Failure and observability</a></li>
 </ul>
 </li>
 </ul>
@@ -1393,7 +1421,8 @@ pixels or a workflow renames its result. It is not a workflow-provider
 contract and is removed from the stored result.</p></li>
 <li><p>The workflow runs against a normal, full OME-Zarr. It may ignore and simply
 copy BIOMERO metadata.</p></li>
-<li><p>On return, BIOMERO.importer recomputes the decoded pixel identities. If the
+<li><p>After analysis, the remote shallower (or BIOMERO.importer in local mode)
+recomputes the decoded pixel identities. If the
 image pixels match the corresponding source and useful labels are present,
 it transactionally removes the duplicated image arrays and writes
 <code class="docutils literal notranslate"><span class="pre">.biomero-shallow.json</span></code>. Changed or uncertain results stay full.</p></li>
@@ -1410,10 +1439,58 @@ conversion artifact is not promoted as a canonical source and carries no
 returned-Zarr matching contract. Temporary inputs are removed after
 transfer.</p></li>
 </ol>
-<p>Return-side identity work and normalization belong to BIOMERO.importer. They
-are not tied to the lifetime of the OMERO.web request that submitted the
+<p>Return-side identity work and shallowing run on Slurm in remote mode or in
+BIOMERO.importer in local mode. They are not tied to the lifetime of the OMERO.web request that submitted the
 workflow. The OMERO script currently waits for the import status, but an ended
 web session does not terminate importer-owned processing.</p>
+</section>
+<section id="reconstruct-a-standalone-zarr-on-disk">
+<span id="reconstruct-shallow-zarr-on-disk"></span><h2>Reconstruct a standalone Zarr on disk<a class="headerlink" href="#reconstruct-a-standalone-zarr-on-disk" title="Permalink to this heading"></a></h2>
+<p>The filesystem API <code class="docutils literal notranslate"><span class="pre">biomero_shallower.result_zarr.materialize_shallow_zarr</span></code>
+is the same implementation used by Image Transfer, also re-exported through
+<code class="docutils literal notranslate"><span class="pre">biomero_importer.utils.result_zarr</span></code>. It supports Images and Plates without
+an OMERO connection, workflow submission or Slurm job.</p>
+<p>From the NL-BIOMERO Compose directory, open Python in the worker:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>biomeroworker<span class="w"> </span>/opt/omero/server/venv3/bin/python
+</pre></div>
+</div>
+<p>Paste the following, replacing the source and destination with <strong>container
+paths</strong>. For a whole Plate, select the result Zarr root, not an individual label.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">biomero_shallower.result_zarr</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">load_managed_storage_roots</span><span class="p">,</span>
+    <span class="n">resolve_shallow_registration</span><span class="p">,</span>
+    <span class="n">materialize_shallow_zarr</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">mount</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"/data"</span><span class="p">)</span>
+<span class="n">source</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"/data/Project B/.analyzed/WORKFLOW/TIMESTAMP/result.ome.zarr"</span><span class="p">)</span>
+<span class="n">destination</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"/data/Project B/reconstructed-result.ome.zarr"</span><span class="p">)</span>
+<span class="n">roots</span> <span class="o">=</span> <span class="n">load_managed_storage_roots</span><span class="p">(</span>
+    <span class="n">import_mount_path</span><span class="o">=</span><span class="n">mount</span><span class="p">,</span>
+    <span class="n">config_file</span><span class="o">=</span><span class="s2">"/opt/omero/server/biomero-config.json"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">view</span> <span class="o">=</span> <span class="n">resolve_shallow_registration</span><span class="p">(</span>
+    <span class="n">source</span><span class="p">,</span> <span class="n">storage_roots</span><span class="o">=</span><span class="n">roots</span><span class="p">,</span> <span class="n">import_mount_path</span><span class="o">=</span><span class="n">mount</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">if</span> <span class="n">view</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No shallow collection found at the source path"</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">materialize_shallow_zarr</span><span class="p">(</span><span class="n">view</span><span class="o">.</span><span class="n">reference</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">roots</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">destination</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The configuration path above is the demo worker’s mounted group configuration.
+Custom deployments must use their authoritative group mappings: pass
+<code class="docutils literal notranslate"><span class="pre">group_mappings_file=&quot;/path/to/group-mappings.json&quot;</span></code> as well when a separate
+mapping file is used. All referenced source and inherited-label stores must
+be readable at the mapped paths. Do not guess mappings from folder names.</p>
+<p>The destination must not exist, its parent must be writable, and sufficient
+space must be available for the <strong>full</strong> reconstructed result. The function
+copies pixels and labels into a staging directory and publishes the destination
+after successful assembly. The source and shallow stores remain unchanged.
+The result is a conventional NGFF 0.4 / Zarr v2 store that no longer depends
+on BIOMERO-managed pixel references. This does not register a new OMERO object.
+There is currently no dedicated reconstruction CLI command.</p>
 </section>
 <section id="relationship-to-ome-ngff-rfc-8">
 <h2>Relationship to OME-NGFF RFC 8<a class="headerlink" href="#relationship-to-ome-ngff-rfc-8" title="Permalink to this heading"></a></h2>
@@ -1663,9 +1740,38 @@ reconstructed during such a transition.</p>
 </section>
 <section id="operational-trade-off-storage-versus-import-time">
 <h2>Operational trade-off: storage versus import time<a class="headerlink" href="#operational-trade-off-storage-versus-import-time" title="Permalink to this heading"></a></h2>
-<p>Shallow normalization trades importer CPU and storage I/O for lower persistent
-storage use. It is opt-in because a deployment with small results or a slow,
-metadata-heavy filesystem may value latency more than the saved capacity.</p>
+<p>Shallow storage saves persistent disk space at the cost of pixel identity
+calculation and storage I/O. The NL-BIOMERO demo enables it through
+<code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR=true</span></code>; administrators adopting it in their own deployments
+enable that feature flag explicitly. The unchanged source must remain available because shallow
+results reference it rather than retain another copy.</p>
+<p>Administrators can choose where that processing takes place:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Mode</p></th>
+<th class="head"><p>Benefit</p></th>
+<th class="head"><p>Cost</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Full results (shallow Zarr disabled)</p></td>
+<td><p>No shallow-specific verification or processing</p></td>
+<td><p>Duplicate pixels remain in transferred and stored results</p></td>
+</tr>
+<tr class="row-odd"><td><p>Local shallowing</p></td>
+<td><p>Reduced persistent storage without another HPC job</p></td>
+<td><p>Full results must be transferred and extracted; importer CPU and storage I/O perform the shallowing</p></td>
+</tr>
+<tr class="row-even"><td><p>Remote shallowing (enabled in the demo)</p></td>
+<td><p>Reduced persistent storage, smaller transfers, and potentially shorter result retrieval</p></td>
+<td><p>Additional HPC CPU allocation and any associated charges or queue wait</p></td>
+</tr>
+</tbody>
+</table>
+<p>Both shallow modes preserve new or changed labels and reference verified,
+unchanged pixels. Remote shallowing changes where the work happens, not the
+intended scientific content of the stored result. It does not eliminate the
+verification work or guarantee lower total CPU consumption.</p>
 <p>The current production-path Plate benchmark used an 18-field Plate returned by
 a Zarr-to-Zarr segmentation workflow, with one new label per field and 1,722
 files. It ran inside the Linux importer container against the real <code class="docutils literal notranslate"><span class="pre">/data</span></code>
@@ -1771,6 +1877,99 @@ normalization work took approximately 10 seconds in total with four workers.
 One earlier individual Image example occupied 185,072 bytes shallow versus a
 6,848,883-byte full source Zarr, a 97.3% size difference; that individual
 observation did not include a comparable end-to-end timing.</p>
+<section id="remote-shallowing-transfer-time-versus-hpc-compute-cost">
+<h3>Remote shallowing: transfer time versus HPC compute cost<a class="headerlink" href="#remote-shallowing-transfer-time-versus-hpc-compute-cost" title="Permalink to this heading"></a></h3>
+<p>Remote shallowing processes eligible results on Slurm <strong>before</strong> archiving and
+transfer. The importer validates the resulting receipt and registers the
+shallow result without repeating pixel hashing and shallowing. Removing
+duplicate pixels before transfer also reduces local extraction work.</p>
+<p>The NL-BIOMERO demo explicitly enables <code class="docutils literal notranslate"><span class="pre">BIOMERO_REMOTE_SHALLOW_ZARR</span></code> alongside
+<code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR</span></code>. Administrators adopting remote shallowing in their own
+deployments should explicitly enable both flags and prepare the helper image.
+Set the remote flag to <code class="docutils literal notranslate"><span class="pre">false</span></code> to retain local importer shallowing. Prefer
+remote processing when transfer bandwidth or importer storage I/O is the
+bottleneck; prefer local processing when cluster charges, CPU availability,
+or queue delays outweigh those savings. The helper is a CPU job and does not
+request a GPU. See the <a class="reference internal" href="../sysadmin/remote-shallower.html"><span class="std std-doc">remote shallowing administration guide</span></a>
+for image preparation and resource configuration.</p>
+<section id="observed-18-image-comparison">
+<h4>Observed 18-image comparison<a class="headerlink" href="#observed-18-image-comparison" title="Permalink to this heading"></a></h4>
+<p>Two Windows/Docker development runs used the same source Plate (1551),
+<code class="docutils literal notranslate"><span class="pre">cisegmentation</span> <span class="pre">v0.5.0</span></code>, and identical analysis parameters apart from their
+workflow-specific paths. Both retained original image data in the analysis
+output and produced four label layers per image. The local result was then
+shallowed by the importer; the remote result was shallowed before transfer.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Stage</p></th>
+<th class="head text-right"><p>Local shallowing</p></th>
+<th class="head text-right"><p>Remote shallowing</p></th>
+<th class="head text-right"><p>Elapsed saving</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Returned-result identity calculation</p></td>
+<td class="text-right"><p>57.0 s</p></td>
+<td class="text-right"><p>20.7 s</p></td>
+<td class="text-right"><p>36.2 s</p></td>
+</tr>
+<tr class="row-odd"><td><p>Shallowing</p></td>
+<td class="text-right"><p>14.8 s</p></td>
+<td class="text-right"><p>1.4 s</p></td>
+<td class="text-right"><p>13.5 s</p></td>
+</tr>
+<tr class="row-even"><td><p>Result ZIP creation</p></td>
+<td class="text-right"><p>3.2 s</p></td>
+<td class="text-right"><p>2.3 s</p></td>
+<td class="text-right"><p>0.9 s</p></td>
+</tr>
+<tr class="row-odd"><td><p>Transfer and validation</p></td>
+<td class="text-right"><p>8.0 s</p></td>
+<td class="text-right"><p>0.9 s</p></td>
+<td class="text-right"><p>7.1 s</p></td>
+</tr>
+<tr class="row-even"><td><p>Local archive copy and extraction</p></td>
+<td class="text-right"><p>111.5 s</p></td>
+<td class="text-right"><p>59.1 s</p></td>
+<td class="text-right"><p>52.4 s</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Listed stages combined</strong></p></td>
+<td class="text-right"><p><strong>194.4 s</strong></p></td>
+<td class="text-right"><p><strong>84.4 s</strong></p></td>
+<td class="text-right"><p><strong>110 s (57%)</strong></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Transferred ZIP size</strong></p></td>
+<td class="text-right"><p><strong>153.0 MB</strong></p></td>
+<td class="text-right"><p><strong>17.8 MB</strong></p></td>
+<td class="text-right"><p><strong>88.4% fewer bytes</strong></p></td>
+</tr>
+</tbody>
+</table>
+<p>Totals and differences use unrounded measurements; MB denotes decimal
+megabytes. ZIP size includes accompanying workflow files, not just the Zarr.
+The remote helper used one allocated CPU for a 25-second Slurm job; its
+identity and shallowing timers account for 22.1 seconds of that job.</p>
+<p>The local measurement comes from workflow
+<code class="docutils literal notranslate"><span class="pre">6458ff43-56a6-4b26-9abe-77a765fbd172</span></code> on September 15, 2026. That run attempted
+remote processing but transferred the full result and performed shallowing
+locally, as confirmed by the importer logs. The successful remote comparison
+is <code class="docutils literal notranslate"><span class="pre">c9cf0232-d6ac-4d86-b97a-2dbce214a175</span></code> on September 16. Their complete
+workflow durations were 11m08s and 8m54s respectively. That 2m14s difference
+includes the earlier remote attempt, analysis variation, polling and
+orchestration; it is not an isolated measure of shallowing savings. The table
+excludes that earlier helper attempt and reports the actual local work.</p>
+<p>These are individual observations, not repeated controlled benchmarks. The
+Windows-backed importer mount and cluster filesystem have different I/O
+characteristics. A smaller ZIP is not a measurement of additional persistent
+storage savings over local shallowing: both modes aim to retain the same
+shallow content. Nor does this small-Plate result establish full-Plate speedup.</p>
+<p>For scale context, the 846-image local-shallow control
+<code class="docutils literal notranslate"><span class="pre">1d531791-ec97-4d9a-b5c1-2f53d325e275</span></code> spent 41m59.5s on returned-result
+identity calculation and 21m27.4s on shallowing, in addition to 1h11m34.5s
+copying and extracting full results. These are potential targets for remote
+processing, not measured full-Plate remote savings.</p>
+</section>
+</section>
 <section id="parallel-identity-workers-and-scaling">
 <h3>Parallel identity workers and scaling<a class="headerlink" href="#parallel-identity-workers-and-scaling" title="Permalink to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR_WORKERS</span></code> controls a bounded importer thread pool for
@@ -1812,8 +2011,9 @@ storage with 1, 2, and 4 workers before increasing the value.</p>
 linear extrapolation of 25.4 seconds would be about 24 minutes for 1,000 equally
 sized fields. Actual time depends on decoded pixel volume, label and file
 counts, chunking, cache state, filesystem metadata latency, and concurrent I/O;
-a very large or badly chunked Plate could still take hours. A representative
-large-Plate benchmark remains necessary before broad production enablement.</p>
+a very large or badly chunked Plate can take hours, as the local full-Plate
+observation above illustrates. Measure representative data on the deployment’s
+own storage before broad production enablement.</p>
 </section>
 </section>
 <section id="enabling-and-observing-the-feature">
@@ -1846,6 +2046,33 @@ storage saved.</p>
 </section>
 <section id="validation-status">
 <h2>Validation status<a class="headerlink" href="#validation-status" title="Permalink to this heading"></a></h2>
+<section id="pending-acc-smoke-test-remote-shallowing-without-detached-execution">
+<h3>Pending ACC smoke test: remote shallowing without detached execution<a class="headerlink" href="#pending-acc-smoke-test-remote-shallowing-without-detached-execution" title="Permalink to this heading"></a></h3>
+<p>Verify the inline execution path independently of the successful detached
+remote-shallower runs. This is a pending test, not a recorded pass.</p>
+<ol class="arabic simple">
+<li><p>Use ACC’s existing 18-image Plate and a known successful cisegmentation
+configuration. Record the actual ACC Plate ID and reuse the baseline’s
+model, channel, label and import settings; local deployment IDs do not apply.
+Include original data in the output so that duplicate pixels can be shallowed.</p></li>
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">BIOMERO_DETACHED_WORKFLOWS=false</span></code>, keeping <code class="docutils literal notranslate"><span class="pre">IMPORTER_ENABLED=true</span></code>,
+<code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR=true</span></code> and <code class="docutils literal notranslate"><span class="pre">BIOMERO_REMOTE_SHALLOW_ZARR=true</span></code> on the
+worker. Verify the effective configuration and initialized helper image.
+Keep the user session active throughout this non-detached test.</p></li>
+<li><p>Confirm that the inline workflow submits and waits for the remote shallower
+after analysis and before result ZIP creation. Verify a successful shallow
+receipt, not merely a completed Slurm job or a local fallback.</p></li>
+<li><p>Confirm that the importer reuses the shallow result without repeating pixel
+hashing/shallowing; the result Plate has 18 images, the expected labels,
+working source-backed pixels, workflow metadata and the provenance CSV.</p></li>
+<li><p>Verify final workflow <code class="docutils literal notranslate"><span class="pre">DONE</span></code> / <code class="docutils literal notranslate"><span class="pre">100%</span></code>, successful import and no session or
+keepalive errors. Record workflow UUID, analysis/helper job IDs, result Plate,
+deployed revisions, archive bytes and return-stage timings for comparison
+with the detached baseline. Restore ACC’s intended detached setting afterward.</p></li>
+</ol>
+</section>
+<section id="existing-coverage">
+<h3>Existing coverage<a class="headerlink" href="#existing-coverage" title="Permalink to this heading"></a></h3>
 <p>The feature branch has verified the following live paths:</p>
 <ul class="simple">
 <li><p>full canonical creation and later reuse during Image Transfer;</p></li>
@@ -1879,6 +2106,7 @@ that an empty preliminary inventory now triggers label discovery;</p></li>
 <li><p>a representative large high-content Plate needs storage-local timing and
 capacity measurements.</p></li>
 </ul>
+</section>
 </section>
 <section id="expected-evolution">
 <h2>Expected evolution<a class="headerlink" href="#expected-evolution" title="Permalink to this heading"></a></h2>
