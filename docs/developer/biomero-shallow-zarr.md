@@ -501,171 +501,46 @@ advance the profile as Glencoe and OMERO releases add compatible support. The
 private shallow reader remains versioned so older managed results can be
 reconstructed during such a transition.
 
-## Operational trade-off: storage versus import time
+## Performance and deployment trade-offs
 
-Shallow storage saves persistent disk space at the cost of pixel identity
-calculation and storage I/O. The NL-BIOMERO demo enables it through
-`BIOMERO_SHALLOW_ZARR=true`; administrators adopting it in their own deployments
-enable that feature flag explicitly. The unchanged source must remain available because shallow
-results reference it rather than retain another copy.
+Shallow storage reduces duplicated result pixels, at the cost of identity
+verification and filesystem work. Remote shallowing moves that work to HPC
+before archiving, reducing transfer volume and importer-side I/O. Both modes
+preserve the same logical image and label content; remote processing is not
+an additional storage-deduplication level.
 
-Administrators can choose where that processing takes place:
-
-| Mode | Benefit | Cost |
+| Evidence | Observation | Interpretation |
 | --- | --- | --- |
-| Full results (shallow Zarr disabled) | No shallow-specific verification or processing | Duplicate pixels remain in transferred and stored results |
-| Local shallowing | Reduced persistent storage without another HPC job | Full results must be transferred and extracted; importer CPU and storage I/O perform the shallowing |
-| Remote shallowing (enabled in the demo) | Reduced persistent storage, smaller transfers, and potentially shorter result retrieval | Additional HPC CPU allocation and any associated charges or queue wait |
+| Local 18-image, one-label-per-image benchmark | 92.6% less result storage; about 25 s identity/shallowing | Storage savings require additional processing; result composition matters. |
+| ACC beta.6, 18 images and four labels per image | 153.4 MB local versus 18.1 MB remote result ZIP (88.2% fewer bytes) | Remote processing avoids transferring duplicate pixels; archive reduction is not a measurement of stored-result reduction. |
+| Same ACC smoke series | Remote workflows 7m41s–9m00s; local shallow 12m14s; shallow disabled 7m52s | Directional observations only: cold preparation, automatic sizing and retries differed. |
+| ACC remote helper jobs | 12–13 s, two allocated CPUs, no GPU; about 10 CPU-seconds used | Extra HPC allocation can reduce return-path latency; allocated and consumed CPU time differ. |
+| Earlier Windows/Docker 846-image, four-label-per-image control | About 63 min identity/shallowing, plus 72 min full-result copy/extraction | Large results can make both stages substantial; extraction is separate from shallow-specific work. |
 
-Both shallow modes preserve new or changed labels and reference verified,
-unchanged pixels. Remote shallowing changes where the work happens, not the
-intended scientific content of the stored result. It does not eliminate the
-verification work or guarantee lower total CPU consumption.
+These are different workloads and environments, not a scaling curve. Do not
+multiply an 18-image duration by image count: decoded pixel volume, labels,
+chunk/file counts, cache state, storage latency and concurrency all matter.
+A matched full-Plate local/remote comparison remains pending; monetary savings
+have not been established. Measure queue time and allocated CPU/memory as well
+as elapsed time before choosing a processing location.
 
-The current production-path Plate benchmark used an 18-field Plate returned by
-a Zarr-to-Zarr segmentation workflow, with one new label per field and 1,722
-files. It ran inside the Linux importer container against the real `/data`
-mount; preparing disposable benchmark copies was excluded.
+For operators, see the [short comparison and configuration guide](../sysadmin/remote-shallower.rst).
+Detailed run logs and experimental measurement ledgers are maintained separately
+from this software reference.
 
-| Measurement | Result |
-| --- | ---: |
-| Full returned Plate | 146,143,912 bytes |
-| Stored shallow Plate | 10,775,929 bytes |
-| Storage removed | 135,367,983 bytes (92.6%) |
-| Read-only ISCC-BIO verification | 12.653 s mean |
-| Transactional normalization | 12.729 s mean |
-| **Added importer processing** | **about 25.4 s** |
+### Measuring a deployment
 
-The first diagnostic implementation took roughly 196 seconds to normalize the
-same Plate. Same-filesystem moves, avoiding a copy of the retained label tree,
-and avoiding recursive before/after byte scans reduced normalization to 12.7
-seconds.
+Record source identity, image/label counts, software and workflow versions,
+parameters, canonical-cache state and actual Slurm allocation. Separate input
+preparation, analysis, return identity/shallowing, ZIP creation, transfer,
+copy/extraction, registration and finalization. Compare the same payload and
+parameters, and distinguish safe local fallback from successful remote
+shallowing. Do not include diagnostic size scans in the timed pipeline.
 
-The following observations put the Plate benchmark alongside the live Image
-paths tested so far. ``Estimated full`` means the size of the pixels and label
-components if they were materialized together; production deliberately skips
-an exact recursive pre-normalization size scan because that scan can cost more
-than normalization itself.
-
-| Scenario | Logical content | Full or estimated full | Stored shallow | Storage avoided | Return-path shallow processing | Outbound reconstruction |
-| --- | --- | ---: | ---: | ---: | ---: | ---: |
-| 18-field Plate benchmark | 18 fields, one new label per field | 146,143,912 bytes | 10,775,929 bytes | 135,367,983 bytes (92.6%) | 25.4 s mean | not measured |
-| Five-Image live batch | five Images with new and inherited labels | 28.463 MiB estimated | 2.319 MiB | 26.144 MiB (91.9%) | about 10 s total | not measured |
-| Multi-generation Image chain | one Image, five inherited labels and four new labels | 8,956,291 bytes estimated | 990,300 bytes | 7,965,991 bytes (88.9%) | 19.7 s observed | 7.6 s observed |
-| Earlier individual Image | one Image result | 6,848,883 bytes | 185,072 bytes | 6,663,811 bytes (97.3%) | not measured | not measured |
-
-The multi-generation observation started from one shallow Image referencing
-canonical intensity pixels and five inherited label layers. A Zarr-to-Zarr
-segmentation reconstructed that complete collection and appended four new
-labels. Reconstruction took 7.6 seconds. On return, the importer spent 18.3
-seconds evaluating image and label identities with four workers and 1.4
-seconds transactionally retaining only the four new layers. The five inherited
-label directories were absent from the new physical store but remained present
-as managed components in `.biomero-shallow.json`. Only the four new labels were
-registered as new OMERO Images. The estimated 8,956,291-byte full footprint is
-the sum of the referenced canonical pixels and all nine logical label
-components, not a recursive pre-normalization tree scan. This is one warm-system
-observation rather than a statistically stable benchmark.
-
-A later live run processed five Image results with both new and inherited
-labels. Their estimated full size was 28.463 MiB and their stored shallow size
-was 2.319 MiB: 26.144 MiB, or **91.9%**, was avoided. Importer identity and
-normalization work took approximately 10 seconds in total with four workers.
-One earlier individual Image example occupied 185,072 bytes shallow versus a
-6,848,883-byte full source Zarr, a 97.3% size difference; that individual
-observation did not include a comparable end-to-end timing.
-
-### Remote shallowing: transfer time versus HPC compute cost
-
-Remote shallowing processes eligible results on Slurm **before** archiving and
-transfer. The importer validates the resulting receipt and registers the
-shallow result without repeating pixel hashing and shallowing. Removing
-duplicate pixels before transfer also reduces local extraction work.
-
-The NL-BIOMERO demo explicitly enables `BIOMERO_REMOTE_SHALLOW_ZARR` alongside
-`BIOMERO_SHALLOW_ZARR`. Administrators adopting remote shallowing in their own
-deployments should explicitly enable both flags and prepare the helper image.
-Set the remote flag to `false` to retain local importer shallowing. Prefer
-remote processing when transfer bandwidth or importer storage I/O is the
-bottleneck; prefer local processing when cluster charges, CPU availability,
-or queue delays outweigh those savings. The helper is a CPU job and does not
-request a GPU. See the [remote shallowing administration guide](../sysadmin/remote-shallower.rst)
-for image preparation and resource configuration.
-
-#### Observed 18-image comparison
-
-Two Windows/Docker development runs used the same source Plate (1551),
-`cisegmentation v0.5.0`, and identical analysis parameters apart from their
-workflow-specific paths. Both retained original image data in the analysis
-output and produced four label layers per image. The local result was then
-shallowed by the importer; the remote result was shallowed before transfer.
-
-| Stage | Local shallowing | Remote shallowing | Elapsed saving |
-| --- | ---: | ---: | ---: |
-| Returned-result identity calculation | 57.0 s | 20.7 s | 36.2 s |
-| Shallowing | 14.8 s | 1.4 s | 13.5 s |
-| Result ZIP creation | 3.2 s | 2.3 s | 0.9 s |
-| Transfer and validation | 8.0 s | 0.9 s | 7.1 s |
-| Local archive copy and extraction | 111.5 s | 59.1 s | 52.4 s |
-| **Listed stages combined** | **194.4 s** | **84.4 s** | **110 s (57%)** |
-| **Transferred ZIP size** | **153.0 MB** | **17.8 MB** | **88.4% fewer bytes** |
-
-Totals and differences use unrounded measurements; MB denotes decimal
-megabytes. ZIP size includes accompanying workflow files, not just the Zarr.
-The remote helper used one allocated CPU for a 25-second Slurm job; its
-identity and shallowing timers account for 22.1 seconds of that job.
-
-The local measurement comes from workflow
-`6458ff43-56a6-4b26-9abe-77a765fbd172` on September 15, 2026. That run attempted
-remote processing but transferred the full result and performed shallowing
-locally, as confirmed by the importer logs. The successful remote comparison
-is `c9cf0232-d6ac-4d86-b97a-2dbce214a175` on September 16. Their complete
-workflow durations were 11m08s and 8m54s respectively. That 2m14s difference
-includes the earlier remote attempt, analysis variation, polling and
-orchestration; it is not an isolated measure of shallowing savings. The table
-excludes that earlier helper attempt and reports the actual local work.
-
-These are individual observations, not repeated controlled benchmarks. The
-Windows-backed importer mount and cluster filesystem have different I/O
-characteristics. A smaller ZIP is not a measurement of additional persistent
-storage savings over local shallowing: both modes aim to retain the same
-shallow content. Nor does this small-Plate result establish full-Plate speedup.
-
-For scale context, the 846-image local-shallow control
-`1d531791-ec97-4d9a-b5c1-2f53d325e275` spent 41m59.5s on returned-result
-identity calculation and 21m27.4s on shallowing, in addition to 1h11m34.5s
-copying and extracting full results. These are potential targets for remote
-processing, not measured full-Plate remote savings.
-
-### Parallel identity workers and scaling
-
-`BIOMERO_SHALLOW_ZARR_WORKERS` controls a bounded importer thread pool for
-per-image and per-label identity generation. It defaults to `4` in the
-NL-BIOMERO deployment. Discovery, transactional moves, and journal deletion are
-not parallelized.
-
-A preliminary read-only sweep of the 18-image/18-label Plate produced:
-
-| Workers | Verification time |
-| ---: | ---: |
-| 1 | 14.524 s mean |
-| 2 | 11.988 s mean |
-| 4 | 9.401 s mean |
-| 8 | 12.569 s observed |
-| 16 | 13.857 s observed |
-| 32 | 13.201 s observed |
-
-Four workers performed best on this development mount. Higher counts increased
-I/O contention, and variance was material. Sites should benchmark their own
-storage with 1, 2, and 4 workers before increasing the value.
-
-The 18-field result does not establish linear scaling. A deliberately crude
-linear extrapolation of 25.4 seconds would be about 24 minutes for 1,000 equally
-sized fields. Actual time depends on decoded pixel volume, label and file
-counts, chunking, cache state, filesystem metadata latency, and concurrent I/O;
-a very large or badly chunked Plate can take hours, as the local full-Plate
-observation above illustrates. Measure representative data on the deployment's
-own storage before broad production enablement.
+`BIOMERO_SHALLOW_ZARR_WORKERS` controls the importer's bounded identity thread
+pool, not all processing stages. More workers are not necessarily faster:
+four performed best in the development storage sweep. Benchmark the target
+filesystem rather than extrapolating that setting to other deployments.
 
 ## Enabling and observing the feature
 
@@ -697,66 +572,22 @@ Useful logs distinguish:
 - identity generation and normalization durations; and
 - stored full versus shallow outcomes.
 
-## Validation status
+## Validation scope
 
-### Pending ACC smoke test: remote shallowing without detached execution
+The ACC beta.6 smoke series passed remote shallowing with both detached and
+inline execution, local importer shallowing, and shallow-disabled execution.
+Each result contained 18 distinct primary images, 72 readable label layers
+and a metadata CSV. All 36 intensity planes matched the source; all source
+identities and label fingerprints also matched between the detached remote
+and local-shallow results. Remote receipts were validated, while the
+shallow-disabled run retained full arrays without a helper job or manifest.
 
-Verify the inline execution path independently of the successful detached
-remote-shallower runs. This is a pending test, not a recorded pass.
-
-1. Use ACC's existing 18-image Plate and a known successful cisegmentation
-   configuration. Record the actual ACC Plate ID and reuse the baseline's
-   model, channel, label and import settings; local deployment IDs do not apply.
-   Include original data in the output so that duplicate pixels can be shallowed.
-2. Set `BIOMERO_DETACHED_WORKFLOWS=false`, keeping `IMPORTER_ENABLED=true`,
-   `BIOMERO_SHALLOW_ZARR=true` and `BIOMERO_REMOTE_SHALLOW_ZARR=true` on the
-   worker. Verify the effective configuration and initialized helper image.
-   Keep the user session active throughout this non-detached test.
-3. Confirm that the inline workflow submits and waits for the remote shallower
-   after analysis and before result ZIP creation. Verify a successful shallow
-   receipt, not merely a completed Slurm job or a local fallback.
-4. Confirm that the importer reuses the shallow result without repeating pixel
-   hashing/shallowing; the result Plate has 18 images, the expected labels,
-   working source-backed pixels, workflow metadata and the provenance CSV.
-5. Verify final workflow `DONE` / `100%`, successful import and no session or
-   keepalive errors. Record workflow UUID, analysis/helper job IDs, result Plate,
-   deployed revisions, archive bytes and return-stage timings for comparison
-   with the detached baseline. Restore ACC's intended detached setting afterward.
-
-### Existing coverage
-
-The feature branch has verified the following live paths:
-
-- full canonical creation and later reuse during Image Transfer;
-- ordered event provenance and task-local markers, including five selected
-  Images with identical pixels and renamed outputs;
-- five Image results normalized to 91.9% smaller shallow collections while
-  retaining multiple and inherited labels;
-- label-Image registration, non-image attachments, and ROI creation for those
-  Image results;
-- an 18-field Plate normalized to 92.6% smaller storage, with one compact
-  derived Plate reference and optional label-backed preview;
-- a complete chained Zarr workflow: five inherited labels were reconstructed,
-  four appended labels were retained, unchanged inherited label chunks were
-  referenced rather than copied, and only the four new labels became OMERO
-  Images;
-- focused reconstruction of a shallow Image into a temporary full Zarr;
-- a live and unit-covered TIFF-bound exception, where a selected shallow label
-  Image is exported from its registered OMERO PixelBuffer instead of being
-  reconstructed with the original pixels; and
-- compatibility readers/tests for older event streams and absent optional
-  shallow settings.
-
-The following remain release gates or scale validation:
-
-- a live changed-pixel Image and changed-pixel Plate must remain full;
-- a full canonical Zarr that already contains labels must be repeated live
-  after the canonical-input inventory regression fix; unit coverage verifies
-  that an empty preliminary inventory now triggers label discovery;
-- feature-off behavior and importer-disabled Get Results need live controls;
-- unsupported/newer NGFF input must fail or fall back clearly; and
-- a representative large high-content Plate needs storage-local timing and
-  capacity measurements.
+Earlier development checks cover Image/Plate reconstruction, inherited-label
+handling and the selected-label TIFF path. These are separate from the ACC
+smoke coverage. The latest smoke series did not verify actual session expiry,
+restart recovery, batching, metadata refresh, changed-pixel safety or a matched
+full-Plate remote benchmark. Success in the four smoke modes should not be
+read as completion of those integration scenarios.
 
 ## Expected evolution
 

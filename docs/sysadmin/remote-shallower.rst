@@ -1,5 +1,5 @@
 Optional remote Zarr shallowing
-==============================
+===============================
 
 BIOMERO can shallow eligible workflow OME-Zarr output on Slurm before ZIP
 creation and transfer. The helper retains new/changed labels and references
@@ -63,7 +63,7 @@ For a standalone copy on disk, see
 :ref:`reconstruct-shallow-zarr-on-disk`.
 
 Choosing local or remote shallowing
-----------------------------------
+-----------------------------------
 
 .. list-table:: Illustrative storage and processing trade-offs
    :header-rows: 1
@@ -76,15 +76,23 @@ Choosing local or remote shallowing
      - No deduplication savings
      - No shallowing work; full results transferred and stored.
    * - Local shallow Zarr
-     - Approximately 90% saved in measured examples
-     - Extra importer work: 63 minutes for the 846-image Plate.
+     - Around 90% saved in earlier examples
+     - Additional verification and I/O: about 25 s for an 18-image example; 63 min for an 846-image example on Windows/Docker.
    * - Remote shallow Zarr
      - Preserves shallow-storage savings
-     - 18-image comparison: 57% less time in measured return stages and 88% fewer transfer bytes; extra HPC CPU job (25 seconds).
+     - ACC 18-image smoke: 88% fewer transfer bytes; an extra 12–13 s HPC job, with two CPUs allocated and no GPU.
 
-Results depend on data, storage and cluster queues; HPC charges may apply.
-The full-Plate remote speedup has not yet been measured. See
-:doc:`../developer/biomero-shallow-zarr` for the complete timings and limitations.
+ACC beta.6 verified matching source pixels and labels with local and remote
+shallowing, both inline and detached remote execution, and the feature disabled.
+Remote workflows finished in about 8–9 minutes versus 12 minutes with local
+shallowing, but preparation and retries differed: this is an indication, not
+a controlled speedup measurement.
+
+Choose remote processing to reduce transfer and importer I/O; choose local
+processing when avoiding extra HPC allocation matters more. Queue delays and
+billing are site-dependent. These examples do not establish linear scaling or
+full-Plate remote savings. See :doc:`../developer/biomero-shallow-zarr` for
+measurement guidance and validation scope.
 
 Requirements and enablement
 ---------------------------
