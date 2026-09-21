@@ -24,6 +24,7 @@
    sysadmin/detached-workflows
    sysadmin/metadata-refresh
    sysadmin/analyzer-importer-admin
+   sysadmin/remote-shallower
 
 .. toctree::
    :hidden:

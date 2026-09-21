@@ -1,11 +1,15 @@
-Optional remote Zarr shallowing
-===============================
+Shallow OME-Zarr Storage
+========================
 
-BIOMERO can shallow eligible workflow OME-Zarr output on Slurm before ZIP
-creation and transfer. The helper retains new/changed labels and references
-verified canonical pixels already available on the OMERO side. The importer
-validates the helper receipt and registers the result without repeating pixel
-hashing or shallowing. Other workflow files follow the existing import path.
+Shallow storage avoids keeping another copy of unchanged image pixels in
+eligible OME-Zarr workflow results. BIOMERO retains new or changed labels and
+references verified source pixels already in managed storage. Original source
+data remains unchanged.
+
+Processing can run locally in the importer or remotely on Slurm. Remote
+shallowing removes duplicates before ZIP creation and transfer; the importer
+validates the receipt without repeating pixel hashing or shallowing. Other
+workflow files follow the existing import path.
 
 The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
 ``BIOMERO_SHALLOW_ZARR=true``. Remote processing is then the default; set
