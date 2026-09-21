@@ -1,19 +1,25 @@
 BIOMERO.analyzer + BIOMERO.importer Integration
 ================================================
 
-.. note::
-   **TL;DR for System Administrators:**
-
-   - Enable with ``IMPORTER_ENABLED=true`` in ``.env`` / in the `biomeroworker` environment
-   - Analysis results are written to the shared remote storage (the same drive BIOMERO.importer monitors)
-   - `biomeroworker` needs **two extra volume mounts** and **two extra env vars** — see :ref:`required-config`
-   - The `biomeroworker` needs **write permission** on group folders in the mounted storage
-   - From BIOMERO v2.3.0 / NL-BIOMERO v1.3.0 onward
-   - This integration is also a **prerequisite** for Zarr workflow support (BIOMERO ≥ 2.4.0) —
-     see :ref:`zarr-workflow-types` in :doc:`omero-biomero-admin`
-
 This guide covers connecting BIOMERO.analyzer's SLURM result import to BIOMERO.importer so that
 analysis results land on your managed **remote storage** rather than on OMERO server storage.
+
+.. versionadded:: 1.3.0
+
+   Requires BIOMERO 2.3.0 or newer. The NL-BIOMERO demo enables this integration;
+   existing deployments opt in with ``IMPORTER_ENABLED=true`` on the workflow
+   worker and the shared-storage configuration below.
+
+.. note::
+   **Summary for system administrators:**
+
+   * Enable with ``IMPORTER_ENABLED=true`` and provide a running importer service.
+   * Share the result-storage paths, group mappings and tracking database
+     configuration; the worker needs write access to the target group folders.
+   * This is a prerequisite for BIOMERO Zarr workflows and
+     :doc:`remote-shallower`. Configure it before those features.
+   * With the flag disabled, analysis uses classic Get Results rather than this
+     importer path. Disabling it does not migrate existing results.
 
 For full technical detail see :doc:`../developer/containers/analyzer-importer-integration`.
 
@@ -46,7 +52,10 @@ Required configuration changes
 .. code-block:: ini
 
    IMPORTER_ENABLED=true
-   BIOMERO_IMPORTER_VERSION=1.2.1   # ensure this matches the installed library version
+
+Use the component versions supplied with your selected NL-BIOMERO release.
+For source builds, keep ``BIOMERO_IMPORTER_VERSION`` aligned with that release;
+custom deployments need compatible worker and importer packages.
 
 ``docker-compose.yml`` — biomeroworker service
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -242,36 +251,15 @@ have no effect and workflows will fall back to standard TIFF-based processing.
 For per-workflow configuration of Zarr types, see :ref:`zarr-workflow-types`
 in :doc:`omero-biomero-admin`.
 
-Experimental shallow Zarr storage
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Shallow OME-Zarr Storage
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-Sites may opt into BIOMERO's experimental shallow-result storage for
-label-producing Zarr workflows. The importer verifies that returned image
-pixels still match the managed workflow input, retains the labels, and omits
-the duplicated image arrays. A later workflow selection is reconstructed into
-a normal, full OME-Zarr before transfer. Original/raw data and the managed full
-source are never modified.
-
-Enable it explicitly in ``.env``::
-
-   IMPORTER_ENABLED=true
-   BIOMERO_SHALLOW_ZARR=true
-   BIOMERO_SHALLOW_ZARR_WORKERS=4
-
-The feature defaults off. ``BIOMERO_SHALLOW_ZARR_WORKERS`` controls bounded
-parallel identity generation in BIOMERO.importer; increasing it can make a
-metadata-heavy storage mount slower through I/O contention. Enabling the
-feature is a storage-versus-import-time choice: current development examples
-saved about 92% of returned Zarr storage, but large Plates still need
-site-specific timing before broad deployment. Custom importer installations
-must include the identity extra (``pip install "biomero-importer[identity]"``).
-The NL-BIOMERO importer image already includes it. If the flag is enabled
-without ISCC-BIO, only shallow lifecycle orders are rejected; normal imports
-remain available.
-
-See :doc:`../developer/biomero-shallow-zarr` for viewing, verifying and
-reconstructing results, and :doc:`remote-shallower` for configuration and
-processing trade-offs.
+With this integration configured, shallow storage can avoid duplicate pixels
+in eligible workflow results. The demo enables it; other deployments opt in
+with ``BIOMERO_SHALLOW_ZARR=true``. See :doc:`remote-shallower` for setup,
+local/remote processing choices and storage/time trade-offs, and
+:doc:`../developer/biomero-shallow-zarr` for how the data is represented and
+reconstructed.
 
 Troubleshooting
 ---------------

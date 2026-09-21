@@ -19,6 +19,8 @@ Detached BIOMERO Workflows
      cover the complete Slurm runtime. The OMERO script timeout must still
      accommodate long server-side transfer and import operations.
    * The setting applies to BIOMERO analysis workflows, not browser uploads.
+   * Set the flag to ``FALSE`` for inline execution, after active detached
+     work has finished. Do not disable it while workflows are still running.
 
 Overview
 --------

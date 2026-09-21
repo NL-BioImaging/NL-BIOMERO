@@ -6,22 +6,21 @@ eligible OME-Zarr workflow results. BIOMERO retains new or changed labels and
 references verified source pixels already in managed storage. Original source
 data remains unchanged.
 
-Processing can run locally in the importer or remotely on Slurm. Remote
-shallowing removes duplicates before ZIP creation and transfer; the importer
-validates the receipt without repeating pixel hashing or shallowing. Other
-workflow files follow the existing import path.
-
 The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
 ``BIOMERO_SHALLOW_ZARR=true``. Remote processing is then the default; set
 ``BIOMERO_REMOTE_SHALLOW_ZARR=false`` for local importer processing instead.
 Without shallow Zarr enabled, the remote setting has no effect.
 
-The demonstration stack shares ``web/slurm-config.ini`` between OMERO.biomero
-and the workflow worker. ``SLURM_CONFIG_HOST_PATH`` selects this canonical
-configuration in the root Compose files; deployment-scenario files mount the
-same file. The INIs under ``biomeroworker/`` are alternative examples, not
-additional active configurations. Shallow storage and detached execution are
-enabled through the deployment environment, not through INI feature flags.
+.. note::
+   **Summary for system administrators:**
+
+   * Requires :doc:`analyzer-importer-admin` and ``IMPORTER_ENABLED=true``.
+   * Enable with ``BIOMERO_SHALLOW_ZARR=true``; set it to ``false`` to stop
+     shallowing new results. Existing shallow results still need their sources.
+   * Remote processing reduces transfer volume but adds an HPC CPU job.
+     Configure its image/resources and run Slurm Init before use.
+   * Keep source storage available. This feature reduces duplicate result data;
+     it does not replace backups or enable detached execution.
 
 Lifecycle overview
 ------------------
@@ -100,6 +99,13 @@ measurement guidance and validation scope.
 
 Requirements and enablement
 ---------------------------
+
+The demonstration stack shares ``web/slurm-config.ini`` between OMERO.biomero
+and the workflow worker. ``SLURM_CONFIG_HOST_PATH`` selects this canonical
+configuration in the root Compose files; deployment-scenario files mount the
+same file. The INIs under ``biomeroworker/`` are alternative examples, not
+additional active configurations. Feature flags belong to the deployment
+environment; helper image and resource settings belong to the shared INI.
 
 Install compatible BIOMERO core, scripts, importer, shallower and schema
 packages. The Python package installation does not acquire the helper image
