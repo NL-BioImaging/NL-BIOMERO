@@ -12,8 +12,8 @@ This container extends the standard OMERO.web with BIOMERO-specific functionalit
 
 ## Customization
 
-The image includes the published `biomero-zarr-viewer` wheel selected by
-`BIOMERO_ZARR_VIEWER_VERSION`. The viewer is registered only when
+The image includes the BIOMERO OME-Zarr Viewer and its compiled frontend. The
+viewer is registered only when
 `BIOMERO_ZARR_VIEWER_ENABLED=TRUE`; missing, empty or false values disable it.
 Startup preserves other plugins and removes the viewer registration when disabled.
 Use the Nginx endpoint to view data. See the

@@ -26,9 +26,9 @@ Demo defaults and existing deployments
 ----------------------------------------------
 
 The supplied ``.env`` and ``.env.shared`` explicitly enable the viewer with
-``BIOMERO_ZARR_VIEWER_ENABLED=TRUE``. The web image includes the published
-``biomero-zarr-viewer==0.5.0`` wheel, including its compiled frontend; Node.js
-and a separate ZarrViewer checkout are not required to run it.
+``BIOMERO_ZARR_VIEWER_ENABLED=TRUE``. The web image includes the viewer package
+and its compiled frontend, so Node.js and a separate ZarrViewer checkout are
+not required to run it.
 
 Using the new demo environment file enables the demo features; preserve your
 existing environment file and site credentials during an opt-in upgrade.
@@ -57,7 +57,6 @@ your environment file, preserving any other selected profiles:
 .. code-block:: ini
 
    BIOMERO_ZARR_VIEWER_ENABLED=TRUE
-   BIOMERO_ZARR_VIEWER_VERSION=0.5.0
    BIOMERO_WEB_HOST_PORT=4080
 
 Rebuild/recreate only the frontend services:
@@ -86,9 +85,7 @@ Prebuilt images and other scenarios
 
 The deployment-scenario Compose files forward the feature flag to OMERO.web
 with a false fallback. For prebuilt deployments, select a published NL-BIOMERO
-image that contains this integration and explicitly enable the flag. The
-beta.6 web image does not contain the viewer; this PR is preparation for beta.7.
-Do not select a beta.7 image until its release image build has completed.
+image that contains this integration and explicitly enable the flag.
 
 Scenarios exposing OMERO.web directly also require an Nginx frontend when
 opting in. Use ``nginx/zarrviewer.conf`` with a read-only mount of the same
@@ -152,15 +149,14 @@ Field to display and control its segmentation label overlays.
 Compatibility with shallow results
 ------------------------------------------
 
-The beta.7 viewer resolves a ``biomero.zarr.shallow`` index against its
+The viewer resolves a ``biomero.zarr.shallow`` index against its
 authoritative ``.biomero-shallow.json`` manifest. It reads intensity metadata
 and chunks from the canonical source store while exposing retained or inherited
 label paths from the shallow result store as one logical, authorized store.
 Complete image and plate stores continue to use their existing direct route.
 
-The deployment pin remains 0.5.0 until the corresponding viewer component is
-released. Before beta.7 is published, update ``BIOMERO_ZARR_VIEWER_VERSION`` to
-that release and repeat the shallow label verification below.
+Before publishing an NL-BIOMERO image, use the released viewer component and
+repeat the shallow-label verification below.
 
 Verification and troubleshooting
 ----------------------------------------

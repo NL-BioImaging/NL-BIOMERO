@@ -7,7 +7,9 @@ on:
       - 'web/tests/test_zarr_viewer_config.py'
       - 'docker-compose.yml'
       - 'docker-compose-dev.yml'
+      - 'web/Dockerfile'
       - '.env'
+      - '.env.shared'
       - '.github/workflows/zarrviewer-config.yml'
   push:
     paths:
@@ -15,7 +17,9 @@ on:
       - 'web/tests/test_zarr_viewer_config.py'
       - 'docker-compose.yml'
       - 'docker-compose-dev.yml'
+      - 'web/Dockerfile'
       - '.env'
+      - '.env.shared'
       - '.github/workflows/zarrviewer-config.yml'
 
 permissions:
