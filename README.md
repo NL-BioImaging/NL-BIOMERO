@@ -29,7 +29,7 @@ This is an adaptation of OME's <a href="https://github.com/ome/docker-example-om
 - OMERO.web is exposed through its Nginx frontend on port `4080`
   (http://localhost:4080/) in the supplied demo. Gunicorn remains internal.
   Sign in through this endpoint to use **Open With > OME-Zarr Viewer** on
-  registered OME-Zarr Images and Plates, including segmentation labels.
+  registered OME-Zarr Images, Plates, and Wells, including segmentation labels.
   See the [viewer deployment and opt-in upgrade guide](docs/sysadmin/zarrviewer.rst).
 
 > ⚠️ **Warning:** This setup is mainly intended for demonstration or development purposes. For professional deployments, refer to the documented deployment scenarios in our documentation and see the [deployment scenarios](./deployment_scenarios) folder. We **strongly discourage** running Slurm inside Docker Compose for production; connect BIOMERO to a real HPC cluster to ensure stability, full feature support, and performance.

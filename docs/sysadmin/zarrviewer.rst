@@ -138,11 +138,16 @@ resolve to ``/data/alice/example.ome.zarr`` in OMERO.web and Nginx. Retain
 ``/_biomero_zarr_internal/`` as the internal redirect prefix in both services.
 Ensure both container users can read the store. The viewer does not modify it.
 
-The selected Image or Plate must be readable in the active OMERO group and
-linked unambiguously to a physical store through its Fileset/OriginalFile
-or the BIOMERO import provenance map annotation. The viewer supports OME-Zarr
-0.4/Zarr v2 and OME-Zarr 0.5/Zarr v3, including NGFF labels and HCS metadata.
-It is independent of the shallow-Zarr and detached-workflow feature flags.
+The selected Image, Plate, or Well must be readable in the active OMERO group.
+Images and Plates must link unambiguously to a physical store through their
+Fileset/OriginalFile or BIOMERO import provenance map annotation. A Well
+resolves through its first readable WellSample Image and opens in the
+multi-field Well overview. The viewer supports OME-Zarr 0.4/Zarr v2 and
+OME-Zarr 0.5/Zarr v3, including NGFF labels and HCS metadata. It is independent
+of the shallow-Zarr and detached-workflow feature flags.
+
+Well and Plate overview thumbnails show intensity channels. Open an individual
+Field to display and control its segmentation label overlays.
 
 Compatibility with shallow results
 ------------------------------------------
@@ -160,7 +165,8 @@ that release and repeat the shallow label verification below.
 Verification and troubleshooting
 ----------------------------------------
 
-1. Sign in through the proxy and select an imported OME-Zarr Image or Plate.
+1. Sign in through the proxy and select an imported OME-Zarr Image, Plate, or
+   Well.
 2. Choose **Open With > OME-Zarr Viewer**.
 3. Confirm channels, Z/T controls, labels and plate fields match the store.
    For a shallow result, confirm the original intensities and split result
@@ -170,8 +176,8 @@ Verification and troubleshooting
 5. Confirm a direct request to ``/_biomero_zarr_internal/`` returns 404.
 6. Confirm signed-out requests cannot retrieve capability or store data.
 
-A disabled Open With entry means the current selection is not exactly one Image
-or Plate. A viewer that opens but reports **Failed to fetch** usually indicates
+A disabled Open With entry means the current selection is not exactly one
+eligible Image, Plate, or Well. A viewer that opens but reports **Failed to fetch** usually indicates
 a stale direct-Gunicorn bookmark, mismatched storage roots, missing read
 permissions or an absent internal Nginx location.
 Inspect ``docker compose logs --tail=100 omeroweb zarrviewer-nginx`` for the
