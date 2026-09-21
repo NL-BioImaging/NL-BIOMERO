@@ -18,7 +18,7 @@ below. A missing, empty or false flag leaves the viewer disabled.
      ``BIOMERO_ZARR_VIEWER_ENABLED=TRUE`` on OMERO.web.
    * A compatible Nginx frontend and read-only access to the registered Zarr
      storage are required; the flag alone is not sufficient.
-   * In the local demo, access OMERO through port **4081**, including login.
+   * In the local demo, access OMERO through port **4080**, including login.
    * Set the flag to ``FALSE`` and recreate OMERO.web to disable the application.
      Nginx remains the browser-facing OMERO.web service.
 
@@ -45,7 +45,7 @@ demo with the normal command:
 
    docker compose up -d --build
 
-Open http://localhost:4081 and sign in. The proxy forwards ordinary OMERO.web
+Open http://localhost:4080 and sign in. The proxy forwards ordinary OMERO.web
 requests and serves only authorized OME-Zarr metadata and chunks. All browser
 requests, including login, dashboard links and viewer navigation, use this same
 endpoint. Gunicorn does not process ``X-Accel-Redirect`` and is therefore not
@@ -58,7 +58,7 @@ your environment file, preserving any other selected profiles:
 
    BIOMERO_ZARR_VIEWER_ENABLED=TRUE
    BIOMERO_ZARR_VIEWER_VERSION=0.5.0
-   BIOMERO_WEB_HOST_PORT=4081
+   BIOMERO_WEB_HOST_PORT=4080
 
 Rebuild/recreate only the frontend services:
 
@@ -74,8 +74,7 @@ flag to ``FALSE`` and recreate ``omeroweb``. Restarting a container does not
 load changed Compose environment values.
 
 ``BIOMERO_WEB_HOST_PORT`` defaults to 4080 when absent, preserving the public
-endpoint used by existing root-Compose deployments. The supplied demo sets it
-to 4081. Upgrades can retain their current port; there must be only one
+endpoint used by existing root-Compose deployments. There must be only one
 browser-facing endpoint, and it must be the Nginx service.
 
 The manual-process ``docker-compose-dev.yml`` also includes the same flag,

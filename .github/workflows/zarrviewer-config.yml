@@ -45,6 +45,6 @@ jobs:
               ports = services["zarrviewer-nginx"]["ports"]
               assert len(ports) == 1, path
               assert ports[0]["target"] == 4080, path
-              assert ports[0]["published"] == "4081", path
+              assert ports[0]["published"] == "4080", path
               assert not services["zarrviewer-nginx"].get("profiles"), path
           PY

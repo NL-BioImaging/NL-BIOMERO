@@ -40,7 +40,7 @@ Clone the repository and set up your development environment:
    # Start OMERO web server (use WSL on Windows)
    ./omero-init.sh
 
-   # OMERO web is now available through Nginx at localhost:4081
+   # OMERO web is now available through Nginx at localhost:4080
 
 Development Features
 --------------------

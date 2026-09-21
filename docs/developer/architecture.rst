@@ -111,7 +111,7 @@ Internal Communication
 External Access Points
 ~~~~~~~~~~~~~~~~~~~~~~
 
-* **OMERO.web Interface** - Nginx on the configured host port (4081 in the demo);
+* **OMERO.web Interface** - Nginx on the configured host port (4080 in the demo);
   OMERO.web's internal Gunicorn service listens on container port 4080
 * **OMERO Server** - Ports 4063/4064 for OMERO.insight and API access
 * **Metabase Dashboard** - Port 3000 for analytics and monitoring
