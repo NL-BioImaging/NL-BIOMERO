@@ -1,4 +1,20 @@
-# Refreshing workflow metadata
+# Workflow Metadata Refresh
+
+This maintenance action is opt-in for each run, including in the demo. Open
+**Slurm Init (Admin Only)**, enable **Refresh OMERO Metadata**, and leave
+**Metadata Dry Run** checked for the first pass. No deployment flag is needed
+to request a refresh.
+
+```{note}
+**Summary for system administrators:**
+
+- Preview one selected workflow before applying changes.
+- Refresh searchable annotations from recorded history; pixels, storage
+  references and provenance CSVs remain unchanged.
+- With detached execution enabled, apply runs continue in the background;
+  dry runs remain synchronous.
+- Optional backups support inspection/manual recovery, not automated rollback.
+```
 
 **Slurm Init (Admin Only)** can refresh the searchable workflow annotations on
 existing OMERO Images and Plates from BIOMERO's recorded workflow history.
