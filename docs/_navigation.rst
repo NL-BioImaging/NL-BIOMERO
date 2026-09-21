@@ -15,17 +15,17 @@
    sysadmin/deployment
    sysadmin/docker-compose-scenarios
    sysadmin/linux-deployment
-   sysadmin/backup-restore
-   sysadmin/ui-customization
-   sysadmin/omero-biomero-admin
-   sysadmin/resumable-uploader
-   sysadmin/metabase-admin
    sysadmin/slurm-integration
-   sysadmin/detached-workflows
-   sysadmin/metadata-refresh
-   sysadmin/zarrviewer
+   sysadmin/omero-biomero-admin
    sysadmin/analyzer-importer-admin
    sysadmin/remote-shallower
+   sysadmin/detached-workflows
+   sysadmin/resumable-uploader
+   sysadmin/zarrviewer
+   sysadmin/metabase-admin
+   sysadmin/ui-customization
+   sysadmin/backup-restore
+   sysadmin/metadata-refresh
 
 .. toctree::
    :hidden:

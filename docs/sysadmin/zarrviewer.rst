@@ -1,11 +1,27 @@
 OME-Zarr Viewer
 =======================
 
-The optional `BIOMERO OME-Zarr Viewer
+The `BIOMERO OME-Zarr Viewer
 <https://github.com/NL-BioImaging/BIOMERO.ZarrViewer>`_ opens physical OME-Zarr
 stores registered in OMERO. It provides channel controls, Z/T navigation,
 segmentation label overlays and HCS Field, Well and Plate views. It is read-only
 and does not convert conventional OMERO images into OME-Zarr.
+
+The NL-BIOMERO demo enables it with ``BIOMERO_ZARR_VIEWER_ENABLED=TRUE``.
+Existing deployments opt in with that flag and the proxy/storage configuration
+below. A missing, empty or false flag leaves the viewer disabled.
+
+.. note::
+   **Summary for system administrators:**
+
+   * Use a web image containing the viewer package and enable
+     ``BIOMERO_ZARR_VIEWER_ENABLED=TRUE`` on OMERO.web.
+   * A compatible Nginx frontend and read-only access to the registered Zarr
+     storage are required; the flag alone is not sufficient.
+   * In the local demo, enable the ``ZARR_VIEWER_ENABLED`` Compose profile and
+     access OMERO through port **4081**, including login.
+   * Set the flag to ``FALSE`` and recreate OMERO.web to disable the application.
+     Existing viewers are preserved; see below for optional proxy removal.
 
 Demo defaults and existing deployments
 ----------------------------------------------
@@ -15,10 +31,6 @@ The supplied ``.env`` and ``.env.shared`` explicitly enable the viewer with
 ``biomero-zarr-viewer==0.5.0`` wheel, including its compiled frontend; Node.js
 and a separate ZarrViewer checkout are not required to run it.
 
-Existing deployments upgrading their NL-BIOMERO images retain their current
-behavior without configuration changes. A missing, empty or false
-``BIOMERO_ZARR_VIEWER_ENABLED`` disables the application and its Open With entry.
-Other OMERO.web applications and the default image viewer are preserved.
 Using the new demo environment file enables the demo features; preserve your
 existing environment file and site credentials during an opt-in upgrade.
 

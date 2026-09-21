@@ -21,6 +21,13 @@ they do not develop BIOMERO itself. Concise writing can still be technical.
   Workflows", not "Optional ...". Explain enablement in the page, not its title.
 - Keep the admin overview short: a small benefits/costs table, configuration,
   and operational limits. Link to the developer explanation for internals.
+- Start feature pages with purpose, practical enablement/demo-versus-upgrade
+  behaviour, then a short "Summary for system administrators" note before
+  detailed setup. Use a version notice only when the introduction version is
+  verified. Reflect the actual control: deployment flag, admin setting or
+  per-run action; do not invent a flag to make pages look uniform.
+  Core setup pages such as Slurm integration can use the same practical note
+  without being described as optional features.
 - On the developer page, go deeper without repeating the admin overview or
   explaining the same lifecycle in several different forms. Prefer one useful
   Mermaid diagram over repeated prose when relationships are hard to follow.
@@ -53,6 +60,15 @@ Use existing audience categories in `docs/_navigation.rst`. Do not add a separat
 top-level toctree in `docs/index.rst` for one optional feature. Folder names do
 not determine sidebar grouping. Preserve existing URLs and cross-references
 when rewriting a page unless a move is needed and its links are updated.
+Order admin navigation from deployment and prerequisites to dependent features,
+then optional extensions and maintenance. The core sequence is demo setup, full
+deployment, analyzer/Slurm, importer administration, analyzer/importer
+integration, and features that depend on that combined path such as shallow
+storage. Keep it flat and group maintenance actions such as metadata refresh
+with Backup & Restore through page order, not new categories. Keep the admin
+index consistent with it. Use consistent title case while preserving official
+product names such as BIOMERO.analyzer, BIOMERO.importer, OMERO.biomero and
+OME-Zarr.
 
 Use the local Sphinx procedure in `SKILL.md`, not a multiversion build. After
 navigation changes, use `-E -a` so previously unchanged pages get the new sidebar.

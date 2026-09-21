@@ -1,19 +1,22 @@
 System Administration Guide
 ===========================
 
-Complete guide for deploying and managing NL-BIOMERO infrastructure.
+Deployment, configuration and operation of NL-BIOMERO. Start with the core
+setup before enabling dependent features. The demo opts into the supplied
+features; existing deployments should follow each feature's enablement guide.
 
-This section covers all aspects of NL-BIOMERO deployment, from initial setup to ongoing maintenance:
-
-* **Deployment** - Complete deployment scenarios and setup guides
-* **OMERO.biomero Admin** - Administrative configuration and management
-* **Slurm Integration** - High-performance computing cluster setup
-* **Detached Workflows** - Run analyses independently of browser sessions
-* :doc:`metadata-refresh` - Preview and refresh searchable workflow annotations
-* :doc:`zarrviewer` - Enable authenticated viewing of physical OME-Zarr images and plates
-* **Docker Compose Scenarios** - Container orchestration configurations
-* **Linux Deployment** - Linux-specific deployment instructions
-* **Development Setup** - Setting up development environments
-* **Backup & Restore** - Data protection and recovery procedures
-
-Use the navigation menu on the left to explore each topic.
+* :doc:`development-setup` — local development/demo setup
+* :doc:`deployment` — full NL-BIOMERO deployment
+* :doc:`docker-compose-scenarios` — container orchestration options
+* :doc:`linux-deployment` — Linux deployment
+* :doc:`slurm-integration` — connect BIOMERO.analyzer to the HPC cluster
+* :doc:`omero-biomero-admin` — configure the Analyzer and Importer interfaces
+* :doc:`analyzer-importer-admin` — shared-storage result import; prerequisite for Zarr workflows and shallow storage
+* :doc:`remote-shallower` — reduce duplicate result storage; select local or remote processing
+* :doc:`detached-workflows` — continue analysis after the submitting session ends
+* :doc:`resumable-uploader` — browser uploads into the importer
+* :doc:`zarrviewer` — authenticated viewing of registered OME-Zarr data
+* :doc:`metabase-admin` — workflow and importer dashboards
+* :doc:`ui-customization` — adapt the interface
+* :doc:`backup-restore` — data protection and recovery
+* :doc:`metadata-refresh` — explicitly requested annotation maintenance

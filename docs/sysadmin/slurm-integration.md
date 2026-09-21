@@ -2,14 +2,18 @@
 
 This guide covers deploying **BIOMERO.analyzer** with SLURM cluster integration within your NL-BIOMERO infrastructure. For detailed workflow configuration and usage, see the [BIOMERO.analyzer SLURM documentation](https://nl-bioimaging.github.io/biomero/readme_link.html#using-the-gpu-on-slurm).
 
+This is core setup for running BIOMERO analyses, not an optional processing
+flag. The demo uses a local Slurm cluster; institutional deployments must
+configure their own cluster access and resources.
+
 ```{note}
-**TL;DR for System Administrators:**
-- BIOMERO.analyzer can offload compute-intensive workflows to SLURM clusters via SSH
-- Requires one-way SSH access from `biomeroworker` container to your SLURM cluster
-- Uses existing SSH keys mounted into the container (see deployment examples)
-- The host's `web/slurm-config.ini` is the authoritative runtime configuration
-- SLURM environment is auto-configured via OMERO admin script `SLURM_Init_environment.py`
-- Links to [full BIOMERO.analyzer documentation](https://nl-bioimaging.github.io/biomero/) for workflow details
+**Summary for system administrators:**
+
+- Provide SSH access from `biomeroworker` to the cluster using the mounted keys.
+- Configure cluster paths, resources and workflows in the shared `web/slurm-config.ini`.
+- Run **Slurm Init**, then **Slurm Check Setup**, before submitting analyses.
+- Configure [analyzer/importer integration](analyzer-importer-admin.rst) next
+  for shared-storage result import and Zarr workflows.
 ```
 
 ## Overview
@@ -27,10 +31,7 @@ All communication is **one-way** from NL-BIOMERO to SLURM cluster via SSH/SCP.
 
 ```{mermaid}
 ---
-config:
-  themeVariables:
-    fontSize: 20px
-    curve: linear
+config: '{"themeVariables":{"fontSize":"20px"},"flowchart":{"curve":"linear"}}'
 ---
 flowchart LR
     subgraph " "
