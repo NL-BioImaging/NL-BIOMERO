@@ -269,9 +269,9 @@ The NL-BIOMERO importer image already includes it. If the flag is enabled
 without ISCC-BIO, only shallow lifecycle orders are rejected; normal imports
 remain available.
 
-See :doc:`../developer/biomero-shallow-zarr` for the storage contract, measured
-trade-offs, RFC 8 relationship, ISCC identity rules, and current validation
-status.
+See :doc:`../developer/biomero-shallow-zarr` for viewing, verifying and
+reconstructing results, and :doc:`remote-shallower` for configuration and
+processing trade-offs.
 
 Troubleshooting
 ---------------
