@@ -1,4 +1,4 @@
-FROM openmicroscopy/omero-web-standalone:5.31.1
+FROM openmicroscopy/omero-web-standalone:5.33.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
