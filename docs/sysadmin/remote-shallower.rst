@@ -11,14 +11,22 @@ The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
 ``BIOMERO_REMOTE_SHALLOW_ZARR=false`` for local importer processing instead.
 Without shallow Zarr enabled, the remote setting has no effect.
 
+Remote processing is recommended when Slurm is available. It produces the same
+shallow result as local processing, while removing duplicate data before the
+return archive is created and moving the expensive verification and shallowing
+work from the importer to a CPU-only Slurm helper.
+
 .. note::
    **Summary for system administrators:**
 
    * Requires :doc:`analyzer-importer-admin` and ``IMPORTER_ENABLED=true``.
    * Enable with ``BIOMERO_SHALLOW_ZARR=true``; set it to ``false`` to stop
      shallowing new results. Existing shallow results still need their sources.
-   * Remote processing reduces transfer volume but adds an HPC CPU job.
-     Configure its image/resources and run Slurm Init before use.
+   * Remote processing is the recommended default. It reduces transfer volume
+     and importer work at the cost of a CPU-only HPC helper job.
+   * Configure the helper image/resources and run Slurm Init after upgrading.
+     This is the normal post-upgrade initialization step and acquires the helper
+     image together with the other configured workflow images.
    * Keep source storage available. This feature reduces duplicate result data;
      it does not replace backups or enable detached execution.
 
@@ -68,34 +76,40 @@ For a standalone copy on disk, see
 Choosing local or remote shallowing
 -----------------------------------
 
-.. list-table:: Illustrative storage and processing trade-offs
+.. list-table:: Matched 846-image Plate result handling
    :header-rows: 1
-   :widths: 20 30 50
+   :widths: 34 28 28
 
-   * - Mode
-     - Result disk space
-     - Time and compute cost
-   * - Full results
-     - No deduplication savings
-     - No shallowing work; full results transferred and stored.
-   * - Local shallow Zarr
-     - Around 90% saved in earlier examples
-     - Additional verification and I/O: about 25 s for an 18-image example; 63 min for an 846-image example on Windows/Docker.
-   * - Remote shallow Zarr
-     - Preserves shallow-storage savings
-     - ACC 18-image smoke: 88% fewer transfer bytes; an extra 12–13 s HPC job, with two CPUs allocated and no GPU.
+   * - Measure
+     - Local shallowing
+     - Remote shallowing
+   * - Shallow processing and validation
+     - 1 h 47 min 7 s on the importer
+     - 15 min 31 s total: 14 min 28 s on HPC and 1 min 3 s on the importer
+   * - Return ZIP
+     - 7.36 GB
+     - 0.91 GB (87.6% smaller)
+   * - ZIP creation and return validation
+     - 9 min 32 s
+     - 4 min 6 s (57% less)
+   * - Final extracted result
+     - 1.898 GB (75.4% below the full result)
+     - 1.913 GB (75.2% below the full result; effectively equal to local)
 
 ACC beta.6 verified matching source pixels and labels with local and remote
-shallowing, both inline and detached remote execution, and the feature disabled.
-Remote workflows finished in about 8–9 minutes versus 12 minutes with local
-shallowing, but preparation and retries differed: this is an indication, not
-a controlled speedup measurement.
+shallowing on both 18-image and 846-image Plates. The large-Plate comparison
+reduced the shallowing-specific processing and validation time by 85.5%, while
+producing equivalent final data. Both modes reduced final storage by about 75%
+relative to the 7.73 GB full workflow result. The helper used 0.482 allocated
+CPU-hours, two CPUs, 2 GiB memory and no GPU.
 
-Choose remote processing to reduce transfer and importer I/O; choose local
-processing when avoiding extra HPC allocation matters more. Queue delays and
-billing are site-dependent. These examples do not establish linear scaling or
-full-Plate remote savings. See :doc:`../developer/biomero-shallow-zarr` for
-measurement guidance and validation scope.
+The complete remote workflow finished 14 min 34 s (4.6%) faster, but unrelated
+variation on the mounted storage obscured much of the stage-level saving.
+End-to-end time remains dependent on storage load and the Slurm queue; the table
+therefore compares the work affected directly by remote shallowing. Choose local
+processing only when avoiding the additional HPC allocation is more important
+than transfer volume and importer time. See
+:doc:`../developer/biomero-shallow-zarr` for the data model and reconstruction.
 
 Requirements and enablement
 ---------------------------
