@@ -11,14 +11,22 @@ The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
 ``BIOMERO_REMOTE_SHALLOW_ZARR=false`` for local importer processing instead.
 Without shallow Zarr enabled, the remote setting has no effect.
 
+Remote processing is recommended when Slurm is available. It produces the same
+shallow result as local processing, while removing duplicate data before the
+return archive is created and moving the expensive verification and shallowing
+work from the importer to a CPU-only Slurm helper.
+
 .. note::
    **Summary for system administrators:**
 
    * Requires :doc:`analyzer-importer-admin` and ``IMPORTER_ENABLED=true``.
    * Enable with ``BIOMERO_SHALLOW_ZARR=true``; set it to ``false`` to stop
      shallowing new results. Existing shallow results still need their sources.
-   * Remote processing reduces transfer volume but adds an HPC CPU job.
-     Configure its image/resources and run Slurm Init before use.
+   * Remote processing is the recommended default. It reduces transfer volume
+     and importer work at the cost of a CPU-only HPC helper job.
+   * Configure the helper image/resources and run Slurm Init after upgrading.
+     This is the normal post-upgrade initialization step and acquires the helper
+     image together with the other configured workflow images.
    * Keep source storage available. This feature reduces duplicate result data;
      it does not replace backups or enable detached execution.
 
@@ -68,26 +76,44 @@ For a standalone copy on disk, see
 Choosing local or remote shallowing
 -----------------------------------
 
-.. list-table:: Illustrative storage and processing trade-offs
+.. list-table:: Matched 846-image Plate result handling
    :header-rows: 1
-   :widths: 20 30 50
+   :widths: 34 28 28
 
-   * - Mode
-     - Result disk space
-     - Time and compute cost
-   * - Full results
-     - No deduplication savings
-     - No shallowing work; full results transferred and stored.
-   * - Local shallow Zarr
-     - Approximately 90% saved in measured examples
-     - Extra importer work: 63 minutes for the 846-image Plate.
-   * - Remote shallow Zarr
-     - Preserves shallow-storage savings
-     - 18-image comparison: 57% less time in measured return stages and 88% fewer transfer bytes; extra HPC CPU job (25 seconds).
+   * - Measure
+     - Local shallowing
+     - Remote shallowing
+   * - Shallow processing and validation
+     - 1 h 47 min 7 s on the importer
+     - 15 min 31 s total: 14 min 28 s on HPC and 1 min 3 s on the importer
+   * - Return ZIP
+     - 7.36 GB
+     - 0.91 GB (87.6% smaller)
+   * - ZIP creation and return validation
+     - 9 min 32 s
+     - 4 min 6 s (57% less)
+   * - Additional Slurm helper allocation
+     - None
+     - 0.482 CPU-hours; 2 CPUs, 2 GiB memory and no GPU
+   * - Final extracted result
+     - 1.898 GB (75.4% below the full result)
+     - 1.913 GB (75.2% below the full result; effectively equal to local)
 
-Results depend on data, storage and cluster queues; HPC charges may apply.
-The full-Plate remote speedup has not yet been measured. See
-:doc:`../developer/biomero-shallow-zarr` for using and reconstructing results.
+Matched comparisons verified source pixels and labels with local and remote
+shallowing on both 18-image and 846-image Plates. The large-Plate comparison
+reduced the shallowing-specific processing and validation time by 85.5%, while
+producing equivalent final data. Both modes reduced final storage by about 75%
+relative to the 7.73 GB full workflow result. Slurm accounting and billing
+policies are site-specific; the allocated CPU-hours in the table provide the
+portable input for estimating that cost.
+
+The complete remote workflow finished 14 min 34 s (4.6%) faster, but unrelated
+variation on the mounted storage obscured much of the stage-level saving.
+End-to-end time remains dependent on storage load and the Slurm queue; the table
+therefore compares the work affected directly by remote shallowing. Choose local
+processing only when avoiding the additional HPC allocation is more important
+than transfer volume and importer time. See
+:doc:`../developer/biomero-shallow-zarr` for the data model and reconstruction.
 
 Requirements and enablement
 ---------------------------
@@ -122,8 +148,8 @@ Prefer a pinned ``remote_shallower_image`` under ``[SLURM]`` in the worker's
 ``resources/slurm-config.ini`` contains a maintained release selection.
 When ``remote_shallower_version`` is unset, core reads the installed image's
 OCI tool-version label before submitting a new helper task. An explicit value
-must match the version written into receipts, including any normalized
-prerelease suffix. Existing tasks retain their recorded version for recovery.
+must exactly match the version written into receipts. Existing tasks retain
+their recorded version for recovery.
 
 Set ``BIOMERO_REMOTE_SHALLOWER_IMAGE`` and
 ``BIOMERO_REMOTE_SHALLOWER_VERSION`` on the importer to the same selected

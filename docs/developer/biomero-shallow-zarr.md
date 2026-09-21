@@ -132,6 +132,15 @@ processing happens after the full output is transferred back. Remote processing
 happens on HPC before transfer, saving network traffic and local extraction work
 but requiring additional HPC CPU resources.
 
+The relevant comparison is where shallowing work occurs, not how quickly an
+unrelated storage mount happened to copy or extract a result. In a matched
+846-image Plate comparison, local identity evaluation and normalization took
+1 h 47 min 7 s. The remote path used a 14 min 28 s CPU-only helper followed by
+1 min 3 s of importer validation, an 85.5% reduction for those stages. The
+return archive was 87.6% smaller, while final extracted storage was equivalent.
+Queueing and mounted-storage performance still determine how much of that
+stage-level gain appears in the complete workflow time.
+
 Neither changes the workflow's scientific parameters. Remote shallowing can
 run with or without detached execution. **Only detached execution removes the
 workflow's dependency on the submitting session**; shallow storage alone is

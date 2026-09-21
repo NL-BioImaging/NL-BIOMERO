@@ -23,9 +23,11 @@ they do not develop BIOMERO itself. Concise writing can still be technical.
   and operational limits. Link to the developer explanation for internals.
 - Start feature pages with purpose, practical enablement/demo-versus-upgrade
   behaviour, then a short "Summary for system administrators" note before
-  detailed setup. Use a version notice only when the introduction version is
-  verified. Reflect the actual control: deployment flag, admin setting or
-  per-run action; do not invent a flag to make pages look uniform.
+  detailed setup. Write as documentation for the released feature, not the
+  branch or validation campaign that produced it. Use a version notice only
+  when a stable-version compatibility boundary is essential to the reader.
+  Reflect the actual control: deployment flag, admin setting or per-run action;
+  do not invent a flag to make pages look uniform.
   Core setup pages such as Slurm integration can use the same practical note
   without being described as optional features.
 - On the developer page, go deeper without repeating the admin overview or
@@ -35,9 +37,11 @@ they do not develop BIOMERO itself. Concise writing can still be technical.
   features; custom upgrades must follow the applicable flags. Check actual
   gating behaviour: remote shallowing defaults on only within enabled shallow
   storage; it does nothing without the main shallow flag.
-- Test plans, pending ACC smoke instructions, implementation history, workflow
-  UUID inventories and deployment audits are not product documentation. Keep
-  code examples when they help the intended reader perform a supported task.
+- Test plans, site-specific smoke instructions, implementation history,
+  workflow UUID inventories and deployment audits are not product
+  documentation. Do not name internal environments, feature branches, pull
+  requests or prerelease builds in public feature prose. Keep code examples
+  when they help the intended reader perform a supported task.
 
 ## Evidence and performance claims
 
@@ -49,10 +53,11 @@ Plate performance linearly from image count alone.
 
 Preserve detailed measurements outside the published docs before removing them.
 The current shallow-Zarr archive is
-`D:\workspace\.verification\biomero-shallower-release-notes`; private ACC raw
-artifacts remain in its own evidence store. Keep original reports and structured
-measurements with provenance and unknown fields, rather than inventing values.
-Do not publish host-specific/private operational details with a public summary.
+`D:\workspace\.verification\biomero-shallower-release-notes`; private,
+environment-specific raw artifacts remain in their evidence store. Keep
+original reports and structured measurements with provenance and unknown
+fields, rather than inventing values. Do not publish host-specific/private
+operational details with a public summary.
 
 ## Navigation and preview
 
