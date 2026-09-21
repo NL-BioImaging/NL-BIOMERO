@@ -272,9 +272,3 @@ This documentation serves as your **main gateway** to the BIOMERO 2.0 ecosystem.
    <div style="margin: 40px 0; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 8px; border-left: 4px solid #667eea; text-align: center; color: #4a5568;">
    <p style="font-size: 14px; margin: 0; opacity: 0.8;">💡 This documentation covers containerized deployment scenarios. For non-containerized installations, refer to the individual component documentation.</p>
    </div>
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Optional result processing
-
-   sysadmin/remote-shallower

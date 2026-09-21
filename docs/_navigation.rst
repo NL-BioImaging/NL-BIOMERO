@@ -25,6 +25,7 @@
    sysadmin/metadata-refresh
    sysadmin/zarrviewer
    sysadmin/analyzer-importer-admin
+   sysadmin/remote-shallower
 
 .. toctree::
    :hidden:
