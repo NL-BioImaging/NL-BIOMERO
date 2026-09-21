@@ -1,6 +1,6 @@
 ---
 name: omero-biomero-expert
-description: OMERO/BIOMERO expert runbook for NL-BIOMERO deployments. Use for debugging and operating OMERO.server/web, OMERO.biomero, BIOMERO analyzer/importer/converter, Metabase dashboards, Docker Compose, Slurm/HPC, storage permissions, SSH access, logs, and Postgres verification.
+description: OMERO/BIOMERO expert runbook for NL-BIOMERO deployments and documentation. Use for writing or building NL-BIOMERO docs, debugging and operating OMERO.server/web, OMERO.biomero, BIOMERO analyzer/importer/converter, Metabase dashboards, Docker Compose, Slurm/HPC, storage permissions, SSH access, logs, and Postgres verification.
 ---
 
 # OMERO/BIOMERO Expert
@@ -228,6 +228,7 @@ sudo docker compose logs --tail=120 metabase omeroweb biomero-importer
 
 Read only the relevant reference before acting:
 
+- [references/documentation.md](references/documentation.md): required for documentation work; audience boundaries, concise feature explanations, measurement evidence, navigation and local preview verification.
 - [references/permissions-and-deployment.md](references/permissions-and-deployment.md): host/container UID/GID issues, project-local SSH, writable bind mounts, `chmod`/ownership workarounds, production vs dev compose, backup/restore guardrails.
 - [references/metabase-dashboards.md](references/metabase-dashboards.md): BIOMERO Analyze/Import iframe failures, dashboard IDs, embedding secrets, H2 inspection, datasource credential repair, signed embed smoke tests.
 - [references/slurm-runtime-patches.md](references/slurm-runtime-patches.md): HPC/Slurm behavior, BIOMERO config options, GPU policy, per-job env files, Apptainer cache/temp, output verification, generated job script normalization.
@@ -339,12 +340,20 @@ p_info.deltaT = TimeI(rdouble(d_t), UnitsTime.SECOND)  # raises type error on sa
 
 The docs live in `d:\workspace\NL-BIOMERO\docs\` and use Sphinx with a pre-created venv.
 
+Read `references/documentation.md` before writing or reorganizing docs. A request
+for user-facing prose does not automatically mean the **User Guide** category.
+
 To build the **current branch only** (no multi-version):
 
 ```powershell
 cd d:\workspace\NL-BIOMERO\docs
 .\venv\Scripts\sphinx-build -b html . _build_local
 ```
+
+After changing navigation, or when any page shows stale sidebar content, force
+all pages to be regenerated with `-E -a -b html . _build_local`. Check the exact
+HTML page the user is viewing, not just the homepage. If using another worktree,
+state its source branch and output path; do not silently open an older build.
 
 Output is written to `_build_local\`. Open in a browser:
 
