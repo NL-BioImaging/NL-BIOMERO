@@ -148,8 +148,8 @@ Prefer a pinned ``remote_shallower_image`` under ``[SLURM]`` in the worker's
 ``resources/slurm-config.ini`` contains a maintained release selection.
 When ``remote_shallower_version`` is unset, core reads the installed image's
 OCI tool-version label before submitting a new helper task. An explicit value
-must match the version written into receipts, including any normalized
-prerelease suffix. Existing tasks retain their recorded version for recovery.
+must exactly match the version written into receipts. Existing tasks retain
+their recorded version for recovery.
 
 Set ``BIOMERO_REMOTE_SHALLOWER_IMAGE`` and
 ``BIOMERO_REMOTE_SHALLOWER_VERSION`` on the importer to the same selected
