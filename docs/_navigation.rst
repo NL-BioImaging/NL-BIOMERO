@@ -38,7 +38,6 @@
    developer/workflow-development
    developer/bilayers-workflows
    developer/zarr-workflow-development
-   developer/biomero-shallow-zarr
    developer/containers/index
 
 .. toctree::
@@ -47,3 +46,4 @@
    :maxdepth: 2
 
    user/getting-started
+   developer/biomero-shallow-zarr

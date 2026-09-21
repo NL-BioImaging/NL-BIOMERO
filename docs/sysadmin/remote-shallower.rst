@@ -88,7 +88,7 @@ Choosing local or remote shallowing
 
 Results depend on data, storage and cluster queues; HPC charges may apply.
 The full-Plate remote speedup has not yet been measured. See
-:doc:`../developer/biomero-shallow-zarr` for the complete timings and limitations.
+:doc:`../developer/biomero-shallow-zarr` for using and reconstructing results.
 
 Requirements and enablement
 ---------------------------
