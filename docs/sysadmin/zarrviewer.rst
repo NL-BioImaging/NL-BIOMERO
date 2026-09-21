@@ -18,10 +18,9 @@ below. A missing, empty or false flag leaves the viewer disabled.
      ``BIOMERO_ZARR_VIEWER_ENABLED=TRUE`` on OMERO.web.
    * A compatible Nginx frontend and read-only access to the registered Zarr
      storage are required; the flag alone is not sufficient.
-   * In the local demo, enable the ``ZARR_VIEWER_ENABLED`` Compose profile and
-     access OMERO through port **4081**, including login.
+   * In the local demo, access OMERO through port **4081**, including login.
    * Set the flag to ``FALSE`` and recreate OMERO.web to disable the application.
-     Existing viewers are preserved; see below for optional proxy removal.
+     Nginx remains the browser-facing OMERO.web service.
 
 Demo defaults and existing deployments
 ----------------------------------------------
@@ -37,19 +36,20 @@ existing environment file and site credentials during an opt-in upgrade.
 Windows and local HTTP demo
 -----------------------------------
 
-The default Compose stack includes an optional ``zarrviewer-nginx`` service.
-The supplied ``.env`` selects its ``ZARR_VIEWER_ENABLED`` profile alongside the
-existing importer profile. Start the demo with the normal command:
+The default Compose stack uses ``zarrviewer-nginx`` as its single browser-facing
+OMERO.web service. OMERO.web's Gunicorn port is internal, preventing navigation
+or dashboard links from bypassing the authorized Zarr data route. Start the
+demo with the normal command:
 
 .. code-block:: powershell
 
    docker compose up -d --build
 
 Open http://localhost:4081 and sign in. The proxy forwards ordinary OMERO.web
-requests and serves only authorized OME-Zarr metadata and chunks. Port 4080
-remains the direct OMERO.web endpoint; use port 4081 for the viewer because
-Gunicorn does not process ``X-Accel-Redirect``. All browser requests, including
-login and viewer navigation, must use the same proxy endpoint.
+requests and serves only authorized OME-Zarr metadata and chunks. All browser
+requests, including login, dashboard links and viewer navigation, use this same
+endpoint. Gunicorn does not process ``X-Accel-Redirect`` and is therefore not
+published directly.
 
 For an existing locally built deployment, opt in by adding these settings to
 your environment file, preserving any other selected profiles:
@@ -58,8 +58,7 @@ your environment file, preserving any other selected profiles:
 
    BIOMERO_ZARR_VIEWER_ENABLED=TRUE
    BIOMERO_ZARR_VIEWER_VERSION=0.5.0
-   BIOMERO_ZARR_VIEWER_PROXY_PORT=4081
-   COMPOSE_PROFILES=IMPORTER_ENABLED,ZARR_VIEWER_ENABLED
+   BIOMERO_WEB_HOST_PORT=4081
 
 Rebuild/recreate only the frontend services:
 
@@ -69,12 +68,15 @@ Rebuild/recreate only the frontend services:
    docker compose up -d --no-deps omeroweb zarrviewer-nginx
    docker compose exec zarrviewer-nginx nginx -t
 
-The proxy profile controls whether Compose starts the optional proxy. The
-feature flag controls application registration; enabling the flag alone does
-not start the proxy. To disable the local demo viewer, set the flag to ``FALSE``,
-remove ``ZARR_VIEWER_ENABLED`` from ``COMPOSE_PROFILES``, recreate ``omeroweb``,
-and stop/remove only ``zarrviewer-nginx``. Restarting a container does not load
-changed Compose environment values.
+The feature flag controls application registration; Nginx remains the normal
+OMERO.web frontend when the viewer is disabled. To disable the viewer, set the
+flag to ``FALSE`` and recreate ``omeroweb``. Restarting a container does not
+load changed Compose environment values.
+
+``BIOMERO_WEB_HOST_PORT`` defaults to 4080 when absent, preserving the public
+endpoint used by existing root-Compose deployments. The supplied demo sets it
+to 4081. Upgrades can retain their current port; there must be only one
+browser-facing endpoint, and it must be the Nginx service.
 
 The manual-process ``docker-compose-dev.yml`` also includes the same flag,
 build argument and proxy. Its existing manual web-process startup requirement
@@ -146,18 +148,15 @@ It is independent of the shallow-Zarr and detached-workflow feature flags.
 Compatibility with shallow results
 ------------------------------------------
 
-This initial integration pins viewer 0.5.0, which expects a complete physical
-NGFF store. BIOMERO shallow results omit duplicate intensity arrays and retain
-labels in a separate result store. Such results are not yet directly supported
-by this viewer version and can return ``invalid_ome_zarr_metadata``.
+The beta.7 viewer resolves a ``biomero.zarr.shallow`` index against its
+authoritative ``.biomero-shallow.json`` manifest. It reads intensity metadata
+and chunks from the canonical source store while exposing retained or inherited
+label paths from the shallow result store as one logical, authorized store.
+Complete image and plate stores continue to use their existing direct route.
 
-The beta.7 compatibility work must validate the ``biomero.zarr.shallow`` index
-against its authoritative ``.biomero-shallow.json`` manifest, then display
-canonical source intensities with the retained or inherited label layers.
-That work is separate from enabling the viewer in the deployment. Before
-releasing the complete beta.7 feature, update the package pin to a published
-viewer version that supports this split-store contract and verify a real
-remote-shallowed result. Complete image and plate stores remain supported.
+The deployment pin remains 0.5.0 until the corresponding viewer component is
+released. Before beta.7 is published, update ``BIOMERO_ZARR_VIEWER_VERSION`` to
+that release and repeat the shallow label verification below.
 
 Verification and troubleshooting
 ----------------------------------------
@@ -165,15 +164,17 @@ Verification and troubleshooting
 1. Sign in through the proxy and select an imported OME-Zarr Image or Plate.
 2. Choose **Open With > OME-Zarr Viewer**.
 3. Confirm channels, Z/T controls, labels and plate fields match the store.
+   For a shallow result, confirm the original intensities and split result
+   labels render together.
 4. In browser network tools, confirm requests under
    ``/biomero_zarr_viewer/data/images/`` return 200 or 206 with non-empty bodies.
 5. Confirm a direct request to ``/_biomero_zarr_internal/`` returns 404.
 6. Confirm signed-out requests cannot retrieve capability or store data.
 
-A disabled Open With entry usually means the selected object is unsupported,
-unreadable or has an ambiguous store link. A viewer that opens but reports
-**Failed to fetch** usually indicates direct access to port 4080, mismatched
-storage roots, missing read permissions or an absent internal Nginx location.
+A disabled Open With entry means the current selection is not exactly one Image
+or Plate. A viewer that opens but reports **Failed to fetch** usually indicates
+a stale direct-Gunicorn bookmark, mismatched storage roots, missing read
+permissions or an absent internal Nginx location.
 Inspect ``docker compose logs --tail=100 omeroweb zarrviewer-nginx`` for the
 local demo, or the existing ``nginx`` service in the SSL scenario.
 

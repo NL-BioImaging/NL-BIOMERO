@@ -5,11 +5,17 @@ on:
     paths:
       - 'web/55-configure-zarr-viewer.py'
       - 'web/tests/test_zarr_viewer_config.py'
+      - 'docker-compose.yml'
+      - 'docker-compose-dev.yml'
+      - '.env'
       - '.github/workflows/zarrviewer-config.yml'
   push:
     paths:
       - 'web/55-configure-zarr-viewer.py'
       - 'web/tests/test_zarr_viewer_config.py'
+      - 'docker-compose.yml'
+      - 'docker-compose-dev.yml'
+      - '.env'
       - '.github/workflows/zarrviewer-config.yml'
 
 permissions:
@@ -25,3 +31,20 @@ jobs:
           python-version: '3.12'
       - name: Preserve plugins across opt-in and opt-out transitions
         run: python -m unittest discover -s web/tests -p 'test_zarr_viewer_config.py'
+      - name: Keep one browser-facing OMERO.web endpoint
+        run: |
+          docker compose config --format json > /tmp/compose.json
+          docker compose -f docker-compose-dev.yml config --format json > /tmp/compose-dev.json
+          python - <<'PY'
+          import json
+
+          for path in ("/tmp/compose.json", "/tmp/compose-dev.json"):
+              with open(path, encoding="utf-8") as handle:
+                  services = json.load(handle)["services"]
+              assert not services["omeroweb"].get("ports"), path
+              ports = services["zarrviewer-nginx"]["ports"]
+              assert len(ports) == 1, path
+              assert ports[0]["target"] == 4080, path
+              assert ports[0]["published"] == "4081", path
+              assert not services["zarrviewer-nginx"].get("profiles"), path
+          PY

@@ -218,9 +218,9 @@ services:
     # Named network to communicate with other containers
     networks:
       - omero
-    # Map ports to ports on the host machine, to allow opening of webpage
-    ports:
-      - "4080:4080"
+    # Browser traffic enters through the Nginx frontend below. Keeping
+    # Gunicorn internal ensures Open With and viewer byte requests share one
+    # origin and that X-Accel-Redirect responses are handled by Nginx.
     volumes:
       - "${SLURM_CONFIG_HOST_PATH:-./web/slurm-config.ini}:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
       - "${BIOMERO_CONFIG_HOST_PATH}:${OMERO_BIOMERO_CONFIG_FILE}:rw"
@@ -234,13 +234,11 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  # Optional HTTP endpoint for authorized physical OME-Zarr reads.
+  # Browser-facing OMERO.web endpoint and authorized physical OME-Zarr reads.
   zarrviewer-nginx:
     image: nginx:alpine
-    profiles:
-      - ZARR_VIEWER_ENABLED
     ports:
-      - "${BIOMERO_ZARR_VIEWER_PROXY_PORT:-4081}:4080"
+      - "${BIOMERO_WEB_HOST_PORT:-4080}:4080"
     networks:
       - omero
     volumes:

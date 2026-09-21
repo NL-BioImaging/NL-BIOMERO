@@ -63,7 +63,7 @@ For quick development setup on Windows with Docker Desktop:
 1. **Clone**: ``git clone --recursive https://github.com/NL-BioImaging/NL-BIOMERO.git``
 2. **Configure**: Edit ``.env`` file with passwords and settings
 3. **Deploy**: ``docker-compose up -d``
-4. **Access**: OMERO.web at http://localhost:4080
+4. **Access**: OMERO.web through Nginx at http://localhost:4081
 
 .. seealso::
    **📖 Complete Setup Instructions**: See the `main README <https://github.com/NL-BioImaging/NL-BIOMERO>`_ for detailed Windows setup steps, including SSH configuration and local SLURM cluster setup for testing.

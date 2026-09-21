@@ -212,9 +212,9 @@ services:
     # Named network to communicate with other containers
     networks:
       - omero
-    # Map ports to ports on the host machine, to allow opening of webpage
-    ports:
-      - "4080:4080"
+    # Browser traffic enters through the Nginx frontend below. Keeping
+    # Gunicorn internal ensures Open With and viewer byte requests share one
+    # origin and that X-Accel-Redirect responses are handled by Nginx.
     # volumes:
     # In case of further development, add volumes for local_omeroweb_edits here
     # Once volumes are added, only omeroweb container reload necessary, not the whole docker-compose.
@@ -236,13 +236,11 @@ services:
     entrypoint: ["sh", "-c", "tail -f /dev/null"]
 
   # New Metabase service
-  # Optional HTTP endpoint for authorized physical OME-Zarr reads.
+  # Browser-facing OMERO.web endpoint and authorized physical OME-Zarr reads.
   zarrviewer-nginx:
     image: nginx:alpine
-    profiles:
-      - ZARR_VIEWER_ENABLED
     ports:
-      - "${BIOMERO_ZARR_VIEWER_PROXY_PORT:-4081}:4080"
+      - "${BIOMERO_WEB_HOST_PORT:-4080}:4080"
     networks:
       - omero
     volumes:

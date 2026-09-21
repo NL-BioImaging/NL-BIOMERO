@@ -26,8 +26,8 @@ If you want to experiment with a local HPC cluster, an example Docker Compose se
 This is an adaptation of OME's <a href="https://github.com/ome/docker-example-omero-grid" target="_blank" rel="noopener noreferrer">OMERO.server grid and OMERO.web (docker-compose)</a> / <a href="http://www.openmicroscopy.org/site/support/omero5/sysadmins/grid.html#nodes-on-multiple-hosts" target="_blank" rel="noopener noreferrer">OMERO.server components on multiple nodes using OMERO.grid</a>.
 
 - OMERO.server listens on ports `4063` and `4064`  
-- OMERO.web listens on port `4080` (http://localhost:4080/)  
-- The enabled OME-Zarr demo frontend listens on `4081` (http://localhost:4081/).
+- OMERO.web is exposed through its Nginx frontend on port `4081`
+  (http://localhost:4081/) in the supplied demo. Gunicorn remains internal.
   Sign in through this endpoint to use **Open With > OME-Zarr Viewer** on
   registered OME-Zarr Images and Plates, including segmentation labels.
   See the [viewer deployment and opt-in upgrade guide](docs/sysadmin/zarrviewer.rst).
@@ -78,7 +78,7 @@ First, customize your environment file `.env`:
 # IMPORTER_ENABLED=TRUE   # Enables the BIOMERO.importer UI module
 # ANALYZER_ENABLED=TRUE   # Enables the BIOMERO.analyzer UI module
 # BIOMERO_ZARR_VIEWER_ENABLED=TRUE  # Enabled in the supplied demo configuration
-# BIOMERO_ZARR_VIEWER_PROXY_PORT=4081  # Nginx endpoint required for viewer data
+# BIOMERO_WEB_HOST_PORT=4081  # The single browser-facing OMERO.web endpoint
 # BIOMERO_SHALLOW_ZARR=FALSE  # Opt in to canonical-cache/shallow-result handling
 # BIOMERO_SHALLOW_ZARR_WORKERS=4  # Optional importer-side identity workers
 # BIOMERO_DETACHED_WORKFLOWS=TRUE  # Enabled in this fresh demo configuration
@@ -100,13 +100,14 @@ setting and defaults to `4` in this deployment. Installations may override it
 to match their local CPU and storage capacity. It is not forwarded to OMERO
 scripts and is unused while shallow mode is disabled.
 
-The supplied demo selects `COMPOSE_PROFILES=IMPORTER_ENABLED,ZARR_VIEWER_ENABLED`.
+The supplied demo selects `COMPOSE_PROFILES=IMPORTER_ENABLED` and exposes all
+OMERO.web traffic through its Nginx frontend.
 Existing deployments upgrading their images keep the viewer disabled when
 `BIOMERO_ZARR_VIEWER_ENABLED` is missing, empty or false. To opt in, enable the
-flag and configure the authenticated Nginx storage route; the local proxy is
-started by the `ZARR_VIEWER_ENABLED` profile. The HTTPS scenario extends its
-existing Nginx frontend. Preserve your current environment and site settings
-when upgrading. See the [viewer guide](docs/sysadmin/zarrviewer.rst).
+flag and configure the authenticated Nginx storage route. The frontend is also
+used when the viewer is disabled, while the HTTPS scenario extends its existing
+Nginx frontend. Preserve your current environment and site settings when
+upgrading. See the [viewer guide](docs/sysadmin/zarrviewer.rst).
 
 > **New in NL-BIOMERO 1.8 — opt-in detached-workflow feature:**
 > The `BIOMERO_DETACHED_WORKFLOWS` feature flag allows an accepted workflow to
@@ -208,7 +209,7 @@ exit
 ```
 
 ### 6. Access the Interfaces
-- **OMERO.web**: http://localhost:4080
+- **OMERO.web**: http://localhost:4081
   - **Login**: `root` / `omero` (change default password)
 - **Metabase**: http://localhost:3000  
   - **Login**: `admin@biomero.com` / `b1omero` (change default password)
@@ -222,7 +223,7 @@ If you disabled modules via `IMPORTER_ENABLED=FALSE` or `ANALYZER_ENABLED=FALSE`
 
 To get started with data:
 
-1. **Web Import**: Use the Importer tab in OMERO.biomero at http://localhost:4080/omero_biomero/biomero/
+1. **Web Import**: Use the Importer tab in OMERO.biomero at http://localhost:4081/omero_biomero/biomero/
 2. **OMERO.insight**: Download the <a href="https://downloads.openmicroscopy.org/help/pdfs/getting-started-5.pdf" target="_blank" rel="noopener noreferrer">desktop client</a>
    - Connect to `localhost:4063`
    - Login as `root` / `omero`
@@ -249,7 +250,7 @@ Checkout the <a href="https://nl-bioimaging.github.io/biomero/" target="_blank" 
 OR
 
 2. **OMERO.biomero Analyzer UI**:
-   - Use the Analyzer tab at http://localhost:4080/omero_biomero/biomero/?tab=biomero
+   - Use the Analyzer tab at http://localhost:4081/omero_biomero/biomero/?tab=biomero
    - Select your workflow: e.g., `Cellpose`
    - Add Dataset, select the image(s) you want to segment
    - Fill in the workflow parameters in tab 2, e.g. nuclei channel 3
@@ -258,7 +259,7 @@ OR
 
 
 3. **View Results**:
-   - Refresh OMERO `Explore` tab (in the Data tab; http://localhost:4080/webclient/)
+   - Refresh OMERO `Explore` tab (in the Data tab; http://localhost:4081/webclient/)
    - Find your `hello_world` dataset with generated masks
 
 ---
