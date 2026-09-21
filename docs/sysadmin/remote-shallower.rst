@@ -92,16 +92,20 @@ Choosing local or remote shallowing
    * - ZIP creation and return validation
      - 9 min 32 s
      - 4 min 6 s (57% less)
+   * - Additional Slurm helper allocation
+     - None
+     - 0.482 CPU-hours; 2 CPUs, 2 GiB memory and no GPU
    * - Final extracted result
      - 1.898 GB (75.4% below the full result)
      - 1.913 GB (75.2% below the full result; effectively equal to local)
 
-ACC beta.6 verified matching source pixels and labels with local and remote
+Matched comparisons verified source pixels and labels with local and remote
 shallowing on both 18-image and 846-image Plates. The large-Plate comparison
 reduced the shallowing-specific processing and validation time by 85.5%, while
 producing equivalent final data. Both modes reduced final storage by about 75%
-relative to the 7.73 GB full workflow result. The helper used 0.482 allocated
-CPU-hours, two CPUs, 2 GiB memory and no GPU.
+relative to the 7.73 GB full workflow result. Slurm accounting and billing
+policies are site-specific; the allocated CPU-hours in the table provide the
+portable input for estimating that cost.
 
 The complete remote workflow finished 14 min 34 s (4.6%) faster, but unrelated
 variation on the mounted storage obscured much of the stage-level saving.
