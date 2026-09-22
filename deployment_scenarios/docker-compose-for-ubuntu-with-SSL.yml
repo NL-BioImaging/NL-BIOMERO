@@ -18,6 +18,7 @@ services:
       - "3443:3443" # HTTPS for metabase
     volumes:
       - "../nginx/nginx.conf:/etc/nginx/nginx.conf:ro" # TODO: Make sure to have SSL certs match the location in nginx.conf, and change the server URL in the nginx.conf
+      - "../web/L-Drive:/data:ro" # Same in-place store as OMERO.web
       - "/etc/letsencrypt/:/etc/letsencrypt:ro" # TODO: Make sure to have SSL certs in this folder
 
   # Name of our database, referenced in omero_db_host
@@ -172,6 +173,8 @@ services:
       stack: 16777216
     environment:
       OMEROHOST: omeroserver
+      BIOMERO_ZARR_VIEWER_ENABLED: ${BIOMERO_ZARR_VIEWER_ENABLED:-false}
+      BIOMERO_ZARR_VIEWER_SOURCE_ROOT: ${BIOMERO_ZARR_VIEWER_SOURCE_ROOT:-}
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
       BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
       CONFIG_omero_web_login__logo: "https://cembo.eu/wp-content/uploads/2021/04/Amsterdam-UMC.png"

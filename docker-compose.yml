@@ -188,8 +188,11 @@ services:
       args:
         OMERO_BIOMERO_VERSION: ${OMERO_BIOMERO_VERSION}
         OMERO_FORMS_VERSION: ${OMERO_FORMS_VERSION}
+        BIOMERO_ZARR_VIEWER_VERSION: ${BIOMERO_ZARR_VIEWER_VERSION}
     environment:
       OMEROHOST: omeroserver
+      BIOMERO_ZARR_VIEWER_ENABLED: ${BIOMERO_ZARR_VIEWER_ENABLED:-false}
+      BIOMERO_ZARR_VIEWER_SOURCE_ROOT: ${BIOMERO_ZARR_VIEWER_SOURCE_ROOT:-}
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
       BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
       CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
@@ -215,9 +218,9 @@ services:
     # Named network to communicate with other containers
     networks:
       - omero
-    # Map ports to ports on the host machine, to allow opening of webpage
-    ports:
-      - "4080:4080"
+    # Browser traffic enters through the Nginx frontend below. Keeping
+    # Gunicorn internal ensures Open With and viewer byte requests share one
+    # origin and that X-Accel-Redirect responses are handled by Nginx.
     volumes:
       - "${SLURM_CONFIG_HOST_PATH:-./web/slurm-config.ini}:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
       - "${BIOMERO_CONFIG_HOST_PATH}:${OMERO_BIOMERO_CONFIG_FILE}:rw"
@@ -230,6 +233,19 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+
+  # Browser-facing OMERO.web endpoint and authorized physical OME-Zarr reads.
+  zarrviewer-nginx:
+    image: nginx:alpine
+    ports:
+      - "${BIOMERO_WEB_HOST_PORT:-4080}:4080"
+    networks:
+      - omero
+    volumes:
+      - "./nginx/zarrviewer.conf:/etc/nginx/nginx.conf:ro"
+      - "${INPLACE_STORAGE_HOST_PATH}:/data:ro"
+    depends_on:
+      - omeroweb
 
   metabase:
     image: metabase/metabase@sha256:f7b5dc52c21aaa2dca910a450e7e6119a975090ce9fc80726aa0742882ca176c

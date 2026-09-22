@@ -21,6 +21,7 @@
    sysadmin/remote-shallower
    sysadmin/detached-workflows
    sysadmin/resumable-uploader
+   sysadmin/zarrviewer
    sysadmin/metabase-admin
    sysadmin/ui-customization
    sysadmin/backup-restore

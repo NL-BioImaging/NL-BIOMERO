@@ -51,6 +51,7 @@ jobs:
           build-args: |
             OMERO_BIOMERO_VERSION=${{ env.OMERO_BIOMERO_VERSION }}
             OMERO_FORMS_VERSION=${{ env.OMERO_FORMS_VERSION }}
+            BIOMERO_ZARR_VIEWER_VERSION=${{ env.BIOMERO_ZARR_VIEWER_VERSION }}
       -
         name: Docker meta SERVER
         id: meta-server

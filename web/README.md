@@ -6,10 +6,18 @@ This container extends the standard OMERO.web with BIOMERO-specific functionalit
 
 - **OMERO.biomero** - Unified importer and analyzer interface
 - **OMERO.forms** - Custom metadata forms 
+- **BIOMERO OME-Zarr Viewer** - Optional read-only image, label and plate viewer
 - **Enhanced Login Page** - NL-BioImaging branding with institutional customization support
 - **UI Improvements** - Better button icons and styling
 
 ## Customization
+
+The image includes the BIOMERO OME-Zarr Viewer and its compiled frontend. The
+viewer is registered only when
+`BIOMERO_ZARR_VIEWER_ENABLED=TRUE`; missing, empty or false values disable it.
+Startup preserves other plugins and removes the viewer registration when disabled.
+Use the Nginx endpoint to view data. See the
+[deployment and upgrade guide](../docs/sysadmin/zarrviewer.rst).
 
 ### Login Page Branding
 
