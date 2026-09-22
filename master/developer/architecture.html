@@ -311,6 +311,17 @@
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/resumable-uploader.html#related-documentation">Related Documentation</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../sysadmin/zarrviewer.html">OME-Zarr Viewer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/zarrviewer.html#installation">Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/zarrviewer.html#install-the-package">Install the package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/zarrviewer.html#register-the-plugin">Register the plugin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sysadmin/zarrviewer.html#add-the-nginx-locations">Add the Nginx locations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/zarrviewer.html#storage-path-mapping">Storage path mapping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmin/zarrviewer.html#apply-and-verify">Apply and verify</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../sysadmin/metabase-admin.html">Metabase Administration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/metabase-admin.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sysadmin/metabase-admin.html#initial-security-setup">Initial Security Setup</a><ul>
@@ -901,7 +912,8 @@ New to OMERO or HPC? Start with the <a class="reference internal" href="../overv
 <section id="external-access-points">
 <h3>External Access Points<a class="headerlink" href="#external-access-points" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><strong>OMERO.web Interface</strong> - Port 4080 (HTTP) for web-based access</p></li>
+<li><p><strong>OMERO.web Interface</strong> - Nginx on the configured host port (4080 in the demo);
+OMERO.web’s internal Gunicorn service listens on container port 4080</p></li>
 <li><p><strong>OMERO Server</strong> - Ports 4063/4064 for OMERO.insight and API access</p></li>
 <li><p><strong>Metabase Dashboard</strong> - Port 3000 for analytics and monitoring</p></li>
 <li><p><strong>SSH Tunneling</strong> - Secure connections to external HPC clusters</p></li>

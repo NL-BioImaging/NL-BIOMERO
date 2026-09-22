@@ -15,6 +15,7 @@ features; existing deployments should follow each feature's enablement guide.
 * :doc:`remote-shallower` — reduce duplicate result storage; select local or remote processing
 * :doc:`detached-workflows` — continue analysis after the submitting session ends
 * :doc:`resumable-uploader` — browser uploads into the importer
+* :doc:`zarrviewer` — authenticated viewing of registered OME-Zarr data
 * :doc:`metabase-admin` — workflow and importer dashboards
 * :doc:`ui-customization` — adapt the interface
 * :doc:`backup-restore` — data protection and recovery
