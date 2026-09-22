@@ -7,6 +7,11 @@ stores registered in OMERO. It provides channel controls, Z/T navigation,
 segmentation label overlays and HCS Field, Well and Plate views. It is read-only
 and does not convert conventional OMERO images into OME-Zarr.
 
+The `viewer documentation
+<https://nl-bioimaging.github.io/BIOMERO.ZarrViewer/>`_ covers user controls,
+supported data, shallow-store behavior and viewer limitations. This page covers
+its deployment and operation inside NL-BIOMERO.
+
 The NL-BIOMERO demo enables it with ``BIOMERO_ZARR_VIEWER_ENABLED=TRUE``.
 Existing deployments opt in with that flag and the proxy/storage configuration
 below. A missing, empty or false flag leaves the viewer disabled.
@@ -154,6 +159,8 @@ authoritative ``.biomero-shallow.json`` manifest. It reads intensity metadata
 and chunks from the canonical source store while exposing retained or inherited
 label paths from the shallow result store as one logical, authorized store.
 Complete image and plate stores continue to use their existing direct route.
+The shared records are described in the `BIOMERO Schema Zarr contracts
+<https://nl-bioimaging.github.io/biomero-schema/zarr-contracts/>`_.
 
 Before publishing an NL-BIOMERO image, use the released viewer component and
 repeat the shallow-label verification below.
