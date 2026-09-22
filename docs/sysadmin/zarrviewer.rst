@@ -2,16 +2,26 @@ OME-Zarr Viewer
 ===============
 
 The `BIOMERO OME-Zarr Viewer
-<https://nl-bioimaging.github.io/BIOMERO.ZarrViewer/>`_ adds read-only viewing
-of registered OME-Zarr Images, Plates, Wells and segmentation labels to
-OMERO.web.
+<https://nl-bioimaging.github.io/BIOMERO.ZarrViewer/>`_ lets users open
+registered OME-Zarr data directly from OMERO.web. It provides multichannel and
+Z/T viewing, segmentation overlays, and Field, Well and Plate navigation. The
+viewer is read-only and does not convert conventional OMERO images.
 
 NL-BIOMERO packages the viewer in its OMERO.web image and supplies the
 registration and Nginx configuration described below. The demo enables it;
 existing deployments opt in with ``BIOMERO_ZARR_VIEWER_ENABLED=TRUE``.
 
-Installation requirements
--------------------------
+.. note::
+   **Summary for system administrators:**
+
+   * Enable the viewer to add its **Open With** entry for registered OME-Zarr
+     Images, Plates and Wells.
+   * Installation requires the Python package, OMERO.web registration and two
+     Nginx locations for authenticated file delivery.
+   * Nginx needs read-only access to the same OME-Zarr storage as OMERO.web.
+
+Installation
+------------
 
 An installation has three parts:
 
