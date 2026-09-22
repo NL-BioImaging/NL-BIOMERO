@@ -7,17 +7,20 @@ registered OME-Zarr data directly from OMERO.web. It provides multichannel and
 Z/T viewing, segmentation overlays, and Field, Well and Plate navigation. The
 viewer is read-only and does not convert conventional OMERO images.
 
-NL-BIOMERO packages the viewer in its OMERO.web image and supplies the
-registration and Nginx configuration described below. The demo enables it;
-existing deployments opt in with ``BIOMERO_ZARR_VIEWER_ENABLED=TRUE``.
+The supplied NL-BIOMERO Docker Compose demo already installs, registers and
+proxies the viewer, and enables it in the demo environment. No additional
+viewer setup is needed when starting that stack normally. The installation
+steps below are for existing production and custom deployments. Those
+deployments opt in with ``BIOMERO_ZARR_VIEWER_ENABLED=TRUE``.
 
 .. note::
    **Summary for system administrators:**
 
-   * Enable the viewer to add its **Open With** entry for registered OME-Zarr
-     Images, Plates and Wells.
-   * Installation requires the Python package, OMERO.web registration and two
-     Nginx locations for authenticated file delivery.
+   * The NL-BIOMERO Docker Compose demo is ready to use and enables the viewer.
+   * Existing production and custom setups need the Python package, OMERO.web
+     registration and two Nginx locations for authenticated file delivery.
+   * Enable it to add its **Open With** entry for registered OME-Zarr Images,
+     Plates and Wells.
    * Nginx needs read-only access to the same OME-Zarr storage as OMERO.web.
 
 Installation
