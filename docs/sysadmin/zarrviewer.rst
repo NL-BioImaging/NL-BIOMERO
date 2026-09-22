@@ -1,192 +1,364 @@
 OME-Zarr Viewer
-=======================
+===============
 
 The `BIOMERO OME-Zarr Viewer
-<https://github.com/NL-BioImaging/BIOMERO.ZarrViewer>`_ opens physical OME-Zarr
-stores registered in OMERO. It provides channel controls, Z/T navigation,
-segmentation label overlays and HCS Field, Well and Plate views. It is read-only
-and does not convert conventional OMERO images into OME-Zarr.
+<https://nl-bioimaging.github.io/BIOMERO.ZarrViewer/>`_ adds read-only viewing
+of registered OME-Zarr Images, Plates and Wells to OMERO.web. It displays
+multichannel pixels and segmentation labels, including labels stored in a
+shallow result while the intensity pixels remain in their canonical store.
 
-The `viewer documentation
-<https://nl-bioimaging.github.io/BIOMERO.ZarrViewer/>`_ covers user controls,
-supported data, shallow-store behavior and viewer limitations. This page covers
-its deployment and operation inside NL-BIOMERO.
-
-The NL-BIOMERO demo enables it with ``BIOMERO_ZARR_VIEWER_ENABLED=TRUE``.
-Existing deployments opt in with that flag and the proxy/storage configuration
-below. A missing, empty or false flag leaves the viewer disabled.
+The NL-BIOMERO demo enables the viewer. Existing deployments keep it disabled
+after an upgrade until an administrator opts in and configures storage and the
+reverse proxy.
 
 .. note::
    **Summary for system administrators:**
 
-   * Use a web image containing the viewer package and enable
-     ``BIOMERO_ZARR_VIEWER_ENABLED=TRUE`` on OMERO.web.
-   * A compatible Nginx frontend and read-only access to the registered Zarr
-     storage are required; the flag alone is not sufficient.
-   * In the local demo, access OMERO through port **4080**, including login.
-   * Set the flag to ``FALSE`` and recreate OMERO.web to disable the application.
-     Nginx remains the browser-facing OMERO.web service.
+   * Use an OMERO.web image containing the viewer package and its startup
+     registration.
+   * Give OMERO.web and Nginx access to the same OME-Zarr storage tree. Nginx
+     needs read-only access.
+   * Add a protected Nginx storage location and an uncached viewer route.
+   * Enable ``BIOMERO_ZARR_VIEWER_ENABLED=TRUE`` and recreate OMERO.web.
+   * Keep Nginx between the browser and OMERO.web. Direct Gunicorn access cannot
+     deliver the authorized Zarr files.
 
-Demo defaults and existing deployments
-----------------------------------------------
+How authorized delivery works
+-----------------------------
 
-The supplied ``.env`` and ``.env.shared`` explicitly enable the viewer with
-``BIOMERO_ZARR_VIEWER_ENABLED=TRUE``. The web image includes the viewer package
-and its compiled frontend, so Node.js and a separate ZarrViewer checkout are
-not required to run it. ``BIOMERO_ZARR_VIEWER_VERSION`` selects the viewer
-package installed from PyPI when the web image is built.
+For every metadata or chunk request, OMERO.web checks the signed-in user,
+active group, selected object and requested Zarr key. An allowed request
+returns an ``X-Accel-Redirect`` header. Nginx receives that response and reads
+the approved file from an ``internal`` location. The browser never receives a
+filesystem path and cannot request that internal location directly.
 
-Using the new demo environment file enables the demo features; preserve your
-existing environment file and site credentials during an opt-in upgrade.
+Nginx may be the public HTTPS reverse proxy, or an internal gateway behind an
+existing load balancer or reverse proxy. In either layout, the Nginx process
+receiving the OMERO.web response must be able to read the Zarr storage.
 
-Windows and local HTTP demo
------------------------------------
+Prerequisites
+-------------
 
-The default Compose stack uses ``zarrviewer-nginx`` as its single browser-facing
-OMERO.web service. OMERO.web's Gunicorn port is internal, preventing navigation
-or dashboard links from bypassing the authorized Zarr data route. Start the
-demo with the normal command:
+Before enabling the viewer, confirm that:
 
-.. code-block:: powershell
+* the OMERO.web image contains ``biomero-zarr-viewer``;
+* OME-Zarr data is registered in OMERO by BIOMERO.importer or another
+  compatible registration process;
+* OMERO.web can read that data below ``IMPORT_MOUNT_PATH``;
+* Nginx can read the same relative directory tree; and
+* users access OMERO.web through one reverse-proxy origin for login, Open With
+  and viewer requests.
 
-   docker compose up -d --build
+The viewer is independent of the shallow-storage and detached-workflow flags.
+Those features are needed only when their processing or storage behavior is
+wanted.
 
-Open http://localhost:4080 and sign in. The proxy forwards ordinary OMERO.web
-requests and serves only authorized OME-Zarr metadata and chunks. All browser
-requests, including login, dashboard links and viewer navigation, use this same
-endpoint. Gunicorn does not process ``X-Accel-Redirect`` and is therefore not
-published directly.
+Use the NL-BIOMERO web image
+----------------------------
 
-For an existing locally built deployment, opt in by adding these settings to
-your environment file, preserving any other selected profiles:
+The published NL-BIOMERO OMERO.web image includes the Python package, compiled
+frontend and `web/55-configure-zarr-viewer.py startup script
+<https://github.com/NL-BioImaging/NL-BIOMERO/blob/master/web/55-configure-zarr-viewer.py>`_.
+That script runs after the normal OMERO.web configuration and:
+
+* registers the Django application and Open With entry when enabled;
+* preserves other installed applications and Open With entries;
+* configures the recorded source root, mounted storage root and internal Nginx
+  prefix; and
+* removes only the viewer registration when the feature is disabled.
+
+Add the following flag to the deployment environment:
 
 .. code-block:: ini
 
    BIOMERO_ZARR_VIEWER_ENABLED=TRUE
-   BIOMERO_WEB_HOST_PORT=4080
 
-Rebuild/recreate only the frontend services:
+Missing, empty and false values leave the viewer disabled. After changing the
+flag, recreate OMERO.web; a restart does not load changed Compose environment
+values.
 
-.. code-block:: powershell
+Use an existing custom OMERO.web image
+--------------------------------------
 
-   docker compose build omeroweb
-   docker compose up -d --no-deps omeroweb zarrviewer-nginx
-   docker compose exec zarrviewer-nginx nginx -t
+Administrators who keep their own OMERO.web image must add both parts that the
+NL-BIOMERO image normally supplies:
 
-The feature flag controls application registration; Nginx remains the normal
-OMERO.web frontend when the viewer is disabled. To disable the viewer, set the
-flag to ``FALSE`` and recreate ``omeroweb``. Restarting a container does not
-load changed Compose environment values.
+1. Install ``biomero-zarr-viewer`` from PyPI in the OMERO.web Python
+   environment. Pin the package according to the deployment's release policy.
+2. Copy ``web/55-configure-zarr-viewer.py`` from NL-BIOMERO into the image's
+   startup directory and run it after the site's normal OMERO configuration.
 
-``BIOMERO_WEB_HOST_PORT`` defaults to 4080 when absent, preserving the public
-endpoint used by existing root-Compose deployments. There must be only one
-browser-facing endpoint, and it must be the Nginx service.
+For an image based on ``openmicroscopy/omero-web-standalone``, the relevant
+Dockerfile additions are:
 
-The manual-process ``docker-compose-dev.yml`` also includes the same flag,
-build argument and proxy. Its existing manual web-process startup requirement
-still applies.
+.. code-block:: dockerfile
 
-Prebuilt images and other scenarios
--------------------------------------------
+   ARG BIOMERO_ZARR_VIEWER_VERSION
+   RUN test -n "$BIOMERO_ZARR_VIEWER_VERSION"
+   RUN /opt/omero/web/venv3/bin/pip install \
+       "biomero-zarr-viewer==${BIOMERO_ZARR_VIEWER_VERSION}"
 
-The deployment-scenario Compose files forward the feature flag to OMERO.web
-with a false fallback. For prebuilt deployments, select a published NL-BIOMERO
-image that contains this integration and explicitly enable the flag.
+   COPY web/55-configure-zarr-viewer.py /startup/
+   RUN chmod +x /startup/55-configure-zarr-viewer.py
 
-Scenarios exposing OMERO.web directly also require an Nginx frontend when
-opting in. Use ``nginx/zarrviewer.conf`` with a read-only mount of the same
-in-place storage at ``/data`` and proxy to ``omeroweb:4080`` on the web network.
-Compose bind paths are relative to the first Compose file: scenario files
-under ``deployment_scenarios`` need ``../nginx/zarrviewer.conf`` and the
-appropriate host storage path. The ``.env.shared`` demo enables application
-registration; add the frontend to the Compose project hosting OMERO.web,
-rather than the database-only shared infrastructure project.
+The supplied script calls ``/opt/omero/web/venv3/bin/omero``. Adapt that path
+if the custom image uses another virtual environment. Keep the script in the
+startup sequence so enable, disable and container recreation all produce the
+declared configuration; running it once during an image build is insufficient
+when OMERO configuration is stored in a persistent volume.
 
-Ubuntu HTTPS scenario
------------------------------
+Upgrade the supplied HTTPS deployment
+-------------------------------------
 
-``deployment_scenarios/docker-compose-for-ubuntu-with-SSL.yml`` uses its
-existing Nginx service. It mounts the same ``../web/L-Drive`` store as OMERO.web,
-read-only at ``/data``. The supplied ``nginx/nginx.conf`` includes the internal
-storage location and a dedicated viewer route with shared proxy caching
-disabled. Configure the hostname and certificates as described in
-:doc:`linux-deployment`; a second proxy is unnecessary.
+The supplied
+``deployment_scenarios/docker-compose-for-ubuntu-with-SSL.yml`` already
+contains the required wiring. Its existing ``nginx`` service mounts the same
+store as OMERO.web, includes the protected data location and disables shared
+caching for the viewer route.
 
-For an existing site, explicitly enable ``BIOMERO_ZARR_VIEWER_ENABLED=TRUE``
-and add the equivalent read-only mount and Nginx locations from this branch
-to your customized configuration. Preserve your site hostname, certificate
-paths, credentials and other routing. Validate Nginx and recreate the web
-and proxy services using your scenario Compose command.
+Preserve the site's environment, credentials, hostname and certificate paths.
+Select an NL-BIOMERO image release containing the viewer, enable the flag above
+and render the Compose configuration before recreating services:
 
-Never publish the storage as a normal public Nginx directory, and never use a
-shared proxy cache for ``/biomero_zarr_viewer/``. Every data request must pass
-through OMERO authorization before Nginx serves the file.
+.. code-block:: bash
 
-Storage paths and supported data
-----------------------------------------
+   docker compose \
+     --env-file .env \
+     --file deployment_scenarios/docker-compose-for-ubuntu-with-SSL.yml \
+     config --quiet
 
-OMERO.web and Nginx must see the same physical store with an identical relative
-directory tree. The local proxy always mounts it at ``/data``. OMERO.web uses
-``IMPORT_MOUNT_PATH`` (normally ``/data``) as its viewer mount root. The source
-root defaults to that path and represents the prefix recorded in OMERO by the
-importer. If the recorded prefix differs, set it explicitly, for example:
+   docker compose \
+     --env-file .env \
+     --file deployment_scenarios/docker-compose-for-ubuntu-with-SSL.yml \
+     pull omeroweb
+
+   docker compose \
+     --env-file .env \
+     --file deployment_scenarios/docker-compose-for-ubuntu-with-SSL.yml \
+     up -d --no-deps --force-recreate omeroweb nginx
+
+   docker compose \
+     --env-file .env \
+     --file deployment_scenarios/docker-compose-for-ubuntu-with-SSL.yml \
+     exec nginx nginx -t
+
+See :doc:`linux-deployment` for the complete Linux/HTTPS deployment procedure.
+
+Configure a customized Nginx deployment
+---------------------------------------
+
+If the site maintains custom Compose and Nginx files, add the following pieces
+to those files instead of replacing the complete configuration.
+
+Compose services
+~~~~~~~~~~~~~~~~
+
+Pass the feature flag and storage roots to OMERO.web. Mount the same host
+storage in OMERO.web and Nginx. The example host path is illustrative; use the
+site's actual storage location.
+
+.. code-block:: yaml
+
+   services:
+     omeroweb:
+       image: "cellularimagingcf/omeroweb:${NL_BIOMERO_VERSION}"
+       environment:
+         BIOMERO_ZARR_VIEWER_ENABLED: ${BIOMERO_ZARR_VIEWER_ENABLED:-false}
+         BIOMERO_ZARR_VIEWER_SOURCE_ROOT: ${BIOMERO_ZARR_VIEWER_SOURCE_ROOT:-}
+         IMPORT_MOUNT_PATH: /data
+       volumes:
+         - "/srv/biomero/zarr:/data:ro"
+       networks:
+         - omero
+
+     nginx:
+       image: nginx:alpine
+       volumes:
+         - "./nginx.conf:/etc/nginx/nginx.conf:ro"
+         - "/srv/biomero/zarr:/data:ro"
+         - "/etc/letsencrypt:/etc/letsencrypt:ro"
+       networks:
+         - omero
+       ports:
+         - "443:443"
+
+Do not publish OMERO.web's Gunicorn port to users. If host access is required
+for administration, bind it to loopback and keep the public OMERO hostname
+pointed at Nginx.
+
+HTTPS Nginx server
+~~~~~~~~~~~~~~~~~~
+
+Add these locations inside the existing HTTPS ``server`` block. Keep the
+site's current ``listen``, ``server_name`` and TLS certificate settings. The
+``alias`` is a path in the Nginx container or host and must end in ``/``.
+
+.. code-block:: nginx
+
+   # Only an X-Accel-Redirect returned after OMERO authorization can enter.
+   location ^~ /_biomero_zarr_internal/ {
+       internal;
+       alias /data/;
+       autoindex off;
+       disable_symlinks on;
+       etag on;
+       types {
+           application/json json zattrs zarray zgroup zmetadata;
+       }
+       default_type application/octet-stream;
+       add_header X-Content-Type-Options nosniff always;
+       add_header Cache-Control "private, max-age=300" always;
+   }
+
+   # Capability checks, metadata, chunks and rendered tiles must reach
+   # OMERO.web and must not enter a shared proxy cache.
+   location ^~ /biomero_zarr_viewer/ {
+       proxy_pass http://omeroweb:4080;
+       proxy_http_version 1.1;
+       proxy_set_header Host $http_host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto https;
+       proxy_cache off;
+       proxy_buffering off;
+       proxy_read_timeout 600s;
+   }
+
+The existing ``location /`` may continue to proxy other OMERO.web traffic. If
+it uses ``proxy_cache``, the more specific location above prevents viewer
+authorization and image responses from entering that shared cache.
+
+If Nginx runs directly on the host, replace ``http://omeroweb:4080`` with the
+site's private OMERO.web upstream and set ``alias`` to the host path of the
+same Zarr tree.
+
+Use another public reverse proxy
+--------------------------------
+
+Apache, Traefik, HAProxy and cloud load balancers do not process Nginx
+``X-Accel-Redirect`` responses. Keep the existing proxy as the public TLS
+endpoint and place a small Nginx gateway between it and OMERO.web:
+
+.. code-block:: text
+
+   Browser -> existing HTTPS proxy -> Nginx viewer gateway -> OMERO.web
+                                      |
+                                      +-> read-only Zarr storage
+
+Route the complete OMERO hostname from the existing proxy to the Nginx gateway,
+not directly to OMERO.web. The gateway can start from
+``nginx/zarrviewer.conf`` and needs no published host port when both proxies
+share a private network. The outer proxy must pass ``Host``,
+``X-Forwarded-For`` and ``X-Forwarded-Proto``.
+
+When TLS terminates at the outer proxy, preserve that protocol in the gateway.
+Add this ``map`` inside its ``http`` block:
+
+.. code-block:: nginx
+
+   map $http_x_forwarded_proto $biomero_forwarded_proto {
+       ""      $scheme;
+       default $http_x_forwarded_proto;
+   }
+
+Use the mapped value in the gateway's proxy location:
+
+.. code-block:: nginx
+
+   proxy_set_header X-Forwarded-Proto $biomero_forwarded_proto;
+
+The gateway still needs the protected internal location and read-only storage
+mount shown above. Never create a public route to
+``/_biomero_zarr_internal/``.
+
+Map registered paths to mounted storage
+---------------------------------------
+
+``IMPORT_MOUNT_PATH`` is the root from which OMERO.web reads Zarr data.
+``BIOMERO_ZARR_VIEWER_SOURCE_ROOT`` is the prefix recorded in OMERO. It
+defaults to ``IMPORT_MOUNT_PATH`` and only needs an explicit value when the
+prefixes differ.
 
 .. code-block:: ini
 
    IMPORT_MOUNT_PATH=/data
    BIOMERO_ZARR_VIEWER_SOURCE_ROOT=/archive
 
-With these roots, an OMERO link to ``/archive/alice/example.ome.zarr`` must
-resolve to ``/data/alice/example.ome.zarr`` in OMERO.web and Nginx. Retain
-``/_biomero_zarr_internal/`` as the internal redirect prefix in both services.
-Ensure both container users can read the store. The viewer does not modify it.
+With these values, an OMERO registration for
+``/archive/alice/example.ome.zarr`` resolves to
+``/data/alice/example.ome.zarr`` inside OMERO.web and Nginx. Preserve the
+relative tree below that prefix. Complete stores and shallow-result manifests
+both depend on this mapping.
 
-The selected Image, Plate, or Well must be readable in the active OMERO group.
-Images and Plates must link unambiguously to a physical store through their
-Fileset/OriginalFile or BIOMERO import provenance map annotation. A Well
-resolves through its first readable WellSample Image and opens in the
-multi-field Well overview. The viewer supports OME-Zarr 0.4/Zarr v2 and
-OME-Zarr 0.5/Zarr v3, including NGFF labels and HCS metadata. It is independent
-of the shallow-Zarr and detached-workflow feature flags.
+The Nginx ``alias`` must point to the same mounted root used by
+``IMPORT_MOUNT_PATH``. The Nginx worker and OMERO.web user must be able to read
+directories, metadata and chunks. The viewer never writes to the store.
 
-Well and Plate overview thumbnails show intensity channels. Open an individual
-Field to display and control its segmentation label overlays.
+Recreate and verify
+-------------------
 
-Compatibility with shallow results
-------------------------------------------
+For a custom Compose deployment, apply the configuration and inspect startup:
 
-The viewer resolves a ``biomero.zarr.shallow`` index against its
-authoritative ``.biomero-shallow.json`` manifest. It reads intensity metadata
-and chunks from the canonical source store while exposing retained or inherited
-label paths from the shallow result store as one logical, authorized store.
-Complete image and plate stores continue to use their existing direct route.
-The shared records are described in the `BIOMERO Schema Zarr contracts
-<https://nl-bioimaging.github.io/biomero-schema/zarr-contracts/>`_.
+.. code-block:: bash
 
-Before publishing an NL-BIOMERO image, use the released viewer component and
-repeat the shallow-label verification below.
+   docker compose config --quiet
+   docker compose up -d --no-deps --force-recreate omeroweb nginx
+   docker compose exec nginx nginx -t
+   docker compose logs --tail=100 omeroweb nginx
 
-Verification and troubleshooting
-----------------------------------------
+The OMERO.web log should contain ``OME-Zarr Viewer enabled``. Then:
 
-1. Sign in through the proxy and select an imported OME-Zarr Image, Plate, or
-   Well.
-2. Choose **Open With > OME-Zarr Viewer**.
-3. Confirm channels, Z/T controls, labels and plate fields match the store.
-   For a shallow result, confirm the original intensities and split result
-   labels render together.
-4. In browser network tools, confirm requests under
-   ``/biomero_zarr_viewer/data/images/`` return 200 or 206 with non-empty bodies.
-5. Confirm a direct request to ``/_biomero_zarr_internal/`` returns 404.
-6. Confirm signed-out requests cannot retrieve capability or store data.
+1. Open the public HTTPS URL and sign in to OMERO.web.
+2. Select a registered OME-Zarr Image, Plate or Well and choose
+   **Open With > OME-Zarr Viewer**.
+3. Confirm intensity channels and Z/T navigation. For a Plate, open a Well and
+   then a Field. For a shallow result, confirm its labels appear over the
+   canonical intensity pixels.
+4. In browser developer tools, confirm requests below
+   ``/biomero_zarr_viewer/data/images/`` return 200 or 206 with non-empty
+   response bodies.
+5. Request ``https://<omero-host>/_biomero_zarr_internal/test`` directly. It
+   must return 404; a successful response means storage is exposed.
+6. Sign out and confirm viewer data requests redirect to login or return an
+   authorization error.
 
-A disabled Open With entry means the current selection is not exactly one
-eligible Image, Plate, or Well. A viewer that opens but reports **Failed to fetch** usually indicates
-a stale direct-Gunicorn bookmark, mismatched storage roots, missing read
-permissions or an absent internal Nginx location.
-Inspect ``docker compose logs --tail=100 omeroweb zarrviewer-nginx`` for the
-local demo, or the existing ``nginx`` service in the SSL scenario.
+Troubleshooting and rollback
+----------------------------
 
-See the `viewer documentation
-<https://nl-bioimaging.github.io/BIOMERO.ZarrViewer/>`_ for focused links,
-bounded PNG/gallery export, 3D limits and optional renderer settings.
+**The Open With entry is absent**
+   Confirm that startup logged ``OME-Zarr Viewer enabled`` and that exactly one
+   eligible Image, Plate or Well is selected. Confirm that the object has a
+   compatible physical OME-Zarr registration.
+
+**The viewer reports Failed to fetch, or tile requests return 500**
+   Confirm that the browser uses Nginx instead of Gunicorn. Compare the
+   resolved relative path below ``/data`` in both containers, check read
+   permissions and verify that the internal location is in the active Nginx
+   ``server`` block.
+
+**Links use HTTP behind an HTTPS load balancer**
+   Preserve the outer proxy's ``X-Forwarded-Proto`` value in the Nginx gateway
+   as shown above.
+
+**Nginx returns 404 after OMERO.web authorizes the request**
+   Check the trailing slash on ``location`` and ``alias``, the storage mount,
+   and the source-root mapping. The Nginx error log shows the filesystem path
+   it attempted to open.
+
+To disable the viewer, set ``BIOMERO_ZARR_VIEWER_ENABLED=FALSE`` and recreate
+OMERO.web. The registration script removes only this application. The Nginx
+locations and read-only mount may remain in place.
+
+The `viewer documentation
+<https://nl-bioimaging.github.io/BIOMERO.ZarrViewer/>`_ describes supported
+OME-Zarr layouts, controls and rendering limits. The `BIOMERO Schema Zarr
+contracts <https://nl-bioimaging.github.io/biomero-schema/zarr-contracts/>`_
+describe canonical and shallow-store path records.
+
+Local HTTP demo
+---------------
+
+For local evaluation, the root ``docker-compose.yml`` includes
+``zarrviewer-nginx`` and publishes it at http://localhost:4080. Start it with
+``docker compose up -d --build``. This localhost route is only the supplied
+demo; production administrators should use one of the HTTPS layouts above.
