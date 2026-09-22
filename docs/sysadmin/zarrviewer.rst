@@ -14,8 +14,8 @@ reverse proxy.
 .. note::
    **Summary for system administrators:**
 
-   * Use an OMERO.web image containing the viewer package and its startup
-     registration.
+   * Install the viewer package and register it as a standard OMERO.web
+     application and Open With option.
    * Give OMERO.web and Nginx access to the same OME-Zarr storage tree. Nginx
      needs read-only access.
    * Add a protected Nginx storage location and an uncached viewer route.
@@ -53,13 +53,31 @@ The viewer is independent of the shallow-storage and detached-workflow flags.
 Those features are needed only when their processing or storage behavior is
 wanted.
 
-Use the NL-BIOMERO web image
-----------------------------
+OMERO.web plugin registration
+-----------------------------
 
-The published NL-BIOMERO OMERO.web image includes the Python package, compiled
-frontend and `web/55-configure-zarr-viewer.py startup script
+The viewer is a standard OMERO.web plugin. It does not need a service account,
+database, migration or one-time initialization. Like other OMERO.web plugins,
+it must be installed in the web environment and added to ``omero.web.apps``.
+Its Open With declaration and storage settings must also be added to the OMERO
+configuration.
+
+The viewer repository supplies the standard `90-biomero-zarr-viewer.omero
+configuration file
+<https://github.com/NL-BioImaging/BIOMERO.ZarrViewer/blob/main/docker/90-biomero-zarr-viewer.omero>`_.
+A deployment that always enables the viewer can install that file in
+``/opt/omero/web/config/`` alongside its other OMERO.web plugin configuration
+files. No NL-BIOMERO startup script is required in that layout.
+
+NL-BIOMERO opt-in registration
+------------------------------
+
+The published NL-BIOMERO OMERO.web image includes the Python package and
+compiled frontend. It uses the `web/55-configure-zarr-viewer.py startup script
 <https://github.com/NL-BioImaging/NL-BIOMERO/blob/master/web/55-configure-zarr-viewer.py>`_.
-That script runs after the normal OMERO.web configuration and:
+This is NL-BIOMERO deployment glue for the backward-compatible feature flag;
+it is not extra initialization required by the viewer. The script runs after
+the normal OMERO.web configuration and:
 
 * registers the Django application and Open With entry when enabled;
 * preserves other installed applications and Open With entries;
@@ -80,13 +98,13 @@ values.
 Use an existing custom OMERO.web image
 --------------------------------------
 
-Administrators who keep their own OMERO.web image must add both parts that the
-NL-BIOMERO image normally supplies:
+Administrators who keep their own OMERO.web image must:
 
 1. Install ``biomero-zarr-viewer`` from PyPI in the OMERO.web Python
    environment. Pin the package according to the deployment's release policy.
-2. Copy ``web/55-configure-zarr-viewer.py`` from NL-BIOMERO into the image's
-   startup directory and run it after the site's normal OMERO configuration.
+2. Add the standard viewer ``.omero`` configuration file, or add equivalent
+   application, Open With and storage settings through the site's existing
+   OMERO configuration management.
 
 For an image based on ``openmicroscopy/omero-web-standalone``, the relevant
 Dockerfile additions are:
@@ -98,14 +116,15 @@ Dockerfile additions are:
    RUN /opt/omero/web/venv3/bin/pip install \
        "biomero-zarr-viewer==${BIOMERO_ZARR_VIEWER_VERSION}"
 
-   COPY web/55-configure-zarr-viewer.py /startup/
-   RUN chmod +x /startup/55-configure-zarr-viewer.py
+   COPY 90-biomero-zarr-viewer.omero \
+       /opt/omero/web/config/90-biomero-zarr-viewer.omero
 
-The supplied script calls ``/opt/omero/web/venv3/bin/omero``. Adapt that path
-if the custom image uses another virtual environment. Keep the script in the
-startup sequence so enable, disable and container recreation all produce the
-declared configuration; running it once during an image build is insufficient
-when OMERO configuration is stored in a persistent volume.
+The standard file enables the viewer whenever that image is used. A custom
+deployment that wants the same opt-in behavior as NL-BIOMERO may instead copy
+``55-configure-zarr-viewer.py`` into its startup sequence and pass the feature
+flag and storage-root environment values. The supplied script calls
+``/opt/omero/web/venv3/bin/omero``; adapt that path if the custom image uses
+another virtual environment.
 
 Upgrade the supplied HTTPS deployment
 -------------------------------------

@@ -12,7 +12,7 @@ OPEN_WITH = [
     APP,
     "biomero_zarr_viewer_index",
     {
-        "supported_objects": ["image", "plate"],
+        "supported_objects": ["image", "plate", "well"],
         "label": "OME-Zarr Viewer",
         "target": "_blank",
         "script_url": "biomero_zarr_viewer/openwith-v2.js",
