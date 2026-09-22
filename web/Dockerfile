@@ -2,8 +2,7 @@ FROM openmicroscopy/omero-web-standalone:5.33.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
-ARG BIOMERO_ZARR_VIEWER_BRANCH=main
-# ARG BIOMERO_ZARR_VIEWER_VERSION
+ARG BIOMERO_ZARR_VIEWER_VERSION
 # ARG BIOMERO_SCHEMA_BRANCH=main
 # ARG BIOMERO_SHALLOWER_BRANCH=main
 # ARG BIOMERO_IMPORTER_BRANCH=main
@@ -72,16 +71,10 @@ RUN /opt/omero/web/venv3/bin/pip install \
 # Install OMERO.forms from PyPI
 RUN /opt/omero/web/venv3/bin/pip install omero-forms==${OMERO_FORMS_VERSION}
 
-# Install the viewer and its committed frontend from the configured ref, so the
-# web image does not need Node.js. The GitHub response invalidates this layer
-# when the ref head changes while the ref name remains the same.
-ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.ZarrViewer/commits/${BIOMERO_ZARR_VIEWER_BRANCH}" /latest_commit_biomero_zarr_viewer
-RUN /opt/omero/web/venv3/bin/pip install \
-        "biomero-zarr-viewer @ git+https://github.com/NL-BioImaging/BIOMERO.ZarrViewer.git@${BIOMERO_ZARR_VIEWER_BRANCH}"
-
-# Release option: replace the active development ADD/RUN block above with:
-# RUN test -n "$BIOMERO_ZARR_VIEWER_VERSION" || (echo "BIOMERO_ZARR_VIEWER_VERSION build arg is required" >&2; exit 1)
-# RUN /opt/omero/web/venv3/bin/pip install "biomero-zarr-viewer==${BIOMERO_ZARR_VIEWER_VERSION}"
+# Install the selected viewer release and its bundled frontend from PyPI, so the
+# web image does not need Node.js or a separate viewer checkout.
+RUN test -n "$BIOMERO_ZARR_VIEWER_VERSION" || (echo "BIOMERO_ZARR_VIEWER_VERSION build arg is required" >&2; exit 1)
+RUN /opt/omero/web/venv3/bin/pip install "biomero-zarr-viewer==${BIOMERO_ZARR_VIEWER_VERSION}"
 
 # Set the working directory
 WORKDIR /opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb

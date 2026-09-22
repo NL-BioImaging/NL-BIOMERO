@@ -47,16 +47,29 @@ jobs:
           docker compose -f docker-compose-dev.yml config --format json > /tmp/compose-dev.json
           python - <<'PY'
           import json
+          from pathlib import Path
+
+          env = dict(
+              line.split("=", 1)
+              for line in Path(".env").read_text(encoding="utf-8").splitlines()
+              if line and not line.startswith("#") and "=" in line
+          )
+          viewer_version = env["BIOMERO_ZARR_VIEWER_VERSION"]
 
           for path in ("/tmp/compose.json", "/tmp/compose-dev.json"):
               with open(path, encoding="utf-8") as handle:
                   services = json.load(handle)["services"]
+              assert services["omeroweb"]["build"]["args"]["BIOMERO_ZARR_VIEWER_VERSION"] == viewer_version, path
               assert not services["omeroweb"].get("ports"), path
               ports = services["zarrviewer-nginx"]["ports"]
               assert len(ports) == 1, path
               assert ports[0]["target"] == 4080, path
               assert ports[0]["published"] == "4080", path
               assert not services["zarrviewer-nginx"].get("profiles"), path
+
+          dockerfile = Path("web/Dockerfile").read_text(encoding="utf-8")
+          assert 'biomero-zarr-viewer==${BIOMERO_ZARR_VIEWER_VERSION}' in dockerfile
+          assert "BIOMERO.ZarrViewer.git@" not in dockerfile
           PY
       - name: Validate the Ubuntu HTTPS viewer integration
         run: |

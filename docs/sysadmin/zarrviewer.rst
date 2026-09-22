@@ -33,7 +33,8 @@ Demo defaults and existing deployments
 The supplied ``.env`` and ``.env.shared`` explicitly enable the viewer with
 ``BIOMERO_ZARR_VIEWER_ENABLED=TRUE``. The web image includes the viewer package
 and its compiled frontend, so Node.js and a separate ZarrViewer checkout are
-not required to run it.
+not required to run it. ``BIOMERO_ZARR_VIEWER_VERSION`` selects the viewer
+package installed from PyPI when the web image is built.
 
 Using the new demo environment file enables the demo features; preserve your
 existing environment file and site credentials during an opt-in upgrade.
