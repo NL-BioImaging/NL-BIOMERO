@@ -72,9 +72,9 @@ RUN /opt/omero/web/venv3/bin/pip install \
 # Install OMERO.forms from PyPI
 RUN /opt/omero/web/venv3/bin/pip install omero-forms==${OMERO_FORMS_VERSION}
 
-# Temporary beta.7 integration pin. The branch commits its compiled frontend,
-# so the web image does not need Node.js. The GitHub response invalidates this
-# layer when the branch head changes while the ref name remains the same.
+# Install the viewer and its committed frontend from the configured ref, so the
+# web image does not need Node.js. The GitHub response invalidates this layer
+# when the ref head changes while the ref name remains the same.
 ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.ZarrViewer/commits/${BIOMERO_ZARR_VIEWER_BRANCH}" /latest_commit_biomero_zarr_viewer
 RUN /opt/omero/web/venv3/bin/pip install \
         "biomero-zarr-viewer @ git+https://github.com/NL-BioImaging/BIOMERO.ZarrViewer.git@${BIOMERO_ZARR_VIEWER_BRANCH}"

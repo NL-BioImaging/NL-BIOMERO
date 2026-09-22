@@ -180,5 +180,5 @@ Inspect ``docker compose logs --tail=100 omeroweb zarrviewer-nginx`` for the
 local demo, or the existing ``nginx`` service in the SSL scenario.
 
 See the `viewer documentation
-<https://github.com/NL-BioImaging/BIOMERO.ZarrViewer#readme>`_ for focused links,
+<https://nl-bioimaging.github.io/BIOMERO.ZarrViewer/>`_ for focused links,
 bounded PNG/gallery export, 3D limits and optional renderer settings.
