@@ -39,13 +39,18 @@ component, the **PixelBuffer**, reads original intensities from the managed sour
 and mask pixels from retained label arrays. Missing duplicate arrays are not
 replaced with zeros, and viewing does not require another full copy.
 
-- **Image results:** new or changed labels can appear as separate mask Images.
+- **Image results:** the primary Image shows source intensities and opens all
+  result labels in the OME-Zarr Viewer. Separate mask Images remain available
+  as lightweight input projections for TIFF-based workflows.
 - **Plate results:** the primary Plate shows source intensities. An optional
   label-backed preview shows one selected label in the same well/field layout.
   Other labels remain in the result even when not registered as separate Plates.
 
 These are views of shared data, not independent copies of all its pixels.
-A label preview is not the complete set of labels.
+A label preview is not the complete set of labels. The Plate preview control is
+hidden by default because the OME-Zarr Viewer displays the labels on the primary
+Plate. An administrator can expose it with
+`allow_plate_label_preview = true` under `[UI]` in `slurm-config.ini`.
 
 ## How BIOMERO checks that pixels are unchanged
 

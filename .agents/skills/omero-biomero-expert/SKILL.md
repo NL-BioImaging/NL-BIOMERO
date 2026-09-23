@@ -31,6 +31,13 @@ different merge strategy. Do not interpret the integration instruction as a
 request to push directly to `main` or `master`; use a direct push only when the
 user explicitly requests that exception.
 
+If GitHub CLI is unavailable, create the PR through GitHub's REST API using the
+repository's configured Git credential. Keep the credential in memory and
+never print it or write it to disk. Before creating the PR, explicitly set and
+verify the intended repository, head branch and default base branch; this is
+especially important for NL-BIOMERO because local clones may also reference an
+OME upstream. Subsequent PR updates are ordinary pushes to the same branch.
+
 Use proportionate local verification before a direct default-branch push,
 release, change without suitable CI coverage, or higher-risk operation. This
 workflow does not authorize unrelated publication, merging, deployment, or
