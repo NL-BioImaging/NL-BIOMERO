@@ -3,7 +3,7 @@
 Welcome to NL-BIOMERO's documentation!
 =======================================
 
-|biomero_badge| |biomero_importer_badge| |omero_biomero_badge| |omero_forms_badge|
+|biomero_badge| |biomero_importer_badge| |omero_biomero_badge| |omero_forms_badge| |zarr_viewer_badge|
 
 **NL-BIOMERO** delivers a complete FAIR-oriented bioimaging infrastructure built on OMERO and |biomero_2_0|.
 

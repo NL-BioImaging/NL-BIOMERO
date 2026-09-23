@@ -126,26 +126,16 @@ smv_latest_version = latest_release
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
-# Native sphinx-rtd-theme "Edit on GitHub" link.
+# Repository metadata used by the theme's breadcrumb override.
 html_context = {
-    'display_github': True,
-    'github_user': 'NL-BioImaging',
-    'github_repo': 'NL-BIOMERO',
-    'github_version': 'master',
-    'conf_py_path': '/docs/',
+    'repository_url': 'https://github.com/NL-BioImaging/NL-BIOMERO',
+    'repository_name': 'NL-BioImaging/NL-BIOMERO',
 }
 
 # Setup custom extensions
 def setup(app):
     # Set up dynamic RST prolog before building starts
     app.connect('config-inited', lambda app, config: setup_dynamic_rst_prolog(app))
-    app.connect('config-inited', configure_github_link)
-
-def configure_github_link(app, config):
-    """Link each generated documentation version to the same Git ref."""
-    current_version = getattr(config, 'smv_current_version', '')
-    if current_version:
-        config.html_context['github_version'] = current_version
 
 # Search configuration - ensure search index is built
 html_search_language = 'en'
@@ -175,18 +165,21 @@ def setup_dynamic_rst_prolog(app):
     biomero_importer_version = env_values.get('BIOMERO_IMPORTER_VERSION', 'unknown') 
     omero_forms_version = env_values.get('OMERO_FORMS_VERSION', 'unknown')
     omero_biomero_version = env_values.get('OMERO_BIOMERO_VERSION', 'unknown')
+    zarr_viewer_version = env_values.get('BIOMERO_ZARR_VIEWER_VERSION', 'unknown')
     
     # Clean versions for badges (remove 'v' prefix)
     clean_biomero = biomero_version.lstrip('v') if biomero_version.startswith('v') else biomero_version
     clean_importer = biomero_importer_version.lstrip('v') if biomero_importer_version.startswith('v') else biomero_importer_version
     clean_forms = omero_forms_version.lstrip('v') if omero_forms_version.startswith('v') else omero_forms_version  
     clean_omero_biomero = omero_biomero_version.lstrip('v') if omero_biomero_version.startswith('v') else omero_biomero_version
+    clean_zarr_viewer = zarr_viewer_version.lstrip('v') if zarr_viewer_version.startswith('v') else zarr_viewer_version
     
     # Create version tags for links (ensure 'v' prefix)
     tag_biomero = biomero_version if biomero_version.startswith('v') else f'v{biomero_version}'
     tag_importer = biomero_importer_version if biomero_importer_version.startswith('v') else f'v{biomero_importer_version}'
     tag_forms = omero_forms_version if omero_forms_version.startswith('v') else f'v{omero_forms_version}'
     tag_omero_biomero = omero_biomero_version if omero_biomero_version.startswith('v') else f'v{omero_biomero_version}'
+    tag_zarr_viewer = zarr_viewer_version if zarr_viewer_version.startswith('v') else f'v{zarr_viewer_version}'
     
     # Update the config's rst_prolog
     app.config.rst_prolog = f"""
@@ -194,6 +187,7 @@ def setup_dynamic_rst_prolog(app):
 .. |biomero_importer_version| replace:: {biomero_importer_version}
 .. |omero_forms_version| replace:: {omero_forms_version}
 .. |omero_biomero_version| replace:: {omero_biomero_version}
+.. |zarr_viewer_version| replace:: {zarr_viewer_version}
 
 .. |biomero_badge| image:: https://img.shields.io/badge/BIOMERO.analyzer-{clean_biomero}-purple?style=flat-square
    :alt: BIOMERO Version  
@@ -210,6 +204,10 @@ def setup_dynamic_rst_prolog(app):
 .. |omero_biomero_badge| image:: https://img.shields.io/badge/OMERO.biomero-{clean_omero_biomero}-red?style=flat-square
    :alt: OMERO Biomero Version
    :target: https://github.com/NL-BioImaging/OMERO.biomero/releases/tag/{tag_omero_biomero}
+
+.. |zarr_viewer_badge| image:: https://img.shields.io/badge/BIOMERO.ZarrViewer-{clean_zarr_viewer}-blue?style=flat-square
+   :alt: BIOMERO ZarrViewer Version
+   :target: https://github.com/NL-BioImaging/BIOMERO.ZarrViewer/releases/tag/{tag_zarr_viewer}
 
 .. |biomero_icon| raw:: html
 
