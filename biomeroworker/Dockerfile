@@ -7,7 +7,7 @@ ARG BIOMERO_SCRIPTS_VERSION
 # ARG BIOMERO_SHALLOWER_BRANCH=main
 # ARG BIOMERO_IMPORTER_BRANCH=main
 # ARG BIOMERO_BRANCH=main
-# ARG BIOMERO_SCRIPTS_BRANCH=master
+ARG BIOMERO_SCRIPTS_BRANCH=fix/remote-shallower-preflight
 
 USER root
 
@@ -69,16 +69,16 @@ RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
 ## The detached supervisor imports the workflow pipeline after the launcher
 ## exits, so install the same scripts release as server/Dockerfile.
 ENV OMERO_DIST=/opt/omero/server/OMERO.server
-# ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/${BIOMERO_SCRIPTS_BRANCH}" /latest_commit_biomero_scripts
-# RUN cd $OMERO_DIST/lib/scripts/ && \
-#     git clone --depth 1 --branch ${BIOMERO_SCRIPTS_BRANCH} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
-#     rm -rf biomero/tests
+ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/${BIOMERO_SCRIPTS_BRANCH}" /latest_commit_biomero_scripts
+RUN cd $OMERO_DIST/lib/scripts/ && \
+    git clone --depth 1 --branch ${BIOMERO_SCRIPTS_BRANCH} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
+    rm -rf biomero/tests
 
 # Release option for scripts: use the same selected tag as the server.
-RUN test -n "$BIOMERO_SCRIPTS_VERSION" || (echo "BIOMERO_SCRIPTS_VERSION build arg is required" >&2; exit 1)
-RUN cd $OMERO_DIST/lib/scripts/ && \
-    git clone --depth 1 --branch ${BIOMERO_SCRIPTS_VERSION} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
-    rm -rf biomero/tests
+# RUN test -n "$BIOMERO_SCRIPTS_VERSION" || (echo "BIOMERO_SCRIPTS_VERSION build arg is required" >&2; exit 1)
+# RUN cd $OMERO_DIST/lib/scripts/ && \
+#     git clone --depth 1 --branch ${BIOMERO_SCRIPTS_VERSION} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
+#     rm -rf biomero/tests
 
 ## Adjust processor code with BIOMERO Processor
 # This version forwards HTTP(S) PROXY environment variables to the subprocesses (scripts)
