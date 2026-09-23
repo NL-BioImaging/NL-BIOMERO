@@ -126,10 +126,26 @@ smv_latest_version = latest_release
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
+# Native sphinx-rtd-theme "Edit on GitHub" link.
+html_context = {
+    'display_github': True,
+    'github_user': 'NL-BioImaging',
+    'github_repo': 'NL-BIOMERO',
+    'github_version': 'master',
+    'conf_py_path': '/docs/',
+}
+
 # Setup custom extensions
 def setup(app):
     # Set up dynamic RST prolog before building starts
     app.connect('config-inited', lambda app, config: setup_dynamic_rst_prolog(app))
+    app.connect('config-inited', configure_github_link)
+
+def configure_github_link(app, config):
+    """Link each generated documentation version to the same Git ref."""
+    current_version = getattr(config, 'smv_current_version', '')
+    if current_version:
+        config.html_context['github_version'] = current_version
 
 # Search configuration - ensure search index is built
 html_search_language = 'en'
