@@ -7,7 +7,7 @@ ARG BIOMERO_ZARR_VIEWER_VERSION
 # ARG BIOMERO_SHALLOWER_BRANCH=main
 # ARG BIOMERO_IMPORTER_BRANCH=main
 # ARG BIOMERO_BRANCH=main
-ARG OMERO_BIOMERO_BRANCH=feature/shallow-primary-label-inputs
+# ARG OMERO_BIOMERO_BRANCH=main
 
 USER root
 
@@ -51,7 +51,7 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 # ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.shallower/commits/${BIOMERO_SHALLOWER_BRANCH}" /latest_commit_biomero_shallower
 # ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.importer/commits/${BIOMERO_IMPORTER_BRANCH}" /latest_commit_biomero_importer
 # ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_BRANCH}" /latest_commit_biomero
-ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BIOMERO_BRANCH}" /latest_commit_omero_biomero
+# ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BIOMERO_BRANCH}" /latest_commit_omero_biomero
 # RUN /opt/omero/web/venv3/bin/pip install \
 #         "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
 #         "biomero-shallower @ git+https://github.com/NL-BioImaging/BIOMERO.shallower.git@${BIOMERO_SHALLOWER_BRANCH}" \
@@ -60,16 +60,11 @@ ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BI
 #         "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
 #     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
-# Development option for this integration branch.
-RUN /opt/omero/web/venv3/bin/pip install \
-        "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
-    && /opt/omero/web/venv3/bin/omero-biomero-setup
-
 # Release option: install the version selected in OMERO_BIOMERO_VERSION from PyPI.
-# RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1)
-# RUN /opt/omero/web/venv3/bin/pip install \
-#         "omero-biomero==${OMERO_BIOMERO_VERSION}" \
-#     && /opt/omero/web/venv3/bin/omero-biomero-setup
+RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1)
+RUN /opt/omero/web/venv3/bin/pip install \
+        "omero-biomero==${OMERO_BIOMERO_VERSION}" \
+    && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 ### Install OMERO.forms ###
 
