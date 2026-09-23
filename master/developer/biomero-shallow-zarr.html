@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Working with shallow OME-Zarr results &mdash; NL-BIOMERO 1.8.0-beta.6 documentation</title>
+  <title>Working with shallow OME-Zarr results &mdash; NL-BIOMERO 1.8.0-beta.7 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -399,7 +399,7 @@ window.addEventListener("load", load);
             NL-BIOMERO
           </a>
               <div class="version">
-                1.8.0-beta.6
+                1.8.0-beta.7
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -1218,13 +1218,18 @@ component, the <strong>PixelBuffer</strong>, reads original intensities from the
 and mask pixels from retained label arrays. Missing duplicate arrays are not
 replaced with zeros, and viewing does not require another full copy.</p>
 <ul class="simple">
-<li><p><strong>Image results:</strong> new or changed labels can appear as separate mask Images.</p></li>
+<li><p><strong>Image results:</strong> the primary Image shows source intensities and opens all
+result labels in the OME-Zarr Viewer. Separate mask Images remain available
+as lightweight input projections for TIFF-based workflows.</p></li>
 <li><p><strong>Plate results:</strong> the primary Plate shows source intensities. An optional
 label-backed preview shows one selected label in the same well/field layout.
 Other labels remain in the result even when not registered as separate Plates.</p></li>
 </ul>
 <p>These are views of shared data, not independent copies of all its pixels.
-A label preview is not the complete set of labels.</p>
+A label preview is not the complete set of labels. The Plate preview control is
+hidden by default because the OME-Zarr Viewer displays the labels on the primary
+Plate. An administrator can expose it with
+<code class="docutils literal notranslate"><span class="pre">allow_plate_label_preview</span> <span class="pre">=</span> <span class="pre">true</span></code> under <code class="docutils literal notranslate"><span class="pre">[UI]</span></code> in <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code>.</p>
 </section>
 <section id="how-biomero-checks-that-pixels-are-unchanged">
 <h2>How BIOMERO checks that pixels are unchanged<a class="headerlink" href="#how-biomero-checks-that-pixels-are-unchanged" title="Permalink to this heading"></a></h2>
