@@ -793,6 +793,13 @@ SUPERVISOR_STARTUP_GRACE_SECONDS = int(
 # A sub-script launch is retried while the server reports no processor, which
 # it does until registration has gone through after a restart.
 SCRIPT_START_RETRY_SECONDS = 180
+# A child script can make a large OMERO call on another server thread while
+# this supervisor polls its process proxy. Ice may briefly surface that call's
+# transport failure from poll() as well. Retry a few consecutive local
+# transport errors so the child can handle its own exception and finish, but
+# do not wait forever if the process proxy is genuinely unavailable.
+SCRIPT_POLL_SECONDS = 2
+SCRIPT_POLL_FAILURE_LIMIT = 5
 # How often a batched parent checks on its children.
 CHILD_POLL_SECONDS = 15
 # Workflows found not to be ours are remembered so we do not keep inspecting
@@ -933,7 +940,24 @@ def polling_script_runner(client, svc, script_id, inputs,
                     application_name='WorkflowTracker') or 0
             except Exception:
                 next_position = 0
-        while proc.poll() is None:
+        poll_failures = 0
+        while True:
+            try:
+                return_code = proc.poll()
+                poll_failures = 0
+            except Ice.LocalException as e:
+                poll_failures += 1
+                if poll_failures >= SCRIPT_POLL_FAILURE_LIMIT:
+                    raise
+                logger.warning(
+                    "OMERO process poll failed (%s/%s); the child may be "
+                    "handling its own transport error, retrying: %s",
+                    poll_failures, SCRIPT_POLL_FAILURE_LIMIT, e)
+                time.sleep(SCRIPT_POLL_SECONDS)
+                continue
+
+            if return_code is not None:
+                break
             if conn is not None:
                 try:
                     conn.keepAlive()
@@ -952,7 +976,7 @@ def polling_script_runner(client, svc, script_id, inputs,
                                 application_name='WorkflowTracker') or 0)
                     except Exception:
                         pass
-            time.sleep(2)
+            time.sleep(SCRIPT_POLL_SECONDS)
         return proc.getResults(0), proc.getJob()
     finally:
         proc.close(False)
