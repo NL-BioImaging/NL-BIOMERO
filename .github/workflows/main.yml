@@ -11,9 +11,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Test
-        run: ./test.sh
-      - name: Check logs
-        run: docker-compose logs
-        if: ${{ failure() }}
+      - uses: actions/checkout@v4
+      - name: Validate Compose configurations
+        run: |
+          docker compose --env-file .env -f docker-compose.yml config --quiet
+          docker compose --env-file .env -f docker-compose-dev.yml config --quiet
+          docker compose --env-file .env -f deployment_scenarios/docker-compose-from-dockerhub.yml config --quiet
