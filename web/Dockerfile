@@ -2,6 +2,7 @@ FROM openmicroscopy/omero-web-standalone:5.31.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
+ARG BIOMERO_VERSION
 
 USER root
 
@@ -39,8 +40,7 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 ## Setup slurm-config for biomero, for the BIOMERO django API in OMERO.biomero
 COPY biomeroworker/slurm-config.ini /etc/slurm-config.ini
 
-### Install OMERO.biomero first ###
-### BIOMERO.importer and BIOMERO.analyzer will be installed as a dependency of OMERO.biomero ###
+### Install OMERO.biomero with the same BIOMERO core version as the worker/scripts ###
 
 # To track a branch instead of a release, uncomment the cache-bust line and use the git install:
 # ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/surf" /latest_commit_omero_biomero
@@ -49,7 +49,8 @@ COPY biomeroworker/slurm-config.ini /etc/slurm-config.ini
 
 # Install released OMERO.biomero from PyPI
 RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1)
-RUN /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
+RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
+RUN /opt/omero/web/venv3/bin/pip install biomero==${BIOMERO_VERSION} omero-biomero==${OMERO_BIOMERO_VERSION} \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 ### Install OMERO.forms ###
