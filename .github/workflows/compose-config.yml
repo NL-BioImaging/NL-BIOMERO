@@ -52,14 +52,15 @@ jobs:
           docker build \
             --build-arg OMERO_FORMS_VERSION \
             --build-arg OMERO_BIOMERO_VERSION \
+            --build-arg OMERO_BIOMERO_BRANCH=analysis_integration \
             --build-arg OMERO_ANALYSIS_VERSION \
             --build-arg BIOMERO_WORKFLOW_SKILLS_VERSION \
             --build-arg BIOMERO_ZARR_VIEWER_VERSION \
             --tag nl-biomero-web:ci \
             --file web/Dockerfile \
             .
-      - name: Verify released packages and Analysis runtime
+      - name: Verify integration packages and Analysis runtime
         run: |
           docker run --rm --entrypoint /opt/omero/web/venv3/bin/python \
             nl-biomero-web:ci -c \
-            "from importlib.metadata import version; from pathlib import Path; expected={'omero-analysis':'0.14.0','omero-biomero':'1.7.0b5','biomero-workflow-skills':'0.4.0'}; actual={name:version(name) for name in expected}; assert actual == expected, actual; assert Path('/opt/omero/web/venv3/lib/python3.12/site-packages/omero_analysis/static/omero_analysis/pyodide/pyodide.mjs').is_file()"
+            "from importlib.metadata import version; from pathlib import Path; import json; expected={'omero-analysis':'0.14.0','biomero-workflow-skills':'0.4.0'}; actual={name:version(name) for name in expected}; assert actual == expected, actual; site=Path('/opt/omero/web/venv3/lib/python3.12/site-packages'); assert (site/'omero_analysis/static/omero_analysis/pyodide/pyodide.mjs').is_file(); root=site/'omero_biomero'; templates=''.join(path.read_text(errors='ignore') for path in (root/'templates').rglob('*.html')); assert 'DATA_ANALYSIS_ENABLED' in templates; manifest=json.loads((root/'static/omero_biomero/assets/asset-manifest.json').read_text()); bundle=root/'static/omero_biomero/assets'/Path(manifest['main.js']).name; assert bundle.is_file() and 'workspace_id' in bundle.read_text(errors='ignore')"
