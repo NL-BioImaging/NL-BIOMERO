@@ -1,0 +1,34 @@
+{% extends "webclient/scripts/omero_script_ui.html" %}
+
+{% block script %}
+    {{ block.super }}
+    <script type="text/javascript">
+        $(document).ready(function () {
+            // Chosen hides native selects. Cloning/removing only the native
+            // element leaves list controls invisible or their widgets stale.
+            $(".addListSelect").off("click").on("click", function (event) {
+                event.preventDefault();
+                var $last = $(this).parent().children("select").last();
+                if (!$last.length) return false;
+                var chosen = $last.data("chosen");
+                var $copy = $last.clone().removeAttr("id")
+                    .removeClass("chosen-done").show().val($last.val());
+                $(this).parent().children("a").first().before($copy);
+                if (chosen) {
+                    $copy.chosen({search_contains: true, width: "300px"});
+                }
+                return false;
+            });
+            $(".removeListSelect").off("click").on("click", function (event) {
+                event.preventDefault();
+                var $selects = $(this).parent().children("select");
+                if ($selects.length > 1) {
+                    var $last = $selects.last();
+                    if ($last.data("chosen")) $last.chosen("destroy");
+                    $last.remove();
+                }
+                return false;
+            });
+        });
+    </script>
+{% endblock %}

@@ -1,7 +1,13 @@
 FROM openmicroscopy/omero-server:5.6.18
 
 ARG BIOMERO_VERSION
-ARG BIOMERO_IMPORTER_VERSION
+ARG BIOMERO_SCRIPTS_VERSION
+
+# ARG BIOMERO_SCHEMA_BRANCH=main
+# ARG BIOMERO_SHALLOWER_BRANCH=main
+# ARG BIOMERO_IMPORTER_BRANCH=main
+# ARG BIOMERO_BRANCH=main
+# ARG BIOMERO_SCRIPTS_BRANCH=master
 
 USER root
 
@@ -40,14 +46,39 @@ ENV PATH="$PATH:/opt/bioformats2raw-0.12.0-rc1/bin"
 ## Add BIOMERO Omero Slurm Client
 RUN yum -y install ack
 
-# force zarr < 3 for compatibility w/ omero-cli-zarr by installing biomero AFTER the importer
-# To track a branch instead of a release, uncomment the cache-bust line and use the git install:
-# ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/surf" /latest_commit_biomero
-# && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@surf"
+# Development option: uncomment the branch ARGs and ADD/RUN block below, and
+# comment the release RUN block. Branch heads invalidate the install layer.
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_BRANCH}" /latest_commit_biomero_schema
+# ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.shallower/commits/${BIOMERO_SHALLOWER_BRANCH}" /latest_commit_biomero_shallower
+# ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.importer/commits/${BIOMERO_IMPORTER_BRANCH}" /latest_commit_biomero_importer
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_BRANCH}" /latest_commit_biomero
+# RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
+#     && $VIRTUAL_ENV/bin/python -m pip install \
+#         "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
+#         "biomero-shallower @ git+https://github.com/NL-BioImaging/BIOMERO.shallower.git@${BIOMERO_SHALLOWER_BRANCH}" \
+#         "biomero-importer[identity] @ git+https://github.com/NL-BioImaging/BIOMERO.importer.git@${BIOMERO_IMPORTER_BRANCH}" \
+#         "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@${BIOMERO_BRANCH}" \
+#     && $VIRTUAL_ENV/bin/python -m pip check
+
+# Release option: install BIOMERO and its full runtime from PyPI.
 RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
-    && $VIRTUAL_ENV/bin/python -m pip install --ignore-requires-python biomero-importer==${BIOMERO_IMPORTER_VERSION} \
-    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full]==${BIOMERO_VERSION}"
+    && $VIRTUAL_ENV/bin/python -m pip install "biomero[full]==${BIOMERO_VERSION}" \
+    && $VIRTUAL_ENV/bin/python -m pip check
+
+## The detached supervisor imports the workflow pipeline after the launcher
+## exits, so install the same scripts release as server/Dockerfile.
+ENV OMERO_DIST=/opt/omero/server/OMERO.server
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/${BIOMERO_SCRIPTS_BRANCH}" /latest_commit_biomero_scripts
+# RUN cd $OMERO_DIST/lib/scripts/ && \
+#     git clone --depth 1 --branch ${BIOMERO_SCRIPTS_BRANCH} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
+#     rm -rf biomero/tests
+
+# Release option for scripts: use the same selected tag as the server.
+RUN test -n "$BIOMERO_SCRIPTS_VERSION" || (echo "BIOMERO_SCRIPTS_VERSION build arg is required" >&2; exit 1)
+RUN cd $OMERO_DIST/lib/scripts/ && \
+    git clone --depth 1 --branch ${BIOMERO_SCRIPTS_VERSION} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
+    rm -rf biomero/tests
 
 ## Adjust processor code with BIOMERO Processor
 # This version forwards HTTP(S) PROXY environment variables to the subprocesses (scripts)

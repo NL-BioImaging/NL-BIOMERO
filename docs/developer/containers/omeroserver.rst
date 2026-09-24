@@ -32,7 +32,7 @@ The container automatically installs three sets of scripts during build:
    - Purpose: PDF export functionality for figures
 
 **3. Labels2ROIs Script**
-   - Source: `Cellular-Imaging-Amsterdam-UMC/label2rois <https://raw.githubusercontent.com/Cellular-Imaging-Amsterdam-UMC/label2rois/main/Labels2Rois.py>`_
+   - Source: `Cellular-Imaging-Amsterdam-UMC/label2rois v1.0.1 <https://github.com/Cellular-Imaging-Amsterdam-UMC/label2rois/releases/tag/v1.0.1>`_
    - Location: ``/opt/omero/server/OMERO.server/lib/scripts/omero/util_scripts/``
    - Purpose: Convert BIOMERO label images to OMERO ROIs
 

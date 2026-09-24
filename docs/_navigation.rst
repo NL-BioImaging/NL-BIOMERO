@@ -4,6 +4,7 @@
    :maxdepth: 2
 
    overview
+   citing
 
 .. toctree::
    :hidden:
@@ -14,15 +15,18 @@
    sysadmin/deployment
    sysadmin/docker-compose-scenarios
    sysadmin/linux-deployment
-   sysadmin/backup-restore
-   sysadmin/ui-customization
+   sysadmin/slurm-integration
    sysadmin/data-analysis
    sysadmin/omero-biomero-admin
-   sysadmin/zarr-viewer
-   sysadmin/resumable-uploader
-   sysadmin/metabase-admin
-   sysadmin/slurm-integration
    sysadmin/analyzer-importer-admin
+   sysadmin/remote-shallower
+   sysadmin/detached-workflows
+   sysadmin/resumable-uploader
+   sysadmin/zarrviewer
+   sysadmin/metabase-admin
+   sysadmin/ui-customization
+   sysadmin/backup-restore
+   sysadmin/metadata-refresh
 
 .. toctree::
    :hidden:
@@ -30,9 +34,12 @@
    :maxdepth: 2
 
    developer/architecture
+   developer/detached-workflow-supervisor
    developer/getting-started
    developer/workflow-development
    developer/bilayers-workflows
+   developer/zarr-workflow-development
+   developer/biomero-shallow-zarr
    developer/containers/index
 
 .. toctree::

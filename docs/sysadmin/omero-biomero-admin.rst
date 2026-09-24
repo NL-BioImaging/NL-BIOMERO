@@ -23,6 +23,8 @@ Importer Admin Configuration
 
 The Importer Admin tab manages settings for BIOMERO.importer (formerly ADI).
 
+.. _group-folder-mappings:
+
 Group Folder Mappings
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -173,8 +175,14 @@ Workflows Settings
 
 **Purpose**: Add and manage analysis workflows available to users
 
+.. _adding-new-workflows:
+
 Adding New Workflows
 ^^^^^^^^^^^^^^^^^^^^
+
+.. tip::
+   🎥 **Visual explanation · 1:26:** :ref:`See how a pinned container and
+   descriptor become a workflow users can run <video-adding-analysis-workflow>`.
 
 1. **Click "Add Model"** to create a new workflow entry
 
@@ -254,6 +262,10 @@ data and which UI options users see.
 Zarr Workflow
 ^^^^^^^^^^^^^
 
+.. tip::
+   🎥 **Visual explanation · 0:58:** :ref:`See how OME-Zarr can feed Zarr-native
+   or TIFF-based workflows <video-one-format-flexible-workflows>`.
+
 When **Zarr Workflow** is enabled for a model:
 
 - The user's input images are exported from OMERO as a Zarr file.
@@ -329,25 +341,29 @@ Slurm Check Setup Output
 
 The "Slurm Check Setup" script provides:
 
-- **Available Models** (with versions)
-- **Pending Models** 
+- Exact **READY**, **RUNNING**, and **FAILED** image counts
+- Concise per-image failure reasons
+- **Available Models** with validated, non-empty versions
 - **Available Converters**
 - **Available Data**
-- **Singularity Log** for download progress monitoring
+- The location of per-image array logs and structured status
 
 **Example Output**:
 
 .. code-block:: text
 
-   starting cellpose v1.3.1
-   starting stardist v1.3.2
-   FATAL: Image file already exists: "cellpose/w_nucleisegmentation-cellpose_v1.3.1.sif" - will not overwrite
-   finished cellpose v1.3.1
+   Image initialization:
+     READY: 15
+     RUNNING: 0
+     FAILED: 1
+     Failure details:
+       imagej:v2 - manifest unknown (exit 22)
 
 **Status Indicators**:
-- ``FATAL: Image file already exists`` - Good (no redownload needed)
-- ``ERROR`` - Problem occurred
-- ``starting/finished`` - Normal download process
+
+- ``READY`` - the existing or newly built SIF passed runtime inspection
+- ``RUNNING`` - the array task is queued or building
+- ``FAILED`` - the task ended with a concise permanent or exhausted-retry reason
 
 
 

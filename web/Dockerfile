@@ -1,15 +1,20 @@
-FROM openmicroscopy/omero-web-standalone:5.31.1
+FROM openmicroscopy/omero-web-standalone:5.33.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
 ARG OMERO_ANALYSIS_VERSION
 ARG BIOMERO_WORKFLOW_SKILLS_VERSION
 ARG BIOMERO_ZARR_VIEWER_VERSION
+# ARG BIOMERO_SCHEMA_BRANCH=main
+# ARG BIOMERO_SHALLOWER_BRANCH=main
+# ARG BIOMERO_IMPORTER_BRANCH=main
+# ARG BIOMERO_BRANCH=main
+# ARG OMERO_BIOMERO_BRANCH=main
 
 USER root
 
 # Install system dependencies needed for psycopg2 and other packages
-RUN dnf -y install postgresql-devel gcc make gettext openssl-devel libffi-devel
+RUN dnf -y install postgresql-devel gcc make gettext openssl-devel libffi-devel git
 
 # Create L-Drive directory and set permissions
 RUN mkdir -p /L-Drive && \
@@ -23,35 +28,18 @@ VOLUME ["/L-Drive"]
 COPY web/local_omeroweb_edits/pretty_login/login.html /script/
 ### ###
 
-# OMERO applications
+# OMERO applications (versioned)
 RUN /opt/omero/web/venv3/bin/pip install \
-        'django-cors-headers' \
-        omero-figure \
-        omero-iviewer \
-        omero-fpbioimage \
-        omero-mapr \
-        omero-parade \
-        omero-webtagging-autotag \
-        omero-webtagging-tagsearch \
-        whitenoise
+        'django-cors-headers==3.7.0' \
+        'omero-figure==7.4.1' \
+        'omero-iviewer==0.16.0' \
+        'omero-fpbioimage==0.4.1' \
+        'omero-mapr==0.5.3' \
+        'omero-parade==0.2.4' \
+        'omero-webtagging-autotag==4.0.0' \
+        'omero-webtagging-tagsearch==4.0.0' \
+        'whitenoise==6.12.0'
 
-# Install released Analysis and its skill catalog reader. The Analysis wheel owns
-# its complete frontend and Pyodide runtime; no runtime splicing is necessary.
-RUN test -n "$OMERO_ANALYSIS_VERSION" || (echo "OMERO_ANALYSIS_VERSION build arg is required" >&2; exit 1) && \
-    test -n "$BIOMERO_WORKFLOW_SKILLS_VERSION" || (echo "BIOMERO_WORKFLOW_SKILLS_VERSION build arg is required" >&2; exit 1)
-RUN /opt/omero/web/venv3/bin/pip install \
-      omero-analysis==${OMERO_ANALYSIS_VERSION} \
-      biomero-workflow-skills==${BIOMERO_WORKFLOW_SKILLS_VERSION} && \
-    test -f /opt/omero/web/venv3/lib/python3.12/site-packages/omero_analysis/static/omero_analysis/pyodide/pyodide.mjs
-ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/v${OMERO_ANALYSIS_VERSION}/docker/90-omero-analysis.omero" /opt/omero/web/config/90-omero-analysis.omero
-ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/v${OMERO_ANALYSIS_VERSION}/docker/49-omero-analysis-cleanup.py" /startup/49-omero-analysis-cleanup.py
-ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/v${OMERO_ANALYSIS_VERSION}/docker/51-omero-analysis-navigation.py" /startup/51-omero-analysis-navigation.py
-RUN chmod 755 /startup/49-omero-analysis-cleanup.py \
-    /startup/51-omero-analysis-navigation.py
-
-# Install the released BIOMERO OME-Zarr Viewer from PyPI
-RUN test -n "$BIOMERO_ZARR_VIEWER_VERSION" || (echo "BIOMERO_ZARR_VIEWER_VERSION build arg is required" >&2; exit 1)
-RUN /opt/omero/web/venv3/bin/pip install biomero-zarr-viewer==${BIOMERO_ZARR_VIEWER_VERSION}
 
 # Update PATH manually based on known locations
 ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
@@ -59,10 +47,40 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 ### Install OMERO.biomero first ###
 ### BIOMERO.importer and BIOMERO.analyzer will be installed as a dependency of OMERO.biomero ###
 
-# Install the released integration package.
+# Development option: uncomment the branch ARGs and ADD/RUN block below, and
+# comment the release RUN block. Each branch head is a Docker cache buster.
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero-schema/commits/${BIOMERO_SCHEMA_BRANCH}" /latest_commit_biomero_schema
+# ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.shallower/commits/${BIOMERO_SHALLOWER_BRANCH}" /latest_commit_biomero_shallower
+# ADD "https://api.github.com/repos/NL-BioImaging/BIOMERO.importer/commits/${BIOMERO_IMPORTER_BRANCH}" /latest_commit_biomero_importer
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero/commits/${BIOMERO_BRANCH}" /latest_commit_biomero
+# ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BIOMERO_BRANCH}" /latest_commit_omero_biomero
+# RUN /opt/omero/web/venv3/bin/pip install \
+#         "biomero-schema @ git+https://github.com/NL-BioImaging/biomero-schema.git@${BIOMERO_SCHEMA_BRANCH}" \
+#         "biomero-shallower @ git+https://github.com/NL-BioImaging/BIOMERO.shallower.git@${BIOMERO_SHALLOWER_BRANCH}" \
+#         "biomero-importer[identity] @ git+https://github.com/NL-BioImaging/BIOMERO.importer.git@${BIOMERO_IMPORTER_BRANCH}" \
+#         "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@${BIOMERO_BRANCH}" \
+#         "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
+#     && /opt/omero/web/venv3/bin/omero-biomero-setup
+
+# Release option: install the version selected in OMERO_BIOMERO_VERSION from PyPI.
 RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1)
-RUN /opt/omero/web/venv3/bin/pip install omero-biomero==${OMERO_BIOMERO_VERSION} \
+RUN /opt/omero/web/venv3/bin/pip install \
+        "omero-biomero==${OMERO_BIOMERO_VERSION}" \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
+
+# Install released OMERO.Analysis and its workflow skill catalog reader. The
+# Analysis wheel owns its complete frontend and Pyodide runtime.
+RUN test -n "$OMERO_ANALYSIS_VERSION" || (echo "OMERO_ANALYSIS_VERSION build arg is required" >&2; exit 1) && \
+    test -n "$BIOMERO_WORKFLOW_SKILLS_VERSION" || (echo "BIOMERO_WORKFLOW_SKILLS_VERSION build arg is required" >&2; exit 1)
+RUN /opt/omero/web/venv3/bin/pip install \
+        "omero-analysis==${OMERO_ANALYSIS_VERSION}" \
+        "biomero-workflow-skills==${BIOMERO_WORKFLOW_SKILLS_VERSION}" && \
+    test -f /opt/omero/web/venv3/lib/python3.12/site-packages/omero_analysis/static/omero_analysis/pyodide/pyodide.mjs
+ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/v${OMERO_ANALYSIS_VERSION}/docker/90-omero-analysis.omero" /opt/omero/web/config/90-omero-analysis.omero
+ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/v${OMERO_ANALYSIS_VERSION}/docker/49-omero-analysis-cleanup.py" /startup/49-omero-analysis-cleanup.py
+ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/v${OMERO_ANALYSIS_VERSION}/docker/51-omero-analysis-navigation.py" /startup/51-omero-analysis-navigation.py
+RUN chmod 755 /startup/49-omero-analysis-cleanup.py \
+    /startup/51-omero-analysis-navigation.py
 
 RUN /opt/omero/web/venv3/bin/python - <<'PY'
 import os
@@ -84,6 +102,11 @@ PY
 # Install OMERO.forms from PyPI
 RUN /opt/omero/web/venv3/bin/pip install omero-forms==${OMERO_FORMS_VERSION}
 
+# Install the selected viewer release and its bundled frontend from PyPI, so the
+# web image does not need Node.js or a separate viewer checkout.
+RUN test -n "$BIOMERO_ZARR_VIEWER_VERSION" || (echo "BIOMERO_ZARR_VIEWER_VERSION build arg is required" >&2; exit 1)
+RUN /opt/omero/web/venv3/bin/pip install "biomero-zarr-viewer==${BIOMERO_ZARR_VIEWER_VERSION}"
+
 # Set the working directory
 WORKDIR /opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb
 
@@ -91,12 +114,19 @@ WORKDIR /opt/omero/web/venv3/lib/python3.12/site-packages/omeroweb
 COPY web/local_omeroweb_edits/pretty_login/login.html ./webclient/templates/webclient/login.html
 ADD web/local_omeroweb_edits/pretty_login/login_page_images ./webclient/static/webclient/image/login_page_images/
 ADD web/local_omeroweb_edits/pretty_login/ome.login.css ./webgateway/static/webgateway/css/ome.login.css
+COPY web/local_omeroweb_edits/biomero-base-include.html ./webclient/templates/webclient/base/includes/biomero-base-include.html
+
+# Preserve OMERO's script dialog and override only its Chosen list controls.
+RUN mv ./webclient/templates/webclient/scripts/script_ui.html ./webclient/templates/webclient/scripts/omero_script_ui.html
+COPY web/local_omeroweb_edits/script_ui.html ./webclient/templates/webclient/scripts/script_ui.html
 
 # Configuration file and startup scripts
 ADD web/local_omeroweb_edits/01-default-webapps.omero /opt/omero/web/config/
 ADD web/44-create_forms_user.py /startup/
 ADD web/45-fix-forms-config.sh /startup/
+COPY web/55-configure-zarr-viewer.py /startup/
 RUN chmod +x /startup/45-fix-forms-config.sh && \
+    chmod +x /startup/55-configure-zarr-viewer.py && \
     chmod +x /startup/44-create_forms_user.py && \
     chown -R omero-web:omero-web /opt/omero/web/config && \
     chmod 644 /opt/omero/web/config/01-default-webapps.omero

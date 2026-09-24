@@ -2,14 +2,15 @@
 
 NL‑BIOMERO delivers a full containerized stack to run **OMERO** together with the **<img src="https://raw.githubusercontent.com/NL-BioImaging/OMERO.biomero/refs/tags/v1.2.1/webapp/src/img/biomero-logo.svg" alt="BIOMERO" height="16" style="height:16px; width:auto; vertical-align:middle;"> BIOMERO 2.0** framework. It provides Docker/Podman configurations and Compose files to deploy OMERO + BIOMERO subsystems (importer, analyzer, OMERO.web plugin, databases, and auxiliary services) — the recommended starting point for a FAIR‑oriented bioimaging setup.
 
-BIOMERO 2.0 is described in our preprint: [“BIOMERO 2.0: end-to-end FAIR infrastructure for bioimaging data import, analysis, and provenance”](https://arxiv.org/abs/2511.13611). It transforms OMERO into a provenance‑aware, FAIR (findable, accessible, interoperable, reusable) platform by combining:
+BIOMERO 2.0 is described in our published paper: [“BIOMERO 2.0: end-to-end FAIR infrastructure for bioimaging data import, analysis, and provenance”](https://doi.org/10.1111/jmi.70114). See the [citation guide](https://nl-bioimaging.github.io/NL-BIOMERO/master/citing.html) for the full reference and guidance on citing the BIOMERO ecosystem. It transforms OMERO into a provenance‑aware, FAIR (findable, accessible, interoperable, reusable) platform by combining:
 - containerized data import and preprocessing (importer subsystem),  
 - containerized or HPC‑based analysis workflows (analyzer subsystem),  
 - metadata enrichment, versioning, and provenance tracking,  
 - integrated workflow monitoring and dashboards.
 
-🎥 **Introduction video**  
-👉 https://nl-bioimaging.github.io/NL-BIOMERO/latest/overview.html
+🎥 **BIOMERO videos**
+
+👉 [Conceptual introduction and short technical clips](https://nl-bioimaging.github.io/NL-BIOMERO/latest/overview.html)
 
 Using NL‑BIOMERO yields a unified environment where image data import, preprocessing, analysis, and provenance tracking are managed end-to-end — from raw data to processed results — in a reproducible, shareable, FAIR‑compliant infrastructure.
 
@@ -25,7 +26,11 @@ If you want to experiment with a local HPC cluster, an example Docker Compose se
 This is an adaptation of OME's <a href="https://github.com/ome/docker-example-omero-grid" target="_blank" rel="noopener noreferrer">OMERO.server grid and OMERO.web (docker-compose)</a> / <a href="http://www.openmicroscopy.org/site/support/omero5/sysadmins/grid.html#nodes-on-multiple-hosts" target="_blank" rel="noopener noreferrer">OMERO.server components on multiple nodes using OMERO.grid</a>.
 
 - OMERO.server listens on ports `4063` and `4064`  
-- OMERO.web listens on port `4080` (http://localhost:4080/)  
+- OMERO.web is exposed through its Nginx frontend on port `4080`
+  (http://localhost:4080/) in the supplied demo. Gunicorn remains internal.
+  Sign in through this endpoint to use **Open With > OME-Zarr Viewer** on
+  registered OME-Zarr Images, Plates, and Wells, including segmentation labels.
+  See the [viewer deployment and opt-in upgrade guide](docs/sysadmin/zarrviewer.rst).
 
 > ⚠️ **Warning:** This setup is mainly intended for demonstration or development purposes. For professional deployments, refer to the documented deployment scenarios in our documentation and see the [deployment scenarios](./deployment_scenarios) folder. We **strongly discourage** running Slurm inside Docker Compose for production; connect BIOMERO to a real HPC cluster to ensure stability, full feature support, and performance.
 
@@ -74,8 +79,61 @@ First, customize your environment file `.env`:
 # ANALYZER_ENABLED=TRUE   # Enables the BIOMERO.analyzer UI module
 # INTEGRATE_DATA_ANALYSIS=FALSE  # TRUE embeds OMERO.Analysis in BIOMERO
 # DQW_API_TOKEN=<generate-a-high-entropy-secret>  # required by web scenarios
-# Set either to FALSE to hide that module from OMERO.web without removing containers
+# BIOMERO_ZARR_VIEWER_ENABLED=TRUE  # Enabled in the supplied demo configuration
+# BIOMERO_WEB_HOST_PORT=4080  # The single browser-facing OMERO.web endpoint
+# BIOMERO_SHALLOW_ZARR=FALSE  # Opt in to canonical-cache/shallow-result handling
+# BIOMERO_SHALLOW_ZARR_WORKERS=4  # Optional importer-side identity workers
+# BIOMERO_DETACHED_WORKFLOWS=TRUE  # Enabled in this fresh demo configuration
+# BIOMERO_MAX_ACTIVE_WORKFLOWS=4  # Maximum concurrent non-batched runs
+# BIOMERO_SUPERVISOR_POLL_SECONDS=10  # Queue polling interval
+# BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS=60  # Delay before recovery polling
+# OMERO_SCRIPTS_TIMEOUT=3600000  # Normal OMERO default: 1 hour
+# OMERO_SESSIONS_TIMEOUT=600000  # Normal OMERO default: 10 minutes idle
+# OMERO_WEB_SESSION_COOKIE_AGE=86400  # Normal OMERO.web default: 1 day
+# OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE=false  # Local browser-cookie policy
+# Set IMPORTER_ENABLED or ANALYZER_ENABLED to FALSE to hide that UI module
+# from OMERO.web without removing containers
 ```
+
+`BIOMERO_SHALLOW_ZARR` is effective only when `IMPORTER_ENABLED=TRUE`. With the
+flag absent or false, Image Transfer and Import Results keep their established
+export/import behavior. `BIOMERO_SHALLOW_ZARR_WORKERS` is an importer-service
+setting and defaults to `4` in this deployment. Installations may override it
+to match their local CPU and storage capacity. It is not forwarded to OMERO
+scripts and is unused while shallow mode is disabled.
+
+The supplied demo selects `COMPOSE_PROFILES=IMPORTER_ENABLED` and exposes all
+OMERO.web traffic through its Nginx frontend.
+Existing deployments upgrading their images keep the viewer disabled when
+`BIOMERO_ZARR_VIEWER_ENABLED` is missing, empty or false. To opt in, enable the
+flag and configure the authenticated Nginx storage route. The frontend is also
+used when the viewer is disabled, while the HTTPS scenario extends its existing
+Nginx frontend. Preserve your current environment and site settings when
+upgrading. See the [viewer guide](docs/sysadmin/zarrviewer.rst).
+
+> **New in NL-BIOMERO 1.8 — opt-in detached-workflow feature:**
+> The `BIOMERO_DETACHED_WORKFLOWS` feature flag allows an accepted workflow to
+> continue after the requesting OMERO session ends. The fresh demo configuration
+> supplied in this repository enables the feature to showcase the complete
+> stack. Existing and custom deployments remain on the established inline
+> behavior when the feature flag is absent or set to `FALSE`; administrators
+> must explicitly enable it during their upgrade.
+
+With detached mode enabled, the complete Slurm runtime no longer requires an
+open browser, an extended OMERO session, or a seven-day web cookie. With
+detached mode disabled, the script runs inline: the user must keep the session
+active and administrators may still need longer timeouts for long workflows.
+The other detached settings control concurrency, queue polling, and startup
+grace. Set `OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE` according to local
+browser-session policy. See the [detached workflows administrator
+guide](docs/sysadmin/detached-workflows.rst) for configuration and operational
+details.
+
+OMERO.Analysis is installed in both modes. With
+`INTEGRATE_DATA_ANALYSIS=TRUE`, open **BIOMERO → Data Analysis**; with `FALSE`,
+use the standalone **Analysis** link in OMERO.web. See the
+[Integrated Data Analysis administrator guide](docs/sysadmin/data-analysis.rst)
+and the [Data Query Worker operations guide](docs/sysadmin/data-query-worker.md).
 
 ### 3. Setup Slurm Connection (Optional)
 For local testing with a containerized Slurm cluster:
@@ -165,12 +223,6 @@ exit
   - **Login**: `admin@biomero.com` / `b1omero` (change default password)
 
 If you disabled modules via `IMPORTER_ENABLED=FALSE` or `ANALYZER_ENABLED=FALSE`, the corresponding UI tabs/panels won't appear.
-With `INTEGRATE_DATA_ANALYSIS=TRUE`, use **BIOMERO → Data Analysis**. With
-`FALSE`, use the standalone **Analysis** OMERO top link. OMERO.Analysis is
-installed in either mode. See the
-[Integrated Data Analysis administrator guide](https://nl-bioimaging.github.io/NL-BIOMERO/latest/sysadmin/data-analysis.html).
-For remote DuckDB, SQLite, and CSV queries, also see the
-[Data Query Worker operations guide](docs/sysadmin/data-query-worker.md).
 
 
 ---
@@ -272,7 +324,6 @@ This deployment includes several UI enhancements:
 
 - **🧩 OMERO.biomero Plugin**: Unified BIOMERO.importer and BIOMERO.analyzer tabs
 - **📝 OMERO.forms**: Create custom metadata forms for users to fill in
-- **🔬 OME-Zarr Viewer**: Open BIOMERO in-place images, labels, Z stacks, and HCS plates through authenticated OMERO.web access
 - **🔘 Better Buttons**: Improved some button design and accessibility
 - **🎭 Pretty Login**: Minor enhanced login page aesthetics
 

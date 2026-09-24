@@ -45,7 +45,8 @@ services:
       context: ./
       dockerfile: ./server/Dockerfile
       args:
-        BIOMERO_VERSION: ${BIOMERO_VERSION}
+        BIOMERO_SCRIPTS_VERSION: ${BIOMERO_SCRIPTS_VERSION}
+        LABEL2ROIS_VERSION: ${LABEL2ROIS_VERSION}
         OMERO_ZARR_PIXEL_BUFFER_VERSION: ${OMERO_ZARR_PIXEL_BUFFER_VERSION}
     # Define environment variables for use in the container.
     # 'nodedescriptors' assigns roles to all the containers
@@ -122,7 +123,7 @@ services:
       dockerfile: ./biomeroworker/Dockerfile
       args:
         BIOMERO_VERSION: ${BIOMERO_VERSION}
-        BIOMERO_IMPORTER_VERSION: ${BIOMERO_IMPORTER_VERSION}
+        BIOMERO_SCRIPTS_VERSION: ${BIOMERO_SCRIPTS_VERSION}
     # Define variables for use in the container.
     # WORKER_NAME is used in the omero/ice node description
     # logging_level doesn't work, but should increase logging
@@ -137,6 +138,15 @@ services:
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
+      BIOMERO_DETACHED_WORKFLOWS: ${BIOMERO_DETACHED_WORKFLOWS:-false}
+      BIOMERO_MAX_ACTIVE_WORKFLOWS: ${BIOMERO_MAX_ACTIVE_WORKFLOWS:-4}
+      BIOMERO_SUPERVISOR_POLL_SECONDS: ${BIOMERO_SUPERVISOR_POLL_SECONDS:-10}
+      BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS: ${BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS:-60}
+      BIOMERO_SHALLOW_ZARR: ${BIOMERO_SHALLOW_ZARR:-false}
+      BIOMERO_REMOTE_SHALLOW_ZARR: ${BIOMERO_REMOTE_SHALLOW_ZARR:-true}
+      IMPORT_MOUNT_PATH: ${IMPORT_MOUNT_PATH}
+      OMERO_BIOMERO_CONFIG_FILE: ${BIOMERO_CONFIG_LOCATION}/biomero-config.json
+      OMERO_BIOMERO_GROUP_MAPPINGS_FILE: ${BIOMERO_CONFIG_LOCATION}/group-mappings.json
     # Named network to communicate with other containers
     networks:
       - omero
@@ -145,11 +155,13 @@ services:
     volumes:
       - "${OMERO_DATA_PATH}:${OMERO_SERVER_DATA_LOCATION}"
       - "${SSH_HOST_PATH}:/tmp/.ssh:ro"
-      - "${SLURM_CONFIG_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/slurm-config.ini:ro"
+      # Canonical file shared with OMERO.biomero's writable config mount.
+      - "${SLURM_CONFIG_HOST_PATH:-./web/slurm-config.ini}:${BIOMERO_CONFIG_LOCATION}/slurm-config.ini:ro"
       - "${INPLACE_STORAGE_HOST_PATH}:${IMPORT_MOUNT_PATH}"
       - "tus-destination:${UPLOADER_DESTINATION_DIR}"
       - "${BIOMERO_IMPORTER_CONFIG_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/config-importer:ro"
       - "${BIOMERO_CONFIG_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/biomero-config.json:ro"
+      - "${GROUP_MAPPINGS_HOST_PATH}:${BIOMERO_CONFIG_LOCATION}/group-mappings.json:ro"
       - "${LOGS_HOST_PATH}/biomeroworker:${OMERO_SERVER_LOGGING_LOCATION}"
     logging:
       driver: "json-file"
@@ -175,6 +187,8 @@ services:
         BIOMERO_ZARR_VIEWER_VERSION: ${BIOMERO_ZARR_VIEWER_VERSION}
     environment:
       OMEROHOST: omeroserver
+      BIOMERO_ZARR_VIEWER_ENABLED: ${BIOMERO_ZARR_VIEWER_ENABLED:-false}
+      BIOMERO_ZARR_VIEWER_SOURCE_ROOT: ${BIOMERO_ZARR_VIEWER_SOURCE_ROOT:-}
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
       BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
       CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
@@ -192,6 +206,9 @@ services:
       FORMS_MASTER_USER: ${FORMS_MASTER_USER}
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
+      BIOMERO_SHALLOW_ZARR: ${BIOMERO_SHALLOW_ZARR:-false}
+      BIOMERO_REMOTE_SHALLOW_ZARR: ${BIOMERO_REMOTE_SHALLOW_ZARR:-true}
+      BIOMERO_DETACHED_WORKFLOWS: ${BIOMERO_DETACHED_WORKFLOWS:-false}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
       INTEGRATE_DATA_ANALYSIS: ${INTEGRATE_DATA_ANALYSIS:-FALSE}
       OMERO_ANALYSIS_DATA_QUERY_WORKER_URL: http://data-query-worker:8080
@@ -202,14 +219,14 @@ services:
     networks:
       - omero
       - data-query
-    # Map ports to ports on the host machine, to allow opening of webpage
-    ports:
-      - "4080:4080"
+    # Browser traffic enters through the Nginx frontend below. Keeping
+    # Gunicorn internal ensures Open With and viewer byte requests share one
+    # origin and that X-Accel-Redirect responses are handled by Nginx.
     # volumes:
     # In case of further development, add volumes for local_omeroweb_edits here
     # Once volumes are added, only omeroweb container reload necessary, not the whole docker-compose.
     volumes:
-      - "${SLURM_CONFIG_HOST_PATH}:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
+      - "${SLURM_CONFIG_HOST_PATH:-./web/slurm-config.ini}:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
       - "${INPLACE_STORAGE_HOST_PATH}:${IMPORT_MOUNT_PATH}:rw"
       - "tus-destination:${UPLOADER_DESTINATION_DIR}"
       - "../OMERO.biomero/:/opt/omero/web/OMERO.biomero"
@@ -225,8 +242,22 @@ services:
         max-file: "5"
     entrypoint: ["sh", "-c", "tail -f /dev/null"]
 
+  # New Metabase service
+  # Browser-facing OMERO.web endpoint and authorized physical OME-Zarr reads.
+  zarrviewer-nginx:
+    image: nginx:alpine
+    ports:
+      - "${BIOMERO_WEB_HOST_PORT:-4080}:4080"
+    networks:
+      - omero
+    volumes:
+      - "./nginx/zarrviewer.conf:/etc/nginx/nginx.conf:ro"
+      - "${INPLACE_STORAGE_HOST_PATH}:/data:ro"
+    depends_on:
+      - omeroweb
+
   data-query-worker:
-    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:0.1.0@sha256:03dcd977280e0ed8929df8437eb22f1c69268918d7a25286efc5a19953ca0a8e"
+    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:0.2.0@sha256:0b95dfd3687d4241bf94fea3d30b919f280323f359eb02166b8ef68bd95265a8"
     restart: unless-stopped
     environment:
       DQW_API_TOKEN: ${DQW_API_TOKEN:?DQW_API_TOKEN is required}
@@ -251,7 +282,6 @@ services:
       start_period: 15s
       retries: 5
 
-  # New Metabase service
   metabase:
     image: metabase/metabase@sha256:f7b5dc52c21aaa2dca910a450e7e6119a975090ce9fc80726aa0742882ca176c
     container_name: metabase
@@ -281,6 +311,11 @@ services:
       OMERO_PORT: ${OMERO_PORT}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       ADI_RUN_MIGRATIONS: ${ADI_RUN_MIGRATIONS}
+      BIOMERO_SHALLOW_ZARR: ${BIOMERO_SHALLOW_ZARR:-false}
+      BIOMERO_REMOTE_SHALLOW_ZARR: ${BIOMERO_REMOTE_SHALLOW_ZARR:-true}
+      BIOMERO_REMOTE_SHALLOWER_IMAGE: ${BIOMERO_REMOTE_SHALLOWER_IMAGE:-cellularimagingcf/biomero-shallower:0.1.0-beta.4}
+      BIOMERO_REMOTE_SHALLOWER_VERSION: ${BIOMERO_REMOTE_SHALLOWER_VERSION:-0.1.0b4}
+      BIOMERO_SHALLOW_ZARR_WORKERS: ${BIOMERO_SHALLOW_ZARR_WORKERS:-4}
     networks:
       - omero
     volumes:

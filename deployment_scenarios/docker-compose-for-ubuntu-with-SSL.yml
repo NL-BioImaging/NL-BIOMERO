@@ -18,6 +18,7 @@ services:
       - "3443:3443" # HTTPS for metabase
     volumes:
       - "../nginx/nginx.conf:/etc/nginx/nginx.conf:ro" # TODO: Make sure to have SSL certs match the location in nginx.conf, and change the server URL in the nginx.conf
+      - "../web/L-Drive:/data:ro" # Same in-place store as OMERO.web
       - "/etc/letsencrypt/:/etc/letsencrypt:ro" # TODO: Make sure to have SSL certs in this folder
       - "../web/L-Drive:/data:ro" # Read-only OME-Zarr access for authorized X-Accel-Redirect responses
 
@@ -136,6 +137,15 @@ services:
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
+      BIOMERO_DETACHED_WORKFLOWS: ${BIOMERO_DETACHED_WORKFLOWS:-false}
+      BIOMERO_MAX_ACTIVE_WORKFLOWS: ${BIOMERO_MAX_ACTIVE_WORKFLOWS:-4}
+      BIOMERO_SUPERVISOR_POLL_SECONDS: ${BIOMERO_SUPERVISOR_POLL_SECONDS:-10}
+      BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS: ${BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS:-60}
+      BIOMERO_SHALLOW_ZARR: ${BIOMERO_SHALLOW_ZARR:-false}
+      BIOMERO_REMOTE_SHALLOW_ZARR: ${BIOMERO_REMOTE_SHALLOW_ZARR:-true}
+      IMPORT_MOUNT_PATH: /data
+      OMERO_BIOMERO_CONFIG_FILE: /opt/omero/server/biomero-config.json
+      OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/server/group-mappings.json
     # Named network to communicate with other containers
     networks:
       - omero
@@ -149,6 +159,7 @@ services:
       - "tus-destination:/tus_destination"
       - "../config/biomero-importer:/opt/omero/server/config-importer:ro"
       - "../web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
+      - "../web/group-mappings.json:/opt/omero/server/group-mappings.json:ro"
 
   # Service for the omero.web UI
   omeroweb:
@@ -163,6 +174,8 @@ services:
       stack: 16777216
     environment:
       OMEROHOST: omeroserver
+      BIOMERO_ZARR_VIEWER_ENABLED: ${BIOMERO_ZARR_VIEWER_ENABLED:-false}
+      BIOMERO_ZARR_VIEWER_SOURCE_ROOT: ${BIOMERO_ZARR_VIEWER_SOURCE_ROOT:-}
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
       BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
       CONFIG_omero_web_login__logo: "https://cembo.eu/wp-content/uploads/2021/04/Amsterdam-UMC.png"
@@ -181,6 +194,9 @@ services:
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/web/OMERO.web/var/group-mappings.json
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
+      BIOMERO_SHALLOW_ZARR: ${BIOMERO_SHALLOW_ZARR:-false}
+      BIOMERO_REMOTE_SHALLOW_ZARR: ${BIOMERO_REMOTE_SHALLOW_ZARR:-true}
+      BIOMERO_DETACHED_WORKFLOWS: ${BIOMERO_DETACHED_WORKFLOWS:-false}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
       INTEGRATE_DATA_ANALYSIS: ${INTEGRATE_DATA_ANALYSIS:-FALSE}
       OMERO_ANALYSIS_DATA_QUERY_WORKER_URL: http://data-query-worker:8080
@@ -204,7 +220,7 @@ services:
       - "tus-destination:/tus_destination"
 
   data-query-worker:
-    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:0.1.0@sha256:03dcd977280e0ed8929df8437eb22f1c69268918d7a25286efc5a19953ca0a8e"
+    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:0.2.0@sha256:0b95dfd3687d4241bf94fea3d30b919f280323f359eb02166b8ef68bd95265a8"
     restart: unless-stopped
     environment:
       DQW_API_TOKEN: ${DQW_API_TOKEN:?DQW_API_TOKEN is required}
@@ -254,6 +270,11 @@ services:
       OMERO_PORT: ${OMERO_PORT}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@database-biomero:5432/${BIOMERO_POSTGRES_DB}
       ADI_RUN_MIGRATIONS: ${ADI_RUN_MIGRATIONS}
+      BIOMERO_SHALLOW_ZARR: ${BIOMERO_SHALLOW_ZARR:-false}
+      BIOMERO_REMOTE_SHALLOW_ZARR: ${BIOMERO_REMOTE_SHALLOW_ZARR:-true}
+      BIOMERO_REMOTE_SHALLOWER_IMAGE: ${BIOMERO_REMOTE_SHALLOWER_IMAGE:-cellularimagingcf/biomero-shallower:0.1.0-beta.4}
+      BIOMERO_REMOTE_SHALLOWER_VERSION: ${BIOMERO_REMOTE_SHALLOWER_VERSION:-0.1.0b4}
+      BIOMERO_SHALLOW_ZARR_WORKERS: ${BIOMERO_SHALLOW_ZARR_WORKERS:-4}
     networks:
       - omero
     volumes:

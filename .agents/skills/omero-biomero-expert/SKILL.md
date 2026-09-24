@@ -1,6 +1,6 @@
 ---
 name: omero-biomero-expert
-description: OMERO/BIOMERO expert runbook for NL-BIOMERO deployments. Use for debugging and operating OMERO.server/web, OMERO.biomero, BIOMERO analyzer/importer/converter, Metabase dashboards, Docker Compose, Slurm/HPC, storage permissions, SSH access, logs, and Postgres verification.
+description: OMERO/BIOMERO expert runbook for NL-BIOMERO deployments and documentation. Use for writing or building NL-BIOMERO docs, debugging and operating OMERO.server/web, OMERO.biomero, BIOMERO analyzer/importer/converter, Metabase dashboards, Docker Compose, Slurm/HPC, storage permissions, SSH access, logs, and Postgres verification.
 ---
 
 # OMERO/BIOMERO Expert
@@ -8,6 +8,163 @@ description: OMERO/BIOMERO expert runbook for NL-BIOMERO deployments. Use for de
 Use this skill for NL-BIOMERO work on dev or prod. Prefer inspection over guesses: identify the active host, read the relevant compose/env/log state, verify data paths and permissions, then run a focused smoke test.
 
 Never print secrets. Mask `.env`, container env, Metabase datasource JSON, passwords, secret keys, JWTs, and tokens in user-facing output.
+
+## Development Branches and Pull Requests
+
+For NL-BIOMERO and its submodules, including `biomero-importer`, use a dedicated
+branch and a pull request when publishing changes, including hotfixes. Give the
+PR a clear description of the final change and its validation so the user can
+review the work and follow its history.
+
+On an existing non-default branch intended for a pull request, make focused,
+coherent commits and push them as normal completion of authorized development
+work. Do not hold the branch locally merely to run a slow full suite: run cheap,
+relevant checks that catch immediate mistakes, inspect the diff, then let the
+required GitHub Actions checks be the full-suite gate. If CI fails, inspect it
+and push a follow-up fix. Incremental branch commits may stay small because the
+pull request will normally be squash-merged.
+
+When the user authorizes integration (for example, "merge it"), merge through
+the PR after the relevant checks pass. Prefer squash merging so each PR becomes
+one logical commit that can be reverted as a unit, unless the user requests a
+different merge strategy. Do not interpret the integration instruction as a
+request to push directly to `main` or `master`; use a direct push only when the
+user explicitly requests that exception.
+
+If GitHub CLI is unavailable, create the PR through GitHub's REST API using the
+repository's configured Git credential. Keep the credential in memory and
+never print it or write it to disk. Before creating the PR, explicitly set and
+verify the intended repository, head branch and default base branch; this is
+especially important for NL-BIOMERO because local clones may also reference an
+OME upstream. Subsequent PR updates are ordinary pushes to the same branch.
+
+Use proportionate local verification before a direct default-branch push,
+release, change without suitable CI coverage, or higher-risk operation. This
+workflow does not authorize unrelated publication, merging, deployment, or
+destructive actions.
+
+## Repository Scope and Example Contract
+
+`NL-BIOMERO` is the runnable local Docker Compose demonstration and the source
+used to build the project's Docker Hub images. It is not the repository for an
+institution's production HPC deployment; those deployment-specific values live
+in separate site repositories.
+
+### Feature flags and demo defaults
+
+Implement new optional features behind a feature flag. A missing, empty or
+explicitly false flag must leave the feature disabled, preserving existing
+behavior for deployments upgrading without configuration changes.
+
+NL-BIOMERO is the full-featured demonstration: explicitly enable new features
+in its supplied `.env` and `.env.shared` defaults. Keep applicable Compose
+wiring in sync, with false fallbacks for feature-enablement flags rather than
+implicitly enabling them in containers or library defaults. Documentation must
+distinguish the enabled demo configuration from opt-in upgrades elsewhere.
+Verify enabled, false, missing and empty flag behavior when adding a feature.
+
+### Deployment flags versus administrator-managed runtime settings
+
+Container feature flags belong in `.env`/`.env.shared` and applicable Compose
+environments: they control feature availability and may require recreation or
+restart. Do not treat this as permission to put every BIOMERO setting in env.
+
+Runtime and Slurm Init-managed settings belong in the canonical
+`web/slurm-config.ini`, so OMERO.biomero administrators can manage them without
+editing a deployment. This includes worker/CPU counts, partitions, memory/time
+limits, image acquisition settings and helper image/version selection. Keep
+alternative INI examples aligned where applicable. Do not inject matching env
+overrides into web or biomeroworker, including empty values or fallback defaults:
+env precedence prevents the admin interface's saved INI values from taking effect.
+Library support for an env override is not a reason to enable it in the demo.
+
+Respect component boundaries: the importer has its own settings and does not
+read `slurm-config.ini`. Preserve its required validation/trust configuration;
+do not force importer settings into the Slurm INI. Where importer trust settings
+must match a Slurm helper selection, document that alignment without injecting
+the importer's values as overrides into web or biomeroworker. Do not remove
+required validation inputs or weaken validation to simplify configuration.
+
+All enabled values and concrete examples shipped by this repository must work in
+the documented local environments:
+
+- CPU-only: `NL-BioImaging/NL-BIOMERO-Local-Slurm`
+- GPU-enabled: `Cellular-Imaging-Amsterdam-UMC/NL-BIOMERO-Local-Slurm-GPU`
+
+Before changing Slurm resource examples, inspect the current README and
+`slurm.conf` in both referenced repositories. Never copy a site-specific
+partition, reservation, account, time limit, CPU count, or memory request into
+NL-BIOMERO's active examples. Prefer leaving partition and time unset when their
+scheduler defaults are portable. Current portable image-pull settings are 1 CPU,
+2G memory, bounded concurrency 2, and empty time/partition values; revalidate
+them if either local cluster topology changes.
+
+Documentation is for users: show only valid, positive examples. Do not preserve
+site-specific or invalid values as negative examples explaining what not to use.
+
+### Dockerfile development/release switching
+
+Feature PR branches may install matching unpublished component branches for
+local integration testing. Release-ready PRs and the default branch
+(`master`/`main`) must install published component versions, not moving branches.
+Switch back during release preparation, before merging NL-BIOMERO.
+
+Keep both approaches in the Dockerfiles: comment/uncomment the existing blocks
+instead of deleting them. Development mode enables the branch ARGs, GitHub
+commit `ADD` cachebusters, Git-based Python installs and branch-based scripts
+clones; comment the corresponding release blocks. Release mode comments all
+development ARG/ADD/RUN blocks and enables PyPI version installs and script-tag
+clones. No active release instruction should reference a development branch.
+Keep the server and biomeroworker scripts selections identical.
+
+Do not put temporary branch selectors in Compose or `.env`. Explicitly install
+the matching BIOMERO core branch in the web image before OMERO.biomero, or use
+a temporary PEP 508 direct dependency in OMERO.biomero's feature `setup.py`
+when a generated development version cannot satisfy its release lower bound.
+Restore published dependency ranges before publishing any component package.
+
+### Prerelease coordination and ACC handoff
+
+This sequence is a preparation/status runbook, not permission to execute it.
+Agents may prepare and push scoped changes to authorized PR branches. Merging,
+creating tags or GitHub releases (including prereleases), rebuilding/restarting
+the stack and deploying to ACC require explicit user authorization. A request
+to check readiness or update release references does not authorize publication.
+
+Follow dependency availability, rather than assuming a release announcement
+means all artifacts are ready:
+
+1. Publish changed schema contracts first. If needed, publish the shallower
+   package/container next, using those published contracts.
+2. Update importer dependencies to the required published schema/shallower
+   versions, merge through its PR and publish its prerelease. Verify PyPI and
+   container availability before consumers depend on it.
+3. Update BIOMERO core's importer/schema lower bounds where needed, then merge
+   and prerelease core and biomero-scripts. Scripts must match the released
+   core/importer APIs; verify their release tag is available.
+4. Update OMERO.biomero to published core/importer dependencies, merge and
+   prerelease it. Verify its PyPI package contains no feature-branch dependencies.
+5. Prepare NL-BIOMERO last: advance the clean importer submodule to its released
+   commit, align component refs in `.env` and `.env.shared`, restore release
+   Dockerfile blocks, and align applicable Compose wiring, INIs and docs.
+   Preserve deployment-specific paths/credentials and the enabled demo flags.
+   Validate resolved build arguments, shared config mounts and feature settings.
+6. Once authorized, merge NL-BIOMERO and publish a GitHub semver release such
+   as `vX.Y.Z-beta.N`, explicitly marked as a prerelease. GitHub release tags
+   own package versions; do not introduce source-file version bumps. Updating
+   deployment references in `.env` is separate from package versioning.
+7. The published NL-BIOMERO release triggers container builds. Verify every
+   required image build/push succeeds before handing the pinned image tags to
+   ACC for redeployment. Coordinate its smoke test before a full-Plate test;
+   do not automatically start deployment or analysis jobs.
+
+Use the appropriate version format: PyPI pins use normalized versions such as
+`1.5.0b6`, scripts refs use Git tags such as `v2.9.0-beta.9`, and container refs
+use the actually published Docker tags such as `1.8.0-beta.6`. Stable container
+releases cascade to full-version, major/minor and `latest` tags; prereleases do
+not update stable aliases. Pin prerelease images explicitly for ACC, including
+the shallower. Its receipt/tool version is the normalized package version, not
+the Docker tag; keep importer trust settings aligned with that selected image.
 
 ## Stack Root
 
@@ -49,6 +206,22 @@ nl-biomero-database-1
 nl-biomero-database-biomero-1
 ```
 
+## OMERO Script Processor Environment
+
+Environment variables configured on the `biomeroworker` Compose service are
+not automatically inherited by downloaded OMERO script subprocesses. The
+repository overrides OMERO's processor at `biomeroworker/processor.py`; its
+`ProcessI.make_env()` method contains the explicit allowlist passed to scripts.
+
+When a BIOMERO script starts reading a new environment variable, update both
+the Compose service and this processor allowlist. Variables represented in
+`biomero.constants.slurm_env` are forwarded dynamically, while non-BIOMERO
+integration variables such as `IMPORTER_ENABLED`, `IMPORT_MOUNT_PATH`, and
+`OMERO_BIOMERO_*` must be listed explicitly unless they are deliberately added
+to that shared constants class. Rebuild/recreate `biomeroworker` after changing
+the processor override; restarting a container built from the old image is not
+enough.
+
 Quick status:
 
 ```bash
@@ -62,6 +235,7 @@ sudo docker compose logs --tail=120 metabase omeroweb biomero-importer
 
 Read only the relevant reference before acting:
 
+- [references/documentation.md](references/documentation.md): required for documentation work; audience boundaries, concise feature explanations, measurement evidence, navigation and local preview verification.
 - [references/permissions-and-deployment.md](references/permissions-and-deployment.md): host/container UID/GID issues, project-local SSH, writable bind mounts, `chmod`/ownership workarounds, production vs dev compose, backup/restore guardrails.
 - [references/metabase-dashboards.md](references/metabase-dashboards.md): BIOMERO Analyze/Import iframe failures, dashboard IDs, embedding secrets, H2 inspection, datasource credential repair, signed embed smoke tests.
 - [references/slurm-runtime-patches.md](references/slurm-runtime-patches.md): HPC/Slurm behavior, BIOMERO config options, GPU policy, per-job env files, Apptainer cache/temp, output verification, generated job script normalization.
@@ -173,12 +347,20 @@ p_info.deltaT = TimeI(rdouble(d_t), UnitsTime.SECOND)  # raises type error on sa
 
 The docs live in `d:\workspace\NL-BIOMERO\docs\` and use Sphinx with a pre-created venv.
 
+Read `references/documentation.md` before writing or reorganizing docs. A request
+for user-facing prose does not automatically mean the **User Guide** category.
+
 To build the **current branch only** (no multi-version):
 
 ```powershell
 cd d:\workspace\NL-BIOMERO\docs
 .\venv\Scripts\sphinx-build -b html . _build_local
 ```
+
+After changing navigation, or when any page shows stale sidebar content, force
+all pages to be regenerated with `-E -a -b html . _build_local`. Check the exact
+HTML page the user is viewing, not just the homepage. If using another worktree,
+state its source branch and output path; do not silently open an older build.
 
 Output is written to `_build_local\`. Open in a browser:
 

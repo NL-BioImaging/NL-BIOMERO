@@ -1,7 +1,10 @@
 FROM openmicroscopy/omero-server:5.6.18
 
-ARG BIOMERO_VERSION
+ARG BIOMERO_SCRIPTS_VERSION
+ARG LABEL2ROIS_VERSION
 ARG OMERO_ZARR_PIXEL_BUFFER_VERSION
+
+# ARG BIOMERO_SCRIPTS_BRANCH=master
 
 ENV OMERO_DIST=/opt/omero/server/OMERO.server
 ENV OMERO_ZARR_PIXEL_BUFFER_REPO=https://artifacts.glencoesoftware.com:443/artifactory/gs-omero-snapshots-local/com/glencoesoftware/omero/omero-zarr-pixel-buffer
@@ -19,20 +22,31 @@ ADD server/00-restore-config.sh* /startup/
 # LDAP configuration - add with correct values
 # ADD server/01-ldap-config.omero /opt/omero/server/config/
 
-# Clone tagged release
-RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
+# Development option: uncomment the branch ARG and ADD/RUN block below, and
+# comment the release RUN block. The branch head invalidates the clone layer.
+# ADD "https://api.github.com/repos/NL-BioImaging/biomero-scripts/commits/${BIOMERO_SCRIPTS_BRANCH}" /latest_commit_biomero_scripts
+# RUN cd $OMERO_DIST/lib/scripts/ && \
+#     git clone --depth 1 --branch ${BIOMERO_SCRIPTS_BRANCH} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
+#     rm -f biomero/admin/Example_Minimal_Slurm_Script.py && \
+#     rm -f biomero/__workflows/SLURM_CellPose_Segmentation.py
+
+# Release option: install the tag selected by BIOMERO_SCRIPTS_VERSION.
+RUN test -n "$BIOMERO_SCRIPTS_VERSION" || (echo "BIOMERO_SCRIPTS_VERSION build arg is required" >&2; exit 1)
 RUN cd $OMERO_DIST/lib/scripts/ && \
-    git clone --depth 1 --branch v${BIOMERO_VERSION} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
+    git clone --depth 1 --branch ${BIOMERO_SCRIPTS_VERSION} --single-branch https://github.com/NL-BioImaging/biomero-scripts.git biomero && \
     rm -f biomero/admin/Example_Minimal_Slurm_Script.py && \
     rm -f biomero/__workflows/SLURM_CellPose_Segmentation.py
 
-# Install the Figure-to-PDF script for OMERO.figure plugin
-RUN curl -o $OMERO_DIST/lib/scripts/omero/figure_scripts/Figure_To_Pdf.py \
-    https://raw.githubusercontent.com/ome/omero-figure/refs/heads/master/omero_figure/scripts/omero/figure_scripts/Figure_To_Pdf.py
+# Do not expose repository tests as runnable OMERO scripts.
+RUN rm -rf $OMERO_DIST/lib/scripts/biomero/tests || true
 
-# Install Labels2Rois script
+# Install the Figure-to-PDF script for OMERO.figure plugin (versioned)
+RUN curl -o $OMERO_DIST/lib/scripts/omero/figure_scripts/Figure_To_Pdf.py \
+    https://raw.githubusercontent.com/ome/omero-figure/v7.4.1/omero_figure/scripts/omero/figure_scripts/Figure_To_Pdf.py
+
+# Install Labels2Rois (versioned)
 RUN curl -o $OMERO_DIST/lib/scripts/omero/util_scripts/Labels2Rois.py \
-    https://raw.githubusercontent.com/Cellular-Imaging-Amsterdam-UMC/label2rois/main/Labels2Rois.py
+    https://raw.githubusercontent.com/Cellular-Imaging-Amsterdam-UMC/label2rois/${LABEL2ROIS_VERSION}/Labels2Rois.py
 
 # Overwrite ICE configuration
 # COPY ice.config $OMERO_DIST/etc/templates/

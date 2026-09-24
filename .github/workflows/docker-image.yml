@@ -5,13 +5,15 @@ on:
 
 jobs:
   build:
+    # Media-only releases use documentation-* tags and must not publish images.
+    if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     steps:
       -
         name: Checkout
         uses: actions/checkout@v4
       -
-        name: Load .env file (BIOMERO_VERSION)
+        name: Load release versions from .env
         uses: xom9ikk/dotenv@v2.3.0
       -
         # Setting up Docker Buildx with docker-container driver is required
@@ -74,7 +76,8 @@ jobs:
           tags: ${{ steps.meta-server.outputs.tags }}
           labels: ${{ steps.meta-server.outputs.labels }}
           build-args: |
-            BIOMERO_VERSION=${{ env.BIOMERO_VERSION }}
+            BIOMERO_SCRIPTS_VERSION=${{ env.BIOMERO_SCRIPTS_VERSION }}
+            LABEL2ROIS_VERSION=${{ env.LABEL2ROIS_VERSION }}
             OMERO_ZARR_PIXEL_BUFFER_VERSION=${{ env.OMERO_ZARR_PIXEL_BUFFER_VERSION }}
       -
         name: Docker meta BIOMERO
@@ -99,7 +102,7 @@ jobs:
           labels: ${{ steps.meta-biomero.outputs.labels }}
           build-args: |
             BIOMERO_VERSION=${{ env.BIOMERO_VERSION }}
-            BIOMERO_IMPORTER_VERSION=${{ env.BIOMERO_IMPORTER_VERSION }}
+            BIOMERO_SCRIPTS_VERSION=${{ env.BIOMERO_SCRIPTS_VERSION }}
       -
         name: Docker meta WORKER
         id: meta-worker

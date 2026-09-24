@@ -84,6 +84,9 @@ I/O Directory Handling
 
 This is the most important difference from BIAFLOWS.
 
+.. tip::
+   🎥 **Visual explanation · 0:58:** :ref:`See how one OME-Zarr transfer path supports flexible workflow interfaces <video-one-format-flexible-workflows>`.
+
 In a BIAFLOWS workflow the job template always passes ``--infolder`` and
 ``--outfolder`` at fixed positions. The workflow must accept exactly those flags.
 
@@ -127,6 +130,10 @@ the descriptor (TIFF, OME-Zarr, Zarr plate, …) and passes that path to every `
 entry.  Results are collected from ``$DATA_PATH/data/out``, which is the path passed to
 every ``outputs`` entry and every ``output_dir_set`` parameter.  All required ``inputs``
 entries share the same ``data/in`` directory; all outputs share ``data/out``.
+
+For OME-Zarr workflows, the directory contains a conventional OME-Zarr rather
+than a BIOMERO-specific interchange format. See :doc:`zarr-workflow-development`
+for the image and label data contract.
 
 .. note::
    Extra files such as model weights or CSV files are not yet supported as inputs.

@@ -62,4 +62,4 @@ jobs:
         run: |
           docker run --rm --entrypoint /opt/omero/web/venv3/bin/python \
             nl-biomero-web:ci -c \
-            "from importlib.metadata import version; from pathlib import Path; expected={'omero-analysis':'0.12.0','omero-biomero':'1.6.0','biomero-workflow-skills':'0.4.0'}; actual={name:version(name) for name in expected}; assert actual == expected, actual; assert Path('/opt/omero/web/venv3/lib/python3.12/site-packages/omero_analysis/static/omero_analysis/pyodide/pyodide.mjs').is_file()"
+            "from importlib.metadata import version; from pathlib import Path; expected={'omero-analysis':'0.14.0','omero-biomero':'1.7.0b5','biomero-workflow-skills':'0.4.0'}; actual={name:version(name) for name in expected}; assert actual == expected, actual; assert Path('/opt/omero/web/venv3/lib/python3.12/site-packages/omero_analysis/static/omero_analysis/pyodide/pyodide.mjs').is_file()"

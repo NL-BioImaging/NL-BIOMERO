@@ -2,6 +2,28 @@
 
 BIOMERO Import and Analyze status pages embed Metabase dashboards. Most blank, spinner, or iframe failures are Metabase configuration or datasource problems, not OMERO.web React problems.
 
+## Tracked Demo Seed Versus Runtime State
+
+The H2 database at `metabase/metabase.db/metabase.db.mv.db` is tracked only as
+the initial dashboard seed for a new NL-BIOMERO demo installation. Once
+Metabase runs, changes to that file are ordinary local runtime state. Do not
+stash or commit them during normal development, branch switching, pulls, or
+merges.
+
+The file may be marked `skip-worktree`, so `git status` and `git stash` can
+report a clean tree even while checkout refuses to overwrite the modified
+file. If the runtime database blocks a Git operation, simply discard it while
+explicitly overriding that flag:
+
+```bash
+git restore --ignore-skip-worktree-bits --source=HEAD -- metabase/metabase.db/metabase.db.mv.db
+```
+
+Only preserve and commit this database when the task explicitly calls for a
+deliberate change to the demo's initial dashboards. Treat that as exceptional:
+existing installations generally retain their own Metabase database and will
+not automatically receive a changed seed database.
+
 ## Expected Dashboard IDs
 
 Known working BIOMERO dashboard IDs:

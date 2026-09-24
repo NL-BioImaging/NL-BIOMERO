@@ -7,7 +7,8 @@ services:
       context: ../
       dockerfile: ./server/Dockerfile
       args:
-        BIOMERO_VERSION: ${BIOMERO_VERSION}
+        BIOMERO_SCRIPTS_VERSION: ${BIOMERO_SCRIPTS_VERSION}
+        LABEL2ROIS_VERSION: ${LABEL2ROIS_VERSION}
         OMERO_ZARR_PIXEL_BUFFER_VERSION: ${OMERO_ZARR_PIXEL_BUFFER_VERSION}
     environment:
       # Connect to external database via host

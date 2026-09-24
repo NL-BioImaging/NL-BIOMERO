@@ -8,6 +8,9 @@ Analyzer → Importer Integration
 Overview
 --------
 
+.. tip::
+   🎥 **Visual explanation · 1:24:** :ref:`See the in-place import route used for both source data and analysis results <video-in-place-importing>`.
+
 Before this integration, analysis results (segmentation masks, measurements, etc.) produced by SLURM
 workflows were imported back into OMERO exclusively via the OMERO API.  This means the files landed on
 **OMERO server storage** (the ``/OMERO`` volume), which grows without limit and bypasses the managed

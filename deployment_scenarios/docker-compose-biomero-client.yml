@@ -19,6 +19,15 @@ services:
       SQLALCHEMY_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@${EXTERNAL_OMERO_HOST}:${BIOMERO_POSTGRES_HOST_PORT}/${BIOMERO_POSTGRES_DB}
       INGEST_TRACKING_DB_URL: postgresql+psycopg2://${BIOMERO_POSTGRES_USER}:${BIOMERO_POSTGRES_PASSWORD}@${EXTERNAL_OMERO_HOST}:${BIOMERO_POSTGRES_HOST_PORT}/${BIOMERO_POSTGRES_DB}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
+      BIOMERO_DETACHED_WORKFLOWS: ${BIOMERO_DETACHED_WORKFLOWS:-false}
+      BIOMERO_MAX_ACTIVE_WORKFLOWS: ${BIOMERO_MAX_ACTIVE_WORKFLOWS:-4}
+      BIOMERO_SUPERVISOR_POLL_SECONDS: ${BIOMERO_SUPERVISOR_POLL_SECONDS:-10}
+      BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS: ${BIOMERO_SUPERVISOR_STARTUP_GRACE_SECONDS:-60}
+      BIOMERO_SHALLOW_ZARR: ${BIOMERO_SHALLOW_ZARR:-false}
+      BIOMERO_REMOTE_SHALLOW_ZARR: ${BIOMERO_REMOTE_SHALLOW_ZARR:-true}
+      IMPORT_MOUNT_PATH: /data
+      OMERO_BIOMERO_CONFIG_FILE: /opt/omero/server/biomero-config.json
+      OMERO_BIOMERO_GROUP_MAPPINGS_FILE: /opt/omero/server/group-mappings.json
       OMERO_USER: ${EXTERNAL_OMERO_USER:-root}
       OMERO_PASSWORD: ${EXTERNAL_OMERO_PASSWORD}
     ports:
@@ -31,6 +40,7 @@ services:
       - "../biomeroworker/99-run-external.sh:/startup/99-run.sh:ro"
       - "../config/biomero-importer:/opt/omero/server/config-importer:ro"
       - "../web/biomero-config.json:/opt/omero/server/biomero-config.json:ro"
+      - "../web/group-mappings.json:/opt/omero/server/group-mappings.json:ro"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -42,6 +52,8 @@ services:
     environment:
       # Connect to external OMERO via host
       OMEROHOST: ${EXTERNAL_OMERO_HOST}
+      BIOMERO_ZARR_VIEWER_ENABLED: ${BIOMERO_ZARR_VIEWER_ENABLED:-false}
+      BIOMERO_ZARR_VIEWER_SOURCE_ROOT: ${BIOMERO_ZARR_VIEWER_SOURCE_ROOT:-}
       OMEROPORT: ${EXTERNAL_OMERO_PORT}
       BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
       CONFIG_omero_web_login__logo: "https://cembo.eu/wp-content/uploads/2021/04/Amsterdam-UMC.png"
@@ -61,6 +73,9 @@ services:
       FORMS_MASTER_PASSWORD: ${FORMS_MASTER_PASSWORD}
       ROOTPASS: ${EXTERNAL_OMERO_PASSWORD}
       IMPORTER_ENABLED: ${IMPORTER_ENABLED}
+      BIOMERO_SHALLOW_ZARR: ${BIOMERO_SHALLOW_ZARR:-false}
+      BIOMERO_REMOTE_SHALLOW_ZARR: ${BIOMERO_REMOTE_SHALLOW_ZARR:-true}
+      BIOMERO_DETACHED_WORKFLOWS: ${BIOMERO_DETACHED_WORKFLOWS:-false}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
       INTEGRATE_DATA_ANALYSIS: ${INTEGRATE_DATA_ANALYSIS:-FALSE}
       OMERO_ANALYSIS_DATA_QUERY_WORKER_URL: http://data-query-worker:8080
@@ -80,7 +95,7 @@ services:
     restart: unless-stopped
 
   data-query-worker:
-    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:0.1.0@sha256:03dcd977280e0ed8929df8437eb22f1c69268918d7a25286efc5a19953ca0a8e"
+    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:0.2.0@sha256:0b95dfd3687d4241bf94fea3d30b919f280323f359eb02166b8ef68bd95265a8"
     restart: unless-stopped
     environment:
       DQW_API_TOKEN: ${DQW_API_TOKEN:?DQW_API_TOKEN is required}
