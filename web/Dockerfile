@@ -2,6 +2,7 @@ FROM openmicroscopy/omero-web-standalone:5.33.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
+ARG OMERO_BIOMERO_BRANCH=analysis_integration
 ARG OMERO_ANALYSIS_VERSION
 ARG BIOMERO_WORKFLOW_SKILLS_VERSION
 ARG BIOMERO_ZARR_VIEWER_VERSION
@@ -62,10 +63,12 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 #         "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
 #     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
-# Release option: install the version selected in OMERO_BIOMERO_VERSION from PyPI.
-RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1)
+# Install the selected OMERO.biomero integration branch.
+# The GitHub metadata request invalidates Docker's cache when the branch advances.
+ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BIOMERO_BRANCH}" /latest_commit_omero_biomero
+RUN test -n "$OMERO_BIOMERO_BRANCH" || (echo "OMERO_BIOMERO_BRANCH build arg is required" >&2; exit 1)
 RUN /opt/omero/web/venv3/bin/pip install \
-        "omero-biomero==${OMERO_BIOMERO_VERSION}" \
+        "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 # Install released OMERO.Analysis and its workflow skill catalog reader. The
@@ -88,7 +91,6 @@ from importlib.metadata import version
 
 expected = {
     "omero-analysis": os.environ.get("OMERO_ANALYSIS_VERSION"),
-    "omero-biomero": os.environ.get("OMERO_BIOMERO_VERSION"),
     "biomero-workflow-skills": os.environ.get("BIOMERO_WORKFLOW_SKILLS_VERSION"),
 }
 for package, wanted in expected.items():
