@@ -17,3 +17,16 @@ jobs:
           docker compose --env-file .env -f docker-compose.yml config --quiet
           docker compose --env-file .env -f docker-compose-dev.yml config --quiet
           docker compose --env-file .env -f deployment_scenarios/docker-compose-from-dockerhub.yml config --quiet
+      - name: Load build versions
+        if: github.event_name == 'pull_request' && startsWith(github.base_ref, 'release/')
+        uses: xom9ikk/dotenv@v2.3.0
+      - name: Build processor image
+        if: github.event_name == 'pull_request' && startsWith(github.base_ref, 'release/')
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./biomeroworker/Dockerfile
+          push: false
+          build-args: |
+            BIOMERO_VERSION=${{ env.BIOMERO_VERSION }}
+            BIOMERO_IMPORTER_VERSION=${{ env.BIOMERO_IMPORTER_VERSION }}
