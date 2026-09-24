@@ -46,7 +46,7 @@ RUN yum -y install ack
 # && $VIRTUAL_ENV/bin/python -m pip install "biomero[full] @ git+https://github.com/NL-BioImaging/biomero.git@surf"
 RUN test -n "$BIOMERO_VERSION" || (echo "BIOMERO_VERSION build arg is required" >&2; exit 1)
 RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade pip \
-    && $VIRTUAL_ENV/bin/python -m pip install --ignore-requires-python biomero-importer==${BIOMERO_IMPORTER_VERSION} \
+    && $VIRTUAL_ENV/bin/python -m pip install biomero-importer==${BIOMERO_IMPORTER_VERSION} \
     && $VIRTUAL_ENV/bin/python -m pip install "biomero[full]==${BIOMERO_VERSION}"
 
 ## Adjust processor code with BIOMERO Processor
