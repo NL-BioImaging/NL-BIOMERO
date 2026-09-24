@@ -144,8 +144,8 @@ worker runtime overrides in Compose: they take precedence over saved INI values.
 
 Prefer a pinned ``remote_shallower_image`` under ``[SLURM]`` in the worker's
 ``slurm-config.ini``. The fallback is
-``cellularimagingcf/biomero-shallower:latest``; the BIOMERO core sample
-``resources/slurm-config.ini`` contains a maintained release selection.
+``cellularimagingcf/biomero-shallower:latest``; NL-BIOMERO supplies a pinned
+release selection in its shared configuration.
 When ``remote_shallower_version`` is unset, core reads the installed image's
 OCI tool-version label before submitting a new helper task. An explicit value
 must exactly match the version written into receipts. Existing tasks retain
@@ -167,7 +167,15 @@ reservation, and QoS settings. Image acquisition uses the established image-pull
 resource settings. Run ``SLURM_Init_environment`` before running analyses and
 verify image availability with ``SLURM_check_setup``. Runtime shallowing never
 downloads images. A missing or invalid image stops result retrieval with a
-setup error identifying the required image; initialize and verify it before retrying.
+setup error identifying the required image. BIOMERO also verifies the installed
+helper's version and storage-format capabilities before it changes result data;
+initialize and verify the selected image before retrying.
+
+After upgrading an installation that already contains results in an older
+shallow-storage format, run ``BIOMERO Migrate Shallow Storage (Admin Only)``.
+Run its dry mode first, then apply the migration after reviewing the count. The
+migration updates manifests and OMERO references, creates recovery files and
+does not copy image pixels.
 
 Equivalent ``[SLURM]`` options are ``remote_shallow_zarr``,
 ``remote_shallower_image``, ``remote_shallower_version``,

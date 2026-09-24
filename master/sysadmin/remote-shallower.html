@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shallow OME-Zarr Storage &mdash; NL-BIOMERO 1.8.0-beta.7 documentation</title>
+  <title>Shallow OME-Zarr Storage &mdash; NL-BIOMERO 1.8.0-beta.8 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -399,7 +399,7 @@ window.addEventListener("load", load);
             NL-BIOMERO
           </a>
               <div class="version">
-                1.8.0-beta.7
+                1.8.0-beta.8
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -1313,8 +1313,8 @@ a pinned tag or immutable <code class="docutils literal notranslate"><span class
 worker runtime overrides in Compose: they take precedence over saved INI values.</p>
 <p>Prefer a pinned <code class="docutils literal notranslate"><span class="pre">remote_shallower_image</span></code> under <code class="docutils literal notranslate"><span class="pre">[SLURM]</span></code> in the worker’s
 <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code>. The fallback is
-<code class="docutils literal notranslate"><span class="pre">cellularimagingcf/biomero-shallower:latest</span></code>; the BIOMERO core sample
-<code class="docutils literal notranslate"><span class="pre">resources/slurm-config.ini</span></code> contains a maintained release selection.
+<code class="docutils literal notranslate"><span class="pre">cellularimagingcf/biomero-shallower:latest</span></code>; NL-BIOMERO supplies a pinned
+release selection in its shared configuration.
 When <code class="docutils literal notranslate"><span class="pre">remote_shallower_version</span></code> is unset, core reads the installed image’s
 OCI tool-version label before submitting a new helper task. An explicit value
 must exactly match the version written into receipts. Existing tasks retain
@@ -1334,7 +1334,14 @@ reservation, and QoS settings. Image acquisition uses the established image-pull
 resource settings. Run <code class="docutils literal notranslate"><span class="pre">SLURM_Init_environment</span></code> before running analyses and
 verify image availability with <code class="docutils literal notranslate"><span class="pre">SLURM_check_setup</span></code>. Runtime shallowing never
 downloads images. A missing or invalid image stops result retrieval with a
-setup error identifying the required image; initialize and verify it before retrying.</p>
+setup error identifying the required image. BIOMERO also verifies the installed
+helper’s version and storage-format capabilities before it changes result data;
+initialize and verify the selected image before retrying.</p>
+<p>After upgrading an installation that already contains results in an older
+shallow-storage format, run <code class="docutils literal notranslate"><span class="pre">BIOMERO</span> <span class="pre">Migrate</span> <span class="pre">Shallow</span> <span class="pre">Storage</span> <span class="pre">(Admin</span> <span class="pre">Only)</span></code>.
+Run its dry mode first, then apply the migration after reviewing the count. The
+migration updates manifests and OMERO references, creates recovery files and
+does not copy image pixels.</p>
 <p>Equivalent <code class="docutils literal notranslate"><span class="pre">[SLURM]</span></code> options are <code class="docutils literal notranslate"><span class="pre">remote_shallow_zarr</span></code>,
 <code class="docutils literal notranslate"><span class="pre">remote_shallower_image</span></code>, <code class="docutils literal notranslate"><span class="pre">remote_shallower_version</span></code>,
 <code class="docutils literal notranslate"><span class="pre">remote_shallower_workers</span></code>, and <code class="docutils literal notranslate"><span class="pre">remote_shallower_partition</span></code>. Environment
