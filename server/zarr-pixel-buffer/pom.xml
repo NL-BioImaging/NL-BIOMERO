@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Resolves omero-zarr-pixel-buffer and its runtime dependencies for the
+  OMERO.server image (see server/Dockerfile, stage "zarr-deps").
+  The version is passed with -Domero.zarr.pixel.buffer.version=<version>.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>nl.biomero</groupId>
+  <artifactId>omero-zarr-pixel-buffer-deps</artifactId>
+  <version>1</version>
+  <packaging>pom</packaging>
+
+  <properties>
+    <omero.zarr.pixel.buffer.version>0.7.1</omero.zarr.pixel.buffer.version>
+  </properties>
+
+  <repositories>
+    <repository>
+      <id>glencoe</id>
+      <url>https://artifacts.glencoesoftware.com/artifactory/gs-omero-snapshots-local</url>
+    </repository>
+    <repository>
+      <id>ome</id>
+      <url>https://artifacts.openmicroscopy.org/artifactory/maven-public</url>
+    </repository>
+    <repository>
+      <id>unidata</id>
+      <url>https://artifacts.unidata.ucar.edu/repository/unidata-all</url>
+    </repository>
+  </repositories>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.glencoesoftware.omero</groupId>
+      <artifactId>omero-zarr-pixel-buffer</artifactId>
+      <version>${omero.zarr.pixel.buffer.version}</version>
+      <exclusions>
+        <!-- Provided by OMERO.server itself -->
+        <exclusion>
+          <groupId>org.openmicroscopy</groupId>
+          <artifactId>omero-blitz</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>ome</groupId>
+          <artifactId>formats-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+  </dependencies>
+</project>
