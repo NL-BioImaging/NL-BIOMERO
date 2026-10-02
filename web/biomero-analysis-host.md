@@ -13,8 +13,8 @@ The patch includes the merged frontend source and reproducible Yarn lock.
 Compiled JavaScript and wheel binaries are built, not committed in this repo.
 
 The Docker preparation stages apply the patch only to that exact baseline,
-run the 36 frontend tests, rebuild the assets, and build an OMERO.biomero wheel
-identified as `1.6.1+analysis.g75adc97`. This is an integration build, not an
+run the 39 frontend tests, rebuild the assets, and build an OMERO.biomero wheel
+identified as `1.6.1+analysis.host2`. This is an integration build, not an
 upstream release. The final image checks its declared version and the complete
 host view/template/frontend contract before accepting the build. Analysis itself
 is downloaded from its exact GitHub Release and installed from verified wheels.

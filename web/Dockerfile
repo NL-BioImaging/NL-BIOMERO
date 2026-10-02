@@ -46,7 +46,7 @@ RUN corepack enable && yarn install --frozen-lockfile && \
 
 FROM openmicroscopy/omero-web-standalone:5.33.1 AS biomero-host-wheel
 USER root
-ARG OMERO_BIOMERO_VERSION=1.6.1+analysis.g75adc97
+ARG OMERO_BIOMERO_VERSION=1.6.1+analysis.host2
 COPY --from=biomero-host-frontend /src/omero_biomero/ /src/omero_biomero/
 COPY --from=biomero-host-frontend /src/setup.py /src/pyproject.toml /src/MANIFEST.in /src/README.md /src/LICENSE /src/
 WORKDIR /src

@@ -1,3 +1,20 @@
+diff --git a/omero_biomero/analyzer_views.py b/omero_biomero/analyzer_views.py
+index 3967de2..f36e2ec 100644
+--- a/omero_biomero/analyzer_views.py
++++ b/omero_biomero/analyzer_views.py
+@@ -149,6 +149,12 @@ def run_workflow_script(request, conn=None, **kwargs):
+         script_id = int(unwrap(script.id))
+         input_ids = params.get("IDs", [])
+         data_type = params.get("Data_Type", "Image")
++        if not isinstance(input_ids, list) or not input_ids or any(
++            type(value) is not int or value <= 0 for value in input_ids
++        ):
++            return JsonResponse({
++                "error": "Select at least one valid OMERO image or plate before submitting."
++            }, status=400)
+         out_email = params.get("receiveEmail")
+         attach_og = params.get("attachToOriginalImages")
+         import_zp = params.get("importAsZip")
 diff --git a/omero_biomero/biomero_views.py b/omero_biomero/biomero_views.py
 index c933f75..0859ebb 100644
 --- a/omero_biomero/biomero_views.py
@@ -95,6 +112,54 @@ index 34a410e..74578db 100644
      WEBCLIENT.UI.UPLOADER_ALLOWED_FILE_EXTENSIONS = {{ uploader_allowed_file_extensions|json_dumps|safe }};
  
  
+diff --git a/omero_biomero/tests/test_analyzer_views.py b/omero_biomero/tests/test_analyzer_views.py
+index e8d6c51..ecf51f7 100644
+--- a/omero_biomero/tests/test_analyzer_views.py
++++ b/omero_biomero/tests/test_analyzer_views.py
+@@ -124,6 +124,30 @@ class AnalyzerViewsTests(TestCase):
+         )
+         svc.runScript.assert_called()  # ensure script executed
+ 
++    def test_invalid_image_selection_is_rejected_before_script_submission(self):
++        class Script:
++            id = 42
++            def getName(self):
++                return "SLURM_Run_Workflow.py"
++        svc = MagicMock()
++        svc.getScripts.return_value = [Script()]
++        conn = MagicMock()
++        conn.getScriptService.return_value = svc
++        for ids in ([], [None], [True], [0], ["not-an-image"], None):
++            with self.subTest(ids=ids), patch(
++                "omero_biomero.analyzer_views.SlurmClient", self._StubSlurmBase
++            ), patch(
++                "omero_biomero.analyzer_views.prepare_workflow_parameters",
++                lambda *a, **k: {"IDs": ids},
++            ):
++                request = SimpleNamespace(method="POST", body=json.dumps({
++                    "workflow_name": "wfA", "params": {"IDs": ids}
++                }).encode())
++                response = _raw("run_workflow_script")(request, conn=conn)
++                self.assertEqual(response.status_code, 400)
++                self.assertIn("Select at least one valid", response.content.decode())
++        svc.runScript.assert_not_called()
++
+     def test_run_workflow_missing_roi_script_downgrades_to_warning(self):
+         from biomero.constants import workflow
+         from omero.rtypes import unwrap
+@@ -342,10 +366,10 @@ class AnalyzerViewsTests(TestCase):
+         conn.getScriptService.return_value = svc
+         with patch("omero_biomero.analyzer_views.SlurmClient", StubSlurm), patch(
+             "omero_biomero.analyzer_views.prepare_workflow_parameters",
+-            lambda *a, **k: {},
++            lambda *a, **k: {"IDs": [1]},
+         ):
+             view = _raw("run_workflow_script")
+-            payload = {"workflow_name": "wfA", "params": {}}
++            payload = {"workflow_name": "wfA", "params": {"IDs": [1]}}
+             request = SimpleNamespace(method="POST", body=json.dumps(payload).encode())
+             resp = view(request, conn=conn)
+         self.assertEqual(resp.status_code, 500)
 diff --git a/omero_biomero/tests/test_biomero_views.py b/omero_biomero/tests/test_biomero_views.py
 index 3052882..130b1cb 100644
 --- a/omero_biomero/tests/test_biomero_views.py
@@ -186,7 +251,7 @@ index 3052882..130b1cb 100644
      def test_biomero_build_file_fallback(self):
          with patch.dict(
 diff --git a/webapp/src/AppContext.js b/webapp/src/AppContext.js
-index 36a2737..d59c871 100644
+index 36a2737..d0780c2 100644
 --- a/webapp/src/AppContext.js
 +++ b/webapp/src/AppContext.js
 @@ -201,7 +201,9 @@ export const AppProvider = ({ children }) => {
@@ -199,6 +264,16 @@ index 36a2737..d59c871 100644
 +      return { ...prevState, ...nextState };
      });
    };
+ 
+@@ -407,6 +409,9 @@ export const AppProvider = ({ children }) => {
+       };
+       
+       const response = await runWorkflow(workflowName, paramsWithGroup);
++      if (response?.status !== "success" || !response?.jobId) {
++        throw new Error(response?.error || "OMERO did not accept the workflow submission.");
++      }
+ 
+       const message = response?.message || "Workflow executed successfully.";
  
 diff --git a/webapp/src/analysisIntegration.js b/webapp/src/analysisIntegration.js
 new file mode 100644
@@ -817,6 +892,102 @@ index 0000000..e531465
 +      data_analysis_enabled: false,
 +    })
 +  ).toBe("biomero");
++});
+diff --git a/webapp/src/biomero/components/WorkflowInput.js b/webapp/src/biomero/components/WorkflowInput.js
+index 2d2d8b1..361e92d 100644
+--- a/webapp/src/biomero/components/WorkflowInput.js
++++ b/webapp/src/biomero/components/WorkflowInput.js
+@@ -22,6 +22,7 @@ import {
+ import { fetchPlateImages } from "../../apiService";
+ import DatasetSelectWithPopover from "./DatasetSelectWithPopover";
+ import { useAppContext } from "../../AppContext";
++import { workflowImages, reconcileImageSelection } from "./workflowImageCache";
+ 
+ /**
+  * Renders a single thumbnail lazily — only requests the image when it scrolls
+@@ -251,7 +252,7 @@ const WorkflowInput = () => {
+     (state.inputDatasets || []).forEach((ds) => {
+       const node = state.omeroFileTreeData[ds.index];
+       if (node?.children) {
+-        node.children.forEach((img) => { map[img.id] = ds; });
++        workflowImages(state.omeroFileTreeData, node.children).forEach((img) => { map[img.id] = ds; });
+       }
+     });
+     return map;
+@@ -264,7 +265,7 @@ const WorkflowInput = () => {
+     // Remove images of datasets not in inputDatasets
+     const filteredImages = Object.entries(state.omeroFileTreeData)
+       .filter(([key]) => currentDatasetIds.includes(key))
+-      .flatMap(([, datasetNode]) => datasetNode.children || []);
++      .flatMap(([, datasetNode]) => workflowImages(state.omeroFileTreeData, datasetNode.children));
+ 
+     updateState({ images: filteredImages });
+ 
+@@ -272,7 +273,7 @@ const WorkflowInput = () => {
+     state.inputDatasets?.forEach((dataset) => {
+       const treeNode = state.omeroFileTreeData[dataset.index];
+ 
+-      if (!treeNode || !treeNode.children || treeNode.children.length === 0) {
++      if (!treeNode || workflowImages(state.omeroFileTreeData, treeNode.children).length === 0) {
+         loadImagesForDataset({
+           dataset: dataset,
+           group: state.user.active_group_id,
+@@ -293,6 +294,12 @@ const WorkflowInput = () => {
+     // filteredImages is derived via useMemo below — no setFilteredImages needed here.
+ 
+     if (prevIds.length === 0) {
++      const repaired = reconcileImageSelection(selectedImageIds, allIds);
++      if (selectedImageIds.length && (repaired.length !== selectedImageIds.length ||
++          repaired.some((id, index) => id !== selectedImageIds[index]))) {
++        updateWIS({ selectedImageIds: repaired });
++        return;
++      }
+       // First mount — if we have stored selections keep them, otherwise select all
+       if (selectedImageIds.length === 0) {
+         updateWIS({ selectedImageIds: allIds });
+diff --git a/webapp/src/biomero/components/workflowImageCache.js b/webapp/src/biomero/components/workflowImageCache.js
+new file mode 100644
+index 0000000..2b3b8ca
+--- /dev/null
++++ b/webapp/src/biomero/components/workflowImageCache.js
+@@ -0,0 +1,15 @@
++// Shared browser children are keys; older workflow caches contain objects.
++export function workflowImages(tree, children = []) {
++  return children.flatMap((child) => {
++    const image = typeof child === 'string' ? tree[child] : child;
++    if (!image || typeof image !== 'object' || typeof image.id === 'boolean') return [];
++    const id = Number(image.id);
++    if (!Number.isSafeInteger(id) || id <= 0) return [];
++    return [{ ...image, id, name: image.name ?? image.data ?? `Image ${id}` }];
++  });
++}
++
++export function reconcileImageSelection(selected, available) {
++  const valid = selected.filter(id => available.includes(id));
++  return selected.length && !valid.length ? available : valid;
++}
+diff --git a/webapp/src/biomero/components/workflowImageCache.test.js b/webapp/src/biomero/components/workflowImageCache.test.js
+new file mode 100644
+index 0000000..92afd60
+--- /dev/null
++++ b/webapp/src/biomero/components/workflowImageCache.test.js
+@@ -0,0 +1,17 @@
++import { workflowImages, reconcileImageSelection } from './workflowImageCache';
++
++test('resolves image references produced by the shared OMERO browser', () => {
++  const tree = { 'image-26': { id: 26, index: 'image-26', data: 'Tilescan.tif' } };
++  expect(workflowImages(tree, ['image-26'])).toEqual([
++    { id: 26, index: 'image-26', data: 'Tilescan.tif', name: 'Tilescan.tif' },
++  ]);
++});
++test('preserves loaded image objects and excludes unresolved/invalid nodes', () => {
++  expect(workflowImages({}, [{ id: 9, name: 'Field' }, 'missing', null, { id: undefined }, { id: true }]))
++    .toEqual([{ id: 9, name: 'Field' }]);
++});
++test('repairs malformed stored selections while preserving valid choices', () => {
++  expect(reconcileImageSelection([undefined], [26, 27])).toEqual([26, 27]);
++  expect(reconcileImageSelection([27], [26, 27])).toEqual([27]);
++  expect(reconcileImageSelection([], [26, 27])).toEqual([]);
 +});
 diff --git a/webapp/src/constants.js b/webapp/src/constants.js
 index 8620c9b..d539aa6 100644
