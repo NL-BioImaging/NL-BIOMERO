@@ -1039,15 +1039,22 @@ index 0000000..e531465
 +  ).toBe("biomero");
 +});
 diff --git a/webapp/src/biomero/BiomeroApp.js b/webapp/src/biomero/BiomeroApp.js
-index 76ddc63..365a271 100644
+index 76ddc63..cbe610a 100644
 --- a/webapp/src/biomero/BiomeroApp.js
 +++ b/webapp/src/biomero/BiomeroApp.js
-@@ -1,4 +1,5 @@
+@@ -1,10 +1,11 @@
  import React, { useState, useEffect, useRef } from "react";
 +import useDashboard from "../shared/useDashboard";
  import { useAppContext } from "../AppContext";
  import TabContainer from "./components/TabContainer";
  import RunPanel from "./components/RunPanel";
+ import GroupSelect from "../shared/components/GroupSelect"; // Add this import
+ import SlurmStatusIndicator from "../shared/components/SlurmStatusIndicator";
+-import { Tabs, Tab, H4, Tooltip, H6 } from "@blueprintjs/core";
++import { Tabs, Tab, H4, Tooltip, H6, Button, Callout } from "@blueprintjs/core";
+ import "@blueprintjs/core/lib/css/blueprint.css";
+ import SettingsForm from "./components/SettingsForm";
+ 
 @@ -78,6 +79,8 @@ const StatusPanel = ({
    setMetabaseError,
    isAdmin,
@@ -1057,15 +1064,18 @@ index 76ddc63..365a271 100644
  }) => {
    const iframeRef = useRef(null);
  
-@@ -138,6 +141,7 @@ const StatusPanel = ({
+@@ -138,6 +141,10 @@ const StatusPanel = ({
          </div>
        </div>
        <div className="p-4">
-+        {dashboardError && <div role="alert">{dashboardError} <button type="button" onClick={retryDashboard}>Retry monitor</button></div>}
++        {dashboardError && <Callout intent="warning" role="alert">
++          <p>{dashboardError}</p>
++          <Button icon="refresh" onClick={retryDashboard}>Retry monitor</Button>
++        </Callout>}
          {!metabaseError ? (
            <iframe
              title="Metabase dashboard"
-@@ -224,7 +228,10 @@ const BiomeroApp = () => {
+@@ -224,7 +231,10 @@ const BiomeroApp = () => {
      .getAttribute("data-metabase-token-monitor-workflows");
    const isAdmin =
      document.getElementById("root").getAttribute("data-is-admin") === "true";
@@ -1077,7 +1087,7 @@ index 76ddc63..365a271 100644
  
    return (
      <div>
-@@ -288,6 +295,8 @@ const BiomeroApp = () => {
+@@ -288,6 +298,8 @@ const BiomeroApp = () => {
                    setMetabaseError={setMetabaseError}
                    isAdmin={isAdmin}
                    metabaseUrl={metabaseUrl}
@@ -1855,7 +1865,7 @@ index 0000000..4bcf046
 +
 +export default DataAnalysisApp;
 diff --git a/webapp/src/importer/ImporterApp.js b/webapp/src/importer/ImporterApp.js
-index 80ab898..7e17c78 100644
+index 80ab898..a33574f 100644
 --- a/webapp/src/importer/ImporterApp.js
 +++ b/webapp/src/importer/ImporterApp.js
 @@ -1,4 +1,5 @@
@@ -1873,15 +1883,18 @@ index 80ab898..7e17c78 100644
  }) => {
    const iframeRef = useRef(null);
  
-@@ -89,6 +92,7 @@ const MonitorPanel = ({
+@@ -89,6 +92,10 @@ const MonitorPanel = ({
          </div>
        </div>
        <div className="p-4">
-+        {dashboardError && <div role="alert">{dashboardError} <button type="button" onClick={retryDashboard}>Retry monitor</button></div>}
++        {dashboardError && <Callout intent="warning" role="alert">
++          <p>{dashboardError}</p>
++          <Button icon="refresh" onClick={retryDashboard}>Retry monitor</Button>
++        </Callout>}
          {!metabaseError ? (
            <iframe
              title="Metabase dashboard"
-@@ -608,7 +612,10 @@ const ImporterApp = () => {
+@@ -608,7 +615,10 @@ const ImporterApp = () => {
      .getAttribute("data-metabase-token-imports");
    const isAdmin =
      document.getElementById("root").getAttribute("data-is-admin") === "true";
@@ -1893,7 +1906,7 @@ index 80ab898..7e17c78 100644
  
    useEffect(() => {
      loadOmeroTreeData();
-@@ -1060,6 +1067,8 @@ const ImporterApp = () => {
+@@ -1060,6 +1070,8 @@ const ImporterApp = () => {
                    setMetabaseError={setMetabaseError}
                    isAdmin={isAdmin}
                    metabaseUrl={metabaseUrl}
