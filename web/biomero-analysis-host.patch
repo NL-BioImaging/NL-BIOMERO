@@ -16,20 +16,73 @@ index 3967de2..f36e2ec 100644
          attach_og = params.get("attachToOriginalImages")
          import_zp = params.get("importAsZip")
 diff --git a/omero_biomero/biomero_views.py b/omero_biomero/biomero_views.py
-index c933f75..0859ebb 100644
+index c933f75..08a5602 100644
 --- a/omero_biomero/biomero_views.py
 +++ b/omero_biomero/biomero_views.py
-@@ -2,7 +2,9 @@ import jwt
+@@ -2,7 +2,10 @@ import jwt
  import logging
  import os
  import time
 +from importlib.metadata import PackageNotFoundError, version
  
++from django.http import JsonResponse
 +from django.urls import NoReverseMatch, reverse
  from omeroweb.webclient.decorators import login_required, render_response
  
  from .utils import (
-@@ -34,6 +36,38 @@ def check_base_directory():
+@@ -17,6 +20,51 @@ from .settings import (
+ logger = logging.getLogger(__name__)
+ 
+ 
++def dashboard_token(conn, dashboard):
++    """Issue a short-lived embed token locked to the authenticated OMERO user."""
++    user = conn.getUser()
++    if dashboard == "workflows":
++        setting = "METABASE_WORKFLOWS_DB_PAGE_DASHBOARD_ID"
++        params = {"user": [user.getId()]}
++    elif dashboard == "imports":
++        setting = "METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID"
++        params = {"user_name": [user.getName()]}
++    else:
++        raise ValueError("Unknown dashboard")
++    expires = round(time.time()) + 1800
++    token = jwt.encode(
++        {
++            "resource": {"dashboard": int(os.environ[setting])},
++            "params": params,
++            "exp": expires,
++        },
++        os.environ["METABASE_SECRET_KEY"],
++        algorithm="HS256",
++    )
++    return token, expires
++
++
++@login_required()
++def refresh_dashboard(request, dashboard, conn=None, **kwargs):
++    if request.method != "GET":
++        response = JsonResponse({"error": "Use GET to refresh the monitor."}, status=405)
++        response["Allow"] = "GET"
++    elif dashboard not in {"workflows", "imports"}:
++        response = JsonResponse({"error": "Unknown dashboard."}, status=404)
++    else:
++        try:
++            token, expires = dashboard_token(conn, dashboard)
++            site = os.environ["METABASE_SITE_URL"].rstrip("/")
++            response = JsonResponse({
++                "url": f"{site}/embed/dashboard/{token}",
++                "expires": expires,
++            })
++        except (KeyError, ValueError):
++            response = JsonResponse({"error": "The monitor is not configured. Contact your administrator."}, status=503)
++    response["Cache-Control"] = "no-store"
++    return response
++
++
+ # TODO remove this check when the app is ready
+ def check_base_directory():
+     logger.info("\n=== Directory Access Check ===")
+@@ -34,6 +82,38 @@ def check_base_directory():
  check_base_directory()
  
  
@@ -68,7 +121,17 @@ index c933f75..0859ebb 100644
  @login_required()
  @render_response()
  def biomero(request, conn=None, **kwargs):
-@@ -52,6 +86,10 @@ def biomero(request, conn=None, **kwargs):
+@@ -42,37 +122,21 @@ def biomero(request, conn=None, **kwargs):
+     """
+ 
+     metabase_site_url = os.environ.get("METABASE_SITE_URL")
+-    metabase_secret_key = os.environ.get("METABASE_SECRET_KEY")
+-    metabase_dashboard_id_monitor_workflows = os.environ.get(
+-        "METABASE_WORKFLOWS_DB_PAGE_DASHBOARD_ID"
+-    )
+-    metabase_dashboard_id_imports = os.environ.get(
+-        "METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID"
+-    )
  
      importer_enabled = parse_bool_env(os.environ.get("IMPORTER_ENABLED"), default=True)
      analyzer_enabled = parse_bool_env(os.environ.get("ANALYZER_ENABLED"), default=True)
@@ -79,7 +142,30 @@ index c933f75..0859ebb 100644
  
      current_user = conn.getUser()
      username = current_user.getName()
-@@ -88,6 +126,10 @@ def biomero(request, conn=None, **kwargs):
+     user_id = current_user.getId()
+     is_admin = conn.isAdmin()
+ 
+-    payload_monitor_workflows = {
+-        "resource": {"dashboard": int(metabase_dashboard_id_monitor_workflows)},
+-        "params": {"user": [user_id]},
+-        "exp": round(time.time()) + (60 * 30),
+-    }
+-    token_monitor_workflows = jwt.encode(
+-        payload_monitor_workflows, metabase_secret_key, algorithm="HS256"
+-    )
+-
+-    payload_imports = {
+-        "resource": {"dashboard": int(metabase_dashboard_id_imports)},
+-        "params": {"user_name": [username]},
+-        "exp": round(time.time()) + (60 * 30),
+-    }
+-    token_imports = jwt.encode(payload_imports, metabase_secret_key, algorithm="HS256")
++    token_monitor_workflows, _ = dashboard_token(conn, "workflows")
++    token_imports, _ = dashboard_token(conn, "imports")
+ 
+     context = {
+         "metabase_site_url": metabase_site_url,
+@@ -88,6 +152,10 @@ def biomero(request, conn=None, **kwargs):
          "app_name": "biomero",
          "importer_enabled": importer_enabled,
          "analyzer_enabled": analyzer_enabled,
@@ -91,18 +177,20 @@ index c933f75..0859ebb 100644
      }
      return context
 diff --git a/omero_biomero/templates/omero_biomero/webclient_plugins/react_app.html b/omero_biomero/templates/omero_biomero/webclient_plugins/react_app.html
-index 34a410e..74578db 100644
+index 34a410e..a716f43 100644
 --- a/omero_biomero/templates/omero_biomero/webclient_plugins/react_app.html
 +++ b/omero_biomero/templates/omero_biomero/webclient_plugins/react_app.html
-@@ -61,6 +61,7 @@
+@@ -61,6 +61,9 @@
      WEBCLIENT.URLS.reset_owners_rdef_json = "{% url 'reset_owners_rdef_json' %}";
      WEBCLIENT.URLS.reset_rdef_json = "{% url 'reset_rdef_json' %}";
      WEBCLIENT.URLS.script_upload = "{% url 'script_upload' %}";
 +    WEBCLIENT.URLS.DATA_ANALYSIS = "{{ data_analysis_url|escapejs }}";
++    WEBCLIENT.URLS.DASHBOARD_WORKFLOWS = "{% url 'refresh_biomero_dashboard' 'workflows' %}";
++    WEBCLIENT.URLS.DASHBOARD_IMPORTS = "{% url 'refresh_biomero_dashboard' 'imports' %}";
      // jsTree code in ome.tree.js and center panel code in center_plugin.thumbs.js.html uses initially_select
      // instead of browser URL since URL may be /webclient/?path=plate.name-barcode|well.name-A1
  
-@@ -82,6 +83,9 @@
+@@ -82,6 +85,9 @@
      WEBCLIENT.UI.TREE.type_order = "{{ui.tree.type_order}}".toLowerCase().split(",").filter(function(e){return e});
      WEBCLIENT.UI.IMPORTER_ENABLED = {{ importer_enabled|yesno:"true,false" }};
      WEBCLIENT.UI.ANALYZER_ENABLED = {{ analyzer_enabled|yesno:"true,false" }};
@@ -161,21 +249,65 @@ index e8d6c51..ecf51f7 100644
              resp = view(request, conn=conn)
          self.assertEqual(resp.status_code, 500)
 diff --git a/omero_biomero/tests/test_biomero_views.py b/omero_biomero/tests/test_biomero_views.py
-index 3052882..130b1cb 100644
+index 3052882..50b48fa 100644
 --- a/omero_biomero/tests/test_biomero_views.py
 +++ b/omero_biomero/tests/test_biomero_views.py
-@@ -2,8 +2,10 @@ import os
+@@ -1,9 +1,12 @@
+ import os
++import json
  import sys
  import types
  import jwt
 +from importlib.metadata import PackageNotFoundError
  from unittest.mock import MagicMock, patch
- from django.test import TestCase
+-from django.test import TestCase
++from django.test import TestCase, RequestFactory
 +from django.urls import NoReverseMatch
  
  
  def _ensure_stubs():
-@@ -67,16 +69,24 @@ class BiomeroViewTests(TestCase):
+@@ -59,6 +62,40 @@ class BiomeroViewTests(TestCase):
+         conn.isAdmin.return_value = is_admin
+         return conn
+ 
++    def test_dashboard_renewal_locks_user_and_keeps_short_expiry(self):
++        from omero_biomero import biomero_views
++        view = biomero_views.refresh_dashboard
++        while hasattr(view, "__wrapped__"):
++            view = view.__wrapped__
++        env = {"METABASE_SITE_URL": "https://mb.example.org/",
++               "METABASE_SECRET_KEY": "test-key",
++               "METABASE_WORKFLOWS_DB_PAGE_DASHBOARD_ID": "11",
++               "METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID": "22"}
++        for dashboard, expected in [("workflows", {"user": [0]}), ("imports", {"user_name": ["root"]})]:
++            with self.subTest(dashboard=dashboard), patch.dict(os.environ, env), patch("omero_biomero.biomero_views.time.time", return_value=1000):
++                response = view(RequestFactory().get("/", {"user": 999, "user_name": "other"}), dashboard,
++                                conn=self._fake_conn(user_id=0, username="root"))
++                data = json.loads(response.content)
++                token = data["url"].rsplit("/", 1)[1]
++                payload = jwt.decode(token, "test-key", algorithms=["HS256"], options={"verify_exp": False})
++                self.assertEqual(payload["params"], expected)
++                self.assertEqual(payload["exp"], 2800)
++                self.assertEqual(data["expires"], 2800)
++                self.assertEqual(response["Cache-Control"], "no-store")
++
++    def test_dashboard_renewal_rejects_unknown_kind_and_missing_configuration(self):
++        from omero_biomero import biomero_views
++        view = biomero_views.refresh_dashboard
++        while hasattr(view, "__wrapped__"):
++            view = view.__wrapped__
++        conn = self._fake_conn()
++        self.assertEqual(view(RequestFactory().get("/"), "other", conn=conn).status_code, 404)
++        self.assertEqual(view(RequestFactory().post("/"), "workflows", conn=conn).status_code, 405)
++        with patch.dict(os.environ, {}, clear=True):
++            response = view(RequestFactory().get("/"), "workflows", conn=conn)
++        self.assertEqual(response.status_code, 503)
++        self.assertNotIn("token", response.content.decode())
++
+     def test_biomero_context_basic(self):
+         env = {
+             "METABASE_SITE_URL": "https://mb.example.org",
+@@ -67,16 +104,24 @@ class BiomeroViewTests(TestCase):
              "METABASE_IMPORTS_DB_PAGE_DASHBOARD_ID": "22",
              "IMPORTER_ENABLED": "true",
              "ANALYZER_ENABLED": "false",
@@ -200,7 +332,7 @@ index 3052882..130b1cb 100644
          self.assertEqual(ctx["main_js"], "hashed-main.js")
          self.assertEqual(ctx["main_css"], "hashed-main.css")
          self.assertIn(".lif", ctx["uploader_allowed_file_extensions"])
-@@ -109,6 +119,49 @@ class BiomeroViewTests(TestCase):
+@@ -109,6 +154,49 @@ class BiomeroViewTests(TestCase):
          self.assertEqual(ctx["main_js"], "fallback.js")
          self.assertTrue(ctx["importer_enabled"])  # default True
          self.assertTrue(ctx["analyzer_enabled"])  # default True
@@ -250,6 +382,19 @@ index 3052882..130b1cb 100644
  
      def test_biomero_build_file_fallback(self):
          with patch.dict(
+diff --git a/omero_biomero/urls.py b/omero_biomero/urls.py
+index 269ad16..cf941d4 100644
+--- a/omero_biomero/urls.py
++++ b/omero_biomero/urls.py
+@@ -3,6 +3,8 @@ from . import biomero_views, importer_views, admin_views, analyzer_views
+ from .tus_views import TusUploadView
+ 
+ urlpatterns = [
++    path("api/dashboard/<str:dashboard>/", biomero_views.refresh_dashboard,
++         name="refresh_biomero_dashboard"),
+     # Importer URLs
+     path(
+         "api/importer/import_selected/",
 diff --git a/webapp/src/AppContext.js b/webapp/src/AppContext.js
 index 36a2737..d0780c2 100644
 --- a/webapp/src/AppContext.js
@@ -893,6 +1038,54 @@ index 0000000..e531465
 +    })
 +  ).toBe("biomero");
 +});
+diff --git a/webapp/src/biomero/BiomeroApp.js b/webapp/src/biomero/BiomeroApp.js
+index 76ddc63..365a271 100644
+--- a/webapp/src/biomero/BiomeroApp.js
++++ b/webapp/src/biomero/BiomeroApp.js
+@@ -1,4 +1,5 @@
+ import React, { useState, useEffect, useRef } from "react";
++import useDashboard from "../shared/useDashboard";
+ import { useAppContext } from "../AppContext";
+ import TabContainer from "./components/TabContainer";
+ import RunPanel from "./components/RunPanel";
+@@ -78,6 +79,8 @@ const StatusPanel = ({
+   setMetabaseError,
+   isAdmin,
+   metabaseUrl,
++  dashboardError,
++  retryDashboard,
+ }) => {
+   const iframeRef = useRef(null);
+ 
+@@ -138,6 +141,7 @@ const StatusPanel = ({
+         </div>
+       </div>
+       <div className="p-4">
++        {dashboardError && <div role="alert">{dashboardError} <button type="button" onClick={retryDashboard}>Retry monitor</button></div>}
+         {!metabaseError ? (
+           <iframe
+             title="Metabase dashboard"
+@@ -224,7 +228,10 @@ const BiomeroApp = () => {
+     .getAttribute("data-metabase-token-monitor-workflows");
+   const isAdmin =
+     document.getElementById("root").getAttribute("data-is-admin") === "true";
+-  const iframeUrl = `${metabaseUrl}/embed/dashboard/${metabaseToken}#bordered=true&titled=true&refresh=20`;
++  const { iframeUrl, error: dashboardError, retry: retryDashboard } = useDashboard(
++    `${metabaseUrl}/embed/dashboard/${metabaseToken}#bordered=true&titled=true&refresh=20`,
++    window.WEBCLIENT?.URLS?.DASHBOARD_WORKFLOWS, activeTab === "Status",
++  );
+ 
+   return (
+     <div>
+@@ -288,6 +295,8 @@ const BiomeroApp = () => {
+                   setMetabaseError={setMetabaseError}
+                   isAdmin={isAdmin}
+                   metabaseUrl={metabaseUrl}
++                  dashboardError={dashboardError}
++                  retryDashboard={retryDashboard}
+                 />
+               ) : null
+             }
 diff --git a/webapp/src/biomero/components/WorkflowInput.js b/webapp/src/biomero/components/WorkflowInput.js
 index 2d2d8b1..361e92d 100644
 --- a/webapp/src/biomero/components/WorkflowInput.js
@@ -1661,6 +1854,54 @@ index 0000000..4bcf046
 +};
 +
 +export default DataAnalysisApp;
+diff --git a/webapp/src/importer/ImporterApp.js b/webapp/src/importer/ImporterApp.js
+index 80ab898..7e17c78 100644
+--- a/webapp/src/importer/ImporterApp.js
++++ b/webapp/src/importer/ImporterApp.js
+@@ -1,4 +1,5 @@
+ import { useEffect, useState, useRef } from "react";
++import useDashboard from "../shared/useDashboard";
+ import { useAppContext } from "../AppContext";
+ import FileBrowser from "./components/FileBrowser";
+ import OmeroDataBrowser from "../shared/components/OmeroDataBrowser";
+@@ -28,6 +29,8 @@ const MonitorPanel = ({
+   setMetabaseError,
+   isAdmin,
+   metabaseUrl,
++  dashboardError,
++  retryDashboard,
+ }) => {
+   const iframeRef = useRef(null);
+ 
+@@ -89,6 +92,7 @@ const MonitorPanel = ({
+         </div>
+       </div>
+       <div className="p-4">
++        {dashboardError && <div role="alert">{dashboardError} <button type="button" onClick={retryDashboard}>Retry monitor</button></div>}
+         {!metabaseError ? (
+           <iframe
+             title="Metabase dashboard"
+@@ -608,7 +612,10 @@ const ImporterApp = () => {
+     .getAttribute("data-metabase-token-imports");
+   const isAdmin =
+     document.getElementById("root").getAttribute("data-is-admin") === "true";
+-  const iframeUrl = `${metabaseUrl}/embed/dashboard/${metabaseToken}#bordered=true&titled=false&refresh=20`;
++  const { iframeUrl, error: dashboardError, retry: retryDashboard } = useDashboard(
++    `${metabaseUrl}/embed/dashboard/${metabaseToken}#bordered=true&titled=false&refresh=20`,
++    window.WEBCLIENT?.URLS?.DASHBOARD_IMPORTS, activeTab === "Monitor",
++  );
+ 
+   useEffect(() => {
+     loadOmeroTreeData();
+@@ -1060,6 +1067,8 @@ const ImporterApp = () => {
+                   setMetabaseError={setMetabaseError}
+                   isAdmin={isAdmin}
+                   metabaseUrl={metabaseUrl}
++                  dashboardError={dashboardError}
++                  retryDashboard={retryDashboard}
+                 />
+               ) : null
+             }
 diff --git a/webapp/src/index.css b/webapp/src/index.css
 index 91fd46b..a291d79 100644
 --- a/webapp/src/index.css
@@ -2056,6 +2297,127 @@ index 0000000..3a009f7
 +  expect(patch.omeroFileTreeData["dataset-999"].data).toBe(
 +    "Concurrent dataset"
 +  );
++});
+diff --git a/webapp/src/shared/useDashboard.js b/webapp/src/shared/useDashboard.js
+new file mode 100644
+index 0000000..ecefbd0
+--- /dev/null
++++ b/webapp/src/shared/useDashboard.js
+@@ -0,0 +1,50 @@
++import { useEffect, useState } from "react";
++
++// Renew before Metabase's 30-minute token expires; never reload the OMERO page.
++export const DASHBOARD_REFRESH_MS = 20 * 60 * 1000;
++
++export default function useDashboard(initialUrl, endpoint, active) {
++  const [iframeUrl, setIframeUrl] = useState(initialUrl);
++  const [error, setError] = useState("");
++  const [attempt, setAttempt] = useState(0);
++  useEffect(() => {
++    if (!active || !endpoint) return undefined;
++    const controller = new AbortController();
++    let refreshing = false;
++    let lastRefresh = 0;
++    const refresh = async () => {
++      if (refreshing) return;
++      refreshing = true;
++      try {
++        const response = await fetch(endpoint, {
++          credentials: "same-origin", cache: "no-store", redirect: "error",
++          signal: controller.signal,
++        });
++        if (!response.ok) throw new Error("Monitor unavailable");
++        const data = await response.json();
++        if (typeof data.url !== "string" || !data.url) throw new Error("Invalid monitor response");
++        if (!controller.signal.aborted) {
++          setIframeUrl(data.url + (initialUrl.includes("#") ? "#" + initialUrl.split("#")[1] : ""));
++          setError("");
++          lastRefresh = Date.now();
++        }
++      } catch (_) {
++        if (!controller.signal.aborted) setError("Could not refresh the monitor. Check your connection and OMERO login, then retry.");
++      } finally {
++        refreshing = false;
++      }
++    };
++    const onVisibility = () => {
++      if (document.visibilityState === "visible" && Date.now() - lastRefresh >= DASHBOARD_REFRESH_MS) refresh();
++    };
++    refresh();
++    const timer = setInterval(refresh, DASHBOARD_REFRESH_MS);
++    document.addEventListener("visibilitychange", onVisibility);
++    return () => {
++      controller.abort();
++      clearInterval(timer);
++      document.removeEventListener("visibilitychange", onVisibility);
++    };
++  }, [active, endpoint, initialUrl, attempt]);
++  return { iframeUrl, error, retry: () => setAttempt(value => value + 1) };
++}
+diff --git a/webapp/src/shared/useDashboard.test.js b/webapp/src/shared/useDashboard.test.js
+new file mode 100644
+index 0000000..9f2302e
+--- /dev/null
++++ b/webapp/src/shared/useDashboard.test.js
+@@ -0,0 +1,59 @@
++import React from "react";
++import { act, render, screen, fireEvent } from "@testing-library/react";
++import useDashboard, { DASHBOARD_REFRESH_MS } from "./useDashboard";
++
++function Monitor({ active = true }) {
++  const { iframeUrl, error, retry } = useDashboard("https://mb/embed/dashboard/old#refresh=20", "/dashboard/workflows/", active);
++  return <><span>{iframeUrl}</span><span>{error}</span><button onClick={retry}>Retry</button></>;
++}
++const success = url => ({ ok: true, json: async () => ({ url }) });
++const settle = async () => { await act(async () => { await Promise.resolve(); }); };
++
++beforeEach(() => { jest.useFakeTimers(); global.fetch = jest.fn(); });
++afterEach(() => { jest.useRealTimers(); delete global.fetch; });
++
++test("renews on opening and before expiry without reloading the OMERO page", async () => {
++  fetch.mockResolvedValueOnce(success("https://mb/embed/dashboard/first"))
++    .mockResolvedValueOnce(success("https://mb/embed/dashboard/second"));
++  render(<Monitor />);
++  await settle();
++  expect(screen.getByText("https://mb/embed/dashboard/first#refresh=20")).toBeInTheDocument();
++  await act(async () => { jest.advanceTimersByTime(DASHBOARD_REFRESH_MS); });
++  expect(screen.getByText("https://mb/embed/dashboard/second#refresh=20")).toBeInTheDocument();
++  expect(fetch).toHaveBeenCalledWith("/dashboard/workflows/", expect.objectContaining({ credentials: "same-origin", cache: "no-store", redirect: "error" }));
++});
++
++test("session/network failure is recoverable and retains the current monitor", async () => {
++  fetch.mockRejectedValueOnce(new Error("logged out")).mockResolvedValueOnce(success("https://mb/embed/dashboard/recovered"));
++  render(<Monitor />);
++  await settle();
++  expect(screen.getByText(/Check your connection and OMERO login/)).toBeInTheDocument();
++  expect(screen.getByText("https://mb/embed/dashboard/old#refresh=20")).toBeInTheDocument();
++  fireEvent.click(screen.getByText("Retry"));
++  await settle();
++  expect(screen.queryByText(/Check your connection/)).not.toBeInTheDocument();
++  expect(screen.getByText("https://mb/embed/dashboard/recovered#refresh=20")).toBeInTheDocument();
++});
++
++test("hidden panels do not renew and unmount aborts pending requests", async () => {
++  fetch.mockImplementation(() => new Promise(() => {}));
++  const view = render(<Monitor active={false} />);
++  expect(fetch).not.toHaveBeenCalled();
++  view.rerender(<Monitor />);
++  const signal = fetch.mock.calls[0][1].signal;
++  view.unmount();
++  expect(signal.aborted).toBe(true);
++  act(() => { jest.advanceTimersByTime(DASHBOARD_REFRESH_MS); });
++  expect(fetch).toHaveBeenCalledTimes(1);
++});
++
++test("returning from a suspended browser renews an overdue token", async () => {
++  fetch.mockResolvedValue(success("https://mb/embed/dashboard/new"));
++  render(<Monitor />);
++  await settle();
++  jest.setSystemTime(Date.now() + DASHBOARD_REFRESH_MS + 1);
++  Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
++  fireEvent(document, new Event("visibilitychange"));
++  await settle();
++  expect(fetch).toHaveBeenCalledTimes(2);
 +});
 diff --git a/webapp/src/utils.js b/webapp/src/utils.js
 index 83a0650..6712462 100644

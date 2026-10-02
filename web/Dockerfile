@@ -46,7 +46,7 @@ RUN corepack enable && yarn install --frozen-lockfile && \
 
 FROM openmicroscopy/omero-web-standalone:5.33.1 AS biomero-host-wheel
 USER root
-ARG OMERO_BIOMERO_VERSION=1.6.1+analysis.host2
+ARG OMERO_BIOMERO_VERSION=1.6.1+analysis.host3
 COPY --from=biomero-host-frontend /src/omero_biomero/ /src/omero_biomero/
 COPY --from=biomero-host-frontend /src/setup.py /src/pyproject.toml /src/MANIFEST.in /src/README.md /src/LICENSE /src/
 WORKDIR /src
@@ -172,6 +172,9 @@ for package, wanted in expected.items():
 from omero_analysis.host_capabilities import biomero_analysis_host_installed
 assert biomero_analysis_host_installed(), "The Data Analysis view, template and frontend must all be installed"
 PY
+RUN /opt/omero/web/venv3/bin/python -m django test \
+    omero_biomero.tests.test_biomero_views omero_biomero.tests.test_analyzer_views \
+    --settings=omero_biomero.test_settings --noinput
 
 ### Install OMERO.forms ###
 
