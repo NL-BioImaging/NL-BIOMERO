@@ -6,13 +6,21 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: compose-check-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   compose-config:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     env:
       DQW_API_TOKEN: ci-compose-validation-token
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Validate maintained Compose scenarios
         shell: bash
         run: |
@@ -34,15 +42,17 @@ jobs:
 
   data-query-worker-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run authenticated worker cache smoke
         run: python scripts/smoke_data_query_worker.py
 
   web-image:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build released integration web image
         shell: bash
         run: |
@@ -61,6 +71,9 @@ jobs:
             .
       - name: Verify integration packages and Analysis runtime
         run: |
-          docker run --rm --entrypoint /opt/omero/web/venv3/bin/python \
+          set -a
+          source .env
+          set +a
+          docker run --rm --env OMERO_ANALYSIS_VERSION --env OMERO_BIOMERO_VERSION --env BIOMERO_WORKFLOW_SKILLS_VERSION --entrypoint /opt/omero/web/venv3/bin/python \
             nl-biomero-web:ci -c \
-            "from importlib.metadata import version; from pathlib import Path; import json; expected={'omero-analysis':'0.14.0','biomero-workflow-skills':'0.4.0'}; actual={name:version(name) for name in expected}; assert actual == expected, actual; site=Path('/opt/omero/web/venv3/lib/python3.12/site-packages'); assert (site/'omero_analysis/static/omero_analysis/pyodide/pyodide.mjs').is_file(); root=site/'omero_biomero'; templates=''.join(path.read_text(errors='ignore') for path in (root/'templates').rglob('*.html')); assert 'DATA_ANALYSIS_ENABLED' in templates; manifest=json.loads((root/'static/omero_biomero/assets/asset-manifest.json').read_text()); bundle=root/'static/omero_biomero/assets'/Path(manifest['main.js']).name; assert bundle.is_file() and 'workspace_id' in bundle.read_text(errors='ignore')"
+            "from importlib.metadata import version; from pathlib import Path; import json, os; expected={'omero-biomero':os.environ['OMERO_BIOMERO_VERSION'],'omero-analysis':os.environ['OMERO_ANALYSIS_VERSION'],'biomero-workflow-skills':os.environ['BIOMERO_WORKFLOW_SKILLS_VERSION']}; actual={name:version(name) for name in expected}; assert actual == expected, actual; site=Path('/opt/omero/web/venv3/lib/python3.12/site-packages'); assert (site/'omero_analysis/static/omero_analysis/pyodide/pyodide.mjs').is_file(); root=site/'omero_biomero'; templates=''.join(path.read_text(errors='ignore') for path in (root/'templates').rglob('*.html')); assert 'DATA_ANALYSIS_ENABLED' in templates; manifest=json.loads((root/'static/omero_biomero/assets/asset-manifest.json').read_text()); bundle=root/'static/omero_biomero/assets'/Path(manifest['main.js']).name; assert bundle.is_file() and 'workspace_id' in bundle.read_text(errors='ignore')"

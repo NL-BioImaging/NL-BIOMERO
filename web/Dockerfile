@@ -1,3 +1,59 @@
+# Release preparation downloads only the explicitly pinned Analysis release.
+# No first-party source build or package-index fallback enters the final image.
+FROM openmicroscopy/omero-web-standalone:5.33.1 AS analysis-release
+ARG OMERO_ANALYSIS_VERSION
+USER root
+COPY web/release/ /tmp/analysis-release-tools/
+RUN /opt/omero/web/venv3/bin/python /tmp/analysis-release-tools/download_analysis_release.py \
+    --version "${OMERO_ANALYSIS_VERSION}" --output /dist/wheelhouse
+# Third-party dependencies still use their ordinary upstream sources. OMERO.web
+# itself is supplied by the identical pinned base image in both stages.
+RUN /opt/omero/web/venv3/bin/python - <<'PY'
+import email.parser
+import pathlib
+import subprocess
+import sys
+import zipfile
+from packaging.requirements import Requirement
+
+wheel = next(pathlib.Path('/dist/wheelhouse').glob('omero_analysis-*.whl'))
+with zipfile.ZipFile(wheel) as archive:
+    name = next(n for n in archive.namelist() if n.endswith('.dist-info/METADATA'))
+    metadata = email.parser.BytesParser().parsebytes(archive.read(name))
+requirements = []
+for raw in metadata.get_all('Requires-Dist', []):
+    requirement = Requirement(raw)
+    if requirement.name.lower().replace('_', '-') == 'omero-web':
+        continue
+    if requirement.marker is None or requirement.marker.evaluate({'extra': ''}):
+        requirements.append(str(requirement))
+subprocess.run([sys.executable, '-m', 'pip', 'download', '--only-binary=:all:',
+                '--dest', '/dist/wheelhouse', *requirements], check=True)
+PY
+
+# The released 1.6.1 backend has the newer Analyze/storage behavior but lacks
+# the Data Analysis host. Build the reviewed integration patch on that exact
+# baseline rather than silently replacing it with a stock or older branch build.
+FROM node:22 AS biomero-host-frontend
+RUN git clone --branch v1.6.1 --depth 1 https://github.com/NL-BioImaging/OMERO.biomero.git /src
+WORKDIR /src
+COPY web/biomero-analysis-host.patch /tmp/biomero-analysis-host.patch
+RUN git apply --check /tmp/biomero-analysis-host.patch && git apply /tmp/biomero-analysis-host.patch
+WORKDIR /src/webapp
+ENV CI=true
+RUN corepack enable && yarn install --frozen-lockfile && \
+    yarn test --watchAll=false --runInBand && yarn build
+
+FROM openmicroscopy/omero-web-standalone:5.33.1 AS biomero-host-wheel
+USER root
+ARG OMERO_BIOMERO_VERSION=1.6.1+analysis.g75adc97
+COPY --from=biomero-host-frontend /src/omero_biomero/ /src/omero_biomero/
+COPY --from=biomero-host-frontend /src/setup.py /src/pyproject.toml /src/README.md /src/LICENSE /src/
+WORKDIR /src
+RUN /opt/omero/web/venv3/bin/python -m pip install build setuptools-scm wheel && \
+    SETUPTOOLS_SCM_PRETEND_VERSION="${OMERO_BIOMERO_VERSION}" \
+    /opt/omero/web/venv3/bin/python -m build --wheel --no-isolation --outdir /dist/biomero-host
+
 FROM openmicroscopy/omero-web-standalone:5.33.1
 
 ARG OMERO_FORMS_VERSION
@@ -63,26 +119,29 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 #         "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
 #     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
-# Install the selected OMERO.biomero integration branch.
-# The GitHub metadata request invalidates Docker's cache when the branch advances.
-ADD "https://api.github.com/repos/NL-BioImaging/OMERO.biomero/commits/${OMERO_BIOMERO_BRANCH}" /latest_commit_omero_biomero
-RUN test -n "$OMERO_BIOMERO_BRANCH" || (echo "OMERO_BIOMERO_BRANCH build arg is required" >&2; exit 1)
+# Install the tested integration wheel prepared above. The local version suffix
+# identifies the host backport; the public backend baseline remains 1.6.1.
+COPY --from=biomero-host-wheel /dist/biomero-host/ /tmp/biomero-host-wheels/
 RUN /opt/omero/web/venv3/bin/pip install \
-        "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
+        /tmp/biomero-host-wheels/omero_biomero-*.whl \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
-# Install released OMERO.Analysis and its workflow skill catalog reader. The
-# Analysis wheel owns its complete frontend and Pyodide runtime.
+# Install Analysis from checksum-verified, pre-built GitHub Release wheels.
+# The SDK wheel is retained in preparation for authors; it is not a web runtime
+# dependency. Third-party dependency wheels were resolved in the build stage.
 RUN test -n "$OMERO_ANALYSIS_VERSION" || (echo "OMERO_ANALYSIS_VERSION build arg is required" >&2; exit 1) && \
     test -n "$BIOMERO_WORKFLOW_SKILLS_VERSION" || (echo "BIOMERO_WORKFLOW_SKILLS_VERSION build arg is required" >&2; exit 1)
+COPY --from=analysis-release /dist/wheelhouse/ /tmp/omero-plugin-wheelhouse/
 RUN /opt/omero/web/venv3/bin/pip install \
-        "omero-analysis==${OMERO_ANALYSIS_VERSION}" \
+        --no-index --find-links /tmp/omero-plugin-wheelhouse \
+        "/tmp/omero-plugin-wheelhouse/omero_analysis-${OMERO_ANALYSIS_VERSION}-py3-none-any.whl" && \
+    /opt/omero/web/venv3/bin/pip install \
         "biomero-workflow-skills==${BIOMERO_WORKFLOW_SKILLS_VERSION}" && \
     test -f /opt/omero/web/venv3/lib/python3.12/site-packages/omero_analysis/static/omero_analysis/pyodide/pyodide.mjs
-ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/v${OMERO_ANALYSIS_VERSION}/docker/90-omero-analysis.omero" /opt/omero/web/config/90-omero-analysis.omero
-ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/v${OMERO_ANALYSIS_VERSION}/docker/49-omero-analysis-cleanup.py" /startup/49-omero-analysis-cleanup.py
-ADD "https://raw.githubusercontent.com/NL-BioImaging/OMERO.Analysis/v${OMERO_ANALYSIS_VERSION}/docker/51-omero-analysis-navigation.py" /startup/51-omero-analysis-navigation.py
-RUN chmod 755 /startup/49-omero-analysis-cleanup.py \
+RUN cp /opt/omero/web/venv3/share/omero-analysis/90-omero-analysis.omero /opt/omero/web/config/ && \
+    cp /opt/omero/web/venv3/share/omero-analysis/49-omero-analysis-cleanup.py /startup/ && \
+    cp /opt/omero/web/venv3/share/omero-analysis/51-omero-analysis-navigation.py /startup/ && \
+    chmod 755 /startup/49-omero-analysis-cleanup.py \
     /startup/51-omero-analysis-navigation.py
 
 RUN /opt/omero/web/venv3/bin/python - <<'PY'
@@ -90,6 +149,7 @@ import os
 from importlib.metadata import version
 
 expected = {
+    "omero-biomero": os.environ.get("OMERO_BIOMERO_VERSION"),
     "omero-analysis": os.environ.get("OMERO_ANALYSIS_VERSION"),
     "biomero-workflow-skills": os.environ.get("BIOMERO_WORKFLOW_SKILLS_VERSION"),
 }
@@ -97,6 +157,8 @@ for package, wanted in expected.items():
     installed = version(package)
     if installed != wanted:
         raise SystemExit(f"{package}: expected {wanted}, installed {installed}")
+from omero_analysis.host_capabilities import biomero_analysis_host_installed
+assert biomero_analysis_host_installed(), "The Data Analysis view, template and frontend must all be installed"
 PY
 
 ### Install OMERO.forms ###
