@@ -48,11 +48,23 @@ FROM openmicroscopy/omero-web-standalone:5.33.1 AS biomero-host-wheel
 USER root
 ARG OMERO_BIOMERO_VERSION=1.6.1+analysis.g75adc97
 COPY --from=biomero-host-frontend /src/omero_biomero/ /src/omero_biomero/
-COPY --from=biomero-host-frontend /src/setup.py /src/pyproject.toml /src/README.md /src/LICENSE /src/
+COPY --from=biomero-host-frontend /src/setup.py /src/pyproject.toml /src/MANIFEST.in /src/README.md /src/LICENSE /src/
 WORKDIR /src
 RUN /opt/omero/web/venv3/bin/python -m pip install build setuptools-scm wheel && \
     SETUPTOOLS_SCM_PRETEND_VERSION="${OMERO_BIOMERO_VERSION}" \
     /opt/omero/web/venv3/bin/python -m build --wheel --no-isolation --outdir /dist/biomero-host
+RUN /opt/omero/web/venv3/bin/python - <<'PY'
+from pathlib import Path
+import zipfile
+wheel = next(Path('/dist/biomero-host').glob('*.whl'))
+with zipfile.ZipFile(wheel) as archive:
+    required = {
+        'omero_biomero/templates/omero_biomero/webclient_plugins/react_app.html',
+        'omero_biomero/static/omero_biomero/assets/asset-manifest.json',
+    }
+    assert required.issubset(archive.namelist()), 'Embedded host assets missing from wheel'
+print('Embedded host template and compiled frontend manifest are packaged')
+PY
 
 FROM openmicroscopy/omero-web-standalone:5.33.1
 
