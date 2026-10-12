@@ -171,11 +171,12 @@ setup error identifying the required image. BIOMERO also verifies the installed
 helper's version and storage-format capabilities before it changes result data;
 initialize and verify the selected image before retrying.
 
-After upgrading an installation that already contains results in an older
-shallow-storage format, run ``BIOMERO Migrate Shallow Storage (Admin Only)``.
-Run its dry mode first, then apply the migration after reviewing the count. The
-migration updates manifests and OMERO references, creates recovery files and
-does not copy image pixels.
+After upgrading an installation that already contains older shallow-storage
+data, run ``BIOMERO Migrate Shallow Storage (Admin Only)``. Run its dry mode
+first, then apply the migration after reviewing the count and estimated space
+recovery. The migration updates manifests and OMERO references, consolidates
+canonical registrations, and creates recovery files without copying image
+pixels.
 
 Equivalent ``[SLURM]`` options are ``remote_shallow_zarr``,
 ``remote_shallower_image``, ``remote_shallower_version``,
