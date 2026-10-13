@@ -127,5 +127,3 @@ workflows, or modify the `slurm-config.ini` — not just on version upgrades.
 - Avoiding containers? → Proceed with caution (Scenario 4).
 
 Containers reduce complexity — you're not stuck managing dependencies or OS quirks.
-
----

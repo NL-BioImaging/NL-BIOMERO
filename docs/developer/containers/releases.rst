@@ -46,7 +46,7 @@ Container Build Automation
    - **Coordination**: Update submodule reference in NL-BIOMERO when needed
 
 Typical Release Process
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 1. **Update Dependencies**
    
@@ -93,7 +93,7 @@ Typical Release Process
    - Announce significant releases (see Communication section)
 
 Versioning Guidelines
---------------------
+---------------------
 
 Semantic Versioning
 ~~~~~~~~~~~~~~~~~~~
@@ -116,7 +116,7 @@ NL-BIOMERO follows `Semantic Versioning <https://semver.org/>`_ (MAJOR.MINOR.PAT
    - Required feature updates that maintain compatibility
 
 Pre-release Versions
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 For development and testing versions:
 
@@ -136,7 +136,7 @@ For development and testing versions:
    - No, beta is a release candidate
 
 Release Examples
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
@@ -151,10 +151,10 @@ Release Examples
    v2.0.0-beta.1   - Feature-complete v2.0 for testing
 
 Dependency Management
---------------------
+---------------------
 
 Library Updates
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 **BIOMERO Library**
    1. **BIOMERO releases** new version (separate repository)
@@ -175,7 +175,7 @@ Library Updates
    4. **Release** updated containers
 
 Example Dependency Update
-~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
@@ -191,10 +191,10 @@ Example Dependency Update
    # 5. GitHub Actions builds and publishes containers
 
 OMERO ADI Submodule
-------------------
+-------------------
 
 Special Handling
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 The OMERO ADI component is managed as a Git submodule with independent versioning:
 
@@ -224,10 +224,10 @@ The OMERO ADI component is managed as a Git submodule with independent versionin
    - Test integration when updating submodule reference
 
 Docker Hub Management
---------------------
+---------------------
 
 Container Registry
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 **Organization**: `cellularimagingcf <https://hub.docker.com/u/cellularimagingcf>`_
 
@@ -245,7 +245,7 @@ Container Registry
    - Pre-releases do **not** update ``latest`` tag
 
 Repository Management
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 **Automated Publishing**
    - GitHub Actions handles all container publishing
@@ -261,7 +261,7 @@ Communication & Announcements
 -----------------------------
 
 Release Communication
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 **Significant Releases** (major versions, important features):
 
@@ -292,7 +292,7 @@ Release Communication
    - Internal notification if critical fixes
 
 Release Notes Template
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: markdown
 
@@ -324,7 +324,7 @@ Troubleshooting Releases
 ------------------------
 
 Common Issues
-~~~~~~~~~~~~
+~~~~~~~~~~~~~
 
 **Build Failures**
    - Check GitHub Actions logs
@@ -342,7 +342,7 @@ Common Issues
    - Monitor Docker Hub service status
 
 Emergency Releases
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 For critical security fixes or major bugs:
 
@@ -356,7 +356,7 @@ Best Practices
 --------------
 
 Release Checklist
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 Before creating a release:
 
@@ -371,7 +371,7 @@ Before creating a release:
    □ Pre-release marked appropriately (if applicable)
 
 Release Quality
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 - **Test thoroughly** before releasing
 - **Use development environment** for pre-release testing
