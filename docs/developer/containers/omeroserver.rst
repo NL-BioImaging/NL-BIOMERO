@@ -86,7 +86,7 @@ Configuration Changes
      CONFIG_omero_db_name: "${POSTGRES_DB}"
 
 Adding New Scripts
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 To add additional OMERO scripts:
 

@@ -12,12 +12,22 @@ Compose scenario:
 
 .. code-block:: text
 
-   OMERO_ANALYSIS_VERSION=0.11.0
+   OMERO_ANALYSIS_VERSION=0.15.0
    INTEGRATE_DATA_ANALYSIS=TRUE
 
 The Boolean setting is case-insensitive. ``true``, ``True``, ``TRUE``, ``1``,
 ``yes``, and ``on`` enable integrated mode. A false value or an absent setting
 uses standalone mode.
+
+Pin an existing GitHub Release that contains the Analysis wheel, notebook SDK
+wheel and checksum manifest. The web build verifies these assets before an
+offline installation. See the `Analysis release guide
+<https://github.com/NL-BioImaging/OMERO.Analysis/blob/main/docs/github-releases.md>`_.
+Advance the deployment pin only after the requested release assets exist.
+
+Integrated navigation also requires a compatible installed BIOMERO host view,
+template and compiled frontend. If the host contract is absent, Analysis keeps
+its standalone launch path even when the flag is true.
 
 .. list-table:: Navigation behavior
    :header-rows: 1
@@ -82,6 +92,28 @@ Then sign in and check exactly one launch path:
   saved-Workspace context to the selected launch path;
 * Analysis can run a Method, use Pyodide, upload and download attachments, and
   retain the OMERO session and active group inside the embedded frame.
+
+Remote measurements and image review
+------------------------------------
+
+Large DuckDB, SQLite and CSV attachments use the private DataQueryWorker
+service. Keep its endpoint and token server-side and verify readiness before
+running a notebook. After a reload, the Workspace must retain its remote source
+binding without downloading the whole database into the browser.
+
+ZarrViewer review exports require the measured result's store UUID to match its
+authenticated capabilities. For shallow segmentation results, canonical source
+pixels retain the result's separate identity. Large plates require the viewer's
+bounded manifest support as well as adequate request-header limits. This demo
+uses ``large_client_header_buffers 4 128k`` in Nginx and
+``--limit-request-field_size 131072`` in Gunicorn. Any additional reverse proxy
+must accept the same signed context. These limits do not alter authentication,
+group checks or the internal-only Zarr route.
+
+Run an unchanged-parameter notebook twice and reload its saved Workspace.
+Verify that each PNG has its own SVG/CSV companions, with no redundant plot
+attachments on the Dataset. Different parameter/input sets remain separate;
+superseded results remain recoverable through Workspace Trash.
 
 Troubleshooting
 ---------------
