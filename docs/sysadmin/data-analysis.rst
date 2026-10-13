@@ -12,7 +12,7 @@ Compose scenario:
 
 .. code-block:: text
 
-   OMERO_ANALYSIS_VERSION=0.15.0
+   OMERO_ANALYSIS_VERSION=1.0.0
    INTEGRATE_DATA_ANALYSIS=TRUE
 
 The Boolean setting is case-insensitive. ``true``, ``True``, ``TRUE``, ``1``,
