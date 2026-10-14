@@ -1,14 +1,23 @@
+# Resolve omero-zarr-pixel-buffer and its full runtime dependency tree with Maven,
+# so upgrading OMERO_ZARR_PIXEL_BUFFER_VERSION also upgrades the matching jars.
+FROM maven:3.9-eclipse-temurin-11 AS zarr-deps
+ARG OMERO_ZARR_PIXEL_BUFFER_VERSION
+RUN test -n "$OMERO_ZARR_PIXEL_BUFFER_VERSION" || (echo "OMERO_ZARR_PIXEL_BUFFER_VERSION build arg is required" >&2; exit 1)
+COPY server/zarr-pixel-buffer/pom.xml /build/pom.xml
+RUN mvn -B -q -f /build/pom.xml dependency:copy-dependencies \
+        -Domero.zarr.pixel.buffer.version=$OMERO_ZARR_PIXEL_BUFFER_VERSION \
+        -DincludeScope=runtime \
+        -Dmdep.stripVersion=true \
+        -DoutputDirectory=/deps
+
 FROM openmicroscopy/omero-server:5.6.18
 
 ARG BIOMERO_SCRIPTS_VERSION
 ARG LABEL2ROIS_VERSION
-ARG OMERO_ZARR_PIXEL_BUFFER_VERSION
 
 # ARG BIOMERO_SCRIPTS_BRANCH=master
 
 ENV OMERO_DIST=/opt/omero/server/OMERO.server
-ENV OMERO_ZARR_PIXEL_BUFFER_REPO=https://artifacts.glencoesoftware.com:443/artifactory/gs-omero-snapshots-local/com/glencoesoftware/omero/omero-zarr-pixel-buffer
-ENV OMERO_ZARR_PIXEL_BUFFER_POM=/tmp/omero-zarr-pixel-buffer.pom
 
 # Upload scripts for omero-server user
 # COPY --chown=omero-server:omero-server scripts/slurm/* /opt/omero/server/OMERO.server/lib/scripts/slurm/
@@ -57,15 +66,15 @@ RUN curl -o $OMERO_DIST/lib/scripts/omero/util_scripts/Labels2Rois.py \
 # run all /startup/* scripts in alphabetic/numerical order.
 
 # Install ZARR support dependencies for BIOMERO.importer remote ZARR file rendering.
-# The dependency versions are read from the selected omero-zarr-pixel-buffer POM so
-# upgrading OMERO_ZARR_PIXEL_BUFFER_VERSION also upgrades the matching runtime jars.
-RUN test -n "$OMERO_ZARR_PIXEL_BUFFER_VERSION" || (echo "OMERO_ZARR_PIXEL_BUFFER_VERSION build arg is required" >&2; exit 1)
-RUN wget --no-hsts -O $OMERO_ZARR_PIXEL_BUFFER_POM $OMERO_ZARR_PIXEL_BUFFER_REPO/$OMERO_ZARR_PIXEL_BUFFER_VERSION/omero-zarr-pixel-buffer-$OMERO_ZARR_PIXEL_BUFFER_VERSION.pom
-RUN version="$(awk '/<artifactId>caffeine<\/artifactId>/{getline; gsub(/.*<version>|<\/version>.*/, ""); print; exit}' $OMERO_ZARR_PIXEL_BUFFER_POM)" && curl -fL -o $OMERO_DIST/lib/server/caffeine-$version.jar https://repo.maven.apache.org/maven2/com/github/ben-manes/caffeine/caffeine/$version/caffeine-$version.jar
-RUN version="$(awk '/<artifactId>jzarr<\/artifactId>/{getline; gsub(/.*<version>|<\/version>.*/, ""); print; exit}' $OMERO_ZARR_PIXEL_BUFFER_POM)" && curl -fL -o $OMERO_DIST/lib/server/jzarr-$version.jar https://repo.maven.apache.org/maven2/dev/zarr/jzarr/$version/jzarr-$version.jar
-RUN version="$(awk '/<artifactId>s3fs<\/artifactId>/{getline; gsub(/.*<version>|<\/version>.*/, ""); print; exit}' $OMERO_ZARR_PIXEL_BUFFER_POM)" && curl -fL -o $OMERO_DIST/lib/server/s3fs-$version.jar https://repo.maven.apache.org/maven2/org/lasersonlab/s3fs/$version/s3fs-$version.jar
-RUN version="$(awk '/<artifactId>aws-java-sdk-s3<\/artifactId>/{getline; gsub(/.*<version>|<\/version>.*/, ""); print; exit}' $OMERO_ZARR_PIXEL_BUFFER_POM)" && curl -fL -o $OMERO_DIST/lib/server/aws-java-sdk-core-$version.jar https://repo.maven.apache.org/maven2/com/amazonaws/aws-java-sdk-core/$version/aws-java-sdk-core-$version.jar
-RUN version="$(awk '/<artifactId>aws-java-sdk-s3<\/artifactId>/{getline; gsub(/.*<version>|<\/version>.*/, ""); print; exit}' $OMERO_ZARR_PIXEL_BUFFER_POM)" && curl -fL -o $OMERO_DIST/lib/server/aws-java-sdk-s3-$version.jar https://repo.maven.apache.org/maven2/com/amazonaws/aws-java-sdk-s3/$version/aws-java-sdk-s3-$version.jar
-RUN version="$(awk '/<artifactId>tika-core<\/artifactId>/{getline; gsub(/.*<version>|<\/version>.*/, ""); print; exit}' $OMERO_ZARR_PIXEL_BUFFER_POM)" && curl -fL -o $OMERO_DIST/lib/server/tika-core-$version.jar https://repo.maven.apache.org/maven2/org/apache/tika/tika-core/$version/tika-core-$version.jar
-RUN wget --no-hsts -O $OMERO_DIST/lib/server/omero-zarr-pixel-buffer.jar $OMERO_ZARR_PIXEL_BUFFER_REPO/$OMERO_ZARR_PIXEL_BUFFER_VERSION/omero-zarr-pixel-buffer-$OMERO_ZARR_PIXEL_BUFFER_VERSION.jar
-RUN rm -f $OMERO_ZARR_PIXEL_BUFFER_POM
+# Jars resolved in the zarr-deps stage are added to lib/server, skipping any
+# library OMERO.server already ships so its own versions stay on the classpath.
+COPY --from=zarr-deps --chown=omero-server:omero-server /deps /tmp/zarr-deps
+RUN for jar in /tmp/zarr-deps/*.jar; do \
+        name="$(basename "$jar" .jar)"; \
+        if ls $OMERO_DIST/lib/server/"$name".jar $OMERO_DIST/lib/server/"$name"-[0-9]*.jar >/dev/null 2>&1; then \
+            echo "Skipping $name (provided by OMERO.server)"; \
+        else \
+            cp "$jar" $OMERO_DIST/lib/server/; \
+        fi; \
+    done && \
+    rm -rf /tmp/zarr-deps
