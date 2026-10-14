@@ -20,8 +20,8 @@ Compose scenario:
    COMPOSE_PROFILES=analysis
    DQW_API_TOKEN=<generate-a-high-entropy-secret>
 
-The Boolean setting is case-insensitive. ``true``, ``True``, ``TRUE``, ``1``,
-``yes``, and ``on`` enable integrated mode. A false value or an absent setting
+The Boolean setting is case-insensitive. ``true``, ``True``, ``TRUE`` and ``1``
+enable integrated mode. A false value or an absent setting
 disables the Analysis app, center panel and navigation entries. The local
 worker starts only with the ``analysis`` Compose profile. Ordinary disabled
 deployments need no worker token. Keep any other selected Compose profiles when
@@ -102,22 +102,13 @@ Then sign in and check the selected feature state:
 * Analysis can run a Method, use Pyodide, upload and download attachments, and
   retain the OMERO session and active group inside the embedded frame.
 
-Remote measurements and image review
-------------------------------------
+Remote measurements and saved results
+-------------------------------------
 
 Large DuckDB, SQLite and CSV attachments use the private DataQueryWorker
 service. Keep its endpoint and token server-side and verify readiness before
 running a notebook. After a reload, the Workspace must retain its remote source
 binding without downloading the whole database into the browser.
-
-ZarrViewer review exports require the measured result's store UUID to match its
-authenticated capabilities. For shallow segmentation results, canonical source
-pixels retain the result's separate identity. Large plates require the viewer's
-bounded manifest support as well as adequate request-header limits. This demo
-uses ``large_client_header_buffers 4 128k`` in Nginx and
-``--limit-request-field_size 131072`` in Gunicorn. Any additional reverse proxy
-must accept the same signed context. These limits do not alter authentication,
-group checks or the internal-only Zarr route.
 
 Run an unchanged-parameter notebook twice and reload its saved Workspace.
 Verify that each PNG has its own SVG/CSV companions, with no redundant plot

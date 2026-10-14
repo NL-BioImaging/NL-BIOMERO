@@ -33,7 +33,7 @@ def startup(monkeypatch):
     return module, state
 
 
-@pytest.mark.parametrize('value', [None, '', 'FALSE', '0'])
+@pytest.mark.parametrize('value', [None, '', 'FALSE', '0', 'yes', 'on'])
 def test_disabled_upgrade_removes_only_analysis(startup, monkeypatch, value):
     module, state = startup
     if value is not None:
@@ -48,7 +48,7 @@ def test_disabled_upgrade_removes_only_analysis(startup, monkeypatch, value):
     }
 
 
-@pytest.mark.parametrize('value', ['TRUE', 'true', '1', 'yes', 'on'])
+@pytest.mark.parametrize('value', ['TRUE', 'true', '1'])
 def test_demo_opt_in_is_idempotent_and_can_be_disabled(startup, monkeypatch, value):
     module, state = startup
     monkeypatch.setenv('INTEGRATE_DATA_ANALYSIS', value)

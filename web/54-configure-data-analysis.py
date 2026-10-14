@@ -26,7 +26,7 @@ def host_installed():
 
 def configure():
     enabled = os.environ.get("INTEGRATE_DATA_ANALYSIS", "").strip().lower() in {
-        "true", "1", "yes", "on"
+        "true", "1"
     }
     apps = [app for app in get_list("omero.web.apps") if app != APP]
     centers = [entry for entry in get_list("omero.web.ui.center_plugins")

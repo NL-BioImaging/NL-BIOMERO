@@ -26,13 +26,6 @@ deployments opt in with ``BIOMERO_ZARR_VIEWER_ENABLED=TRUE``.
 Installation
 ------------
 
-For large shallow plates, set ``large_client_header_buffers 4 128k`` in the
-OMERO.web proxy server and ``--limit-request-field_size 131072`` in Gunicorn.
-The signed context currently contains the plate's label routes. The demo
-configures these limits; additional proxies must accept the same header size.
-The viewer package must also contain the large-manifest and shallow-result
-identity fixes. For notebook review exports, see :doc:`data-analysis`.
-
 An installation has three parts:
 
 1. Install the viewer package in the OMERO.web Python environment.
