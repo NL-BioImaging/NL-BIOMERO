@@ -82,7 +82,7 @@ services:
       ANALYZER_ENABLED: "TRUE"
       INTEGRATE_DATA_ANALYSIS: ${INTEGRATE_DATA_ANALYSIS:-FALSE}
       OMERO_ANALYSIS_DATA_QUERY_WORKER_URL: http://data-query-worker:8080
-      OMERO_ANALYSIS_DATA_QUERY_WORKER_TOKEN: ${DQW_API_TOKEN:?DQW_API_TOKEN is required}
+      OMERO_ANALYSIS_DATA_QUERY_WORKER_TOKEN: ${DQW_API_TOKEN:-}
       OMERO_ANALYSIS_REMOTE_QUERY_THRESHOLD_BYTES: 104857600
     networks:
       - biomero
@@ -95,10 +95,11 @@ services:
       - "../web/L-Drive:/data:rw"
 
   data-query-worker:
-    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:0.2.2@sha256:96620294ab7be707952cc94184a70bea86220c2ca257db7e14d489741bfc8c1b"
+    profiles: ["analysis"]
+    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:${OMERO_DATA_QUERY_WORKER_VERSION:-0.2.2}"
     restart: unless-stopped
     environment:
-      DQW_API_TOKEN: ${DQW_API_TOKEN:?DQW_API_TOKEN is required}
+      DQW_API_TOKEN: ${DQW_API_TOKEN:-}
     networks: [data-query]
     volumes: [data-query-cache:/var/lib/omero-data-query-worker]
     read_only: true

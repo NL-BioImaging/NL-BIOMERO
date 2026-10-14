@@ -1,8 +1,9 @@
 Integrated Data Analysis
 ========================
 
-NL-BIOMERO installs OMERO.Analysis alongside OMERO.biomero. One setting chooses
-where users launch it; it does not conditionally install or disable Analysis.
+The web image includes the released Analysis package, but Analysis is disabled
+unless explicitly enabled. The supplied NL-BIOMERO demo opts in. Upgrading
+OMERO.biomero alone does not install or activate Analysis or its worker.
 
 Configuration
 -------------
@@ -12,22 +13,30 @@ Compose scenario:
 
 .. code-block:: text
 
+   OMERO_BIOMERO_VERSION=1.7.0b7
    OMERO_ANALYSIS_VERSION=1.0.0
+   OMERO_DATA_QUERY_WORKER_VERSION=0.2.2
    INTEGRATE_DATA_ANALYSIS=TRUE
+   COMPOSE_PROFILES=analysis
+   DQW_API_TOKEN=<generate-a-high-entropy-secret>
 
 The Boolean setting is case-insensitive. ``true``, ``True``, ``TRUE``, ``1``,
 ``yes``, and ``on`` enable integrated mode. A false value or an absent setting
-uses standalone mode.
+disables the Analysis app, center panel and navigation entries. The local
+worker starts only with the ``analysis`` Compose profile. Ordinary disabled
+deployments need no worker token. Keep any other selected Compose profiles when
+adding ``analysis`` to ``COMPOSE_PROFILES``.
 
-Pin an existing GitHub Release that contains the Analysis wheel, notebook SDK
-wheel and checksum manifest. The web build verifies these assets before an
-offline installation. See the `Analysis release guide
+The Dockerfile installs OMERO.biomero, Analysis and WorkflowSkills from PyPI
+using exact versions. Analysis 1.0.0 is also available as the identical wheel
+on GitHub Releases; there is no deployment-specific downloader or SDK installation.
+See the `Analysis release guide
 <https://github.com/NL-BioImaging/OMERO.Analysis/blob/main/docs/github-releases.md>`_.
 Advance the deployment pin only after the requested release assets exist.
 
 Integrated navigation also requires a compatible installed BIOMERO host view,
-template and compiled frontend. If the host contract is absent, Analysis keeps
-its standalone launch path even when the flag is true.
+template and compiled frontend. An enabled deployment with an incompatible
+host fails startup with a clear error instead of silently changing the launch path.
 
 .. list-table:: Navigation behavior
    :header-rows: 1
@@ -37,9 +46,9 @@ its standalone launch path even when the flag is true.
      - BIOMERO
      - Center panel
    * - ``FALSE`` or absent
-     - **Analysis** opens a new tab
+     - No Analysis link
      - No Data Analysis button
-     - Opens standalone Analysis
+     - No Analysis panel
    * - ``TRUE``
      - Redundant Analysis top link is removed
      - **Data Analysis** appears beside Import and Analyze
@@ -51,7 +60,7 @@ when updating the integration branches:
 .. code-block:: bash
 
    docker compose build omeroweb
-   docker compose up -d omeroweb
+   docker compose up -d omeroweb data-query-worker
 
 Source selection and saved Workspaces
 -------------------------------------
@@ -84,10 +93,10 @@ After startup, verify the installed packages and registered URLs:
    docker compose exec omeroweb /opt/omero/web/venv3/bin/python -c \
      "import django; django.setup(); from django.urls import reverse; print(reverse('omero_analysis_index')); print(reverse('biomero'))"
 
-Then sign in and check exactly one launch path:
+Then sign in and check the selected feature state:
 
 * integrated mode: BIOMERO shows **Data Analysis** and the Analysis top link is absent;
-* standalone mode: the Analysis top link is present and BIOMERO has no Data Analysis button;
+* disabled mode: the Analysis app, top link, center panel and Data Analysis button are absent;
 * the center panel carries Dataset, Screen, Plate, Image, multi-selection, and
   saved-Workspace context to the selected launch path;
 * Analysis can run a Method, use Pyodide, upload and download attachments, and

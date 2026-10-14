@@ -21,6 +21,12 @@ jobs:
       DQW_API_TOKEN: ci-compose-validation-token
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pytest PyYAML
+      - name: Check feature opt-in and deployment regressions
+        run: python -m pytest tests/test_analysis_deployment.py -q
       - name: Validate maintained Compose scenarios
         shell: bash
         run: |
@@ -62,20 +68,17 @@ jobs:
           docker build \
             --build-arg OMERO_FORMS_VERSION \
             --build-arg OMERO_BIOMERO_VERSION \
-            --build-arg OMERO_BIOMERO_REF \
-            --build-arg BIOMERO_VERSION \
-            --build-arg BIOMERO_IMPORTER_VERSION \
             --build-arg OMERO_ANALYSIS_VERSION \
             --build-arg BIOMERO_WORKFLOW_SKILLS_VERSION \
             --build-arg BIOMERO_ZARR_VIEWER_VERSION \
             --tag nl-biomero-web:ci \
             --file web/Dockerfile \
             .
-      - name: Verify integration packages and Analysis runtime
+      - name: Verify installed releases and opt-in behavior
         run: |
           set -a
           source .env
           set +a
-          docker run --rm --env OMERO_ANALYSIS_VERSION --env OMERO_BIOMERO_VERSION --env BIOMERO_WORKFLOW_SKILLS_VERSION --entrypoint /opt/omero/web/venv3/bin/python \
-            nl-biomero-web:ci -c \
-            "from importlib.metadata import version; from pathlib import Path; import json, os; expected={'omero-biomero':os.environ['OMERO_BIOMERO_VERSION'],'omero-analysis':os.environ['OMERO_ANALYSIS_VERSION'],'biomero-workflow-skills':os.environ['BIOMERO_WORKFLOW_SKILLS_VERSION']}; actual={name:version(name) for name in expected}; assert actual == expected, actual; site=Path('/opt/omero/web/venv3/lib/python3.12/site-packages'); assert (site/'omero_analysis/static/omero_analysis/pyodide/pyodide.mjs').is_file(); root=site/'omero_biomero'; templates=''.join(path.read_text(errors='ignore') for path in (root/'templates').rglob('*.html')); assert 'DATA_ANALYSIS_ENABLED' in templates; manifest=json.loads((root/'static/omero_biomero/assets/asset-manifest.json').read_text()); bundle=root/'static/omero_biomero/assets'/Path(manifest['main.js']).name; assert bundle.is_file() and 'workspace_id' in bundle.read_text(errors='ignore')"
+          docker run --rm --env OMERO_ANALYSIS_VERSION --env OMERO_BIOMERO_VERSION --env BIOMERO_WORKFLOW_SKILLS_VERSION \
+            --volume "$PWD/scripts/smoke_analysis_image.py:/tmp/smoke_analysis_image.py:ro" \
+            --entrypoint /opt/omero/web/venv3/bin/python nl-biomero-web:ci /tmp/smoke_analysis_image.py

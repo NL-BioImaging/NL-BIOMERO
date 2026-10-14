@@ -14,7 +14,7 @@ SERVICE = "data-query-worker"
 
 def compose(*arguments: str, capture: bool = False) -> str:
     result = subprocess.run(
-        ["docker", "compose", "-f", str(COMPOSE_FILE), *arguments],
+        ["docker", "compose", "--env-file", str(ROOT / ".env"), "-f", str(COMPOSE_FILE), *arguments],
         cwd=ROOT,
         check=True,
         text=True,

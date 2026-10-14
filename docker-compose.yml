@@ -187,9 +187,6 @@ services:
       dockerfile: ./web/Dockerfile
       args:
         OMERO_BIOMERO_VERSION: ${OMERO_BIOMERO_VERSION}
-        OMERO_BIOMERO_REF: ${OMERO_BIOMERO_REF:?Set the reviewed OMERO.biomero commit}
-        BIOMERO_VERSION: ${BIOMERO_VERSION}
-        BIOMERO_IMPORTER_VERSION: ${BIOMERO_IMPORTER_VERSION}
         OMERO_ANALYSIS_VERSION: ${OMERO_ANALYSIS_VERSION:?Set an exact released OMERO_ANALYSIS_VERSION}
         BIOMERO_WORKFLOW_SKILLS_VERSION: ${BIOMERO_WORKFLOW_SKILLS_VERSION}
         OMERO_FORMS_VERSION: ${OMERO_FORMS_VERSION}
@@ -221,7 +218,7 @@ services:
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
       INTEGRATE_DATA_ANALYSIS: ${INTEGRATE_DATA_ANALYSIS:-FALSE}
       OMERO_ANALYSIS_DATA_QUERY_WORKER_URL: http://data-query-worker:8080
-      OMERO_ANALYSIS_DATA_QUERY_WORKER_TOKEN: ${DQW_API_TOKEN:?DQW_API_TOKEN is required}
+      OMERO_ANALYSIS_DATA_QUERY_WORKER_TOKEN: ${DQW_API_TOKEN:-}
       OMERO_ANALYSIS_REMOTE_QUERY_THRESHOLD_BYTES: 104857600
       UPLOADER_DESTINATION_DIR: ${UPLOADER_DESTINATION_DIR}
     # Named network to communicate with other containers
@@ -258,10 +255,11 @@ services:
       - omeroweb
 
   data-query-worker:
-    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:0.2.2@sha256:96620294ab7be707952cc94184a70bea86220c2ca257db7e14d489741bfc8c1b"
+    profiles: ["analysis"]
+    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:${OMERO_DATA_QUERY_WORKER_VERSION:-0.2.2}"
     restart: unless-stopped
     environment:
-      DQW_API_TOKEN: ${DQW_API_TOKEN:?DQW_API_TOKEN is required}
+      DQW_API_TOKEN: ${DQW_API_TOKEN:-}
     networks:
       - data-query
     volumes:

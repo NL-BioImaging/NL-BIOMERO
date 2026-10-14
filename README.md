@@ -77,8 +77,10 @@ First, customize your environment file `.env`:
 # Toggle UI components (both default to TRUE):
 # IMPORTER_ENABLED=TRUE   # Enables the BIOMERO.importer UI module
 # ANALYZER_ENABLED=TRUE   # Enables the BIOMERO.analyzer UI module
-# INTEGRATE_DATA_ANALYSIS=FALSE  # TRUE embeds OMERO.Analysis in BIOMERO
-# DQW_API_TOKEN=<generate-a-high-entropy-secret>  # required by web scenarios
+# INTEGRATE_DATA_ANALYSIS=TRUE  # Demo opts in; absent/FALSE disables Analysis
+# COMPOSE_PROFILES=analysis  # Demo enables the optional local query worker
+# OMERO_DATA_QUERY_WORKER_VERSION=0.2.2
+# DQW_API_TOKEN=<generate-a-high-entropy-secret>  # needed when enabling the worker
 # BIOMERO_ZARR_VIEWER_ENABLED=TRUE  # Enabled in the supplied demo configuration
 # BIOMERO_WEB_HOST_PORT=4080  # The single browser-facing OMERO.web endpoint
 # BIOMERO_SHALLOW_ZARR=FALSE  # Opt in to canonical-cache/shallow-result handling
@@ -129,9 +131,10 @@ browser-session policy. See the [detached workflows administrator
 guide](docs/sysadmin/detached-workflows.rst) for configuration and operational
 details.
 
-OMERO.Analysis is installed in both modes. With
-`INTEGRATE_DATA_ANALYSIS=TRUE`, open **BIOMERO → Data Analysis**; with `FALSE`,
-use the standalone **Analysis** link in OMERO.web. See the
+The image includes OMERO.Analysis, but it remains disabled unless
+`INTEGRATE_DATA_ANALYSIS=TRUE`. The demo opts in: open **BIOMERO → Data Analysis**.
+Without the flag, Analysis registrations are removed and no new worker token
+is required. The `analysis` Compose profile enables the optional local worker. See the
 [Integrated Data Analysis administrator guide](docs/sysadmin/data-analysis.rst)
 and the [Data Query Worker operations guide](docs/sysadmin/data-query-worker.md).
 

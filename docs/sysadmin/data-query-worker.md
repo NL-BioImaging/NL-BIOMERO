@@ -1,21 +1,22 @@
 # OMERO.DataQueryWorker operations
 
-Every maintained Compose scenario containing `omeroweb` also deploys the
-released OMERO.DataQueryWorker on an internal-only `data-query` network. The
+Every maintained Compose scenario containing `omeroweb` offers the released
+OMERO.DataQueryWorker under the optional `analysis` profile on an internal-only
+`data-query` network. The demo selects this profile through `COMPOSE_PROFILES=analysis`. The
 worker has no published port. Only `omeroweb` receives its private URL and
 bearer token.
 
-The integration baseline is DataQueryWorker 0.2.2, pinned by OCI digest in all
-eight maintained deployment files and the worker smoke fixture. Update those
-pins together after running Analysis's HTTP compatibility matrix and the
-authenticated worker cache smoke. Version 0.2.2 retains the 0.2.0 API and cache
+Set `OMERO_DATA_QUERY_WORKER_VERSION=0.2.2` in `.env` / `.env.shared`. All
+eight deployment files and the worker smoke fixture use that release version.
+The smoke reads the same `.env` as the deployment. Advance it after running
+Analysis's HTTP compatibility matrix and the authenticated cache smoke. Version 0.2.2 retains the 0.2.0 API and cache
 format and repairs release/version publication; the failed 0.2.1 publication
 must not be used as a deployment target.
 
 ## Secret setup and rotation
 
-Set `DQW_API_TOKEN` to a high-entropy deployment secret before running Docker
-Compose. The repository intentionally provides no usable default. Keep the
+Set `DQW_API_TOKEN` to a high-entropy deployment secret before enabling the
+local worker. The repository intentionally provides no usable default. Keep the
 token in the deployment secret store or local environment, never in version
 control.
 

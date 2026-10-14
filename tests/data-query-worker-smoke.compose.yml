@@ -1,6 +1,6 @@
 services:
   data-query-worker:
-    image: ghcr.io/nl-bioimaging/omero-data-query-worker:0.2.2@sha256:96620294ab7be707952cc94184a70bea86220c2ca257db7e14d489741bfc8c1b
+    image: ghcr.io/nl-bioimaging/omero-data-query-worker:${OMERO_DATA_QUERY_WORKER_VERSION:-0.2.2}
     environment:
       DQW_API_TOKEN: smoke-test-token-at-least-16-characters
       DQW_CACHE_DIR: /var/lib/omero-data-query-worker

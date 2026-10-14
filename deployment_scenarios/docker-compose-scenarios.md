@@ -196,13 +196,16 @@ IMPORTER_ENABLED=TRUE  # set FALSE to hide importer UI
 ANALYZER_ENABLED=TRUE  # set FALSE to hide BIOMERO UI
 
 # OMERO.Analysis navigation mode
-INTEGRATE_DATA_ANALYSIS=FALSE  # set TRUE to show Data Analysis inside BIOMERO
+INTEGRATE_DATA_ANALYSIS=TRUE  # demo opt-in; absent/FALSE disables Analysis
+COMPOSE_PROFILES=analysis  # optional local DataQueryWorker
+OMERO_DATA_QUERY_WORKER_VERSION=0.2.2
 ```
 
 Setting either variable to `FALSE` removes only the corresponding frontend elements in OMERO.web; backend containers can still run if present.
-OMERO.Analysis is installed in both navigation modes. `FALSE` shows its
-standalone OMERO top link; `TRUE` hides that link and shows BIOMERO's Data
-Analysis application instead.
+The Analysis package is present in the image but inactive without its feature
+flag. The demo opts in; existing deployments can omit the flag and the `analysis`
+worker profile. No worker secret is required while disabled. Enabling the local
+worker requires `DQW_API_TOKEN`. See the [Analysis guide](../docs/sysadmin/data-analysis.rst).
 
 ### Environment Customization
 All deployments should be customized by editing the `.env` file before deployment:
