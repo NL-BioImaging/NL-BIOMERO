@@ -189,6 +189,7 @@ services:
       BIOMERO_ZARR_VIEWER_SOURCE_ROOT: ${BIOMERO_ZARR_VIEWER_SOURCE_ROOT:-}
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
       BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
+      OMERO_BIOMERO_CONFIG_HISTORY_DIR: /opt/omero/web/config-history
       CONFIG_omero_scripts_timeout: ${OMERO_SCRIPTS_TIMEOUT}
       CONFIG_omero_web_session__expire__at__browser__close: "${OMERO_WEB_SESSION_EXPIRE_AT_BROWSER_CLOSE}"
       CONFIG_omero_web_session__cookie__age: ${OMERO_WEB_SESSION_COOKIE_AGE}
@@ -220,6 +221,7 @@ services:
     # Once volumes are added, only omeroweb container reload necessary, not the whole docker-compose.
     volumes:
       - "${SLURM_CONFIG_HOST_PATH:-./web/slurm-config.ini}:/opt/omero/web/OMERO.web/var/slurm-config.ini:rw"
+      - "biomero-config-history:/opt/omero/web/config-history:rw"
       - "${INPLACE_STORAGE_HOST_PATH}:${IMPORT_MOUNT_PATH}:rw"
       - "tus-destination:${UPLOADER_DESTINATION_DIR}"
       - "../OMERO.biomero/:/opt/omero/web/OMERO.biomero"
@@ -309,6 +311,7 @@ networks:
 
 # Define the named volume(s) to persist data to the host computer
 volumes:
+  biomero-config-history:
   database:
   database-biomero:
   omero:
