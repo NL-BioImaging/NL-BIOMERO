@@ -65,7 +65,7 @@ File system monitoring and processing
    paths accessible to OMERO.
 
    If ``BIOMERO_SHALLOW_ZARR=true`` and you use a custom folder, also set the same
-   value on ``biomeroworker`` for new canonical Zarr copies. Its processor forwards
+   value on ``biomeroworker`` for generated canonical Zarrs. Its processor forwards
    the name from ``biomero.constants.slurm_env``; the worker needs BIOMERO and
    importer versions supporting this option. With shallow-Zarr disabled, only
    the importer container needs the value.

@@ -28,6 +28,12 @@ fit together. **Keep its referenced source and label stores available.** A
 shallow directory alone is not a backup of the complete result. Ask your
 administrator before moving or deleting managed data.
 
+BIOMERO keeps one canonical registration per OMERO Image or Plate. When an
+input is already a managed Zarr, it is indexed in place; duplicate OMERO
+imports may therefore share that physical source. Otherwise BIOMERO creates
+one stable canonical Zarr and reuses it. It does not retain historical copies
+of generated canonical stores.
+
 Only derived workflow results are shallowed. Uploading a Zarr does not by
 itself trigger deduplication. If returned image pixels have changed, or BIOMERO
 cannot safely establish a match, it retains the full result.
