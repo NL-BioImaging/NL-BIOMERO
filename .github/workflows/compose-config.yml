@@ -62,7 +62,9 @@ jobs:
           docker build \
             --build-arg OMERO_FORMS_VERSION \
             --build-arg OMERO_BIOMERO_VERSION \
-            --build-arg OMERO_BIOMERO_BRANCH=analysis_integration \
+            --build-arg OMERO_BIOMERO_REF \
+            --build-arg BIOMERO_VERSION \
+            --build-arg BIOMERO_IMPORTER_VERSION \
             --build-arg OMERO_ANALYSIS_VERSION \
             --build-arg BIOMERO_WORKFLOW_SKILLS_VERSION \
             --build-arg BIOMERO_ZARR_VIEWER_VERSION \

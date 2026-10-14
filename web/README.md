@@ -7,7 +7,7 @@ This container extends the standard OMERO.web with BIOMERO-specific functionalit
 The `analysis_integration` branch builds and validates the embedded **Data
 Analysis** host beside **Import** and **Analyze**. Keep
 `INTEGRATE_DATA_ANALYSIS=TRUE`; see [the host build contract](biomero-analysis-host.md)
-for the reviewed stable-backend backport and rebuild checks.
+for the exact upstream host commit, dependency pins and rebuild checks.
 
 - **OMERO.biomero** - Unified importer and analyzer interface
 - **OMERO.Analysis** - Browser-local Methods, Pipelines, Notebooks, and Assistant workspace

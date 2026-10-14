@@ -5,6 +5,13 @@ released OMERO.DataQueryWorker on an internal-only `data-query` network. The
 worker has no published port. Only `omeroweb` receives its private URL and
 bearer token.
 
+The integration baseline is DataQueryWorker 0.2.2, pinned by OCI digest in all
+eight maintained deployment files and the worker smoke fixture. Update those
+pins together after running Analysis's HTTP compatibility matrix and the
+authenticated worker cache smoke. Version 0.2.2 retains the 0.2.0 API and cache
+format and repairs release/version publication; the failed 0.2.1 publication
+must not be used as a deployment target.
+
 ## Secret setup and rotation
 
 Set `DQW_API_TOKEN` to a high-entropy deployment secret before running Docker

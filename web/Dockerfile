@@ -31,14 +31,18 @@ subprocess.run([sys.executable, '-m', 'pip', 'download', '--only-binary=:all:',
                 '--dest', '/dist/wheelhouse', *requirements], check=True)
 PY
 
-# The released 1.6.1 backend has the newer Analyze/storage behavior but lacks
-# the Data Analysis host. Build the reviewed integration patch on that exact
-# baseline rather than silently replacing it with a stock or older branch build.
+# Integration builds use the reviewed upstream host commit, never a moving branch
+# or a deployment-maintained patch. Replace this stage with its released wheel
+# when the combined host has an upstream release.
 FROM node:22 AS biomero-host-frontend
-RUN git clone --branch v1.6.1 --depth 1 https://github.com/NL-BioImaging/OMERO.biomero.git /src
-WORKDIR /src
-COPY web/biomero-analysis-host.patch /tmp/biomero-analysis-host.patch
-RUN git apply --check /tmp/biomero-analysis-host.patch && git apply /tmp/biomero-analysis-host.patch
+ARG OMERO_BIOMERO_REF
+RUN test "${#OMERO_BIOMERO_REF}" -eq 40 && \
+    echo "${OMERO_BIOMERO_REF}" | grep -Eq '^[0-9a-f]{40}$' && \
+    git init /src && cd /src && \
+    git remote add origin https://github.com/NL-BioImaging/OMERO.biomero.git && \
+    git fetch --depth 1 origin "${OMERO_BIOMERO_REF}" && \
+    git checkout --detach FETCH_HEAD && \
+    test "$(git rev-parse HEAD)" = "${OMERO_BIOMERO_REF}"
 WORKDIR /src/webapp
 ENV CI=true
 RUN corepack enable && yarn install --frozen-lockfile && \
@@ -46,11 +50,13 @@ RUN corepack enable && yarn install --frozen-lockfile && \
 
 FROM openmicroscopy/omero-web-standalone:5.33.1 AS biomero-host-wheel
 USER root
-ARG OMERO_BIOMERO_VERSION=1.6.1+analysis.host3
+ARG OMERO_BIOMERO_VERSION
+ARG OMERO_BIOMERO_REF
 COPY --from=biomero-host-frontend /src/omero_biomero/ /src/omero_biomero/
 COPY --from=biomero-host-frontend /src/setup.py /src/pyproject.toml /src/MANIFEST.in /src/README.md /src/LICENSE /src/
 WORKDIR /src
-RUN /opt/omero/web/venv3/bin/python -m pip install build setuptools-scm wheel && \
+RUN test "${OMERO_BIOMERO_VERSION}" = "1.7.0b6+analysis.g$(printf '%s' "${OMERO_BIOMERO_REF}" | cut -c1-7)" && \
+    /opt/omero/web/venv3/bin/python -m pip install build setuptools-scm wheel && \
     SETUPTOOLS_SCM_PRETEND_VERSION="${OMERO_BIOMERO_VERSION}" \
     /opt/omero/web/venv3/bin/python -m build --wheel --no-isolation --outdir /dist/biomero-host
 RUN /opt/omero/web/venv3/bin/python - <<'PY'
@@ -70,7 +76,8 @@ FROM openmicroscopy/omero-web-standalone:5.33.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
-ARG OMERO_BIOMERO_BRANCH=analysis_integration
+ARG BIOMERO_VERSION
+ARG BIOMERO_IMPORTER_VERSION
 ARG OMERO_ANALYSIS_VERSION
 ARG BIOMERO_WORKFLOW_SKILLS_VERSION
 ARG BIOMERO_ZARR_VIEWER_VERSION
@@ -132,11 +139,13 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 #         "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
 #     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
-# Install the tested integration wheel prepared above. The local version suffix
-# identifies the host backport; the public backend baseline remains 1.6.1.
+# Install the reviewed host and exact first-party backend dependency pins.
+# The unique local version identifies an integration build, not an upstream release.
 COPY --from=biomero-host-wheel /dist/biomero-host/ /tmp/biomero-host-wheels/
 RUN /opt/omero/web/venv3/bin/pip install \
         /tmp/biomero-host-wheels/omero_biomero-*.whl \
+        "biomero==${BIOMERO_VERSION}" \
+        "biomero-importer[identity]==${BIOMERO_IMPORTER_VERSION}" \
     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
 # Install Analysis from checksum-verified, pre-built GitHub Release wheels.
@@ -160,21 +169,24 @@ RUN cp /opt/omero/web/venv3/share/omero-analysis/90-omero-analysis.omero /opt/om
 RUN /opt/omero/web/venv3/bin/python - <<'PY'
 import os
 from importlib.metadata import version
+from packaging.version import Version
 
 expected = {
     "omero-biomero": os.environ.get("OMERO_BIOMERO_VERSION"),
+    "biomero": os.environ.get("BIOMERO_VERSION"),
+    "biomero-importer": os.environ.get("BIOMERO_IMPORTER_VERSION"),
     "omero-analysis": os.environ.get("OMERO_ANALYSIS_VERSION"),
     "biomero-workflow-skills": os.environ.get("BIOMERO_WORKFLOW_SKILLS_VERSION"),
 }
 for package, wanted in expected.items():
     installed = version(package)
-    if installed != wanted:
+    if wanted is None or Version(installed) != Version(wanted):
         raise SystemExit(f"{package}: expected {wanted}, installed {installed}")
 from omero_analysis.host_capabilities import biomero_analysis_host_installed
 assert biomero_analysis_host_installed(), "The Data Analysis view, template and frontend must all be installed"
 PY
 RUN /opt/omero/web/venv3/bin/python -m django test \
-    omero_biomero.tests.test_biomero_views omero_biomero.tests.test_analyzer_views \
+    omero_biomero.tests \
     --settings=omero_biomero.test_settings --noinput
 
 ### Install OMERO.forms ###

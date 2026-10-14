@@ -210,7 +210,7 @@ services:
         max-file: "5"
 
   data-query-worker:
-    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:0.2.0@sha256:0b95dfd3687d4241bf94fea3d30b919f280323f359eb02166b8ef68bd95265a8"
+    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:0.2.2@sha256:96620294ab7be707952cc94184a70bea86220c2ca257db7e14d489741bfc8c1b"
     restart: unless-stopped
     environment:
       DQW_API_TOKEN: ${DQW_API_TOKEN:?DQW_API_TOKEN is required}
