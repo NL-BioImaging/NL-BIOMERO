@@ -24,8 +24,3 @@ docs/_build_local/
 docs/venv/
 
 .analyzed
-
-# Private admin configuration snapshots and coordination files.
-config-history/
-*.ini.history/
-*.ini.lock

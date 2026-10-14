@@ -97,9 +97,7 @@ COPY web/55-configure-zarr-viewer.py /startup/
 RUN chmod +x /startup/45-fix-forms-config.sh && \
     chmod +x /startup/55-configure-zarr-viewer.py && \
     chmod +x /startup/44-create_forms_user.py && \
-    mkdir -p /opt/omero/web/config-history && \
-    chown -R omero-web:omero-web /opt/omero/web/config /opt/omero/web/config-history && \
-    chmod 700 /opt/omero/web/config-history && \
+    chown -R omero-web:omero-web /opt/omero/web/config && \
     chmod 644 /opt/omero/web/config/01-default-webapps.omero
 
 ### Better Buttons ###
