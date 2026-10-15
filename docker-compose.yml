@@ -256,7 +256,7 @@ services:
 
   data-query-worker:
     profiles: ["analysis"]
-    image: "ghcr.io/nl-bioimaging/omero-data-query-worker:${OMERO_DATA_QUERY_WORKER_VERSION:-0.2.2}"
+    image: "cellularimagingcf/omero-data-query-worker:${OMERO_DATA_QUERY_WORKER_VERSION:-0.2.2}"
     restart: unless-stopped
     environment:
       DQW_API_TOKEN: ${DQW_API_TOKEN:-}

@@ -8,6 +8,10 @@ bearer token.
 
 Set `OMERO_DATA_QUERY_WORKER_VERSION=0.2.2` in `.env` / `.env.shared`. All
 eight deployment files and the worker smoke fixture use that release version.
+They pull `cellularimagingcf/omero-data-query-worker` from Docker Hub, like the
+other NL-BIOMERO containers. The 0.2.2 image was copied unchanged from the
+historical GHCR publication, including both architectures and attestations;
+the worker API and cache format are unchanged.
 The smoke reads the same `.env` as the deployment. Advance it after running
 Analysis's HTTP compatibility matrix and the authenticated cache smoke. Version 0.2.2 retains the 0.2.0 API and cache
 format and repairs release/version publication; the failed 0.2.1 publication
