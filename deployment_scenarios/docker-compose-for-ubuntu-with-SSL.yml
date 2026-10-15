@@ -197,10 +197,15 @@ services:
       BIOMERO_REMOTE_SHALLOW_ZARR: ${BIOMERO_REMOTE_SHALLOW_ZARR:-true}
       BIOMERO_DETACHED_WORKFLOWS: ${BIOMERO_DETACHED_WORKFLOWS:-false}
       ANALYZER_ENABLED: ${ANALYZER_ENABLED}
+      INTEGRATE_DATA_ANALYSIS: ${INTEGRATE_DATA_ANALYSIS:-FALSE}
+      OMERO_ANALYSIS_DATA_QUERY_WORKER_URL: http://data-query-worker:8080
+      OMERO_ANALYSIS_DATA_QUERY_WORKER_TOKEN: ${DQW_API_TOKEN:-}
+      OMERO_ANALYSIS_REMOTE_QUERY_THRESHOLD_BYTES: 104857600
       UPLOADER_DESTINATION_DIR: /tus_destination
     # Named network to communicate with other containers
     networks:
       - omero
+      - data-query
     # Map ports to ports on the host machine, to allow opening of webpage
     # Remove port section when we add nginx to do it
     #ports:
@@ -212,6 +217,28 @@ services:
       - "../web/local_omeroweb_edits/pretty_login/login_page_images/bioimaging.png:/opt/omero/web/venv3/lib/python3.9/site-packages/omeroweb/webclient/static/webclient/image/login_page_images/AmsterdamUMC-logo.png:ro"
       - "../web/L-Drive:/data:rw"
       - "tus-destination:/tus_destination"
+
+  data-query-worker:
+    profiles: ["analysis"]
+    image: "cellularimagingcf/omero-data-query-worker:${OMERO_DATA_QUERY_WORKER_VERSION:-0.2.2}"
+    restart: unless-stopped
+    environment:
+      DQW_API_TOKEN: ${DQW_API_TOKEN:-}
+    networks: [data-query]
+    volumes: [data-query-cache:/var/lib/omero-data-query-worker]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp:size=256m,mode=1777]
+    pids_limit: 128
+    mem_limit: 2g
+    cpus: 2.0
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      start_period: 15s
+      retries: 5
 
   metabase:
     image: metabase/metabase@sha256:f7b5dc52c21aaa2dca910a450e7e6119a975090ce9fc80726aa0742882ca176c
@@ -269,6 +296,8 @@ services:
 # Define the network(s) to communicate between containers
 networks:
   omero:
+  data-query:
+    internal: true
 
 # Define the named volume(s) to persist data to the host computer
 volumes:
@@ -276,4 +305,5 @@ volumes:
   database-biomero:
   omero:
   tus-destination:
+  data-query-cache:
   biomero-importer-containers:

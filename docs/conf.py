@@ -70,7 +70,9 @@ extensions = [
     'sphinx.ext.githubpages',
     'myst_parser',
     'sphinxcontrib.mermaid',
-    'sphinx_multiversion'
+    'sphinx_multiversion',
+    'sphinx_design',
+    'sphinx_tabs.tabs'
 ]
 
 templates_path = ['_templates']

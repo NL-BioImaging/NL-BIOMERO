@@ -1,5 +1,5 @@
 Metabase Administration
-======================
+=======================
 
 This guide covers the administrative setup and configuration of Metabase for NL-BIOMERO deployments. For technical development details, see :doc:`../developer/containers/metabase`.
 

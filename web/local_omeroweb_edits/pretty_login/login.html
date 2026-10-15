@@ -75,20 +75,23 @@
     var currentImageIndex = 0;
 
     function changeImage() {
+        const image = document.getElementById('dynamic-image');
+        if (!image || typeof images === 'undefined' || !Array.isArray(images) || !images.length) return;
         // Change the image source
-        document.getElementById('dynamic-image').src = images[currentImageIndex];
+        image.src = images[currentImageIndex];
 
         // Update the index to point to the next image
         currentImageIndex = (currentImageIndex + 1) % images.length;
     }
 
-    // Change image every 5 seconds
-    setInterval(changeImage, 5000);
-
-    // Initialize with the first image
-    if(images.length > 0) {
-        changeImage();
-    }
+    // The standard banner layout has no slideshow; initialize only a configured one.
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof images !== 'undefined' && Array.isArray(images) && images.length &&
+                document.getElementById('dynamic-image')) {
+            changeImage();
+            setInterval(changeImage, 5000);
+        }
+    });
 </script>
 
 <!-- Add the banner here -->

@@ -11,11 +11,14 @@
    :caption: System Administration
    :maxdepth: 2
 
+   sysadmin/index
    sysadmin/development-setup
    sysadmin/deployment
    sysadmin/docker-compose-scenarios
    sysadmin/linux-deployment
    sysadmin/slurm-integration
+   sysadmin/data-analysis
+   sysadmin/data-query-worker
    sysadmin/omero-biomero-admin
    sysadmin/analyzer-importer-admin
    sysadmin/remote-shallower
@@ -32,6 +35,7 @@
    :caption: Developer Guide  
    :maxdepth: 2
 
+   developer/index
    developer/architecture
    developer/detached-workflow-supervisor
    developer/getting-started
@@ -46,4 +50,5 @@
    :caption: User Guide
    :maxdepth: 2
 
+   user/index
    user/getting-started

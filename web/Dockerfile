@@ -2,6 +2,8 @@ FROM openmicroscopy/omero-web-standalone:5.33.1
 
 ARG OMERO_FORMS_VERSION
 ARG OMERO_BIOMERO_VERSION
+ARG OMERO_ANALYSIS_VERSION
+ARG BIOMERO_WORKFLOW_SKILLS_VERSION
 ARG BIOMERO_ZARR_VIEWER_VERSION
 # ARG BIOMERO_SCHEMA_BRANCH=main
 # ARG BIOMERO_SHALLOWER_BRANCH=main
@@ -60,11 +62,19 @@ ENV PATH="/usr/pgsql-12/bin:/usr/pgsql-14/bin:${PATH}"
 #         "omero-biomero @ git+https://github.com/NL-BioImaging/OMERO.biomero.git@${OMERO_BIOMERO_BRANCH}" \
 #     && /opt/omero/web/venv3/bin/omero-biomero-setup
 
-# Release option: install the version selected in OMERO_BIOMERO_VERSION from PyPI.
-RUN test -n "$OMERO_BIOMERO_VERSION" || (echo "OMERO_BIOMERO_VERSION build arg is required" >&2; exit 1)
+# Install upstream releases, as for the other web plugins.
+RUN /opt/omero/web/venv3/bin/pip install "omero-biomero==${OMERO_BIOMERO_VERSION}" && \
+    /opt/omero/web/venv3/bin/omero-biomero-setup
+
+# Analysis and WorkflowSkills use the same versioned PyPI installation pattern.
 RUN /opt/omero/web/venv3/bin/pip install \
-        "omero-biomero==${OMERO_BIOMERO_VERSION}" \
-    && /opt/omero/web/venv3/bin/omero-biomero-setup
+    "omero-analysis==${OMERO_ANALYSIS_VERSION}" \
+    "biomero-workflow-skills==${BIOMERO_WORKFLOW_SKILLS_VERSION}"
+RUN cp /opt/omero/web/venv3/share/omero-analysis/90-omero-analysis.omero /opt/omero/web/config/ && \
+    cp /opt/omero/web/venv3/share/omero-analysis/49-omero-analysis-cleanup.py /startup/
+# Registration is opt-in, like the viewer, and also handles existing config volumes.
+COPY web/54-configure-data-analysis.py /startup/
+RUN chmod +x /startup/49-omero-analysis-cleanup.py /startup/54-configure-data-analysis.py
 
 ### Install OMERO.forms ###
 

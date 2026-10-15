@@ -17,7 +17,7 @@ Development Workflow
 --------------------
 
 Development Mode
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 The development docker-compose (``docker-compose-dev.yml``) handles the web container specially:
 
@@ -29,7 +29,7 @@ The development docker-compose (``docker-compose-dev.yml``) handles the web cont
    For active plugin development, especially with the OMERO.biomero plugin, you need frequent restarts and live code changes.
 
 OMERO.biomero Plugin Development
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The primary development target is the `OMERO.biomero plugin <https://github.com/Cellular-Imaging-Amsterdam-UMC/OMERO.biomero/tree/main>`_:
 
@@ -71,7 +71,7 @@ Core OMERO Plugins
            omero-webtagging-tagsearch # Tag-based searching
 
 Supporting Libraries
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 **OMERO.forms Plugin**
    - Purpose: Dynamic form creation for data collection
@@ -167,7 +167,7 @@ Starting Development
    - Use the plugin's development tools to control OMERO.web
 
 Making Changes
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
 
 **For Plugin Development**:
    - Work in the respective plugin repository
