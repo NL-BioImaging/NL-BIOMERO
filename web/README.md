@@ -48,7 +48,7 @@ After changes: `docker-compose down omeroweb && docker-compose up -d omeroweb`
 ### Analysis production distribution
 
 The web Dockerfile uses ordinary `pip install` commands for released components.
-OMERO.biomero 1.7.0b7, Analysis 1.0.1 and WorkflowSkills 0.4.0 come from PyPI.
+OMERO.biomero 1.7.0b8, Analysis 1.0.1 and WorkflowSkills 0.4.0 come from PyPI.
 Analysis's identical wheel is also available on its GitHub Release for users
 who prefer that distribution channel. This deployment uses
 `OMERO_ANALYSIS_VERSION` with the normal PyPI installation; there is no
@@ -65,10 +65,10 @@ profile and set `DQW_API_TOKEN` to use the local worker.
 Component release validation belongs in the component repositories. This
 repository tests its startup/configuration behavior and the resulting web image.
 
-The follow-up frontend fixes on OMERO.biomero PR #34 are newer than the pinned
-1.7.0b7 wheel. Testing those fixes currently uses that PR's source and generated
-assets; advance the host pin only after its next package has been published.
-Upgrading Analysis alone does not replace the BIOMERO host frontend.
+The 1.7.0b8 host test beta packages the follow-up frontend fixes from
+OMERO.biomero PR #34, including its generated production assets. This beta
+supports testing the paired installation without a source build; publication
+does not merge or approve either integration PR.
 
 For local development, modify the Dockerfile and rebuild:
 ```bash
