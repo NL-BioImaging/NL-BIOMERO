@@ -1,0 +1,10 @@
+.git
+.env
+.env.shared
+**/__pycache__
+**/.pytest_cache
+logs
+metabase
+web/L-Drive
+server/reader-local
+*.log

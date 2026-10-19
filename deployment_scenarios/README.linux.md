@@ -104,6 +104,7 @@ FORMS_MASTER_PASSWORD=...
 METABASE_USER=...
 METABASE_PASSWORD=...
 METABASE_SECRET_KEY=...
+DQW_API_TOKEN=...
 ```
 
 ⚠️ `.env` is committed in the repo—override before first run. *And don't commit those changes ;)*
@@ -112,6 +113,14 @@ For Metabase:
 1. Log in to `localhost:3000` with default credentials
 2. Go to (admin) settings to reset your password and to the database embed settigns for a new secret key
 3. Update `.env` and redeploy
+
+The demo includes a public `DQW_API_TOKEN` so Analysis works out of the box.
+Replace it before using real data or exposing the demo to other users, just as
+you replace the Metabase dashboard embedding secret. Generate a unique value
+with `python -c "import secrets; print(secrets.token_hex(32))"`, update your
+deployment environment, and recreate both `omeroweb` and `data-query-worker`.
+See the [worker rotation guide](../docs/sysadmin/data-query-worker.md#secret-setup-and-rotation)
+for the commands. Keep replacement secrets out of version control.
 
 ### 8. HTTPS via Nginx Reverse Proxy
 To get SSL / HTTPS, you need to add a reverse proxy server like NGINX to reroute your server's traffic and check against SSL certificates.

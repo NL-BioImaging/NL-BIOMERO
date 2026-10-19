@@ -41,7 +41,7 @@ Container Customizations
 ------------------------
 
 SSH Integration
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 **SSH Client Installation**:
 
@@ -66,7 +66,7 @@ SSH Integration
 
 
 Database Integration
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 **PostgreSQL Support**:
 
@@ -84,7 +84,7 @@ Database Integration
 **BIOMERO 2.0 Feature**: Near real-time event logging provides a single source of truth for all workflow events.
 
 Data Export Pipeline
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 .. tip::
    🎥 **Visual explanation · 0:58:** :ref:`See how OME-Zarr connects OMERO data to flexible workflow inputs <video-one-format-flexible-workflows>`.
@@ -111,7 +111,7 @@ Data Export Pipeline
 4. **Results Import** → Back to OMERO as new images/annotations
 
 BIOMERO Library Integration
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Core BIOMERO Installation**:
 
@@ -137,7 +137,7 @@ For BIOMERO.scripts. These can have extra dependencies above just BIOMERO.analyz
     RUN wget https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp39-cp39-manylinux_2_28_x86_64.whl
 
 Custom Processor Implementation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Modified processor.py**:
 
@@ -223,10 +223,10 @@ submitting it twice.
    topology.
 
 Configuration Management
------------------------
+------------------------
 
 Slurm Configuration
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 **Base Configuration** (``slurm-config.ini``):
 
@@ -277,7 +277,7 @@ The web interface can mount a different configuration that overrides this base f
    3. **Limitation**: Override can modify/add but cannot delete base configurations
 
 Analytics Configuration
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 **BIOMERO 2.0 Analytics** (from ``slurm-config.ini``):
 
@@ -297,11 +297,11 @@ Analytics Configuration
     sqlalchemy_url=postgresql+psycopg2://user:password@localhost:5432/biomero
 
 Worker Startup Process
----------------------
+----------------------
 
 
 Configuration Generation
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The startup script dynamically generates OMERO configuration:
 
@@ -337,7 +337,7 @@ Development Guidelines
 ----------------------
 
 BIOMERO Script Development
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Script Location**: BIOMERO.scripts are installed on the **OMERO server container**, not the worker:
 
@@ -353,7 +353,7 @@ BIOMERO Script Development
 4. **Deploy**: Release NL-BIOMERO with new workflow support via the config. Or just set it via admin in a live environment.
 
 SSH Key Management
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 **Development Setup**:
 
@@ -372,7 +372,7 @@ SSH Key Management
 * **Access Control**: Limit SSH key to specific HPC resources
 
 Configuration Testing
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 **Test Slurm Configuration**:
 
@@ -455,10 +455,10 @@ Aggregate view
     slurmClient.workflowTracker.repository.get('00000000-0000-0000-0000-000000000000')
 
 Troubleshooting
---------------
+---------------
 
 Common Issues
-~~~~~~~~~~~~
+~~~~~~~~~~~~~
 
 **SSH Connection Failures**:
 
@@ -486,7 +486,7 @@ Common Issues
 * Ensure database schema is initialized
 
 Performance Optimization
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Resource Allocation**:
 
@@ -501,10 +501,10 @@ Performance Optimization
 * **Data Transfer**: Monitor ZARR export/import performance
 
 Upgrade Considerations
----------------------
+----------------------
 
 BIOMERO Library Updates
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 **Version Management**:
 
@@ -521,7 +521,7 @@ BIOMERO Library Updates
 4. **Validate workflows** in staging environment
 
 Processor.py Maintenance
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. warning::
    **Critical Maintenance Task**: The custom ``processor.py`` requires periodic review and merging with upstream changes.

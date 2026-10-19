@@ -4,7 +4,13 @@ This container extends the standard OMERO.web with BIOMERO-specific functionalit
 
 ## Included Components
 
+The `analysis_integration` branch installs and validates the embedded **Data
+Analysis** host beside **Import** and **Analyze**. Keep
+`INTEGRATE_DATA_ANALYSIS=TRUE` in the demo; other deployments remain disabled
+until explicitly enabled. See the [administrator guide](../docs/sysadmin/data-analysis.rst).
+
 - **OMERO.biomero** - Unified importer and analyzer interface
+- **OMERO.Analysis** - Browser-local Methods, Pipelines, Notebooks, and Assistant workspace
 - **OMERO.forms** - Custom metadata forms 
 - **BIOMERO OME-Zarr Viewer** - Optional read-only image, label and plate viewer
 - **Enhanced Login Page** - NL-BioImaging branding with institutional customization support
@@ -38,6 +44,34 @@ See `local_omeroweb_edits/pretty_login/login-amsterdamumc.html` for a complete e
 After changes: `docker-compose down omeroweb && docker-compose up -d omeroweb`
 
 ## Development
+
+### Analysis production distribution
+
+The web Dockerfile uses ordinary `pip install` commands for released components.
+OMERO.biomero 1.7.0b8, Analysis 1.0.1 and WorkflowSkills 0.4.0 come from PyPI.
+Analysis's identical wheel is also available on its GitHub Release for users
+who prefer that distribution channel. This deployment uses
+`OMERO_ANALYSIS_VERSION` with the normal PyPI installation; there is no
+custom downloader, manifest parser, source build, SDK installation or fallback.
+ZarrViewer keeps its existing single PyPI installation.
+
+The packaged Analysis defaults are loaded with normal OMERO configuration.
+`54-configure-data-analysis.py` then applies the runtime opt-in flag, like the
+existing viewer startup script. A missing/false flag removes only Analysis's
+app and UI registrations, including stale registrations on upgrades. It never
+deletes workspaces, notebooks or results. Enable the demo's `analysis` Compose
+profile to use the local worker. The tracked demo environment supplies a public
+`DQW_API_TOKEN` so it starts immediately. Replace that token before using real
+data or sharing the deployment, alongside the demo passwords and Metabase
+embedding secret; see the [worker rotation guide](../docs/sysadmin/data-query-worker.md#secret-setup-and-rotation).
+
+Component release validation belongs in the component repositories. This
+repository tests its startup/configuration behavior and the resulting web image.
+
+The 1.7.0b8 host test beta packages the follow-up frontend fixes from
+OMERO.biomero PR #34, including its generated production assets. This beta
+supports testing the paired installation without a source build; publication
+does not merge or approve either integration PR.
 
 For local development, modify the Dockerfile and rebuild:
 ```bash
