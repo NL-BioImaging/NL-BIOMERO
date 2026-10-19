@@ -78,9 +78,9 @@ First, customize your environment file `.env`:
 # IMPORTER_ENABLED=TRUE   # Enables the BIOMERO.importer UI module
 # ANALYZER_ENABLED=TRUE   # Enables the BIOMERO.analyzer UI module
 # INTEGRATE_DATA_ANALYSIS=TRUE  # Demo opts in; absent/FALSE disables Analysis
-# COMPOSE_PROFILES=analysis  # Demo enables the optional local query worker
+# COMPOSE_PROFILES=analysis,IMPORTER_ENABLED  # Demo enables Analysis and importer
 # OMERO_DATA_QUERY_WORKER_VERSION=0.2.2
-# DQW_API_TOKEN=<generate-a-high-entropy-secret>  # needed when enabling the worker
+# DQW_API_TOKEN=nl-biomero-demo-query-worker-change-me  # public demo default; replace for deployment
 # BIOMERO_ZARR_VIEWER_ENABLED=TRUE  # Enabled in the supplied demo configuration
 # BIOMERO_WEB_HOST_PORT=4080  # The single browser-facing OMERO.web endpoint
 # BIOMERO_SHALLOW_ZARR=FALSE  # Opt in to canonical-cache/shallow-result handling
@@ -104,7 +104,7 @@ setting and defaults to `4` in this deployment. Installations may override it
 to match their local CPU and storage capacity. It is not forwarded to OMERO
 scripts and is unused while shallow mode is disabled.
 
-The supplied demo selects `COMPOSE_PROFILES=IMPORTER_ENABLED` and exposes all
+The supplied demo selects `COMPOSE_PROFILES=analysis,IMPORTER_ENABLED` and exposes all
 OMERO.web traffic through its Nginx frontend.
 Existing deployments upgrading their images keep the viewer disabled when
 `BIOMERO_ZARR_VIEWER_ENABLED` is missing, empty or false. To opt in, enable the
@@ -137,6 +137,16 @@ Without the flag, Analysis registrations are removed and no new worker token
 is required. The `analysis` Compose profile enables the optional local worker. See the
 [Integrated Data Analysis administrator guide](docs/sysadmin/data-analysis.rst)
 and the [Data Query Worker operations guide](docs/sysadmin/data-query-worker.md).
+
+The tracked `.env` and `.env.shared` include a public `DQW_API_TOKEN` so the
+demo starts without generating a secret or adding a local Compose override.
+Before using real data or exposing the demo to other users, replace this token
+with a unique random value, just as you replace the supplied passwords and
+rotate the Metabase dashboard embedding secret. Generate a token with
+`python -c "import secrets; print(secrets.token_hex(32))"`, set `DQW_API_TOKEN`
+in your deployment environment, and recreate both `omeroweb` and
+`data-query-worker`. Keep your replacement secrets out of version control.
+See the worker guide for the rotation commands.
 
 ### 3. Setup Slurm Connection (Optional)
 For local testing with a containerized Slurm cluster:

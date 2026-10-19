@@ -18,7 +18,7 @@ Compose scenario:
    OMERO_DATA_QUERY_WORKER_VERSION=0.2.2
    INTEGRATE_DATA_ANALYSIS=TRUE
    COMPOSE_PROFILES=analysis
-   DQW_API_TOKEN=<generate-a-high-entropy-secret>
+   DQW_API_TOKEN=nl-biomero-demo-query-worker-change-me
 
 The Boolean setting is case-insensitive. ``true``, ``True``, ``TRUE`` and ``1``
 enable integrated mode. A false value or an absent setting
@@ -26,6 +26,16 @@ disables the Analysis app, center panel and navigation entries. The local
 worker starts only with the ``analysis`` Compose profile. Ordinary disabled
 deployments need no worker token. Keep any other selected Compose profiles when
 adding ``analysis`` to ``COMPOSE_PROFILES``.
+
+The supplied ``.env`` and ``.env.shared`` contain this public demo token so
+Analysis works on first startup. The main demo combines profiles as
+``COMPOSE_PROFILES=analysis,IMPORTER_ENABLED``. Before using real data or exposing
+the demo to other users, replace ``DQW_API_TOKEN`` with a unique random secret,
+alongside replacing demo passwords and rotating the Metabase dashboard embedding
+secret. Generate a replacement with
+``python -c "import secrets; print(secrets.token_hex(32))"`` and recreate both
+``omeroweb`` and ``data-query-worker``. Keep replacement secrets out of version
+control. See the :doc:`data-query-worker` guide for rotation commands.
 
 The Dockerfile installs OMERO.biomero, Analysis and WorkflowSkills from PyPI
 using exact versions. Analysis 1.0.0 is also available as the identical wheel

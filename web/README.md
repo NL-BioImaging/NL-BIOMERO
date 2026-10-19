@@ -60,7 +60,10 @@ The packaged Analysis defaults are loaded with normal OMERO configuration.
 existing viewer startup script. A missing/false flag removes only Analysis's
 app and UI registrations, including stale registrations on upgrades. It never
 deletes workspaces, notebooks or results. Enable the demo's `analysis` Compose
-profile and set `DQW_API_TOKEN` to use the local worker.
+profile to use the local worker. The tracked demo environment supplies a public
+`DQW_API_TOKEN` so it starts immediately. Replace that token before using real
+data or sharing the deployment, alongside the demo passwords and Metabase
+embedding secret; see the [worker rotation guide](../docs/sysadmin/data-query-worker.md#secret-setup-and-rotation).
 
 Component release validation belongs in the component repositories. This
 repository tests its startup/configuration behavior and the resulting web image.
