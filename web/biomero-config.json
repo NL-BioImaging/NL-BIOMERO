@@ -31,9 +31,10 @@
       }
     },
     "dataset_leica_uuid": {
-      "container": "cellularimagingcf/convertleica-docker:v1.5.0",
+      "container": "cellularimagingcf/biomero-converter:0.2.1",
       "extra_params": {
-        "image_uuid": "{UUID}"
+        "image_uuid": "{UUID}",
+        "outputformat": "omezarr04"
       }
     },
     "incucyte_archive": {
