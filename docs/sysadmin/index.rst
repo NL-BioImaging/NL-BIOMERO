@@ -18,7 +18,7 @@ features; existing deployments should follow each feature's enablement guide.
 * :doc:`detached-workflows` — continue analysis after the submitting session ends
 * :doc:`resumable-uploader` — browser uploads into the importer
 * :doc:`zarrviewer` — authenticated viewing of registered OME-Zarr data
-* :doc:`zarrviewer-metadata-limits` � configure large JSON metadata limits
+* :doc:`zarrviewer-metadata-limits` - configure large JSON metadata limits
 * :doc:`metabase-admin` — workflow and importer dashboards
 * :doc:`ui-customization` — adapt the interface
 * :doc:`backup-restore` — data protection and recovery
