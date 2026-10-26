@@ -28,7 +28,7 @@
       "container": "cellularimagingcf/biomero-converter:0.2.2",
       "extra_params": {
         "image_uuid": "{UUID}",
-        "outputformat": "omezarr04"
+        "outputformat": "omezarr05"
       }
     },
     "incucyte_archive": {

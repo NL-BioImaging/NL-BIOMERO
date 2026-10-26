@@ -118,7 +118,8 @@ Its retained arrays are Zarr, but ordinary readers cannot resolve BIOMERO's
 managed references to the omitted arrays.
 
 For external analysis or sharing, reconstruct it first. The current reconstruction
-produces conventional **OME-NGFF 0.4 / Zarr v2** data with the referenced pixels
+produces conventional **OME-NGFF 0.4 / Zarr v2** or **OME-NGFF 0.5 / Zarr v3**
+data in the source store's format, with the referenced pixels
 and labels copied into the output.
 
 This can be done on disk without submitting another analysis or running an

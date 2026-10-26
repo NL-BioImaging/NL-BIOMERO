@@ -40,9 +40,18 @@ that workflow authors produce.
 
 ## Current compatibility
 
-The current BIOMERO/OMERO path supports **OME-NGFF 0.4 on Zarr v2**. This limit
-comes from the deployed Glencoe export tooling and OMERO Zarr PixelBuffer.
-BIOMERO will move to newer NGFF versions as those dependencies support them.
+The BIOMERO/OMERO path supports **OME-NGFF 0.4 on Zarr v2** and
+**OME-NGFF 0.5 on Zarr v3**, including sharded v3 arrays. Existing managed
+stores retain their format when reused or reconstructed for another workflow.
+Workflows must support the format of their inputs; accepting OME-Zarr does
+not imply support for every NGFF or Zarr version.
+
+The workflow script's OME-Zarr version parameter selects the format for a
+fresh export. Selecting `0.5` creates a v3 export; it does not migrate an
+existing managed v2 store. The script retains its `0.4` default for existing
+deployments. The NL-BIOMERO demo explicitly selects `omezarr05` for new Leica
+conversions in `web/biomero-config.json`; administrators can select `omezarr04`
+when a workflow needs v2 inputs.
 
 Workflow authors do **not** need to generate BIOMERO sidecars, ISCC identities,
 RFC 8 shallow copies, or BIOMERO provenance metadata. Produce the supported

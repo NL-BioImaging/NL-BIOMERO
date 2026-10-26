@@ -266,6 +266,8 @@ services:
     build:
       context: ./biomero-importer
       dockerfile: ./Dockerfile
+      args:
+        BIOMERO_IMPORTER_VERSION: ${BIOMERO_IMPORTER_VERSION}
     profiles:
       - "IMPORTER_ENABLED"
     security_opt:

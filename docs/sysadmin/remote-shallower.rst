@@ -6,6 +6,17 @@ eligible OME-Zarr workflow results. BIOMERO retains new or changed labels and
 references verified source pixels already in managed storage. Original source
 data remains unchanged.
 
+The matched component releases support OME-Zarr 0.4 / Zarr v2 and OME-Zarr
+0.5 / Zarr v3 Images and Plates. Existing managed stores keep their format;
+upgrading does not rewrite them. Shallow results reconstruct in their source
+format, including retained labels.
+
+The demo's Leica preprocessing configuration creates new stores with
+``outputformat=omezarr05``. For fresh workflow exports, select ``0.5`` in the
+workflow script's OME-Zarr version parameter. Select a format supported by the
+workflow; choosing an export version does not convert a reused managed store.
+The script's default remains ``0.4`` for compatibility with existing workflows.
+
 The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
 ``BIOMERO_SHALLOW_ZARR=true``. Remote processing is then the default; set
 ``BIOMERO_REMOTE_SHALLOW_ZARR=false`` for local importer processing instead.
