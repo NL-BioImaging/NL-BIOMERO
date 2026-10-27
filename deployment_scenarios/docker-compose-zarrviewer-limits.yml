@@ -1,0 +1,6 @@
+# Add this file to the deployment's existing Compose file list.
+# A viewer package/configuration update or image rebuild is not required.
+services:
+  omeroweb:
+    environment:
+      CONFIG_omero_web_zarr__viewer_max__metadata__bytes: "${BIOMERO_ZARR_MAX_METADATA_BYTES:-1073741824}"

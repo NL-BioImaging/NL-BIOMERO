@@ -117,6 +117,7 @@ services:
     environment:
       OMEROHOST: omeroserver
       BIOMERO_ZARR_VIEWER_ENABLED: ${BIOMERO_ZARR_VIEWER_ENABLED:-false}
+      CONFIG_omero_web_zarr__viewer_max__metadata__bytes: ${BIOMERO_ZARR_MAX_METADATA_BYTES:-1073741824}
       BIOMERO_ZARR_VIEWER_SOURCE_ROOT: ${BIOMERO_ZARR_VIEWER_SOURCE_ROOT:-}
       ROOTPASS: ${OMERO_ROOT_PASSWORD}
       BIOMERO_SLURM_CONFIG_FILE: /opt/omero/web/OMERO.web/var/slurm-config.ini
