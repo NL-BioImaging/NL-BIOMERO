@@ -13,10 +13,11 @@ format, including retained labels.
 
 The demo's Leica, Incucyte database and Incucyte archive preprocessing routes
 all create new stores with ``extra_params.outputformat=omezarr05``. For fresh
-workflow exports, select ``0.5`` in the workflow script's OME-Zarr version
-parameter. Select a format supported by the workflow; choosing an export
-version does not convert a reused managed store.
-The script's default remains ``0.4`` for compatibility with existing workflows.
+native Zarr workflow exports, ``0.5`` is the default; administrators can select
+``0.4`` explicitly. Select a format supported by the workflow; choosing an
+export version does not convert a reused managed store. TIFF-consuming
+workflows use temporary v2 conversion material so the legacy HPC converter
+continues to work, including when the canonical source is v3.
 
 The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
 ``BIOMERO_SHALLOW_ZARR=true``. Remote processing is then the default; set

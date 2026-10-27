@@ -14,7 +14,7 @@
   <packaging>pom</packaging>
 
   <properties>
-    <omero.zarr.pixel.buffer.version>0.7.1</omero.zarr.pixel.buffer.version>
+    <omero.zarr.pixel.buffer.version>0.7.2</omero.zarr.pixel.buffer.version>
   </properties>
 
   <repositories>

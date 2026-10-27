@@ -47,9 +47,11 @@ Workflows must support the format of their inputs; accepting OME-Zarr does
 not imply support for every NGFF or Zarr version.
 
 The workflow script's OME-Zarr version parameter selects the format for a
-fresh export. Selecting `0.5` creates a v3 export; it does not migrate an
-existing managed v2 store. The script retains its `0.4` default for existing
-deployments. The NL-BIOMERO demo explicitly selects `omezarr05` for new Leica,
+fresh export. Native Zarr workflows default to `0.5`; an explicit `0.4` choice
+creates v2. Reusing a managed store preserves its actual format. TIFF-consuming
+workflows use temporary v2 conversion material, including when their source is
+v3, without changing the canonical store. The NL-BIOMERO demo explicitly
+selects `omezarr05` for new Leica,
 Incucyte database and Incucyte archive conversions in `web/biomero-config.json`.
 Each route passes the same `extra_params.outputformat` setting; Leica also
 passes the selected image UUID. Administrators can select `omezarr04` when a
