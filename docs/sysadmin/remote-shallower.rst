@@ -11,10 +11,11 @@ The matched component releases support OME-Zarr 0.4 / Zarr v2 and OME-Zarr
 upgrading does not rewrite them. Shallow results reconstruct in their source
 format, including retained labels.
 
-The demo's Leica preprocessing configuration creates new stores with
-``outputformat=omezarr05``. For fresh workflow exports, select ``0.5`` in the
-workflow script's OME-Zarr version parameter. Select a format supported by the
-workflow; choosing an export version does not convert a reused managed store.
+The demo's Leica, Incucyte database and Incucyte archive preprocessing routes
+all create new stores with ``extra_params.outputformat=omezarr05``. For fresh
+workflow exports, select ``0.5`` in the workflow script's OME-Zarr version
+parameter. Select a format supported by the workflow; choosing an export
+version does not convert a reused managed store.
 The script's default remains ``0.4`` for compatibility with existing workflows.
 
 The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
