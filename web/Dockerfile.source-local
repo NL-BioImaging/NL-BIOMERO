@@ -1,0 +1,45 @@
+ARG BIOMERO_WEB_IMAGE
+# Build the BIOMERO host with the selected-image handoff preserved.
+FROM node:22-bookworm-slim AS biomero-frontend
+WORKDIR /src
+COPY --from=omero_biomero_src / /src/
+WORKDIR /src/webapp
+# The host checkout has a Yarn 4 lockfile.
+RUN corepack enable && corepack yarn@4.9.2 install --immutable && CI=true corepack yarn@4.9.2 build
+
+# Layer the requested Analysis checkout over the current combined local web image.
+FROM ${BIOMERO_WEB_IMAGE}
+
+ARG OMERO_ANALYSIS_REF=local-checkout
+ARG OMERO_ANALYSIS_LOCAL_PATCH=none
+USER root
+COPY --from=biomero-frontend /src/omero_biomero/static/omero_biomero/assets/ /opt/omero/web/venv3/lib/python3.12/site-packages/omero_biomero/static/omero_biomero/assets/
+COPY --from=viewer_src /src/biomero_zarr_viewer/ /opt/omero/web/venv3/lib/python3.12/site-packages/biomero_zarr_viewer/
+COPY --from=analysis_src / /tmp/analysis-src/
+
+# Reuse the identical pinned Pyodide runtime already present in this base image.
+# The branch includes its compiled frontend; validate the complete wheel before installing.
+RUN mkdir -p /tmp/analysis-src/src/omero_analysis/static/omero_analysis/pyodide \
+    && cp -a /opt/omero/web/venv3/lib/python3.12/site-packages/omero_analysis/static/omero_analysis/pyodide/. \
+      /tmp/analysis-src/src/omero_analysis/static/omero_analysis/pyodide/ \
+    && /opt/omero/web/venv3/bin/python /tmp/analysis-src/scripts/build_frontend.py --validate-only \
+    && /opt/omero/web/venv3/bin/python -m pip wheel --no-deps --no-build-isolation \
+      --wheel-dir /tmp/analysis-wheel /tmp/analysis-src \
+    && /opt/omero/web/venv3/bin/python /tmp/analysis-src/scripts/verify_wheel.py /tmp/analysis-wheel/omero_analysis-*.whl \
+    && /opt/omero/web/venv3/bin/python -m pip install --no-deps --force-reinstall /tmp/analysis-wheel/omero_analysis-*.whl \
+    && /opt/omero/web/venv3/bin/python -m pip check \
+    && cp /opt/omero/web/venv3/share/omero-analysis/90-omero-analysis.omero /opt/omero/web/config/ \
+    && cp /opt/omero/web/venv3/share/omero-analysis/49-omero-analysis-cleanup.py /startup/ \
+    && cp /opt/omero/web/venv3/share/omero-analysis/51-omero-analysis-navigation.py /startup/ \
+    && cp /tmp/analysis-src/docker/filter-analysis-attachments.py /script/filter-analysis-attachments.py \
+    && /opt/omero/web/venv3/bin/python /script/filter-analysis-attachments.py \
+    && /opt/omero/web/venv3/bin/python /script/filter-analysis-attachments.py --check \
+    && chmod 0755 /startup/49-omero-analysis-cleanup.py /startup/51-omero-analysis-navigation.py \
+    && rm -rf /tmp/analysis-src /tmp/analysis-wheel
+
+LABEL org.nlbioimaging.analysis.source="https://github.com/NL-BioImaging/OMERO.Analysis" \
+      org.nlbioimaging.analysis.branch="1.1.0-beta1" \
+      org.nlbioimaging.analysis.commit="${OMERO_ANALYSIS_REF}"
+LABEL org.nlbioimaging.analysis.local-patch="${OMERO_ANALYSIS_LOCAL_PATCH}"
+LABEL org.nlbioimaging.zarrviewer.local-patch="selected-image-geometry-checks"
+USER omero-web

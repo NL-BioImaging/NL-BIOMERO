@@ -8,3 +8,8 @@ metabase
 web/L-Drive
 server/reader-local
 *.log
+
+metabase-local
+.env.before-local-install
+compose.override.yaml
+local-install-sources.json
