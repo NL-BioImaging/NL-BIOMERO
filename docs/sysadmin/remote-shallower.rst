@@ -211,6 +211,34 @@ the helper image.
 Failure and observability
 -------------------------
 
+Result-import recovery is separately opt-in with
+``BIOMERO_RESULT_RECOVERY=true`` on ``biomeroworker`` and ``biomero-importer``.
+Missing, empty or false preserves the existing filesystem requirements, even
+when shallow storage is enabled. The supplied demo environment explicitly enables
+recovery; upgrading an existing deployment does not enable it automatically.
+Use component releases that contain the recovery implementation before enabling
+it. This does not add SSH reconnection or require SSHFS.
+
+The enabled path needs shared filesystem locks, atomic replacement and durable
+file/directory synchronization. It saves one small recovery record per newly
+staged workflow-result import plan, reuses order IDs on retry, and restores
+interrupted local shallow transactions. It does not scan or migrate old OMERO
+images, Plates or Zarrs. An explicitly retried older result without a record
+requires review if existing importer orders make resubmission ambiguous.
+
+If the filesystem explicitly reports that locking is unsupported, a fresh
+attempt uses the legacy operations and logs that recovery protection is
+unavailable. A busy lock, permission failure, storage outage or failure after
+recovery has begun does not trigger this fallback. Existing recovery records
+and unfinished prune journals must be resolved using working locks.
+
+Failed imports retain their files and cannot report success in either mode.
+Without opt-in recovery, automatic order reuse and locking are unavailable;
+review previous orders before retrying. Disabling recovery does not bypass an
+existing recovery record or unfinished shallow transaction. Re-enable it to
+resume those results safely. See the
+`importer recovery guide <https://nl-bioimaging.github.io/BIOMERO.importer/shallow-zarr/#interrupted-imports-and-recovery>`_.
+
 Unsupported results use full transfer and local importer handling.
 A failed shallowing job runs a recovery job: interrupted
 stores roll back; completed shallow stores retain their verified receipts.

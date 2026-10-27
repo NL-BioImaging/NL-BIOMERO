@@ -178,6 +178,7 @@ class ProcessI(omero.grid.Process, omero.util.SimpleServant):
             "INGEST_TRACKING_DB_URL",
             "IMPORTER_ENABLED",
             "IMPORT_MOUNT_PATH",
+            "BIOMERO_RESULT_RECOVERY",
             "OMERO_BIOMERO_CONFIG_FILE",
             "OMERO_BIOMERO_GROUP_MAPPINGS_FILE",
             # All BIOMERO_* env vars forwarded dynamically from biomero.constants.slurm_env.
