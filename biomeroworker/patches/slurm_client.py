@@ -106,7 +106,7 @@ class SlurmJob:
             job_id (int): The Slurm job ID.
             wf_id (UUID): The workflow ID associated with this job.
             task_id (UUID): The task ID within the workflow.
-            slurm_polling_interval (int, optional): The interval in seconds for 
+            slurm_polling_interval (int, optional): The interval in seconds for
                 polling the job status. Defaults to SLURM_POLLING_INTERVAL.
             log_file (str, optional): The explicit Slurm output log file (or
                 glob, e.g. ``omero-<jobid>_*.log`` for an array job) that this
@@ -435,7 +435,7 @@ class SlurmClient(Connection):
         Args:
             configs: The ConfigParser object containing the configurations.
             section: The section in the config file to look for the option.
-            option: The option name in the config file. 
+            option: The option name in the config file.
             default: The default value to use if the option is not found in the config file.
             env_vars: A list of environment variable names to check for an override. The first one found will be used. Defaults to None (no environment variable override).
             value_type: The expected type of the configuration value (e.g., str, int, bool). Defaults to str.
@@ -570,98 +570,98 @@ class SlurmClient(Connection):
         """
         Initializes a new instance of the SlurmClient class.
 
-        It is preferable to use the `#from_config(...)` method to initialize 
+        It is preferable to use the `#from_config(...)` method to initialize
         parameters from a configuration file.
 
         Args:
-            host (str, optional): The hostname or IP address of the remote 
+            host (str, optional): The hostname or IP address of the remote
                 server. Defaults to `_DEFAULT_HOST`.
-            user (str, optional): The username to use when connecting to 
-                the remote server. Defaults to None, which falls back to 
+            user (str, optional): The username to use when connecting to
+                the remote server. Defaults to None, which falls back to
                 `config.user`.
             port (int, optional): The SSH port to use when connecting.
                 Defaults to None, which falls back to `config.port`.
             config (str, optional): Path to the SSH config file.
                 Defaults to None, which falls back to your SSH config file.
-            gateway (Connection, optional): An optional gateway for connecting 
+            gateway (Connection, optional): An optional gateway for connecting
                 through a jump host. Defaults to None.
-            forward_agent (bool, optional): Whether to forward the local SSH 
-                agent to the remote server. Defaults to None, which 
+            forward_agent (bool, optional): Whether to forward the local SSH
+                agent to the remote server. Defaults to None, which
                 falls back to `config.forward_agent`.
-            connect_timeout (int, optional): Timeout for establishing the SSH 
-                connection. Defaults to None, which falls back to 
+            connect_timeout (int, optional): Timeout for establishing the SSH
+                connection. Defaults to None, which falls back to
                 `config.timeouts.connect`.
-            connect_kwargs (dict, optional): Additional keyword arguments for 
-                the underlying SSH connection. These are passed verbatim to 
-                `SSHClient.connect <paramiko.client.SSHClient.connect>`. 
-                Defaults to None. 
-            inline_ssh_env (bool, optional): Whether to use inline SSH 
-                environment variables. This is necessary if the remote server 
-                has a restricted `AcceptEnv` setting (the common default). 
+            connect_kwargs (dict, optional): Additional keyword arguments for
+                the underlying SSH connection. These are passed verbatim to
+                `SSHClient.connect <paramiko.client.SSHClient.connect>`.
+                Defaults to None.
+            inline_ssh_env (bool, optional): Whether to use inline SSH
+                environment variables. This is necessary if the remote server
+                has a restricted `AcceptEnv` setting (the common default).
                 Defaults to `_DEFAULT_INLINE_SSH_ENV`.
-            slurm_data_path (str, optional): The path to the directory 
-                containing the data files for Slurm jobs. 
+            slurm_data_path (str, optional): The path to the directory
+                containing the data files for Slurm jobs.
                 Defaults to `_DEFAULT_SLURM_DATA_PATH`.
-            slurm_images_path (str, optional): The path to the directory 
-                containing the Singularity images for Slurm jobs. 
+            slurm_images_path (str, optional): The path to the directory
+                containing the Singularity images for Slurm jobs.
                 Defaults to `_DEFAULT_SLURM_IMAGES_PATH`.
-            slurm_converters_path (str, optional): The path to the directory 
-                containing the Singularity images for file converters. 
+            slurm_converters_path (str, optional): The path to the directory
+                containing the Singularity images for file converters.
                 Defaults to `_DEFAULT_SLURM_CONVERTERS_PATH`.
-            slurm_model_paths (dict, optional): A dictionary containing the 
-                paths to the Singularity images for specific Slurm job models. 
+            slurm_model_paths (dict, optional): A dictionary containing the
+                paths to the Singularity images for specific Slurm job models.
                 Defaults to None.
-            slurm_model_repos (dict, optional): A dictionary containing the 
-                Git repositories of Singularity images for specific Slurm 
+            slurm_model_repos (dict, optional): A dictionary containing the
+                Git repositories of Singularity images for specific Slurm
                 job models. Defaults to None.
-            slurm_model_images (dict, optional): A dictionary containing the 
-                DockerHub images of the Singularity images for specific 
-                Slurm job models. Will be filled automatically from the 
-                data in the Git repository if `init_slurm` is set to True. 
+            slurm_model_images (dict, optional): A dictionary containing the
+                DockerHub images of the Singularity images for specific
+                Slurm job models. Will be filled automatically from the
+                data in the Git repository if `init_slurm` is set to True.
                 Defaults to None.
-            converter_images (dict, optional): A dictionary containing the 
-                DockerHub images of the Singularity images for file converters. 
-                Will default to building the converter available in this package 
-                on Slurm instead if not configured. 
+            converter_images (dict, optional): A dictionary containing the
+                DockerHub images of the Singularity images for file converters.
+                Will default to building the converter available in this package
+                on Slurm instead if not configured.
                 Defaults to None.
-            slurm_model_jobs (dict, optional): A dictionary containing 
-                information about specific Slurm job models. 
+            slurm_model_jobs (dict, optional): A dictionary containing
+                information about specific Slurm job models.
                 Defaults to None.
-            slurm_model_jobs_params (dict, optional): A dictionary containing 
-                parameters for specific Slurm job models. 
+            slurm_model_jobs_params (dict, optional): A dictionary containing
+                parameters for specific Slurm job models.
                 Defaults to None.
-            slurm_script_path (str, optional): The path to the directory 
-                containing the Slurm job submission scripts on Slurm. 
+            slurm_script_path (str, optional): The path to the directory
+                containing the Slurm job submission scripts on Slurm.
                 Defaults to `_DEFAULT_SLURM_GIT_SCRIPT_PATH`.
-            slurm_script_repo (str, optional): The Git HTTPS URL for cloning 
-                the repository containing the Slurm job submission scripts. 
+            slurm_script_repo (str, optional): The Git HTTPS URL for cloning
+                the repository containing the Slurm job submission scripts.
                 Defaults to None.
-            init_slurm (bool, optional): Whether to set up the required structures 
-                on Slurm after initiating this client. This includes creating 
-                missing folders, downloading container images, cloning Git, etc. 
-                This process will take some time initially but will validate 
+            init_slurm (bool, optional): Whether to set up the required structures
+                on Slurm after initiating this client. This includes creating
+                missing folders, downloading container images, cloning Git, etc.
+                This process will take some time initially but will validate
                 your setup. Defaults to False to save time.
-            track_workflows (bool, optional): Whether to track workflows. 
+            track_workflows (bool, optional): Whether to track workflows.
                 Defaults to True.
-            enable_job_accounting (bool, optional): Whether to enable job 
+            enable_job_accounting (bool, optional): Whether to enable job
                 accounting. Defaults to True.
-            enable_job_progress (bool, optional): Whether to track job 
+            enable_job_progress (bool, optional): Whether to track job
                 progress. Defaults to True.
-            enable_workflow_analytics (bool, optional): Whether to enable 
+            enable_workflow_analytics (bool, optional): Whether to enable
                 workflow analytics. Defaults to True.
-            sqlalchemy_url (str, optional): URL for eventsourcing database 
+            sqlalchemy_url (str, optional): URL for eventsourcing database
                 connection. Defaults to None, which falls back to the
                 `SQLALCHEMY_URL` environment variable. Note that it will
-                always be overridden with the environment variable 
+                always be overridden with the environment variable
                 `SQLALCHEMY_URL`, if that is set.
-            config_only (bool, optional): Whether to setup the client for 
-                configuration purposes only, skipping validation and analytics 
+            config_only (bool, optional): Whether to setup the client for
+                configuration purposes only, skipping validation and analytics
                 initialization. Defaults to False.
             slurm_data_bind_path (str, optional): Path to bind to Singularity/
-                Apptainer containers via the APPTAINER_BINDPATH environment 
-                variable. Required when the default data folder is not bound 
-                to the container. If your HPC administrator tells you to set 
-                APPTAINER_BINDPATH, configure this parameter. 
+                Apptainer containers via the APPTAINER_BINDPATH environment
+                variable. Required when the default data folder is not bound
+                to the container. If your HPC administrator tells you to set
+                APPTAINER_BINDPATH, configure this parameter.
                 Defaults to None (no explicit binding).
             remote_shallow_zarr (bool, optional): Administrator remote-shallower
                 setting; default True when shallow Zarr is enabled. Set False
@@ -684,8 +684,8 @@ class SlurmClient(Connection):
                 inherits global sbatch memory. Environment: BIOMERO_REMOTE_SHALLOWER_MEM.
             remote_shallower_time (str, optional): Time limit override; default
                 None inherits global sbatch_time. Environment: BIOMERO_REMOTE_SHALLOWER_TIME.
-            slurm_conversion_partition (str, optional): SLURM partition to use 
-                for conversion jobs when no default partition is configured on 
+            slurm_conversion_partition (str, optional): SLURM partition to use
+                for conversion jobs when no default partition is configured on
                 your HPC. Defaults to None (use system default partition).
             slurm_default_partition (str, optional): Generic fallback SLURM
                 partition appended to workflow jobs that do not already carry a
@@ -1499,7 +1499,7 @@ class SlurmClient(Connection):
         convert_script_file = "convert_job_array.sh"
         convert_job_local = files("resources").joinpath(
             convert_script_file)
-        
+
         optional_env = ""
         if self.env_file_submission:
             optional_env = (
@@ -1643,7 +1643,7 @@ class SlurmClient(Connection):
 
         Note that this is only for the SLURM-specific values that we added.
         Most configuration values are set via configuration mechanisms from
-        Fabric library, like SSH settings being loaded from SSH config, 
+        Fabric library, like SSH settings being loaded from SSH config,
         /etc/fabric.yml or environment variables.
         See Fabric's documentation for more info on configuration if needed.
 
@@ -2082,14 +2082,14 @@ class SlurmClient(Connection):
             filename (str): The zip filename on Slurm.
             data_location (str, optional): The location of data files on Slurm.
                 If not provided, it will be extracted from the log file.
-            logfile (str, optional): The log file of the Slurm job. 
+            logfile (str, optional): The log file of the Slurm job.
                 If not provided, a default log file will be used.
 
         Returns:
             Result: The result of the cleanup operation.
 
         Note:
-            The cleanup process involves removing the specified zip file, 
+            The cleanup process involves removing the specified zip file,
             the log file, and associated data files and folders.
 
         Example:
@@ -2189,7 +2189,7 @@ class SlurmClient(Connection):
             pattern (str): The pattern to match in the job log to extract
                 the progress (default: r"\\d+%").
 
-            env (Dict[str, str], optional): Optional environment variables 
+            env (Dict[str, str], optional): Optional environment variables
                 to set when running the command. Defaults to None.
 
         Returns:
@@ -2232,7 +2232,7 @@ class SlurmClient(Connection):
             cmdlist (List[str]): A list of shell commands to run on Slurm.
             env (Dict[str, str], optional): Optional environment variables to
                 set when running the command. Defaults to None.
-            sep (str, optional): The separator used to concatenate the 
+            sep (str, optional): The separator used to concatenate the
                 commands. Defaults to ' && '.
             log_stdout (bool, optional): Whether to log the stdout output.
                 Defaults to True.
@@ -2300,7 +2300,7 @@ class SlurmClient(Connection):
 
         Args:
             cmdlist (List[str]): A list of shell commands to run.
-            env (Dict[str, str], optional): Optional environment variables 
+            env (Dict[str, str], optional): Optional environment variables
                 to set when running the command. Defaults to None.
 
         Returns:
@@ -2335,7 +2335,7 @@ class SlurmClient(Connection):
         Get a list of active jobs from SLURM.
 
         Args:
-            env (Dict[str, str], optional): Optional environment variables to 
+            env (Dict[str, str], optional): Optional environment variables to
                 set when running the command. Defaults to None.
 
         Returns:
@@ -2376,7 +2376,7 @@ class SlurmClient(Connection):
         Get a list of all jobs from SLURM.
 
         Args:
-            env (Dict[str, str], optional): Optional environment variables 
+            env (Dict[str, str], optional): Optional environment variables
                 to set when running the command. Defaults to None.
 
         Returns:
@@ -2463,7 +2463,7 @@ class SlurmClient(Connection):
         Args:
             zipfile (str): The name of the zipped file to be unpacked.
 
-            env (Dict[str, str], optional): Optional environment variables 
+            env (Dict[str, str], optional): Optional environment variables
                 to set when running the command. Defaults to None.
 
         Returns:
@@ -2706,7 +2706,7 @@ class SlurmClient(Connection):
             generate_jobs (bool): Whether to generate new slurm job scripts
                 INSTEAD (of pulling from git). Defaults to False, except
                 if no slurm_script_repo is configured.
-            env (Dict[str, str], optional): Optional environment variables 
+            env (Dict[str, str], optional): Optional environment variables
                 to set when running the command. Defaults to None.
 
         Returns:
@@ -2763,24 +2763,24 @@ class SlurmClient(Connection):
 
         Args:
             workflow_name (str): Name of the workflow to execute.
-            workflow_version (str): Version of the workflow (image version 
+            workflow_version (str): Version of the workflow (image version
                 on Slurm).
             input_data (str): Name of the input data folder containing input
                 image files.
             email (str, optional): Email address for Slurm job notifications.
-            time (str, optional): Time limit for the Slurm job in the 
+            time (str, optional): Time limit for the Slurm job in the
                 format HH:MM:SS.
             wf_id (UUID, optional): Workflow ID for tracking purposes. If not provided, a new one is created.
             **kwargs: Additional keyword arguments for the workflow.
 
         Returns:
             Tuple[Result, int, UUID, UUID]:
-                A tuple containing the result of starting the workflow job, 
-                the Slurm job ID, the workflow ID, and the task ID. 
+                A tuple containing the result of starting the workflow job,
+                the Slurm job ID, the workflow ID, and the task ID.
                 If the Slurm job ID could not be extracted, it returns -1 for the job ID.
 
         Note:
-            The Slurm job ID is extracted from the result of the `run_commands` method. 
+            The Slurm job ID is extracted from the result of the `run_commands` method.
             If `track_workflows` is enabled, workflow and task tracking is performed.
         """
         if not wf_id:
@@ -3014,7 +3014,7 @@ class SlurmClient(Connection):
         Check the status of Slurm jobs with the given job IDs.
 
         Note: This doesn't return job arrays individually.
-        It takes the last value returned for those sub ids 
+        It takes the last value returned for those sub ids
         (generally the one still PENDING).
 
         Args:
@@ -3024,7 +3024,7 @@ class SlurmClient(Connection):
 
         Returns:
             Tuple[Dict[int, str], Result]:
-                A tuple containing the status per input ID and the result of 
+                A tuple containing the status per input ID and the result of
                 the command execution.
 
         Raises:
@@ -3041,7 +3041,7 @@ class SlurmClient(Connection):
                         valid_job_ids.append(val)
             except (ValueError, TypeError):
                 continue
-                
+
         if not valid_job_ids:
             return {}, None
 
@@ -3094,7 +3094,7 @@ class SlurmClient(Connection):
                 error = f"Result is not ok: {result}"
                 logger.error(error)
                 raise SSHException(error)
-        
+
         # Empty sacct output is not evidence that the jobs failed, so keep the
         # callers polling instead of raising or failing their workflow.
         logger.warning(f"Slurm sacct returned empty output for "
@@ -3111,7 +3111,7 @@ class SlurmClient(Connection):
             slurm_job_ids (List[int]): The job IDs of the jobs to check.
 
         Returns:
-            str: 
+            str:
                 The Slurm command to get the status of the jobs.
         """
         # concat multiple jobs if needed
@@ -3444,8 +3444,8 @@ class SlurmClient(Connection):
                 the input image files.
             email (str, optional): The email address for job notifications.
                 Defaults to None, which defaults to what is in the job script.
-            time (str, optional): The time limit for the job in the 
-                format HH:MM:SS. Defaults to None, which defaults to what 
+            time (str, optional): The time limit for the job in the
+                format HH:MM:SS. Defaults to None, which defaults to what
                 is in the job script.
             **kwargs: Additional keyword arguments for the workflow.
 
@@ -3639,7 +3639,7 @@ class SlurmClient(Connection):
             f"--export=ALL,CONFIG_PATH={config_path} "
             f"--array=1-$N {conversion_script}"
         )
-        
+
         if self.env_file_submission:
             logger.debug(f"Using env file submission for conversion with env: {sbatch_env}")
             env_file = f"{data_path}/biomero_job_env.sh"
@@ -3759,7 +3759,7 @@ class SlurmClient(Connection):
             data_location (String): Folder on SLURM with the "data/out"
                 subfolder.
             filename (String): Name to give to the zipfile.
-            env (Dict[str, str], optional): Optional environment variables to 
+            env (Dict[str, str], optional): Optional environment variables to
                 set when running the command. Defaults to None.
 
         Returns:
@@ -3850,7 +3850,7 @@ class SlurmClient(Connection):
 
         Args:
             slurm_job_id (str): The ID of the SLURM job.
-            local_tmp_storage (str, optional): Path to store the logfile 
+            local_tmp_storage (str, optional): Path to store the logfile
                 locally. Defaults to "/tmp/".
             logfile (str, optional): Path to the logfile on the SLURM server.
                 Defaults to None.
@@ -3976,7 +3976,7 @@ class SlurmClient(Connection):
         Returns:
             Tuple[List[str], List[str]]:
                 A tuple containing two lists:
-                - The first list includes the available image versions, 
+                - The first list includes the available image versions,
                     sorted in descending order.
                 - The second list includes the available data files.
 
