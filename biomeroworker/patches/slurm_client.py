@@ -1,3 +1,5 @@
+# Adapted from BIOMERO 2.9.0b11 under Apache-2.0; see README.md.
+# Local changes: recursive Zarr extraction and nonempty input validation.
 # -*- coding: utf-8 -*-
 # Copyright 2023 Torec Luik
 #

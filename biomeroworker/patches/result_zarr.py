@@ -1,3 +1,5 @@
+# Adapted from biomero-shallower 0.1.0b5 under Apache-2.0; see README.md.
+# Local changes: bounded streaming copy buffers with preserved metadata.
 """Discover and compare returned NGFF stores without mutating them.
 
 This module is the decision boundary used before shallow-result normalization.

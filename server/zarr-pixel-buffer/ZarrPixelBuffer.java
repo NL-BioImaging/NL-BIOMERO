@@ -16,6 +16,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+// Modified for NL-BIOMERO, 2026-10-27: resolve arrays via NGFF datasets[].path.
+// See LOCAL-FIX.txt for upstream provenance and validation.
 package com.glencoesoftware.omero.zarr;
 
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
