@@ -38,9 +38,34 @@ work from the importer to a CPU-only Slurm helper.
      and importer work at the cost of a CPU-only HPC helper job.
    * Configure the helper image/resources and run Slurm Init after upgrading.
      This is the normal post-upgrade initialization step and acquires the helper
-     image together with the other configured workflow images.
+     image together with the other configured workflow images when importer,
+     shallow storage and remote processing are all enabled.
    * Keep source storage available. This feature reduces duplicate result data;
      it does not replace backups or enable detached execution.
+
+Existing feature switches remain independent:
+
+.. list-table:: Feature scope
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Switch
+     - Effect
+   * - ``IMPORTER_ENABLED``
+     - Selects in-place result import; false uses classic result upload.
+   * - ``BIOMERO_SHALLOW_ZARR``
+     - Enables canonical indexing and new shallow results. False keeps full
+       results; existing shallow inputs can still be reconstructed from their
+       sources with the required dependencies installed.
+   * - ``BIOMERO_REMOTE_SHALLOW_ZARR``
+     - Within enabled shallow storage, selects remote processing (default true)
+       or local importer processing (false). It cannot enable shallow storage.
+   * - ``BIOMERO_DETACHED_WORKFLOWS``
+     - Selects background execution independently of storage and result-import
+       recovery. See :doc:`detached-workflows`.
+   * - ``BIOMERO_ZARR_VIEWER_ENABLED``
+     - Controls the web viewer independently of storage and execution.
+       See :doc:`zarrviewer`.
 
 Lifecycle overview
 ------------------
@@ -216,6 +241,12 @@ feature flag. Before preparing an import, the scripts check filesystem locking,
 atomic replacement and file/directory synchronization using disposable metadata.
 Use coordinated scripts and importer releases that contain recovery support.
 This does not add SSH reconnection or require SSHFS.
+
+Order recovery protects importer-enabled full Zarr and TIFF results as well
+as shallow results, in both inline and detached workflows. It does not enable
+any of the switches above. Importer-side shallow transaction recovery requires
+an explicitly requested shallow operation and ``BIOMERO_SHALLOW_ZARR=true``;
+ordinary import orders do not enter shallow preparation.
 
 Recovery saves one small record per newly
 staged workflow-result import plan, reuses order IDs on retry, and restores
