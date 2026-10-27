@@ -1,0 +1,13 @@
+# Optional compatibility layer for the package versions used during local testing.
+# Keep the released worker Dockerfile independent of these temporary patches.
+ARG BIOMERO_WORKER_IMAGE
+FROM ${BIOMERO_WORKER_IMAGE}
+USER root
+RUN $VIRTUAL_ENV/bin/python -c "from importlib.metadata import version; assert version('biomero') == '2.9.0b11'; assert version('biomero-shallower') == '0.1.0b5'"
+COPY biomeroworker/patches/slurm_client.py /tmp/biomero-slurm-client.py
+COPY biomeroworker/patches/result_zarr.py /tmp/biomero-result-zarr.py
+RUN $VIRTUAL_ENV/bin/python -c "import biomero.slurm_client, biomero_shallower.result_zarr, shutil; shutil.copyfile('/tmp/biomero-slurm-client.py', biomero.slurm_client.__file__); shutil.copyfile('/tmp/biomero-result-zarr.py', biomero_shallower.result_zarr.__file__)" \
+    && $VIRTUAL_ENV/bin/python -c "import biomero.slurm_client, biomero_shallower.result_zarr" \
+    && $VIRTUAL_ENV/bin/python -m pip check \
+    && rm /tmp/biomero-slurm-client.py /tmp/biomero-result-zarr.py
+USER omero-server

@@ -6,6 +6,7 @@ setup before enabling dependent features. The demo opts into the supplied
 features; existing deployments should follow each feature's enablement guide.
 
 * :doc:`development-setup` — local development/demo setup
+* :doc:`local-source-builds` — optional builds from local component checkouts
 * :doc:`deployment` — full NL-BIOMERO deployment
 * :doc:`docker-compose-scenarios` — container orchestration options
 * :doc:`linux-deployment` — Linux deployment

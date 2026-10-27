@@ -1,0 +1,26 @@
+Local OMERO Zarr compatibility fix, 2026-10-20
+
+ZarrPixelBuffer.java is copied from upstream omero-zarr-pixel-buffer v0.7.1,
+commit 4b6dbee3741150881c01c9929abd8d1961bd9dc8, with its GPL header retained.
+https://github.com/glencoesoftware/omero-zarr-pixel-buffer/tree/v0.7.1
+
+Only three path expressions in setResolutionLevel are changed:
+- The selected array and metadata use multiscales[0].datasets[level].path.
+- Full-resolution metadata uses multiscales[0].datasets[0].path.
+
+Upstream hardcodes numeric names (0, 1, ...). The CellsSmall conversion uses
+s0, s1, ... and is valid NGFF. OMERO consequently fell back to its local
+pixel reader, reported "Import in progress", and produced blank previews.
+
+server/Dockerfile compiles the replacement class against the exact runtime
+jars and updates the original upstream jar. Its manifest still reports
+0.7.1; this is a local compatibility patch, not a new upstream release.
+The fix persists through Docker Compose rebuilds and container recreation.
+
+Validation: all 18 fields in plate 1 (20220714_TKI_482), both channels,
+matched the source Zarr pixel-for-pixel at full resolution. Thumbnails
+and rendered JPEGs succeeded. Two older numeric-path images (IDs 2 and 3)
+also passed, for a total of 20 images and 41 channel planes.
+
+When upgrading OMERO_ZARR_PIXEL_BUFFER_VERSION, review or remove this
+replacement source if upstream has fixed dataset path selection.

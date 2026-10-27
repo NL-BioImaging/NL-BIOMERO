@@ -10,7 +10,7 @@ RUN mvn -B -q -f /build/pom.xml dependency:copy-dependencies \
         -Dmdep.stripVersion=true \
         -DoutputDirectory=/deps
 
-FROM openmicroscopy/omero-server:5.6.18
+FROM openmicroscopy/omero-server:5.6.18 AS omero-runtime
 
 ARG BIOMERO_SCRIPTS_VERSION
 ARG LABEL2ROIS_VERSION
@@ -78,3 +78,18 @@ RUN for jar in /tmp/zarr-deps/*.jar; do \
         fi; \
     done && \
     rm -rf /tmp/zarr-deps
+
+# Local compatibility fix for legal NGFF dataset paths such as s0, s1, etc.
+# Compile against the exact runtime jars and preserve the upstream jar manifest.
+FROM zarr-deps AS zarr-path-fix
+ARG OMERO_ZARR_PIXEL_BUFFER_VERSION
+RUN test "$OMERO_ZARR_PIXEL_BUFFER_VERSION" = "0.7.1" || (echo "Review the bundled dataset-path patch before upgrading the pixel buffer" >&2; exit 1)
+COPY --from=omero-runtime /opt/omero/server/OMERO.server/lib/server/ /runtime-jars/
+COPY server/zarr-pixel-buffer/ZarrPixelBuffer.java /patch/ZarrPixelBuffer.java
+RUN mkdir /patch/classes && \
+    javac --release 11 -cp '/runtime-jars/*' -d /patch/classes /patch/ZarrPixelBuffer.java && \
+    cp /runtime-jars/omero-zarr-pixel-buffer.jar /patch/omero-zarr-pixel-buffer.jar && \
+    jar uf /patch/omero-zarr-pixel-buffer.jar -C /patch/classes .
+
+FROM omero-runtime
+COPY --from=zarr-path-fix --chown=omero-server:omero-server /patch/omero-zarr-pixel-buffer.jar /opt/omero/server/OMERO.server/lib/server/omero-zarr-pixel-buffer.jar

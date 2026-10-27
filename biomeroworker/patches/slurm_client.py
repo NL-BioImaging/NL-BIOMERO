@@ -1,0 +1,4044 @@
+# -*- coding: utf-8 -*-
+# Copyright 2023 Torec Luik
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+from typing import Dict, List, Optional, Tuple, Any
+from uuid import UUID, uuid4
+from fabric import Connection, Result
+from fabric.transfer import Result as TransferResult
+from invoke.exceptions import UnexpectedExit
+from paramiko import SSHException
+import configparser
+import re
+import requests_cache
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
+import importlib
+import logging
+import time as timesleep
+from string import Template
+from importlib_resources import files
+import io
+import os
+import posixpath
+import yaml
+import shlex
+from biomero.constants import slurm_env
+from biomero.eventsourcing import WorkflowTracker, NoOpWorkflowTracker
+from biomero.schema_parsers import DescriptorParserFactory
+from biomero.views import JobAccounting, JobProgress, WorkflowAnalytics, WorkflowProgress
+from biomero.database import EngineManager, JobProgressView, JobView, TaskExecution, WorkflowProgressView
+from eventsourcing.system import System, SingleThreadedRunner
+from eventsourcing.persistence import IntegrityError as ESIntegrityError
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.sql import text
+from datetime import datetime, timedelta, timezone
+
+logger = logging.getLogger(__name__)
+
+
+class SlurmJob:
+    """Represents a job submitted to a Slurm cluster.
+
+    This class encapsulates information and methods related to managing a job
+    submitted to a Slurm cluster. It provides functionality to monitor the
+    job's state, wait for completion, and perform cleanup operations.
+
+    Attributes:
+        job_id (int): The ID of the Slurm job.
+        submit_result (Result): The result of submitting the job.
+        ok (bool): Indicates whether the job submission was successful.
+        job_state (str): The current state of the Slurm job.
+        progress (str): The progress of the Slurm job.
+        error_message (str): The error message, if any, encountered during job submission.
+        wf_id (UUID): The workflow ID associated with the job.
+        task_id (UUID): The task ID within the workflow.
+        slurm_polling_interval (int): The polling interval (in seconds) for checking the job status.
+
+    Example:
+        # Submit some job with the SlurmClient
+        submit_result, job_id, wf_id, task_id = slurmClient.run_workflow(
+            workflow_name, workflow_version, input_data, email, time, wf_id,
+            **kwargs)
+
+        # Create a SlurmJob instance
+        slurmJob = SlurmJob(submit_result, job_id, wf_id, task_id)
+
+        if not slurmJob.ok:
+            logger.warning(f"Error with job: {slurmJob.get_error()}")
+        else:
+            try:
+                # heartbeat is a no-argument callback supplied by the caller.
+                slurmJob.wait_for_completion(slurmClient, heartbeat=heartbeat)
+                if not slurmJob.completed():
+                    raise Exception(f"Job is not completed: {slurmJob}")
+                else:
+                    slurmJob.cleanup(slurmClient)
+            except Exception as e:
+                logger.error(f" ERROR WITH JOB: {e}")
+                raise e
+
+    """
+    SLURM_POLLING_INTERVAL = 10  # seconds
+
+    def __init__(self,
+                 submit_result: Result,
+                 job_id: int,
+                 wf_id: UUID,
+                 task_id: UUID,
+                 slurm_polling_interval: int = SLURM_POLLING_INTERVAL,
+                 log_file: str = None):
+        """
+        Initialize a SlurmJob instance.
+
+        Args:
+            submit_result (Result): The result of submitting the job.
+            job_id (int): The Slurm job ID.
+            wf_id (UUID): The workflow ID associated with this job.
+            task_id (UUID): The task ID within the workflow.
+            slurm_polling_interval (int, optional): The interval in seconds for 
+                polling the job status. Defaults to SLURM_POLLING_INTERVAL.
+            log_file (str, optional): The explicit Slurm output log file (or
+                glob, e.g. ``omero-<jobid>_*.log`` for an array job) that this
+                job was told to write to via ``sbatch --output``. Used to
+                fetch/upload and clean up exactly the file(s) the job
+                produced. Defaults to None, in which case the default
+                ``omero-<jobid>.log`` workflow convention is used.
+        """
+        self.job_id = job_id
+        self.wf_id = wf_id
+        self.task_id = task_id
+        self.slurm_polling_interval = slurm_polling_interval
+        self.submit_result = submit_result
+        self.log_file = log_file
+        self.ok = self.submit_result.ok
+        self.job_state = None
+        self.progress = None
+        self.error_message = self.submit_result.stderr if hasattr(
+            self.submit_result, 'stderr') else ''
+
+    @classmethod
+    def from_job_id(cls, job_id, wf_id=None, task_id=None, **kwargs):
+        """Monitor an already submitted job without submitting it again.
+
+        The successful synthetic Result denotes adoption, not job completion.
+        Submission reconciliation remains the caller's responsibility.
+        """
+        return cls(Result(connection=None, exited=0), int(job_id),
+                   wf_id, task_id, **kwargs)
+
+    @staticmethod
+    def is_terminal(state):
+        """Accept sacct suffixes and cancellation details as well as states."""
+        parts = (state or '').split()
+        name = parts[0].rstrip('+') if parts else ''
+        return name in {
+            'COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT', 'OUT_OF_MEMORY',
+            'NODE_FAIL', 'BOOT_FAIL', 'DEADLINE', 'PREEMPTED', 'REVOKED',
+        }
+
+    def wait_for_completion(self, slurmClient, *, heartbeat=None,
+                            track_progress=True, update_task=True,
+                            strict_status=False) -> str:
+        """
+        Wait for the Slurm job to reach completion, cancellation, failure, or timeout.
+
+        Args:
+            slurmClient: The Slurm client.
+            heartbeat: Optional no-argument callback, invoked before each poll.
+                Return values are ignored; raise to abort monitoring. Exceptions
+                propagate unchanged without marking the Slurm job failed.
+            track_progress: Read analysis progress from job logs (default True).
+            update_task: Publish task status/progress (default True). Helpers
+                whose success also requires report validation can disable this.
+            strict_status: Raise on unavailable status instead of recording a
+                failure. This lets resumable callers preserve an existing job.
+
+        Returns:
+            str: The final state of the Slurm job.
+        """
+        if heartbeat is not None and not callable(heartbeat):
+            raise TypeError('heartbeat must be callable')
+        while not self.is_terminal(self.job_state):
+            if heartbeat is not None:
+                heartbeat()
+            job_status_dict, poll_result = slurmClient.check_job_status(
+                [self.job_id])
+            state = job_status_dict.get(self.job_id, 'UNKNOWN')
+            if strict_status and (
+                    poll_result is None or not poll_result.ok
+                    or state == 'UNKNOWN'):
+                raise RuntimeError(
+                    f'Slurm job {self.job_id} state unavailable; '
+                    'retry monitoring to adopt the existing job')
+            if poll_result is None or not poll_result.ok:
+                self.job_state = "FAILED"
+                self.error_message = getattr(poll_result, 'stderr', '')
+                logger.warning('Error checking job status: %s', self.error_message)
+            else:
+                self.job_state = state
+            if track_progress:
+                self.progress = slurmClient.get_active_job_progress(self.job_id)
+            if update_task:
+                slurmClient.workflowTracker.update_task_status(
+                    self.task_id, self.job_state)
+                if track_progress:
+                    slurmClient.workflowTracker.update_task_progress(
+                        self.task_id, self.progress)
+            if not self.is_terminal(self.job_state):
+                timesleep.sleep(self.slurm_polling_interval)
+        logger.info(f"Job {self.job_id} finished: {self.job_state}")
+        if self.log_file:
+            logger.info('Slurm output: %s', self.log_file)
+        elif track_progress:
+            logger.info(
+                f"You can get the logfile using `Slurm Get Update` on job {self.job_id}")
+        return self.job_state
+
+    def cleanup(self, slurmClient) -> Result:
+        """
+        Cleanup remaining log files.
+
+        Args:
+            slurmClient: The Slurm client.
+
+        Returns:
+            Result: The result of the cleanup operation.
+        """
+        return slurmClient.cleanup_tmp_files(self.job_id,
+                                             logfile=self.log_file)
+
+    def completed(self):
+        """
+        Check if the Slurm job has completed successfully.
+
+        Returns:
+            bool: True if the job has completed; False otherwise.
+        """
+        return self.job_state == "COMPLETED" or self.job_state == "COMPLETED+"
+
+    def get_error(self) -> str:
+        """
+        Get the error message associated with the Slurm job submission.
+
+        Returns:
+            str: The error message, or an empty string if no error occurred.
+        """
+        return self.error_message
+
+    def __str__(self):
+        """
+        Return a string representation of the SlurmJob instance.
+
+        Returns:
+            str: String representation.
+        """
+        properties = ', '.join(
+            f"{key}={value}" for key, value in self.__dict__.items())
+        return f"SlurmJob({properties})"
+
+
+class SlurmClient(Connection):
+    """A client for connecting to and interacting with a Slurm cluster over
+    SSH.
+
+    This class extends the Connection class, adding methods and
+    attributes specific to working with Slurm.
+
+    SlurmClient accepts the same arguments as Connection. Below only
+    mentions the added ones:
+
+    The easiest way to set this client up is by using a slurm-config.ini
+    and the from_config() method.
+
+    Attributes:
+        slurm_data_path (str): The path to the directory containing the
+            data files for Slurm jobs.
+        slurm_images_path (str): The path to the directory containing
+            the Singularity images for Slurm jobs.
+        slurm_converters_path (str): The path to the directory containing
+            the Singularity images for file converters.
+        slurm_model_paths (dict): A dictionary containing the paths to
+            the Singularity images for specific Slurm job models.
+        slurm_model_repos (dict): A dictionary containing the git
+            repositories of Singularity images for specific Slurm job models.
+        slurm_model_images (dict): A dictionary containing the dockerhub
+            of the Singularity images for specific Slurm job models.
+            Will fill automatically from the data in the git repository,
+            if you set init_slurm.
+        slurm_script_path (str): The path to the directory containing
+            the Slurm job submission scripts on Slurm.
+        slurm_script_repo (str): The git https URL for cloning the repo
+            containing the Slurm job submission scripts. Optional.
+
+    Example:
+
+        # Create a SlurmClient object as contextmanager
+
+        with SlurmClient.from_config() as client:
+
+            # Run a command on the remote host
+
+            result = client.run('sbatch myjob.sh')
+
+            # Check whether the command succeeded
+
+            if result.ok:
+                print('Job submitted successfully!')
+
+            # Print the output of the command
+
+            print(result.stdout)
+
+    Example 2:
+
+        # Create a SlurmClient and setup Slurm (download containers etc.)
+
+        with SlurmClient.from_config(init_slurm=True) as client:
+
+            client.run_workflow(...)
+
+    """
+    _DEFAULT_CONFIG_PATH_1 = "/etc/slurm-config.ini"
+    _DEFAULT_CONFIG_PATH_2 = "/OMERO/slurm-config.ini"
+    _DEFAULT_CONFIG_PATH_3 = "~/slurm-config.ini"
+    _DEFAULT_HOST = "slurm"
+    _DEFAULT_INLINE_SSH_ENV = True
+    _DEFAULT_SLURM_DATA_PATH = "my-scratch/data"
+    _DEFAULT_SLURM_IMAGES_PATH = "my-scratch/singularity_images/workflows"
+    _DEFAULT_SLURM_CONVERTERS_PATH = "my-scratch/singularity_images/converters"
+    _DEFAULT_REMOTE_SHALLOWER_IMAGE = "cellularimagingcf/biomero-shallower:latest"
+    _DEFAULT_SLURM_GIT_SCRIPT_PATH = "slurm-scripts"
+    _DEFAULT_SACCT_START_TIME = "2023-01-01"
+    _DEFAULT_SLURM_ZIP_CMD = "$(command -v 7z || command -v 7za)"
+    _CONFIG_ENV_VARS = {
+        ("ANALYTICS", "sqlalchemy_url"): [slurm_env.SQLALCHEMY_URL],
+        ("SLURM", "slurm_default_partition"): [
+            slurm_env.BIOMERO_DEFAULT_PARTITION],
+        ("SLURM", "sacct_start_time"): [
+            slurm_env.BIOMERO_SACCT_START_TIME],
+        ("SLURM", "sacct_days_ago"): [
+            slurm_env.BIOMERO_SACCT_START_DAYS_AGO],
+        ("ANALYTICS", "analytics_rebuild_start_time"): [
+            slurm_env.BIOMERO_ANALYTICS_REBUILD_START_TIME],
+        ("ANALYTICS", "analytics_rebuild_days_ago"): [
+            slurm_env.BIOMERO_ANALYTICS_REBUILD_DAYS_AGO],
+        ("SLURM", "env_file_submission"): [
+            slurm_env.BIOMERO_ENV_FILE_SUBMISSION],
+        ("SLURM", "inject_gpu_flag"): [
+            slurm_env.BIOMERO_INJECT_GPU_FLAG],
+        ("SLURM", "gpu_partition"): [
+            slurm_env.BIOMERO_GPU_PARTITION, slurm_env.GPU_PARTITION],
+        ("SLURM", "gpu_gres"): [
+            slurm_env.BIOMERO_GPU_GRES, slurm_env.GPU_GRES],
+        ("SLURM", "gpu_gpus"): [
+            slurm_env.BIOMERO_GPU_GPUS, slurm_env.GPU_GPUS],
+        ("SLURM", "slurm_image_pull_via_sbatch"): [
+            slurm_env.BIOMERO_IMAGE_PULL_VIA_SBATCH],
+        ("SLURM", "image_pull_cpus"): [slurm_env.BIOMERO_PULL_CPUS],
+        ("SLURM", "image_pull_mem"): [slurm_env.BIOMERO_PULL_MEM],
+        ("SLURM", "image_pull_time"): [slurm_env.BIOMERO_PULL_TIME],
+        ("SLURM", "image_pull_concurrency"): [
+            slurm_env.BIOMERO_PULL_CONCURRENCY],
+        ("SLURM", "image_pull_partition"): [
+            slurm_env.BIOMERO_PULL_PARTITION],
+        ("SLURM", "apptainer_tmpdir"): [
+            slurm_env.BIOMERO_APPTAINER_TMPDIR],
+        ("SLURM", "apptainer_cachedir"): [
+            slurm_env.BIOMERO_APPTAINER_CACHEDIR],
+        ("SLURM", "slurm_zip_cmd"): [slurm_env.BIOMERO_SLURM_ZIP_CMD],
+    }
+    _OUT_SEP = "--split--"
+    _VERSION_CMD = "ls -h \"{slurm_images_path}/{image_path}\" | grep -oP '(?<=\\-|\\_)(v.+|latest)(?=.simg|.sif)'"
+    _CONVERTER_VERSION_CMD = "ls -h \"{converter_path}\" | grep -oP '(convert_.+)(?=.simg|.sif)' | awk '{{n=split($0, a, \"_\"); last=a[n]; sub(\"_\"last\"$\", \"\", $0); print $0, last}}'"
+    # Note, grep returns exitcode 1 if no match is found!
+    # This will translate into a UnexpectedExit error, so mute that if you
+    # don't care about empty.
+    # Like below with the "|| :".
+    # Data could legit be empty.
+    _DATA_CMD = "ls -h \"{slurm_data_path}\" | grep -oP '.+(?=.zip)' || :"
+    _ALL_JOBS_CMD = "sacct --starttime {start_time} --endtime {end_time} --state {states} -o {columns} -n -X "
+    _ACTIVE_JOBS_CMD = "squeue -u $USER --nohead --format %F"
+    _JOB_STATUS_CMD = "sacct -n -o JobId,State,End -X -j {slurm_job_id}"
+    # TODO move all commands to a similar format.
+    # Then maybe allow overwrite from slurm-config.ini
+    _LOGFILE = "omero-{slurm_job_id}.log"
+    _CONVERTER_LOGFILE = "\"omero-{slurm_job_id}\"_*.log"
+    _TAIL_LOG_CMD = "tail -n {n} \"{log_file}\" | strings"
+    _LOGFILE_DATA_CMD = "cat \"{log_file}\" | perl -wne '/Running [\\w-]+? Job w\\/ .+? \\| .+? \\| (.+?) \\|.*/i and print$1'"
+    _FOLDER_INPUT_TYPES = ('image', 'file', 'array',
+                           'measurement', 'executable')
+    # Folder-type inputs that the user can supply as OMERO file-annotation IDs
+    # (i.e. not images — those are handled by Image_Transfer).
+    _FILE_ATTACHMENT_TYPES = ('file', 'array', 'measurement', 'executable')
+
+    @classmethod
+    def get_authoritative_config_path(cls):
+        """Return the configured authoritative ini path, if enabled."""
+        config_path = os.getenv(slurm_env.BIOMERO_SLURM_CONFIG_FILE)
+        if not config_path or not config_path.strip():
+            return None
+        return os.path.expanduser(config_path.strip())
+
+    @classmethod
+    def get_config_paths(cls, configfile: str = '') -> list[str]:
+        """Resolve config paths in effective read order.
+
+        ``BIOMERO_SLURM_CONFIG_FILE`` enables authoritative-file mode and
+        replaces all default and caller-supplied config layers.
+        """
+        authoritative_path = cls.get_authoritative_config_path()
+        if authoritative_path:
+            return [authoritative_path]
+        return [
+            os.path.expanduser(cls._DEFAULT_CONFIG_PATH_1),
+            os.path.expanduser(cls._DEFAULT_CONFIG_PATH_2),
+            os.path.expanduser(cls._DEFAULT_CONFIG_PATH_3),
+            os.path.expanduser(configfile),
+        ]
+
+    @classmethod
+    def get_config_write_path(cls) -> str:
+        """Resolve the writable admin overlay or authoritative ini path."""
+        return (cls.get_authoritative_config_path()
+                or os.path.expanduser(cls._DEFAULT_CONFIG_PATH_3))
+
+    @classmethod
+    def load_config(cls, configfile: str = '') -> configparser.ConfigParser:
+        """Load BIOMERO configuration using the effective path policy."""
+        configs = configparser.ConfigParser(allow_no_value=True)
+        configs.read(cls.get_config_paths(configfile))
+        return configs
+
+    @staticmethod
+    def _get_config_value(configs,
+                          section: str,
+                          option: str,
+                          default,
+                          env_vars: list[str] = None,
+                          value_type=str,
+                          empty_is_none: bool = False):
+        """
+        Helper method to get a configuration value with support for type conversion,
+        environment variable override, and default value handling.
+
+        Args:
+            configs: The ConfigParser object containing the configurations.
+            section: The section in the config file to look for the option.
+            option: The option name in the config file. 
+            default: The default value to use if the option is not found in the config file.
+            env_vars: A list of environment variable names to check for an override. The first one found will be used. Defaults to None (no environment variable override).
+            value_type: The expected type of the configuration value (e.g., str, int, bool). Defaults to str.
+            empty_is_none: If True, treats empty string values as None. Defaults to False.
+        Returns:
+            The configuration value, potentially overridden by an environment variable and converted to the specified type.
+
+        """
+
+        if value_type is bool:
+            value = configs.getboolean(section, option, fallback=default)
+        else:
+            value = configs.get(section, option, fallback=default)
+
+        if value_type is int:
+            if value is None or value == "":
+                typed_value = default
+            else:
+                try:
+                    typed_value = int(value)
+                except (TypeError, ValueError):
+                    logger.warning(
+                        f"Invalid value '{value}' for config option {section}.{option}, using fallback."
+                    )
+                    typed_value = default
+        else:
+            typed_value = value
+
+        if empty_is_none and value == "":
+            value = None
+            typed_value = default
+
+        # ---- ENV OVERRIDE (first match wins) ----
+        env_value = None
+        used_env_var = None
+
+        if env_vars:
+            for var in env_vars:
+                env_value = os.getenv(var)
+                if env_value is not None:
+                    used_env_var = var
+                    break
+
+        if env_value is not None:
+            if value_type is bool:
+                truthy_values = ("true", "1", "yes", "y", "on")
+                falsy_values = ("false", "0", "no", "n", "off")
+                lowered = env_value.lower()
+                if lowered in truthy_values:
+                    return True
+                if lowered in falsy_values:
+                    return False
+                logger.warning(
+                    f"Invalid value '{env_value}' for environment variable {used_env_var}, using fallback."
+                )
+                return typed_value
+
+            if value_type is int:
+                try:
+                    return int(env_value)
+                except ValueError:
+                    logger.warning(
+                        f"Invalid value '{env_value}' for environment variable {used_env_var}, using fallback."
+                    )
+                    return typed_value
+
+            if empty_is_none and env_value == "":
+                return typed_value
+
+            return env_value
+
+        return typed_value
+
+    def __init__(self,
+                 host=_DEFAULT_HOST,
+                 user=None,
+                 port=None,
+                 config=None,
+                 gateway=None,
+                 forward_agent=None,
+                 connect_timeout=None,
+                 connect_kwargs=None,
+                 inline_ssh_env=_DEFAULT_INLINE_SSH_ENV,
+                 slurm_data_path: str = _DEFAULT_SLURM_DATA_PATH,
+                 slurm_images_path: str = _DEFAULT_SLURM_IMAGES_PATH,
+                 slurm_converters_path: str = _DEFAULT_SLURM_CONVERTERS_PATH,
+                 slurm_model_paths: dict = None,
+                 slurm_model_repos: dict = None,
+                 slurm_model_images: dict = None,
+                 converter_images: dict = None,
+                 slurm_model_jobs: dict = None,
+                 slurm_model_jobs_params: dict = None,
+                 slurm_model_use_gpu: dict = None,
+                 slurm_script_path: str = _DEFAULT_SLURM_GIT_SCRIPT_PATH,
+                 slurm_script_repo: str = None,
+                 init_slurm: bool = False,
+                 track_workflows: bool = True,
+                 enable_job_accounting: bool = True,
+                 enable_job_progress: bool = True,
+                 enable_workflow_analytics: bool = True,
+                 sqlalchemy_url: str = None,
+                 config_only: bool = False,
+                 slurm_data_bind_path: str = None,
+                 remote_shallow_zarr: bool = True,
+                 remote_shallower_image: str = _DEFAULT_REMOTE_SHALLOWER_IMAGE,
+                 remote_shallower_version: str = None,
+                 remote_shallower_workers: int = 1,
+                 remote_shallower_partition: str = None,
+                 slurm_conversion_partition: str = None,
+                 slurm_default_partition: str = None,
+                 sacct_start_time: str = None,
+                 sacct_days_ago: int = None,
+                 env_file_submission: bool = False,
+                 inject_gpu_flag: bool = False,
+                 gpu_partition: str = None,
+                 gpu_gres: str = None,
+                 gpu_gpus: str = None,
+                 slurm_global_job_params: list = None,
+                 slurm_image_pull_via_sbatch: bool = False,
+                 image_pull_cpus: str = None,
+                 image_pull_mem: str = None,
+                 image_pull_time: str = None,
+                 image_pull_concurrency: int = 1,
+                 image_pull_partition: str = None,
+                 apptainer_tmpdir: str = None,
+                 apptainer_cachedir: str = None,
+                 slurm_zip_cmd: str = None,
+                 analytics_rebuild_start_time: str = None,
+                 analytics_rebuild_days_ago: int = None,
+                 remote_shallower_mem: str = None,
+                 remote_shallower_time: str = None):
+        """
+        Initializes a new instance of the SlurmClient class.
+
+        It is preferable to use the `#from_config(...)` method to initialize 
+        parameters from a configuration file.
+
+        Args:
+            host (str, optional): The hostname or IP address of the remote 
+                server. Defaults to `_DEFAULT_HOST`.
+            user (str, optional): The username to use when connecting to 
+                the remote server. Defaults to None, which falls back to 
+                `config.user`.
+            port (int, optional): The SSH port to use when connecting.
+                Defaults to None, which falls back to `config.port`.
+            config (str, optional): Path to the SSH config file.
+                Defaults to None, which falls back to your SSH config file.
+            gateway (Connection, optional): An optional gateway for connecting 
+                through a jump host. Defaults to None.
+            forward_agent (bool, optional): Whether to forward the local SSH 
+                agent to the remote server. Defaults to None, which 
+                falls back to `config.forward_agent`.
+            connect_timeout (int, optional): Timeout for establishing the SSH 
+                connection. Defaults to None, which falls back to 
+                `config.timeouts.connect`.
+            connect_kwargs (dict, optional): Additional keyword arguments for 
+                the underlying SSH connection. These are passed verbatim to 
+                `SSHClient.connect <paramiko.client.SSHClient.connect>`. 
+                Defaults to None. 
+            inline_ssh_env (bool, optional): Whether to use inline SSH 
+                environment variables. This is necessary if the remote server 
+                has a restricted `AcceptEnv` setting (the common default). 
+                Defaults to `_DEFAULT_INLINE_SSH_ENV`.
+            slurm_data_path (str, optional): The path to the directory 
+                containing the data files for Slurm jobs. 
+                Defaults to `_DEFAULT_SLURM_DATA_PATH`.
+            slurm_images_path (str, optional): The path to the directory 
+                containing the Singularity images for Slurm jobs. 
+                Defaults to `_DEFAULT_SLURM_IMAGES_PATH`.
+            slurm_converters_path (str, optional): The path to the directory 
+                containing the Singularity images for file converters. 
+                Defaults to `_DEFAULT_SLURM_CONVERTERS_PATH`.
+            slurm_model_paths (dict, optional): A dictionary containing the 
+                paths to the Singularity images for specific Slurm job models. 
+                Defaults to None.
+            slurm_model_repos (dict, optional): A dictionary containing the 
+                Git repositories of Singularity images for specific Slurm 
+                job models. Defaults to None.
+            slurm_model_images (dict, optional): A dictionary containing the 
+                DockerHub images of the Singularity images for specific 
+                Slurm job models. Will be filled automatically from the 
+                data in the Git repository if `init_slurm` is set to True. 
+                Defaults to None.
+            converter_images (dict, optional): A dictionary containing the 
+                DockerHub images of the Singularity images for file converters. 
+                Will default to building the converter available in this package 
+                on Slurm instead if not configured. 
+                Defaults to None.
+            slurm_model_jobs (dict, optional): A dictionary containing 
+                information about specific Slurm job models. 
+                Defaults to None.
+            slurm_model_jobs_params (dict, optional): A dictionary containing 
+                parameters for specific Slurm job models. 
+                Defaults to None.
+            slurm_script_path (str, optional): The path to the directory 
+                containing the Slurm job submission scripts on Slurm. 
+                Defaults to `_DEFAULT_SLURM_GIT_SCRIPT_PATH`.
+            slurm_script_repo (str, optional): The Git HTTPS URL for cloning 
+                the repository containing the Slurm job submission scripts. 
+                Defaults to None.
+            init_slurm (bool, optional): Whether to set up the required structures 
+                on Slurm after initiating this client. This includes creating 
+                missing folders, downloading container images, cloning Git, etc. 
+                This process will take some time initially but will validate 
+                your setup. Defaults to False to save time.
+            track_workflows (bool, optional): Whether to track workflows. 
+                Defaults to True.
+            enable_job_accounting (bool, optional): Whether to enable job 
+                accounting. Defaults to True.
+            enable_job_progress (bool, optional): Whether to track job 
+                progress. Defaults to True.
+            enable_workflow_analytics (bool, optional): Whether to enable 
+                workflow analytics. Defaults to True.
+            sqlalchemy_url (str, optional): URL for eventsourcing database 
+                connection. Defaults to None, which falls back to the
+                `SQLALCHEMY_URL` environment variable. Note that it will
+                always be overridden with the environment variable 
+                `SQLALCHEMY_URL`, if that is set.
+            config_only (bool, optional): Whether to setup the client for 
+                configuration purposes only, skipping validation and analytics 
+                initialization. Defaults to False.
+            slurm_data_bind_path (str, optional): Path to bind to Singularity/
+                Apptainer containers via the APPTAINER_BINDPATH environment 
+                variable. Required when the default data folder is not bound 
+                to the container. If your HPC administrator tells you to set 
+                APPTAINER_BINDPATH, configure this parameter. 
+                Defaults to None (no explicit binding).
+            remote_shallow_zarr (bool, optional): Administrator remote-shallower
+                setting; default True when shallow Zarr is enabled. Set False
+                for local shallowing. Environment: BIOMERO_REMOTE_SHALLOW_ZARR.
+            remote_shallower_image (str, optional): Administrator remote-shallower
+                image reference; defaults to our helper's latest tag. Pin a
+                release in slurm-config.ini for reproducible deployment.
+                Environment: BIOMERO_REMOTE_SHALLOWER_IMAGE.
+            remote_shallower_version (str, optional): Administrator remote-shallower
+                expected receipt version; default None (read the installed
+                image's OCI version label before recording a new task).
+                Environment: BIOMERO_REMOTE_SHALLOWER_VERSION.
+            remote_shallower_workers (int, optional): Administrator remote-shallower
+                setting; default 1. Environment: BIOMERO_REMOTE_SHALLOWER_WORKERS.
+            remote_shallower_partition (str, optional): Administrator remote-shallower
+                partition; otherwise slurm_default_partition, then global
+                sbatch_partition, then scheduler default.
+                Environment: BIOMERO_REMOTE_SHALLOWER_PARTITION.
+            remote_shallower_mem (str, optional): Memory override; default None
+                inherits global sbatch memory. Environment: BIOMERO_REMOTE_SHALLOWER_MEM.
+            remote_shallower_time (str, optional): Time limit override; default
+                None inherits global sbatch_time. Environment: BIOMERO_REMOTE_SHALLOWER_TIME.
+            slurm_conversion_partition (str, optional): SLURM partition to use 
+                for conversion jobs when no default partition is configured on 
+                your HPC. Defaults to None (use system default partition).
+            slurm_default_partition (str, optional): Generic fallback SLURM
+                partition appended to workflow jobs that do not already carry a
+                ``--partition=`` directive (from per-workflow ``[WORKFLOWS]`` params
+                or the GPU partition path). Useful on clusters without a usable
+                system default partition. Overridable via
+                ``BIOMERO_DEFAULT_PARTITION``. Defaults to None (no partition
+                injected; system default is used).
+            sacct_start_time (str, optional): Absolute start date for sacct
+                job history queries, format ``YYYY-MM-DD``. Overridable via
+                ``BIOMERO_SACCT_START_TIME``. Defaults to ``2023-01-01``.
+            sacct_days_ago (int, optional): Rolling history window in days for
+                sacct queries; overrides ``sacct_start_time`` when set.
+                Overridable via ``BIOMERO_SACCT_START_DAYS_AGO``.
+                Defaults to None.
+            env_file_submission (bool, optional): When True, BIOMERO writes
+                workflow environment variables to a per-job file and passes it
+                as ``$1`` to the job script instead of relying on SSH session
+                env propagation. Use when the cluster does not reliably
+                forward env vars into sbatch jobs. Defaults to False.
+            inject_gpu_flag (bool, optional): When True, BIOMERO uses a
+                ``GPU_FLAG`` substitution in generated job scripts so CPU and
+                GPU execution can be toggled at submission time via
+                ``use_gpu``. Defaults to False.
+            gpu_partition (str, optional): Shared fallback ``--partition``
+                appended to GPU workflow submissions when ``inject_gpu_flag``
+                is enabled and no per-workflow partition is configured.
+                Overridable via ``BIOMERO_GPU_PARTITION``. Defaults to None.
+            gpu_gres (str, optional): Shared fallback ``--gres`` resource
+                appended to GPU workflow submissions (e.g. ``gpu:a100:1``).
+                Mutually exclusive with ``gpu_gpus``.
+                Overridable via ``BIOMERO_GPU_GRES``. Defaults to None.
+            gpu_gpus (str, optional): Shared fallback ``--gpus`` resource
+                appended to GPU workflow submissions (e.g. ``1`` or
+                ``a100:1``). Mutually exclusive with ``gpu_gres``.
+                Overridable via ``BIOMERO_GPU_GPUS``. Defaults to None.
+            slurm_global_job_params (list, optional): Extra sbatch parameters
+                applied to workflow, conversion, and scheduled image-pull
+                submissions as fallbacks, e.g. ``[" --reservation=biomero"]``.
+                More-specific job parameters always take precedence.
+                Configured via ``sbatch_<key>=<value>`` keys in the ``[SLURM]``
+                config section. Defaults to None (empty).
+            slurm_image_pull_via_sbatch (bool, optional): When True, workflow
+                and converter image pulls/builds are submitted as sbatch jobs
+                instead of running directly on the login node. Defaults to
+                False.
+            image_pull_cpus (str, optional): CPU request for sbatch-based
+                image pull jobs. Overridable via ``BIOMERO_PULL_CPUS``.
+                Defaults to None, inheriting a global
+                ``sbatch_cpus-per-task`` value or the scheduler default.
+            image_pull_mem (str, optional): Memory request for sbatch-based
+                image pull jobs. Overridable via ``BIOMERO_PULL_MEM``.
+                Defaults to None, inheriting a global ``sbatch_mem`` value or
+                the scheduler default.
+            image_pull_time (str, optional): Time request for sbatch-based
+                image pull arrays. Overrides a global ``sbatch_time`` value.
+                Overridable via ``BIOMERO_PULL_TIME``. Defaults to None.
+            image_pull_concurrency (int, optional): Maximum number of image
+                array tasks that may run simultaneously. Overridable via
+                ``BIOMERO_PULL_CONCURRENCY``. Defaults to ``1`` for backward
+                compatibility with the former sequential sbatch job.
+            image_pull_partition (str, optional): Partition for sbatch-based
+                image pull arrays. Overrides a global ``sbatch_partition``.
+                Overridable via ``BIOMERO_PULL_PARTITION``. Defaults to None.
+            apptainer_tmpdir (str, optional): Exported as
+                ``APPTAINER_TMPDIR`` and ``SINGULARITY_TMPDIR`` for image
+                pull/build commands when set. Use when the default tmp
+                location is too small. Overridable via
+                ``BIOMERO_APPTAINER_TMPDIR``. Defaults to None.
+            apptainer_cachedir (str, optional): Exported as
+                ``APPTAINER_CACHEDIR`` and ``SINGULARITY_CACHEDIR`` for image
+                pull/build commands when set. Overridable via
+                ``BIOMERO_APPTAINER_CACHEDIR``. Defaults to None.
+            slurm_zip_cmd (str, optional): Command used to zip job output on
+                the cluster. ``zip`` (including an explicit path ending in
+                ``/zip``) selects Info-ZIP syntax and the corresponding
+                ``unzip`` executable; all other values retain the legacy
+                7-Zip syntax. Defaults to auto-detecting ``7z`` or ``7za``.
+                Overridable via ``BIOMERO_SLURM_ZIP_CMD``.
+            analytics_rebuild_start_time (str, optional): Absolute cutoff date
+                (``YYYY-MM-DD``) from which events are replayed when resetting
+                analytics view tables. Overrides the full-history default.
+                Overridable via ``BIOMERO_ANALYTICS_REBUILD_START_TIME``.
+                Defaults to None (full rebuild).
+            analytics_rebuild_days_ago (int, optional): Rolling cutoff window
+                in days for analytics view table rebuilds. Overrides
+                ``analytics_rebuild_start_time`` when both are set.
+                Overridable via ``BIOMERO_ANALYTICS_REBUILD_DAYS_AGO``.
+                Defaults to None (full rebuild).
+        """
+
+        super(SlurmClient, self).__init__(host,
+                                          user,
+                                          port,
+                                          config,
+                                          gateway,
+                                          forward_agent,
+                                          connect_timeout,
+                                          connect_kwargs,
+                                          inline_ssh_env)
+        self.slurm_data_path = slurm_data_path
+        self.slurm_images_path = slurm_images_path
+        self.slurm_converters_path = slurm_converters_path
+        self.slurm_model_paths = slurm_model_paths
+        self.slurm_script_path = slurm_script_path
+        self.slurm_script_repo = slurm_script_repo
+        self.slurm_model_repos = slurm_model_repos
+        self.slurm_model_images = slurm_model_images
+        self.converter_images = converter_images
+        self.slurm_model_jobs = slurm_model_jobs
+        self.slurm_model_jobs_params = slurm_model_jobs_params
+        self.slurm_model_use_gpu = slurm_model_use_gpu or {}
+        self.slurm_data_bind_path = slurm_data_bind_path
+        self.remote_shallow_zarr = remote_shallow_zarr
+        self.remote_shallower_image = remote_shallower_image
+        self.remote_shallower_version = remote_shallower_version
+        self.remote_shallower_workers = remote_shallower_workers
+        self.remote_shallower_partition = remote_shallower_partition
+        self.remote_shallower_mem = remote_shallower_mem
+        self.remote_shallower_time = remote_shallower_time
+        self.slurm_conversion_partition = slurm_conversion_partition
+        self.slurm_default_partition = slurm_default_partition
+        self.sacct_start_time = sacct_start_time
+        self.sacct_days_ago = sacct_days_ago
+        self.env_file_submission = env_file_submission
+        self.inject_gpu_flag = inject_gpu_flag
+        self.gpu_partition = gpu_partition
+        if gpu_gres and gpu_gpus:
+            raise ValueError(
+                "gpu_gres and gpu_gpus are mutually exclusive; set one or the other, not both."
+            )
+        self.gpu_gres = gpu_gres
+        self.gpu_gpus = gpu_gpus
+        self.slurm_global_job_params = slurm_global_job_params or []
+        self.slurm_image_pull_via_sbatch = slurm_image_pull_via_sbatch
+        self.image_pull_cpus = image_pull_cpus
+        self.image_pull_mem = image_pull_mem
+        self.image_pull_time = image_pull_time
+        self.image_pull_concurrency = max(1, image_pull_concurrency or 1)
+        self.image_pull_partition = image_pull_partition
+        self.apptainer_tmpdir = apptainer_tmpdir
+        self.apptainer_cachedir = apptainer_cachedir
+        self.slurm_zip_cmd = slurm_zip_cmd
+        self.analytics_rebuild_start_time = analytics_rebuild_start_time
+        self.analytics_rebuild_days_ago = analytics_rebuild_days_ago
+
+        # Init cache. Versioned URLs (/tree/vX.Y.Z) are immutable → 24h TTL.
+        # Unversioned/master URLs → 1h TTL. Stale data is served on 429.
+        self.cache = requests_cache.backends.sqlite.SQLiteCache(
+            db_path="github_cache", use_temp=True)
+        self.get_or_create_github_session()
+
+        self.init_workflows()
+
+        if not config_only:
+            self.validate(validate_slurm_setup=init_slurm)
+
+            # Setup workflow tracking and accounting
+            # Initialize the analytics settings
+            self.track_workflows = track_workflows
+            self.enable_job_accounting = enable_job_accounting
+            self.enable_job_progress = enable_job_progress
+            self.enable_workflow_analytics = enable_workflow_analytics
+
+            # Initialize the analytics system
+            self.sqlalchemy_url = sqlalchemy_url
+            self.initialize_analytics_system(reset_tables=init_slurm)
+        else:
+            logger.warning("Setup SlurmClient for config only")
+
+    def _apptainer_pull_env_prefix(self) -> str:
+        """Return shell env assignments for Apptainer/Singularity pull/build commands."""
+        env_parts = []
+        if self.apptainer_tmpdir:
+            quoted_tmpdir = shlex.quote(self.apptainer_tmpdir)
+            env_parts.append(f"APPTAINER_TMPDIR={quoted_tmpdir}")
+            env_parts.append(f"SINGULARITY_TMPDIR={quoted_tmpdir}")
+        if self.apptainer_cachedir:
+            quoted_cachedir = shlex.quote(self.apptainer_cachedir)
+            env_parts.append(f"APPTAINER_CACHEDIR={quoted_cachedir}")
+            env_parts.append(f"SINGULARITY_CACHEDIR={quoted_cachedir}")
+        if not env_parts:
+            return ""
+        return " ".join(env_parts) + " "
+
+    def get_job_params(self, overrides=None, *, excluded=()):
+        """Merge job-specific resources, default partition and global sbatch flags.
+
+        Explicit nonempty overrides win. Callers reserve flags owned by their
+        command through ``excluded``. Values retain the existing administrator
+        supplied shell syntax used by workflow/conversion submissions.
+        """
+        overrides = dict(overrides or {})
+        if not overrides.get('partition'):
+            overrides['partition'] = self.slurm_default_partition
+        params = [f'--{flag}={value}' for flag, value in overrides.items()
+                  if value is not None and value != '']
+        present = {p.split('=', 1)[0] for p in params}
+        for raw in self.slurm_global_job_params:
+            param = raw.strip()
+            flag = param.split('=', 1)[0]
+            if flag not in present and flag.removeprefix('--') not in excluded:
+                params.append(param)
+                present.add(flag)
+        return params
+
+    def get_shallower_job_params(self):
+        """Single-process CPU helper resources, also used for recovery jobs."""
+        excluded = {'array', 'output', 'error', 'job-name', 'export', 'wrap',
+                    'parsable', 'wait', 'quiet', 'ntasks', 'nodes', 'overcommit',
+                    'gres', 'gres-flags', 'cpus-per-gpu', 'mem-per-gpu'}
+        for raw in self.slurm_global_job_params:
+            flag = raw.strip().split('=', 1)[0].removeprefix('--')
+            if flag.startswith(('gpus', 'gpu-', 'ntasks-')):
+                excluded.add(flag)
+        if self.remote_shallower_mem:
+            excluded.add('mem-per-cpu')
+        return self.get_job_params({
+            'cpus-per-task': self.remote_shallower_workers,
+            'partition': self.remote_shallower_partition,
+            'mem': self.remote_shallower_mem,
+            'time': self.remote_shallower_time,
+        }, excluded=excluded)
+
+    def _build_image_pull_sbatch_command(
+            self,
+            script_path: str,
+            manifest_path: str,
+            status_dir: str,
+            task_count: int) -> str:
+        """Build the scheduler command for one bounded image-pull array.
+
+        Generic ``sbatch_*`` values apply to image initialization as they do
+        to workflow and conversion submissions. Array-owned flags and explicit
+        ``image_pull_*`` resources take precedence over matching globals.
+        """
+        if task_count < 1:
+            raise ValueError("task_count must be at least 1")
+
+        dedicated = {
+            "cpus-per-task": self.image_pull_cpus,
+            "mem": self.image_pull_mem,
+            "time": self.image_pull_time,
+            "partition": self.image_pull_partition,
+        }
+        reserved = {
+            "array", "output", "error", "job-name", "export",
+            *[key for key, value in dedicated.items() if value],
+        }
+        params = []
+        inherited = {}
+        for raw_param in self.slurm_global_job_params:
+            param = raw_param.strip()
+            match = re.match(r"--([^=\s]+)(?:=(\S+))?", param)
+            if match and match.group(1) not in reserved:
+                params.append(param)
+                inherited[match.group(1)] = match.group(2)
+
+        concurrency = max(1, int(self.image_pull_concurrency or 1))
+        params.extend([
+            f"--array=0-{task_count - 1}%{concurrency}",
+            "--job-name=biomero-pull-images",
+        ])
+        for flag, value in dedicated.items():
+            if value:
+                params.append(f"--{flag}={value}")
+        effective_cpus = (
+            dedicated["cpus-per-task"] or
+            inherited.get("cpus-per-task") or
+            "1"
+        )
+        params.extend([
+            f"--export=ALL,BIOMERO_PULL_CPUS={effective_cpus}",
+            f"--output={posixpath.join(status_dir, 'pull-image-%A_%a.log')}",
+        ])
+        args = " ".join(shlex.quote(value or "") for value in (
+            script_path, manifest_path, status_dir,
+            self.apptainer_tmpdir, self.apptainer_cachedir))
+        return f"sbatch --parsable {' '.join(params)} {args}"
+
+    @staticmethod
+    def _parse_image_pull_status(status_output: str) -> Dict[str, Any]:
+        """Parse fixed-column per-image status records from the cluster."""
+        images = []
+        counts = {"READY": 0, "RUNNING": 0, "FAILED": 0}
+        for raw_line in status_output.splitlines():
+            if not raw_line.strip():
+                continue
+            fields = raw_line.split("\t", 6)
+            if len(fields) != 7:
+                logger.warning("Ignoring malformed image status: %s", raw_line)
+                continue
+            kind, name, version, state, exit_code, reason, destination = fields
+            if state not in counts:
+                logger.warning("Ignoring unknown image state: %s", state)
+                continue
+            parsed_exit = None
+            if exit_code:
+                try:
+                    parsed_exit = int(exit_code)
+                except ValueError:
+                    parsed_exit = None
+            images.append({
+                "kind": kind,
+                "name": name,
+                "version": version,
+                "state": state,
+                "exit_code": parsed_exit,
+                "reason": reason,
+                "destination": destination,
+            })
+            counts[state] += 1
+        return {"counts": counts, "images": images}
+
+    def initialize_analytics_system(self, reset_tables=False):
+        """
+        Initialize the analytics system based on the analytics configuration
+        passed to the constructor.
+
+        Args:
+            reset_tables (bool): If True, drops and recreates all views.
+        """
+        # Get persistence settings, prioritize environment variables
+        persistence_module = os.getenv(
+            "PERSISTENCE_MODULE", "eventsourcing_sqlalchemy")
+        if persistence_module != "eventsourcing_sqlalchemy":
+            raise NotImplementedError(
+                f"Can't handle {persistence_module}. Currently only supports 'eventsourcing_sqlalchemy' as PERSISTENCE_MODULE")
+
+        configured_sqlalchemy_url = self.sqlalchemy_url
+        sqlalchemy_url = self._get_config_value(
+            configparser.ConfigParser(),
+            section="ANALYTICS",
+            option="sqlalchemy_url",
+            default=configured_sqlalchemy_url,
+            env_vars=self._CONFIG_ENV_VARS[("ANALYTICS", "sqlalchemy_url")],
+        )
+        if not sqlalchemy_url:
+            raise ValueError(
+                "SQLALCHEMY_URL must be set either in init, config ('sqlalchemy_url') or as an environment variable.")
+        if sqlalchemy_url != configured_sqlalchemy_url:
+            logger.info(
+                "Overriding configured SQLALCHEMY_URL with env var SQLALCHEMY_URL.")
+
+        # Build the system based on the analytics configuration
+        pipes = []
+        runner = None
+        if self.track_workflows:
+            # Add JobAccounting to the pipeline if enabled
+            if self.enable_job_accounting:
+                pipes.append([WorkflowTracker, JobAccounting])
+
+            # Add JobProgress to the pipeline if enabled
+            if self.enable_job_progress:
+                pipes.append([WorkflowTracker, JobProgress])
+                pipes.append([WorkflowTracker, WorkflowProgress])
+
+            # Add WorkflowAnalytics to the pipeline if enabled
+            if self.enable_workflow_analytics:
+                pipes.append([WorkflowTracker, WorkflowAnalytics])
+
+            # Add onlys WorkflowTracker if no listeners are enabled
+            if not pipes:
+                pipes = [[WorkflowTracker]]
+
+            system = System(pipes=pipes)
+            scoped_session_topic = EngineManager.create_scoped_session(
+                sqlalchemy_url=sqlalchemy_url)
+            runner = SingleThreadedRunner(system, env={
+                'SQLALCHEMY_SCOPED_SESSION_TOPIC': scoped_session_topic,
+                'PERSISTENCE_MODULE': persistence_module})
+            runner.start()
+            self.workflowTracker = runner.get(WorkflowTracker)
+        else:  # turn off persistence, override
+            logger.warning(
+                "Tracking workflows is disabled. No-op WorkflowTracker will be used.")
+            self.workflowTracker = NoOpWorkflowTracker()
+
+        self.setup_listeners(runner, reset_tables)
+
+    def setup_listeners(self, runner, reset_tables):
+        # Only when people run init script, we just drop and rebuild.
+        self.get_listeners(runner)
+
+        # Optionally drop and recreate tables
+        if reset_tables:
+            logger.info("Resetting view tables.")
+            tables = []
+            # gather the listener tables
+            listeners = [self.jobAccounting,
+                         self.jobProgress,
+                         self.wfProgress,
+                         self.workflowAnalytics]
+            for listener in listeners:
+                if not isinstance(listener, NoOpWorkflowTracker):
+                    tables.append(listener.recorder.tracking_table_name)
+                    tables.append(listener.recorder.events_table_name)
+            runner.stop()
+            # gather the view tables
+            tables.append(TaskExecution.__tablename__)
+            tables.append(JobProgressView.__tablename__)
+            tables.append(WorkflowProgressView.__tablename__)
+            tables.append(JobView.__tablename__)
+            with EngineManager.get_session() as session:
+                try:
+                    # Begin a transaction
+                    for table in tables:
+                        # Drop the table if it exists
+                        logger.info(f"Dropping table {table}")
+                        drop_table_sql = text(f'DROP TABLE IF EXISTS {table}')
+                        session.execute(drop_table_sql)
+                    # Only when people run init script, we just drop and rebuild.
+                    session.commit()
+                    logger.info("Dropped view tables successfully")
+                except IntegrityError as e:
+                    logger.error(e)
+                    session.rollback()
+                    raise Exception(
+                        f"Error trying to reset the view tables: {e}")
+
+            EngineManager.close_engine()  # close current sql session
+            # restart runner, listeners and recreate views
+            self.initialize_analytics_system(reset_tables=False)
+            # Update the view tables again, optionally from a cutoff event ID
+            start_id = self._find_analytics_start_id()
+            listeners = [self.jobAccounting,
+                         self.jobProgress,
+                         self.wfProgress,
+                         self.workflowAnalytics]
+            for listener in listeners:
+                if listener:
+                    self.bring_listener_uptodate(listener, start=start_id)
+
+    def get_listeners(self, runner):
+        if self.track_workflows and self.enable_job_accounting:
+            self.jobAccounting = runner.get(JobAccounting)
+        else:
+            self.jobAccounting = NoOpWorkflowTracker()
+
+        if self.track_workflows and self.enable_job_progress:
+            self.jobProgress = runner.get(JobProgress)
+            self.wfProgress = runner.get(WorkflowProgress)
+        else:
+            self.jobProgress = NoOpWorkflowTracker()
+            self.wfProgress = NoOpWorkflowTracker()
+
+        if self.track_workflows and self.enable_workflow_analytics:
+            self.workflowAnalytics = runner.get(WorkflowAnalytics)
+        else:
+            self.workflowAnalytics = NoOpWorkflowTracker()
+
+    def _find_analytics_start_id(self) -> int:
+        """Return the lowest event ID to start replaying from when rebuilding
+        analytics view tables, based on ``analytics_rebuild_days_ago`` or
+        ``analytics_rebuild_start_time`` configuration.
+
+        Priority (low to high):
+        1. ``analytics_rebuild_start_time`` — absolute date string ``YYYY-MM-DD``
+        2. ``analytics_rebuild_days_ago`` — rolling window in days (overrides absolute)
+        Both default to ``None``, meaning replay from event ID 1 (full rebuild).
+
+        The timestamp is decoded from the eventsourcing JSON state blob:
+        ``{"timestamp": {"_type_": "datetime_iso", "_data_": "<iso-string>"}, ...}``
+
+        Returns:
+            int: The event ID to pass as ``start`` to ``pull_and_process``.
+                 Returns 1 if no cutoff is configured or if the query fails.
+        """
+        cutoff = None
+        if self.analytics_rebuild_start_time is not None:
+            cutoff = self.analytics_rebuild_start_time
+        if self.analytics_rebuild_days_ago is not None:
+            cutoff = (
+                datetime.now(tz=timezone.utc)
+                - timedelta(days=int(self.analytics_rebuild_days_ago))
+            ).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+
+        if cutoff is None:
+            return 1
+
+        try:
+            with EngineManager.get_session() as session:
+                result = session.execute(
+                    text(
+                        "SELECT MIN(id) FROM workflowtracker_events "
+                        "WHERE (convert_from(state, 'UTF8')::json->>'timestamp')"
+                        "::json->>'_data_' >= :cutoff"
+                    ),
+                    {"cutoff": cutoff},
+                ).scalar()
+            start_id = int(result) if result is not None else 1
+            logger.info(
+                f"Analytics rebuild cutoff: {cutoff} → starting from event ID {start_id}"
+            )
+            return start_id
+        except Exception as e:
+            logger.warning(
+                f"Could not determine analytics rebuild start ID from cutoff "
+                f"'{cutoff}': {e}. Falling back to full rebuild (start=1)."
+            )
+            return 1
+
+    def bring_listener_uptodate(self, listener, start=1):
+        with EngineManager.get_session() as session:
+            try:
+                # Begin a transaction
+                listener.pull_and_process(
+                    leader_name=WorkflowTracker.__name__, start=start)
+                session.commit()
+            except (IntegrityError, ESIntegrityError) as e:
+                session.rollback()
+                error_msg = str(e).lower()
+                if 'unique constraint' in error_msg or 'duplicate key' in error_msg or isinstance(e, ESIntegrityError):
+                    # Already processed by another worker - this is expected and harmless.
+                    # The listener is already up to date.
+                    logger.debug(
+                        f"Listener already up to date (notification already processed): {e}")
+                else:
+                    logger.warning(
+                        f"Database conflict in bring_listener_uptodate (non-unique): {e}")
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Ensure to call the parent class's __exit__
+        # to clean up Connection resources
+        super().__exit__(exc_type, exc_val, exc_tb)
+        # Cleanup resources specific to SlurmClient. Only this thread's session
+        # is released, not the engine: a long-lived process (the workflow
+        # supervisor) opens a client per workflow and the ones running
+        # alongside it still need the engine.
+        EngineManager.remove_session()
+        # If we have any other resources to close or cleanup, do it here
+
+    def init_workflows(self, force_update: bool = False):
+        """
+        Retrieves the required info for the configured workflows from github.
+        It will fill `slurm_model_images` with dockerhub links.
+
+        Args:
+            force_update (bool): Will overwrite already given paths
+                in `slurm_model_images`
+
+        """
+        if not self.slurm_model_images:
+            self.slurm_model_images = {}
+        if not self.slurm_model_repos:
+            logger.warning("No workflows configured!")
+            self.slurm_model_repos = {}
+            # skips the setup
+        for workflow in self.slurm_model_repos.keys():
+            if workflow not in self.slurm_model_images or force_update:
+                descriptor = self.generic_descriptor_from_github(workflow)
+                logger.debug('%s: %s', workflow, descriptor)
+                image = descriptor['container-image']['image']
+                self.slurm_model_images[workflow] = image
+
+    def setup_slurm(self) -> Optional[int]:
+        """Create the cluster setup and return the image array job ID."""
+        if not self.validate():
+            raise SSHException("Failure in connecting to Slurm cluster")
+        self.setup_directories()
+        self.setup_job_scripts()
+        converter_specs = self.prepare_converters()
+        if self.remote_shallow_zarr and self.remote_shallower_image:
+            from .remote_shallower import image_spec
+            converter_specs = [*converter_specs, image_spec(self)]
+        return self.setup_container_images(extra_image_specs=converter_specs)
+
+    @staticmethod
+    def _image_status_record(spec: Dict[str, str], state: str,
+                             exit_code: str = "",
+                             reason: str = "") -> str:
+        reason = reason.replace("\t", " ").replace("\r", " ").replace(
+            "\n", " ")[:240]
+        return "\t".join([
+            spec["kind"], spec["name"], spec["version"], state,
+            str(exit_code), reason, spec["destination"],
+        ]) + "\n"
+
+    @staticmethod
+    def _render_image_manifest(specs: List[Dict[str, str]]) -> str:
+        columns = (
+            "kind", "name", "version", "source_type", "source",
+            "destination")
+        rows = ["\t".join(columns)]
+        destinations = set()
+        for spec in specs:
+            values = [str(spec[column]) for column in columns]
+            if any("\t" in value or "\n" in value or "\r" in value
+                   for value in values):
+                raise ValueError("Image manifest values cannot contain tabs or newlines")
+            if spec["destination"] in destinations:
+                raise ValueError(
+                    f"Duplicate image destination: {spec['destination']}")
+            destinations.add(spec["destination"])
+            rows.append("\t".join(values))
+        return "\n".join(rows) + "\n"
+
+    def _workflow_image_specs(self) -> List[Dict[str, str]]:
+        specs = []
+        for workflow, configured_image in (self.slurm_model_images or {}).items():
+            image = configured_image
+            image_tag, image_name = self.parse_docker_image_version(image)
+            if image_tag:
+                image = image_name
+                version = image_tag
+            else:
+                repo = self.slurm_model_repos[workflow]
+                _, version = self.extract_parts_from_url(repo)
+                if version == "master":
+                    version = "latest"
+            filename = f"{posixpath.basename(image)}_{version}.sif"
+            specs.append({
+                "kind": "workflow",
+                "name": workflow,
+                "version": version,
+                "source_type": "registry",
+                "source": image,
+                "destination": posixpath.join(
+                    self.slurm_images_path,
+                    self.slurm_model_paths[workflow], filename),
+            })
+        return specs
+
+    def _partition_existing_images(
+            self, specs: List[Dict[str, str]]
+            ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
+        """Return already-valid and pending specs without building on login."""
+        if not specs:
+            return [], []
+        commands = []
+        for spec in specs:
+            destination = shlex.quote(spec["destination"])
+            commands.append(
+                "container_runtime=$(command -v apptainer 2>/dev/null || "
+                "command -v singularity 2>/dev/null || true); "
+                f"if [ -n \"$container_runtime\" ] && [ -s {destination} ] "
+                f"&& \"$container_runtime\" inspect {destination} "
+                ">/dev/null 2>&1; then echo READY; else echo PENDING; fi")
+        results = self.run_commands_split_out(commands)
+        ready = []
+        pending = []
+        for spec, result in zip(specs, results):
+            (ready if result.strip() == "READY" else pending).append(spec)
+        return ready, pending
+
+    def _submit_image_pull_array(
+            self, specs: List[Dict[str, str]]) -> Optional[int]:
+        """Stage and submit image work, returning the Slurm array ID."""
+        if not specs:
+            return None
+        ready, pending = self._partition_existing_images(specs)
+        submission_id = uuid4().hex
+        status_root = posixpath.join(self.slurm_script_path, "image-pulls")
+        status_dir = posixpath.join(status_root, submission_id)
+        r = self.run_commands([f"mkdir -p {shlex.quote(status_dir)}"])
+        if not r.ok:
+            raise SSHException(r)
+
+        if ready:
+            ready_status = "".join(
+                self._image_status_record(
+                    spec, "READY", "0", "existing SIF validated")
+                for spec in ready)
+            self.put(io.StringIO(ready_status),
+                     posixpath.join(status_dir, "existing.status"))
+
+        manifest_path = posixpath.join(status_dir, "manifest.tsv")
+        self.put(io.StringIO(self._render_image_manifest(pending)),
+                 manifest_path)
+        script_path = posixpath.join(self.slurm_script_path, "pull_images.sh")
+        template_script = files("resources").joinpath("pull_images.sh")
+        with template_script.open("r") as source_file:
+            self.put(io.StringIO(source_file.read()), script_path)
+
+        for index, spec in enumerate(pending):
+            self.put(io.StringIO(self._image_status_record(
+                spec, "RUNNING", "", "submitted; waiting for array task")),
+                posixpath.join(status_dir, f"status-{index}.status"))
+
+        array_job_id = None
+        if pending and self.slurm_image_pull_via_sbatch:
+            command = self._build_image_pull_sbatch_command(
+                script_path, manifest_path, status_dir, len(pending))
+            result = self.run_commands([command])
+            if not result.ok:
+                raise SSHException(result)
+            array_job_id = self.extract_job_id(result)
+            if array_job_id < 0:
+                raise SSHException(
+                    f"Unable to parse image array ID from: {result.stdout}")
+        elif pending:
+            commands = []
+            for index in range(len(pending)):
+                logfile = posixpath.join(
+                    status_dir, f"pull-image-direct_{index}.log")
+                commands.append(
+                    "nohup env "
+                    f"BIOMERO_PULL_CPUS={shlex.quote(self.image_pull_cpus or '1')} "
+                    f"SLURM_ARRAY_TASK_ID={index} "
+                    f"SLURM_ARRAY_JOB_ID=direct-{submission_id} "
+                    f"bash {shlex.quote(script_path)} "
+                    f"{shlex.quote(manifest_path)} {shlex.quote(status_dir)} "
+                    f"{shlex.quote(self.apptainer_tmpdir or '')} "
+                    f"{shlex.quote(self.apptainer_cachedir or '')} "
+                    f"> {shlex.quote(logfile)} 2>&1 </dev/null &")
+            result = self.run_commands(commands, sep=" ; ")
+            if not result.ok:
+                raise SSHException(result)
+
+        metadata = (
+            f"submission_id\t{submission_id}\n"
+            f"array_job_id\t{array_job_id or ''}\n"
+            f"expected\t{len(specs)}\n"
+            f"pending\t{len(pending)}\n")
+        self.put(io.StringIO(metadata),
+                 posixpath.join(status_dir, "submission.meta"))
+        latest_tmp = posixpath.join(status_root, f"latest.tmp.{submission_id}")
+        self.put(io.StringIO(status_dir + "\n"), latest_tmp)
+        result = self.run_commands([
+            f"mv {shlex.quote(latest_tmp)} "
+            f"{shlex.quote(posixpath.join(status_root, 'latest'))}"])
+        if not result.ok:
+            raise SSHException(result)
+        logger.info(
+            "Image initialization submission %s: %d ready, %d pending, array %s",
+            submission_id, len(ready), len(pending), array_job_id)
+        return array_job_id
+
+    def get_image_pull_status(self) -> Dict[str, Any]:
+        """Return structured status for the most recent image submission."""
+        status_root = posixpath.join(self.slurm_script_path, "image-pulls")
+        command = (
+            f"latest=$(cat {shlex.quote(posixpath.join(status_root, 'latest'))} "
+            "2>/dev/null) || exit 0; "
+            "for status in \"$latest\"/*.status; do "
+            "[ -f \"$status\" ] && cat \"$status\"; done")
+        result = self.run_commands([command])
+        if not result.ok:
+            raise SSHException(result)
+        return self._parse_image_pull_status(result.stdout)
+
+    def setup_container_images(
+            self, extra_image_specs: List[Dict[str, str]] = None
+            ) -> Optional[int]:
+        """Create workflow image directories and submit one combined array."""
+        directories = [
+            posixpath.join(self.slurm_images_path, path)
+            for path in (self.slurm_model_paths or {}).values()]
+        if directories:
+            quoted = " ".join(shlex.quote(path) for path in directories)
+            result = self.run_commands([f"mkdir -p {quoted}"])
+            if not result.ok:
+                raise SSHException(result)
+        specs = self._workflow_image_specs()
+        specs.extend(extra_image_specs or [])
+        return self._submit_image_pull_array(specs)
+
+    def list_available_converter_versions(self) -> Dict:
+        """
+        Note, assumes you use versioned converters.
+        Will return a dict with a version of each converter on your Slurm.
+        However, doesn't work properly with unversioned sif.
+        """
+        cmd = self._CONVERTER_VERSION_CMD.format(
+            converter_path=self.slurm_converters_path)
+        r = self.run_commands([cmd])
+        result_dict = {}
+        if r.ok:
+            # Iterate over each line in the output
+            for line in r.stdout.splitlines():
+                if not line.strip():
+                    continue
+                # Split the line into key and version
+                key, version = line.rsplit(' ', 1)
+                # Check if the key already exists in the dictionary
+                if key in result_dict:
+                    # Append the version to the existing list
+                    result_dict[key].append(version)
+                else:
+                    # Create a new list with the version
+                    result_dict[key] = [version]
+        return result_dict
+
+    def shallow_results_on_slurm(self, data_path, workflow_id, canonical_inputs,
+                                   *, heartbeat=None):
+        """Run/adopt optional CPU shallowing before result archiving.
+
+        ``heartbeat`` is a caller-owned no-argument callback invoked during
+        job waits.
+        """
+        from .remote_shallower import run
+        if heartbeat is not None and not callable(heartbeat):
+            raise TypeError('heartbeat must be callable')
+        return run(self, data_path, workflow_id, canonical_inputs, heartbeat)
+
+    def get_remote_shallower_receipts(self, workflow_id, canonical_inputs):
+        """Read trusted completed receipts from event-sourced helper tasks."""
+        from .remote_shallower import completed_receipts
+        return completed_receipts(self, workflow_id, canonical_inputs)
+
+    def prepare_converters(self) -> List[Dict[str, str]]:
+        """Stage converter runtime files and return their image specifications."""
+        convert_cmds = []
+        if self.slurm_converters_path:
+            convert_cmds.append(f"mkdir -p \"{self.slurm_converters_path}\"")
+        r = self.run_commands(convert_cmds)
+        if not r.ok:
+            raise SSHException(r)
+
+        # copy generic job array script over to slurm
+        convert_script_file = "convert_job_array.sh"
+        convert_job_local = files("resources").joinpath(
+            convert_script_file)
+        
+        optional_env = ""
+        if self.env_file_submission:
+            optional_env = (
+                'BIOMERO_ENV_FILE="${1:-}"\n'
+                'if [ -n "$BIOMERO_ENV_FILE" ] && [ -f "$BIOMERO_ENV_FILE" ]; then\n'
+                '    . "$BIOMERO_ENV_FILE"\n'
+                'fi'
+            )
+        substitutes = {
+            'OPTIONAL_ENV': optional_env,
+        }
+        with convert_job_local.open('r') as f:
+            src = Template(f.read())
+            convert_script = src.safe_substitute(substitutes)
+            logger.debug(f"substituted: {convert_script}")
+
+        convert_script_remote = f"{self.slurm_script_path}/{convert_script_file}"
+        _ = self.put(local=io.StringIO(convert_script),
+                     remote=convert_script_remote)
+
+        specs = []
+        if self.converter_images:
+            for path, image in self.converter_images.items():
+                version, image = self.parse_docker_image_version(image)
+                if version:
+                    chosen_converter = f"convert_{path}_{version}.sif"
+                else:
+                    version = 'latest'
+                    logger.warning(
+                        f"Pulling 'latest' as no version was provided for {image}")
+                    chosen_converter = f"convert_{path}_latest.sif"
+                specs.append({
+                    "kind": "converter",
+                    "name": path,
+                    "version": version,
+                    "source_type": "registry",
+                    "source": image,
+                    "destination": posixpath.join(
+                        self.slurm_converters_path, chosen_converter),
+                })
+        else:
+            convert_name = "convert_zarr_to_tiff"
+            convert_py = f"{convert_name}.py"
+            convert_script_local = files("resources").joinpath(
+                convert_py)
+            convert_def = f"{convert_name}.def"
+            convert_def_local = files("resources").joinpath(
+                convert_def)
+            _ = self.put(local=convert_script_local,
+                         remote=self.slurm_converters_path)
+            _ = self.put(local=convert_def_local,
+                         remote=self.slurm_converters_path)
+            specs.append({
+                "kind": "converter",
+                "name": "zarr_to_tiff",
+                "version": "latest",
+                "source_type": "definition",
+                "source": posixpath.join(
+                    self.slurm_converters_path, convert_def),
+                "destination": posixpath.join(
+                    self.slurm_converters_path,
+                    f"{convert_name}_latest.sif"),
+            })
+        return specs
+
+    def setup_converters(self) -> Optional[int]:
+        """Stage converters and submit them through the shared image runner."""
+        return self._submit_image_pull_array(self.prepare_converters())
+
+    def setup_job_scripts(self):
+        """
+        Sets up job scripts for Slurm operations.
+
+        This function either clones a Git repository containing job scripts
+        into the specified script path or generates scripts locally if no repository
+        is provided.
+
+        Raises:
+            SSHException: If there is an issue executing Git commands or generating scripts.
+        """
+        if self.slurm_script_repo and self.slurm_script_path:
+            # git clone into script path
+            env = {
+                "REPOSRC": f"\"{self.slurm_script_repo}\"",
+                "LOCALREPO": f"\"{self.slurm_script_path}\""
+            }
+            # Cleanup the existing folder first
+            cleanup_first = 'rm -rf "$LOCALREPO"'
+            cmd = 'git clone "$REPOSRC" "$LOCALREPO" 2> /dev/null'
+            r = self.run_commands([cleanup_first, cmd], env)
+            if not r.ok:
+                raise SSHException(r)
+        elif self.slurm_script_path:
+            # generate scripts
+            self.update_slurm_scripts(generate_jobs=True)
+
+    def setup_directories(self):
+        """
+        Creates necessary directories for Slurm operations.
+
+        This function creates directories for data storage, scripts, and workflows
+        as specified in the SlurmClient object.
+
+        Raises:
+            SSHException: If there is an issue executing directory creation commands.
+        """
+        dir_cmds = []
+        # a. data
+        if self.slurm_data_path:
+            dir_cmds.append(f"mkdir -p \"{self.slurm_data_path}\"")
+            # b. scripts
+        if self.slurm_script_path:
+            dir_cmds.append(f"mkdir -p \"{self.slurm_script_path}\"")
+            # c. workflows
+        if self.slurm_images_path:
+            dir_cmds.append(f"mkdir -p \"{self.slurm_images_path}\"")
+        # d. apptainer tmp/cache dirs (used during image pulls)
+        if self.apptainer_tmpdir:
+            dir_cmds.append(f"mkdir -p {shlex.quote(self.apptainer_tmpdir)}")
+        if self.apptainer_cachedir:
+            dir_cmds.append(f"mkdir -p {shlex.quote(self.apptainer_cachedir)}")
+        r = self.run_commands(dir_cmds)
+        if not r.ok:
+            raise SSHException(r)
+
+    @classmethod
+    def from_config(cls, configfile: str = '',
+                    init_slurm: bool = False,
+                    config_only: bool = False) -> 'SlurmClient':
+        """Creates a new SlurmClient object using the parameters read from a
+        configuration file (.ini).
+
+        Defaults paths to look for config files are:
+            - /etc/slurm-config.ini
+            - /OMERO/slurm-config.ini
+            - ~/slurm-config.ini
+
+        Set ``BIOMERO_SLURM_CONFIG_FILE`` to enable authoritative-file mode.
+        In that mode only the configured file is read; default paths and an
+        explicit ``configfile`` argument are intentionally ignored.
+
+        Note that this is only for the SLURM-specific values that we added.
+        Most configuration values are set via configuration mechanisms from
+        Fabric library, like SSH settings being loaded from SSH config, 
+        /etc/fabric.yml or environment variables.
+        See Fabric's documentation for more info on configuration if needed.
+
+        Args:
+            configfile (str): The path to your configuration file. Optional.
+            init_slurm (bool): Initiate / validate slurm setup. Optional
+                Might take some time the first time with downloading, etc.
+
+        Returns:
+            SlurmClient: A new SlurmClient object.
+        """
+        # Load the configuration file
+        # Loads from the authoritative file when configured, otherwise from
+        # the default locations and given location. Missing files are okay.
+        configs = cls.load_config(configfile)
+
+        # Read the required parameters from the configuration file,
+        # fallback to defaults
+        host = cls._get_config_value(
+            configs,
+            section="SSH",
+            option="host",
+            default=cls._DEFAULT_HOST,
+        )
+        inline_ssh_env = cls._get_config_value(
+            configs,
+            section="SSH",
+            option="inline_ssh_env",
+            default=cls._DEFAULT_INLINE_SSH_ENV,
+            value_type=bool,
+        )
+        slurm_data_path = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="slurm_data_path",
+            default=cls._DEFAULT_SLURM_DATA_PATH,
+        )
+        slurm_images_path = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="slurm_images_path",
+            default=cls._DEFAULT_SLURM_IMAGES_PATH,
+        )
+        slurm_converters_path = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="slurm_converters_path",
+            default=cls._DEFAULT_SLURM_CONVERTERS_PATH,
+        )
+        slurm_data_bind_path = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="slurm_data_bind_path",
+            default=None,
+            empty_is_none=True,
+        )
+        remote_shallow_zarr = cls._get_config_value(
+            configs, section="SLURM", option="remote_shallow_zarr",
+            default=True, env_vars=[slurm_env.BIOMERO_REMOTE_SHALLOW_ZARR],
+            value_type=bool)
+        remote_shallower_image = cls._get_config_value(
+            configs, section="SLURM", option="remote_shallower_image",
+            default=cls._DEFAULT_REMOTE_SHALLOWER_IMAGE,
+            env_vars=[slurm_env.BIOMERO_REMOTE_SHALLOWER_IMAGE], value_type=str,
+            empty_is_none=True)
+        remote_shallower_version = cls._get_config_value(
+            configs, section="SLURM", option="remote_shallower_version",
+            default=None, env_vars=[slurm_env.BIOMERO_REMOTE_SHALLOWER_VERSION],
+            value_type=str, empty_is_none=True)
+        remote_shallower_workers = cls._get_config_value(
+            configs, section="SLURM", option="remote_shallower_workers",
+            default=1, env_vars=[slurm_env.BIOMERO_REMOTE_SHALLOWER_WORKERS],
+            value_type=int)
+        remote_shallower_partition = cls._get_config_value(
+            configs, section="SLURM", option="remote_shallower_partition",
+            default=None, env_vars=[slurm_env.BIOMERO_REMOTE_SHALLOWER_PARTITION],
+            value_type=str)
+        remote_shallower_mem = cls._get_config_value(
+            configs, section="SLURM", option="remote_shallower_mem",
+            default=None, env_vars=[slurm_env.BIOMERO_REMOTE_SHALLOWER_MEM],
+            value_type=str, empty_is_none=True)
+        remote_shallower_time = cls._get_config_value(
+            configs, section="SLURM", option="remote_shallower_time",
+            default=None, env_vars=[slurm_env.BIOMERO_REMOTE_SHALLOWER_TIME],
+            value_type=str, empty_is_none=True)
+        slurm_conversion_partition = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="slurm_conversion_partition",
+            default=None,
+            empty_is_none=True,
+        )
+        slurm_default_partition = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="slurm_default_partition",
+            default=None,
+            env_vars=cls._CONFIG_ENV_VARS[(
+                "SLURM", "slurm_default_partition")],
+            empty_is_none=True,
+        )
+        sacct_start_time = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="sacct_start_time",
+            default=cls._DEFAULT_SACCT_START_TIME,
+            env_vars=cls._CONFIG_ENV_VARS[("SLURM", "sacct_start_time")],
+            empty_is_none=True,
+        )
+        sacct_days_ago = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="sacct_days_ago",
+            default=None,
+            env_vars=cls._CONFIG_ENV_VARS[("SLURM", "sacct_days_ago")],
+            value_type=int,
+            empty_is_none=True,
+        )
+        analytics_rebuild_start_time = cls._get_config_value(
+            configs,
+            section="ANALYTICS",
+            option="analytics_rebuild_start_time",
+            default=None,
+            env_vars=cls._CONFIG_ENV_VARS[(
+                "ANALYTICS", "analytics_rebuild_start_time")],
+            empty_is_none=True,
+        )
+        analytics_rebuild_days_ago = cls._get_config_value(
+            configs,
+            section="ANALYTICS",
+            option="analytics_rebuild_days_ago",
+            default=None,
+            env_vars=cls._CONFIG_ENV_VARS[(
+                "ANALYTICS", "analytics_rebuild_days_ago")],
+            value_type=int,
+            empty_is_none=True,
+        )
+
+        # Processing settings: env-file submission and GPU defaults.
+        env_file_submission = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="env_file_submission",
+            default=False,
+            env_vars=cls._CONFIG_ENV_VARS[(
+                "SLURM", "env_file_submission")],
+            value_type=bool,
+        )
+
+        inject_gpu_flag = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="inject_gpu_flag",
+            default=False,
+            env_vars=cls._CONFIG_ENV_VARS[("SLURM", "inject_gpu_flag")],
+            value_type=bool,
+        )
+
+        gpu_partition = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="gpu_partition",
+            default=None,
+            env_vars=cls._CONFIG_ENV_VARS[("SLURM", "gpu_partition")],
+            empty_is_none=True,
+        )
+
+        gpu_gres = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="gpu_gres",
+            default=None,
+            env_vars=cls._CONFIG_ENV_VARS[("SLURM", "gpu_gres")],
+            empty_is_none=True,
+        )
+
+        gpu_gpus = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="gpu_gpus",
+            default=None,
+            env_vars=cls._CONFIG_ENV_VARS[("SLURM", "gpu_gpus")],
+            empty_is_none=True,
+        )
+
+        slurm_image_pull_via_sbatch = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="slurm_image_pull_via_sbatch",
+            default=False,
+            env_vars=cls._CONFIG_ENV_VARS[(
+                "SLURM", "slurm_image_pull_via_sbatch")],
+            value_type=bool,
+        )
+
+        image_pull_cpus = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="image_pull_cpus",
+            default=None,
+            env_vars=cls._CONFIG_ENV_VARS[("SLURM", "image_pull_cpus")],
+            empty_is_none=True,
+        )
+
+        image_pull_mem = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="image_pull_mem",
+            default=None,
+            env_vars=cls._CONFIG_ENV_VARS[("SLURM", "image_pull_mem")],
+            empty_is_none=True,
+        )
+
+        image_pull_time = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="image_pull_time",
+            default=None,
+            env_vars=cls._CONFIG_ENV_VARS[("SLURM", "image_pull_time")],
+            empty_is_none=True,
+        )
+
+        image_pull_concurrency = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="image_pull_concurrency",
+            default=1,
+            env_vars=cls._CONFIG_ENV_VARS[
+                ("SLURM", "image_pull_concurrency")],
+            value_type=int,
+            empty_is_none=True,
+        )
+        if image_pull_concurrency < 1:
+            logger.warning(
+                "image_pull_concurrency must be at least 1; using 1")
+            image_pull_concurrency = 1
+
+        image_pull_partition = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="image_pull_partition",
+            default=None,
+            env_vars=cls._CONFIG_ENV_VARS[
+                ("SLURM", "image_pull_partition")],
+            empty_is_none=True,
+        )
+
+        apptainer_tmpdir = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="apptainer_tmpdir",
+            default=None,
+            env_vars=cls._CONFIG_ENV_VARS[("SLURM", "apptainer_tmpdir")],
+            empty_is_none=True,
+        )
+
+        apptainer_cachedir = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="apptainer_cachedir",
+            default=None,
+            env_vars=cls._CONFIG_ENV_VARS[("SLURM", "apptainer_cachedir")],
+            empty_is_none=True,
+        )
+
+        slurm_zip_cmd = cls._get_config_value(
+            configs,
+            section="SLURM",
+            option="slurm_zip_cmd",
+            default=cls._DEFAULT_SLURM_ZIP_CMD,
+            env_vars=cls._CONFIG_ENV_VARS[("SLURM", "slurm_zip_cmd")],
+            empty_is_none=True,
+        )
+
+        # Split the MODELS into paths, repos and images
+        # The section may be named either [MODELS] (legacy) or [WORKFLOWS]
+        # (preferred). Both are supported and merged; [MODELS] is read first so
+        # [WORKFLOWS] entries take precedence on key collisions.
+        models_dict = {}
+        for section_name in ("MODELS", "WORKFLOWS"):
+            try:
+                models_dict.update(dict(configs.items(section_name)))
+            except configparser.NoSectionError:
+                pass
+        slurm_model_paths = {}
+        slurm_model_repos = {}
+        slurm_model_jobs = {}
+        slurm_model_jobs_params = {}
+        slurm_model_use_gpu = {}
+        for k, v in models_dict.items():
+            suffix_repo = '_repo'
+            suffix_job = '_job'
+            suffix_use_gpu = '_use_gpu'
+            job_param_pattern = "(.+)_job_(.+)"
+            job_param_match = re.match(job_param_pattern, k)
+            if k.endswith(suffix_repo):
+                slurm_model_repos[k[:-len(suffix_repo)]] = v
+            elif k.endswith(suffix_job):
+                slurm_model_jobs[k[:-len(suffix_job)]] = v
+                slurm_model_jobs_params[k[:-len(suffix_job)]] = []
+            elif k.endswith(suffix_use_gpu):
+                slurm_model_use_gpu[k[:-len(suffix_use_gpu)]] = str(v).lower() in (
+                    "true", "1", "yes", "y", "on"
+                )
+            elif job_param_match:
+                slurm_model_jobs_params[job_param_match.group(1)].append(
+                    f" --{job_param_match.group(2)}={v}")
+            else:
+                slurm_model_paths[k] = v
+        logger.info(f"Using job params: {slurm_model_jobs_params}")
+
+        # Parse global sbatch params from [SLURM] section (sbatch_<key>=<value>).
+        # These are applied as a fallback to all workflow submissions; per-workflow
+        # job params always take precedence.
+        slurm_global_job_params = []
+        try:
+            slurm_items = dict(configs.items("SLURM"))
+            for k, v in slurm_items.items():
+                if k.startswith("sbatch_") and v:
+                    param_name = k[len("sbatch_"):]
+                    slurm_global_job_params.append(f" --{param_name}={v}")
+        except configparser.NoSectionError:
+            pass
+        if slurm_global_job_params:
+            logger.info(f"Using global sbatch params: {slurm_global_job_params}")
+
+        slurm_script_path = configs.get(
+            "SLURM", "slurm_script_path",
+            fallback=cls._DEFAULT_SLURM_GIT_SCRIPT_PATH)
+        slurm_script_repo = configs.get(
+            "SLURM", "slurm_script_repo",
+            fallback=None
+        )
+
+        # Parse converters, if available
+        try:
+            converter_items = configs.items("CONVERTERS")
+            if converter_items:
+                converter_images = dict(converter_items)
+            else:
+                converter_images = None  # Section exists but is empty
+        except configparser.NoSectionError:
+            converter_images = None  # Section does not exist
+
+        # Read the analytics section, if available
+        try:
+            track_workflows = configs.getboolean(
+                'ANALYTICS', 'track_workflows', fallback=True)
+            enable_job_accounting = configs.getboolean(
+                'ANALYTICS', 'enable_job_accounting', fallback=True)
+            enable_job_progress = configs.getboolean(
+                'ANALYTICS', 'enable_job_progress', fallback=True)
+            enable_workflow_analytics = configs.getboolean(
+                'ANALYTICS', 'enable_workflow_analytics', fallback=True)
+            sqlalchemy_url = cls._get_config_value(
+                configs,
+                section='ANALYTICS',
+                option='sqlalchemy_url',
+                default=None,
+                env_vars=cls._CONFIG_ENV_VARS[
+                    ('ANALYTICS', 'sqlalchemy_url')],
+            )
+        except configparser.NoSectionError:
+            # If the ANALYTICS section is missing, fallback to default values
+            track_workflows = True
+            enable_job_accounting = True
+            enable_job_progress = True
+            enable_workflow_analytics = True
+            sqlalchemy_url = None
+
+        # Create the SlurmClient object with the parameters read from
+        # the config file
+        return cls(host=host,
+                   inline_ssh_env=inline_ssh_env,
+                   slurm_data_path=slurm_data_path,
+                   slurm_images_path=slurm_images_path,
+                   slurm_converters_path=slurm_converters_path,
+                   slurm_model_paths=slurm_model_paths,
+                   slurm_model_repos=slurm_model_repos,
+                   slurm_model_images=None,
+                   converter_images=converter_images,
+                   slurm_model_jobs=slurm_model_jobs,
+                   slurm_model_jobs_params=slurm_model_jobs_params,
+                   slurm_model_use_gpu=slurm_model_use_gpu,
+                   slurm_script_path=slurm_script_path,
+                   slurm_script_repo=slurm_script_repo,
+                   init_slurm=init_slurm,
+                   # Pass analytics settings to the constructor
+                   track_workflows=track_workflows,
+                   enable_job_accounting=enable_job_accounting,
+                   enable_job_progress=enable_job_progress,
+                   enable_workflow_analytics=enable_workflow_analytics,
+                   sqlalchemy_url=sqlalchemy_url,
+                   config_only=config_only,
+                   slurm_data_bind_path=slurm_data_bind_path,
+                   remote_shallow_zarr=remote_shallow_zarr,
+                   remote_shallower_image=remote_shallower_image,
+                   remote_shallower_version=remote_shallower_version,
+                   remote_shallower_workers=remote_shallower_workers,
+                   remote_shallower_partition=remote_shallower_partition,
+                   remote_shallower_mem=remote_shallower_mem,
+                   remote_shallower_time=remote_shallower_time,
+                   slurm_conversion_partition=slurm_conversion_partition,
+                   slurm_default_partition=slurm_default_partition,
+                   sacct_start_time=sacct_start_time,
+                   sacct_days_ago=sacct_days_ago,
+                   env_file_submission=env_file_submission,
+                   inject_gpu_flag=inject_gpu_flag,
+                   gpu_partition=gpu_partition,
+                   gpu_gres=gpu_gres,
+                   gpu_gpus=gpu_gpus,
+                   slurm_global_job_params=slurm_global_job_params,
+                   slurm_image_pull_via_sbatch=slurm_image_pull_via_sbatch,
+                   image_pull_cpus=image_pull_cpus,
+                   image_pull_mem=image_pull_mem,
+                   image_pull_time=image_pull_time,
+                   image_pull_concurrency=image_pull_concurrency,
+                   image_pull_partition=image_pull_partition,
+                   apptainer_tmpdir=apptainer_tmpdir,
+                   apptainer_cachedir=apptainer_cachedir,
+                   slurm_zip_cmd=slurm_zip_cmd,
+                   analytics_rebuild_start_time=analytics_rebuild_start_time,
+                   analytics_rebuild_days_ago=analytics_rebuild_days_ago)
+
+    def cleanup_tmp_files(self,
+                          slurm_job_id: str,
+                          filename: str = None,
+                          data_location: str = None,
+                          logfile: str = None,
+                          ) -> Result:
+        """
+        Cleanup zip and unzipped files/folders associated with a Slurm job.
+
+        Args:
+            slurm_job_id (str): The job ID of the Slurm script.
+            filename (str): The zip filename on Slurm.
+            data_location (str, optional): The location of data files on Slurm.
+                If not provided, it will be extracted from the log file.
+            logfile (str, optional): The log file of the Slurm job. 
+                If not provided, a default log file will be used.
+
+        Returns:
+            Result: The result of the cleanup operation.
+
+        Note:
+            The cleanup process involves removing the specified zip file, 
+            the log file, and associated data files and folders.
+
+        Example:
+            # Cleanup temporary files for a Slurm job
+            client.cleanup_tmp_files("12345", "output.zip")
+        """
+        cmds = []
+        # zip
+        if filename:
+            rmzip = f"rm \"{filename}\".*"
+            cmds.append(rmzip)
+        # log
+        if logfile is None:
+            logfile = self._LOGFILE
+            logfile = logfile.format(slurm_job_id=slurm_job_id)
+        # -f so cleanup never errors when a job wrote to a different log
+        # convention (e.g. a conversion array job writes omero-<id>_*.log
+        # rather than the single omero-<id>.log).
+        rmlog = f"rm -f \"{logfile}\""
+        cmds.append(rmlog)
+        # converter logs
+        clog = self._CONVERTER_LOGFILE
+        clog = clog.format(slurm_job_id=slurm_job_id)
+        rmclog = f"rm -f {clog}"
+        cmds.append(rmclog)
+
+        # data
+        if data_location is None:
+            data_location = self.extract_data_location_from_log(logfile)
+
+        if data_location:
+            rmdata = f"rm -rf \"{data_location}\" \"{data_location}\".*"
+            cmds.append(rmdata)
+
+            # convert config file
+            config_file = f"config_{os.path.basename(data_location)}.txt"
+            rmconfig = f"rm \"{config_file}\""
+            cmds.append(rmconfig)
+        else:
+            logger.warning(
+                f"Could not extract data location from log {logfile}. Skipping cleanup.")
+
+        try:
+            # do as much as possible, not conditional removal
+            result = self.run_commands(cmds, sep=' ; ')
+        except UnexpectedExit as e:
+            logger.warning(e)
+            result = e.result
+        return result or None
+
+    def validate(self, validate_slurm_setup: bool = False):
+        """Validate the connection to the Slurm cluster by running
+        a simple command.
+
+        Args:
+            validate_slurm_setup (bool): Whether to also check
+                and fix the Slurm setup (folders, images, etc.)
+
+        Returns:
+            bool:
+                True if the validation is successful,
+                False otherwise.
+        """
+        connected = self.run('echo " "').ok
+        if connected and validate_slurm_setup:
+            try:
+                self.setup_slurm()
+            except SSHException as e:
+                logger.error(e)
+                return False
+        return connected
+
+    def get_recent_log_command(self, log_file: str, n: int = 10) -> str:
+        """
+        Get the command to retrieve the recent log entries from a
+        specified log file.
+
+        Args:
+            log_file (str): The path to the log file.
+            n (int, optional): The number of recent log entries to retrieve.
+                Defaults to 10.
+
+        Returns:
+            str: The command to retrieve the recent log entries.
+        """
+        return self._TAIL_LOG_CMD.format(n=n, log_file=log_file)
+
+    def get_active_job_progress(self,
+                                slurm_job_id: str,
+                                pattern: str = r"\d+%",
+                                env: Optional[Dict[str, str]] = None) -> Any:
+        """
+        Get the progress of an active Slurm job from its logfiles.
+
+        Args:
+            slurm_job_id (str): The ID of the Slurm job.
+            pattern (str): The pattern to match in the job log to extract
+                the progress (default: r"\\d+%").
+
+            env (Dict[str, str], optional): Optional environment variables 
+                to set when running the command. Defaults to None.
+
+        Returns:
+            Any: The progress of the Slurm job according to the pattern, or None.
+        """
+        cmdlist = []
+        cmd = self.get_recent_log_command(
+            log_file=self._LOGFILE.format(slurm_job_id=slurm_job_id))
+        cmdlist.append(cmd)
+        if env is None:
+            env = {}
+        try:
+            result = self.run_commands(cmdlist, env=env)
+        except Exception as e:
+            logger.error(f"Issue with run command: {e}")
+        # Match the specified pattern in the result's stdout
+        latest_progress = None
+        try:
+            latest_progress = re.findall(
+                pattern, result.stdout)[-1]
+        except Exception as e:
+            logger.warning(f"Issue with extracting progress: {e}")
+
+        return latest_progress
+
+    def run_commands(self, cmdlist: List[str],
+                     env: Optional[Dict[str, str]] = None,
+                     sep: str = ' && ',
+                     log_stdout: bool = True,
+                     **kwargs) -> Result:
+        """
+        Run a list of shell commands consecutively on the Slurm cluster,
+        ensuring the success of each before proceeding to the next.
+
+        The environment variables can be set using the `env` argument.
+        These commands retain the same session (environment variables
+        etc.), unlike running them separately.
+
+        Args:
+            cmdlist (List[str]): A list of shell commands to run on Slurm.
+            env (Dict[str, str], optional): Optional environment variables to
+                set when running the command. Defaults to None.
+            sep (str, optional): The separator used to concatenate the 
+                commands. Defaults to ' && '.
+            log_stdout (bool, optional): Whether to log the stdout output.
+                Defaults to True.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Result: The result of the last command in the list.
+        """
+        if env is None:
+            env = {}
+        cmd = sep.join(cmdlist)
+        logger.info(
+            f"Running commands, with env {env} and sep {sep} \
+                and {kwargs}: {cmd}")
+        result = self.run(cmd, env=env, **kwargs)  # out_stream=out_stream,
+
+        if log_stdout:
+            try:
+                # Watch out for UnicodeEncodeError when you str() this.
+                logger.info(f"{result.stdout}")
+            except UnicodeEncodeError as e:
+                logger.error(f"Unicode error: {e}")
+                # TODO: ONLY stdout RECODE NEEDED?? or also error?
+                result.stdout = result.stdout.encode(
+                    'utf-8', 'ignore').decode('utf-8')
+        return result
+
+    def str_to_class(self, module_name: str, class_name: str, *args, **kwargs):
+        """
+        Return a class instance from a string reference.
+
+        Args:
+            module_name (str): The name of the module.
+            class_name (str): The name of the class.
+            *args: Additional positional arguments for the class constructor.
+            **kwargs: Additional keyword arguments for the class constructor.
+
+        Returns:
+            object: An instance of the specified class, or None if the class or
+                module does not exist.
+        """
+        class_ = None
+        try:
+            module_ = importlib.import_module(module_name)
+            try:
+                class_ = getattr(module_, class_name)(*args, **kwargs)
+            except AttributeError:
+                logger.error('Class does not exist')
+        except ImportError:
+            logger.error('Module does not exist')
+        return class_ or None
+
+    def run_commands_split_out(self,
+                               cmdlist: List[str],
+                               env: Optional[Dict[str, str]] = None
+                               ) -> List[str]:
+        """Run a list of shell commands consecutively and split the output
+        of each command.
+
+        Each command in the list is executed with a separator in between
+        that is unique and can be used to split
+        the output of each command later. The separator used is specified
+        by the `_OUT_SEP` attribute of the
+        SlurmClient instance.
+
+        Args:
+            cmdlist (List[str]): A list of shell commands to run.
+            env (Dict[str, str], optional): Optional environment variables 
+                to set when running the command. Defaults to None.
+
+        Returns:
+            List[str]:
+                A list of strings, where each string corresponds to
+                the output of a single command in `cmdlist` split
+                by the separator `_OUT_SEP`.
+
+        Raises:
+            SSHException: If any of the commands fail to execute successfully.
+        """
+        try:
+            result = self.run_commands(cmdlist=cmdlist,
+                                       env=env,
+                                       sep=f" ; echo {self._OUT_SEP} ; ")
+        except UnexpectedExit as e:
+            logger.warning(e)
+            result = e.result
+        if result.ok:
+            response = result.stdout
+            split_responses = response.split(self._OUT_SEP)
+            return split_responses
+        else:
+            # If the result is not ok, log the error and raise an SSHException
+            error = f"Result is not ok: {result}"
+            logger.error(error)
+            raise SSHException(error)
+
+    def list_active_jobs(self,
+                         env: Optional[Dict[str, str]] = None) -> List[str]:
+        """
+        Get a list of active jobs from SLURM.
+
+        Args:
+            env (Dict[str, str], optional): Optional environment variables to 
+                set when running the command. Defaults to None.
+
+        Returns:
+            List[str]: A list of job IDs.
+        """
+        # cmd = self._ACTIVE_JOBS_CMD
+        cmd = self.get_jobs_info_command(start_time="now", states="r")
+        logger.info("Retrieving list of active jobs from Slurm")
+        result = self.run_commands([cmd], env=env)
+        job_list = result.stdout.strip().split('\n')
+        job_list.reverse()
+        return job_list
+
+    def list_completed_jobs(self,
+                            env: Optional[Dict[str, str]] = None) -> List[str]:
+        """
+        Get a list of completed jobs from SLURM.
+
+        Args:
+            env (Dict[str, str], optional): Optional environment variables to
+                set when running the command. Defaults to None.
+
+        Returns:
+            List[str]: A list of job IDs.
+        """
+
+        cmd = self.get_jobs_info_command(states="cd")
+        logger.info("Retrieving a list of completed jobs from Slurm")
+        result = self.run_commands([cmd], env=env, log_stdout=False)
+        job_list = [job.strip() for job in result.stdout.strip().split('\n')]
+        job_list.reverse()
+        logger.info(
+            f"Found {len(job_list)} completed jobs: {job_list[:5]}{'...' if len(job_list) > 5 else ''}")
+        return job_list
+
+    def list_all_jobs(self, env: Optional[Dict[str, str]] = None) -> List[str]:
+        """
+        Get a list of all jobs from SLURM.
+
+        Args:
+            env (Dict[str, str], optional): Optional environment variables 
+                to set when running the command. Defaults to None.
+
+        Returns:
+            List[str]: A list of job IDs.
+        """
+
+        cmd = self.get_jobs_info_command()
+        logger.info("Retrieving a list of all jobs from Slurm")
+        result = self.run_commands([cmd], env=env, log_stdout=False)
+        job_list = result.stdout.strip().split('\n')
+        job_list.reverse()
+        logger.info(
+            f"Found {len(job_list)} total jobs: {job_list[:5]}{'...' if len(job_list) > 5 else ''}")
+        return job_list
+
+    def get_jobs_info_command(self, start_time: str = None,
+                              end_time: str = "now",
+                              columns: str = "JobId",
+                              states: str = "r,cd,f,to,rs,dl,nf") -> str:
+        """Return the Slurm command to retrieve information about old jobs.
+
+        The command will be formatted with the specified start time, which is
+        expected to be in the ISO format "YYYY-MM-DD".
+        The command will use the "sacct" tool to query the
+        Slurm accounting database for jobs that started on or after the
+        specified start time, and will output only the job IDs (-o JobId)
+        without header or trailer lines (-n -X).
+
+        Args:
+            start_time (str): The start time from which to retrieve job
+                information. Defaults to None, which resolves in priority order:
+                class default (2023-01-01), then ``sacct_start_time`` config,
+                then ``sacct_days_ago`` config (relative), then env var
+                ``BIOMERO_SACCT_START_TIME``, then env var
+                ``BIOMERO_SACCT_START_DAYS_AGO`` (relative, highest priority).
+            end_time (str): The end time until which to retrieve job
+                information. Defaults to "now".
+            columns (str): The columns to retrieve from the job information.
+                Defaults to "JobId". It is comma separated, e.g. "JobId,State".
+            states (str): The job states to include in the query.
+                Defaults to "r,cd,f,to,rs,dl,nf".
+
+        Returns:
+            str:
+                A string representing the Slurm command to retrieve
+                information about old jobs.
+        """
+        if start_time is None:
+            # Priority (low to high):
+            # 1. class default  -> "2023-01-01" (backward compatible)
+            # 2. resolved instance sacct_start_time (config/env absolute)
+            # 3. resolved instance sacct_days_ago (config/env relative, highest)
+            start_time = self.sacct_start_time
+            if self.sacct_days_ago is not None:
+                start_time = (
+                    datetime.now() - timedelta(days=int(self.sacct_days_ago))
+                ).strftime("%Y-%m-%d")
+        return self._ALL_JOBS_CMD.format(start_time=start_time,
+                                         end_time=end_time,
+                                         states=states,
+                                         columns=columns)
+
+    def transfer_data(self, local_path: str) -> Result:
+        """
+        Transfers a file or directory from the local machine to the remote
+        Slurm cluster.
+
+        Args:
+            local_path (str): The local path to the file or directory to
+                transfer.
+
+        Returns:
+            Result: The result of the file transfer operation.
+        """
+        logger.info(
+            f"Transfering file {local_path} to {self.slurm_data_path}")
+        return self.put(local=local_path, remote=self.slurm_data_path)
+
+    def unpack_data(self, zipfile: str,
+                    env: Optional[Dict[str, str]] = None) -> Result:
+        """
+        Unpacks a zipped file on the remote Slurm cluster.
+
+        Args:
+            zipfile (str): The name of the zipped file to be unpacked.
+
+            env (Dict[str, str], optional): Optional environment variables 
+                to set when running the command. Defaults to None.
+
+        Returns:
+            Result: The result of the command.
+        """
+        cmd = self.get_unzip_command(zipfile)
+        # Archive tools can return success even when their filters matched no
+        # files. Do not report a successful transfer or launch an empty job.
+        cmd = f"({cmd}) && ({self.get_input_validation_command(zipfile)})"
+        logger.info(f"Unpacking {zipfile} on Slurm")
+        return self.run_commands([cmd], env=env)
+
+    def get_input_validation_command(self, folder: str) -> str:
+        """Reject missing/empty image inputs after extraction on Slurm."""
+        input_path = shlex.quote(
+            posixpath.join(self.slurm_data_path, folder, "data", "in"))
+        return (
+            f"input_dir={input_path}; "
+            'for image in "$input_dir"/*.zarr; do '
+            'if [ -d "$image" ] && '
+            '{ [ -s "$image/zarr.json" ] || '
+            '{ [ -s "$image/.zgroup" ] && [ -s "$image/.zattrs" ]; }; }; '
+            'then exit 0; fi; done; '
+            'for image in "$input_dir"/*.tif "$input_dir"/*.tiff; do '
+            'if [ -f "$image" ] && [ -s "$image" ]; then exit 0; fi; done; '
+            'printf "%s\\n" "ERROR: No usable image inputs after extraction '
+            'in $input_dir (expected OME-Zarr metadata or nonempty TIFF)." >&2; '
+            'exit 1'
+        )
+
+    def generate_slurm_job_for_workflow(self,
+                                        workflow: str,
+                                        substitutes: Dict[str, str],
+                                        template: str = "job_template.sh"
+                                        ) -> str:
+        """
+        Generate a Slurm job script for a specific workflow.
+
+        Args:
+            workflow (str): The name of the workflow.
+            substitutes (Dict[str, str]): A dictionary containing key-value
+                pairs for substituting placeholders in the job template.
+            template (str, optional): The filename of the job template.
+                Defaults to "job_template.sh".
+
+        Returns:
+            str: The generated Slurm job script as a string.
+        """
+        # add workflow to substitutes
+        substitutes['jobname'] = workflow
+        if not self.inject_gpu_flag:
+            substitutes['GPU_FLAG'] = "--nv"
+        # grab job template
+        template_f = files("resources").joinpath(template)
+        with template_f.open('r') as f:
+            src = Template(f.read())
+            job_script = src.safe_substitute(substitutes)
+        return job_script
+
+    def workflow_params_to_subs(self, params) -> Dict[str, str]:
+        """
+        Convert workflow parameters to substitution dictionary for job script.
+
+        Args:
+            params: A dictionary containing workflow parameters.
+
+        Returns:
+            Dict[str, str]: A dictionary with parameter names as keys and
+                corresponding flags with placeholders as values.
+        """
+        subs = {}
+        flags = []
+        for _, param in params.items():
+            flag = param['cmd_flag']
+            flag = flag + "=\"$" + param['name'].upper() + "\""
+            flags.append(flag)
+        subs['PARAMS'] = " ".join(flags)
+        return subs
+
+    def workflow_template_subs(self, descriptor: Dict) -> Dict[str, str]:
+        """Build shared-template substitutions for workflow family differences."""
+        optional_env = ""
+        if self.env_file_submission:
+            optional_env = (
+                'BIOMERO_ENV_FILE="${1:-}"\n'
+                'if [ -n "$BIOMERO_ENV_FILE" ] && [ -f "$BIOMERO_ENV_FILE" ]; then\n'
+                '    . "$BIOMERO_ENV_FILE"\n'
+                'fi'
+            )
+
+        if self._is_bilayers_workflow(descriptor):
+            folder_subs = self.workflow_bilayers_folder_params_to_subs(descriptor)
+            return {
+                'OPTIONAL_ENV': optional_env,
+                'WF_TYPE': 'bilayers',
+                'INPARAMS': folder_subs['INPARAMS'],
+                'OUTPARAMS': folder_subs['OUTPARAMS'],
+                'EXTRAPARAMS': '',
+            }
+
+        return {
+            'OPTIONAL_ENV': optional_env,
+            'WF_TYPE': 'biaflows',
+            'INPARAMS': ' '.join([
+                '--infolder "$DATA_PATH/data/in"',
+                '--gtfolder "$DATA_PATH/data/gt"',
+            ]),
+            'OUTPARAMS': '--outfolder "$DATA_PATH/data/out"',
+            'EXTRAPARAMS': '--local -nmc',
+        }
+
+    def get_file_attachment_params(self, workflow: str) -> Dict[str, Dict[str, Any]]:
+        """Return only the file-attachment params for a workflow.
+
+        Thin filter over :meth:`get_workflow_parameters`.
+        """
+        return {
+            k: v for k, v in self.get_workflow_parameters(workflow).items()
+            if v.get('file_attachment')
+        }
+
+    def _is_bilayers_workflow(self, descriptor: Dict) -> bool:
+        """Return True if descriptor originated from a bilayers config."""
+        return descriptor.get('schema-version', '').startswith('bilayers')
+
+    def _get_bilayers_folder_flags(
+            self, descriptor: Dict) -> Tuple[List[str], List[str]]:
+        """Return (in_flags, out_flags) — the raw CLI flags that are
+        server-set for bilayers workflows.
+
+        in_flags:  non-optional folder-type inputs  → data/in
+        out_flags: outputs with an explicit flag, plus inputs with
+                   output-dir-set=True               → data/out
+        """
+        in_flags: List[str] = []
+        for inp in descriptor.get('inputs', []):
+            if (inp.get('type') in self._FOLDER_INPUT_TYPES
+                    and not inp.get('optional', False)
+                    and not inp.get('file-attachment')):
+                flag = inp.get('command-line-flag', 'None')
+                if flag and flag != 'None':
+                    in_flags.append(flag)
+
+        out_flags: List[str] = []
+        for out in descriptor.get('outputs', []):
+            flag = out.get('command-line-flag', 'None')
+            if flag and flag != 'None':
+                out_flags.append(flag)
+        for inp in descriptor.get('inputs', []):
+            if inp.get('output-dir-set'):
+                flag = inp.get('command-line-flag', 'None')
+                if flag and flag != 'None':
+                    out_flags.append(flag)
+
+        return in_flags, out_flags
+
+    def _get_server_managed_params(self,
+                                   workflow_name: str,
+                                   input_data: str) -> Dict[str, Any]:
+        """Return the server-injected CLI params that will be baked into the job
+        script, so they can be recorded alongside user params in task metadata.
+
+        For bilayers workflows these come from the descriptor's folder_name
+        fields (INPARAMS / OUTPARAMS).  For standard biaflows workflows they
+        are the fixed template args (--infolder, --outfolder, --gtfolder,
+        --local, -nmc).  The descriptor is fetched from the cached GitHub
+        session so this adds negligible overhead at runtime.
+
+        Args:
+            workflow_name: Name of the workflow.
+            input_data: Input data folder name (used to resolve DATA_PATH).
+
+        Returns:
+            Dict mapping CLI flag strings to their resolved values.
+        """
+        data_path = f"{self.slurm_data_path}/{input_data}"
+        server_params: Dict[str, Any] = {}
+        try:
+            descriptor = self.generic_descriptor_from_github(workflow_name)
+        except Exception as exc:
+            logger.warning(
+                f"Could not fetch descriptor for server param recording: {exc}")
+            return server_params
+
+        if self._is_bilayers_workflow(descriptor):
+            in_flags, out_flags = self._get_bilayers_folder_flags(descriptor)
+            for flag in in_flags:
+                server_params[flag.lstrip('-')] = f"{data_path}/data/in"
+            for flag in out_flags:
+                server_params[flag.lstrip('-')] = f"{data_path}/data/out"
+        else:
+            # Standard biaflows job_template.sh fixed args
+            server_params["infolder"] = f"{data_path}/data/in"
+            server_params["outfolder"] = f"{data_path}/data/out"
+            server_params["gtfolder"] = f"{data_path}/data/gt"
+            server_params["local"] = True
+            server_params["nmc"] = True
+
+        return server_params
+
+    def workflow_bilayers_folder_params_to_subs(self,
+                                                descriptor: Dict
+                                                ) -> Dict[str, str]:
+        """
+        Build INPARAMS and OUTPARAMS substitution strings for bilayers job
+        templates.
+
+        Folder inputs (image/file/array/measurement/executable) are mapped to
+        ``$DATA_PATH/data/in``.  Outputs with a cli_tag and any parameter
+        with ``output_dir_set=True`` (marked ``set-by-server`` after schema
+        parsing) are mapped to ``$DATA_PATH/data/out``.
+
+        Args:
+            descriptor (Dict): The parsed workflow descriptor.
+
+        Returns:
+            Dict[str, str]: Dictionary with keys ``INPARAMS`` and ``OUTPARAMS``.
+        """
+        in_flags, out_flags = self._get_bilayers_folder_flags(descriptor)
+        inparams = [f'{flag}="$DATA_PATH/data/in"' for flag in in_flags]
+        outparams = [f'{flag}="$DATA_PATH/data/out"' for flag in out_flags]
+        return {
+            'INPARAMS': ' '.join(inparams),
+            'OUTPARAMS': ' '.join(outparams),
+        }
+
+    def update_slurm_scripts(self,
+                             generate_jobs: bool = False,
+                             env: Optional[Dict[str, str]] = None) -> Result:
+        """
+        Updates the local copy of the Slurm job submission scripts.
+
+        This function pulls the latest version of the scripts from the Git
+        repository and copies them to the slurm_script_path directory.
+        Alternatively, it can generate scripts from a template. This is the
+        default behavior if no Git repo is provided or can be forced via the
+        `generate_jobs` parameter.
+
+        Args:
+            generate_jobs (bool): Whether to generate new slurm job scripts
+                INSTEAD (of pulling from git). Defaults to False, except
+                if no slurm_script_repo is configured.
+            env (Dict[str, str], optional): Optional environment variables 
+                to set when running the command. Defaults to None.
+
+        Returns:
+            Result: The result of the command.
+        """
+        if not self.slurm_script_repo:
+            generate_jobs = True
+
+        if generate_jobs:
+            logger.info("Generating Slurm job scripts")
+            for wf, job_path in self.slurm_model_jobs.items():
+                # generate job script
+                # All params in one call; file-attachment ones get type→'string'
+                # so the job script uses $VAR placeholders, not typed defaults.
+                all_params = self.get_workflow_parameters(wf)
+                merged_params = {
+                    k: ({**v, 'type': 'string'}
+                        if v.get('file_attachment') else v)
+                    for k, v in all_params.items()
+                }
+                descriptor = self.generic_descriptor_from_github(wf)
+                template = "job_template.sh"
+                subs = {
+                    **self.workflow_params_to_subs(merged_params),
+                    **self.workflow_template_subs(descriptor),
+                }
+                job_script = self.generate_slurm_job_for_workflow(
+                    wf, subs, template)
+                # ensure all dirs exist remotely
+                full_path = self.slurm_script_path+"/"+job_path
+                job_dir, _ = os.path.split(full_path)
+                self.run(f"mkdir -p \"{job_dir}\"")
+                # copy to remote file
+                result = self.put(local=io.StringIO(job_script),
+                                  remote=full_path)
+        else:
+            cmd = self.get_update_slurm_scripts_command()
+            logger.info("Updating Slurm job scripts on Slurm")
+            result = self.run_commands([cmd], env=env)
+        return result
+
+    def run_workflow(self,
+                     workflow_name: str,
+                     workflow_version: str,
+                     input_data: str,
+                     email: Optional[str] = None,
+                     time: Optional[str] = None,
+                     wf_id: Optional[UUID] = None,
+                     output_settings: Optional[Dict] = None,
+                     **kwargs
+                     ) -> Tuple[Result, int, UUID, UUID]:
+        """
+        Run a specified workflow on Slurm using the given parameters.
+
+        Args:
+            workflow_name (str): Name of the workflow to execute.
+            workflow_version (str): Version of the workflow (image version 
+                on Slurm).
+            input_data (str): Name of the input data folder containing input
+                image files.
+            email (str, optional): Email address for Slurm job notifications.
+            time (str, optional): Time limit for the Slurm job in the 
+                format HH:MM:SS.
+            wf_id (UUID, optional): Workflow ID for tracking purposes. If not provided, a new one is created.
+            **kwargs: Additional keyword arguments for the workflow.
+
+        Returns:
+            Tuple[Result, int, UUID, UUID]:
+                A tuple containing the result of starting the workflow job, 
+                the Slurm job ID, the workflow ID, and the task ID. 
+                If the Slurm job ID could not be extracted, it returns -1 for the job ID.
+
+        Note:
+            The Slurm job ID is extracted from the result of the `run_commands` method. 
+            If `track_workflows` is enabled, workflow and task tracking is performed.
+        """
+        if not wf_id:
+            wf_id = self.workflowTracker.initiate_workflow(
+                workflow_name,
+                workflow_version,
+                -1,
+                -1
+            )
+        # Enrich stored params with server-managed CLI args so the full
+        # command is reproducible from task metadata alone.
+        server_params = self._get_server_managed_params(
+            workflow_name, input_data)
+        # user kwargs take precedence
+        recorded_params = {**server_params, **kwargs}
+        if output_settings:
+            recorded_params["output_settings"] = output_settings
+
+        task_id = self.workflowTracker.add_task_to_workflow(
+            wf_id,
+            workflow_name,
+            workflow_version,
+            input_data,
+            recorded_params)
+        logger.debug(f"Added new task {task_id} to workflow {wf_id}")
+
+        sbatch_cmd, sbatch_env = self.get_workflow_command(
+            workflow_name, workflow_version, input_data, email, time, **kwargs)
+        print(f"Running {workflow_name} job on {input_data} on Slurm:\
+            {sbatch_cmd} w/ {sbatch_env}")
+        logger.info(f"Running {workflow_name} job on {input_data} on Slurm")
+        res = self.run_commands([sbatch_cmd], sbatch_env)
+        slurm_job_id = self.extract_job_id(res)
+
+        if task_id:
+            self.workflowTracker.start_task(task_id)
+            self.workflowTracker.add_job_id(task_id, slurm_job_id)
+            self.workflowTracker.add_result(task_id, res)
+
+        return res, slurm_job_id, wf_id, task_id
+
+    def run_workflow_job(self,
+                         workflow_name: str,
+                         workflow_version: str,
+                         input_data: str,
+                         email: Optional[str] = None,
+                         time: Optional[str] = None,
+                         wf_id: Optional[UUID] = None,
+                         output_settings: Optional[Dict] = None,
+                         **kwargs
+                         ) -> SlurmJob:
+        """
+        Run a specified workflow on Slurm using the given parameters and return a SlurmJob instance.
+
+        Args:
+            workflow_name (str): Name of the workflow to execute.
+            workflow_version (str): Version of the workflow (image version on Slurm).
+            input_data (str): Name of the input data folder containing input image files.
+            email (str, optional): Email address for Slurm job notifications.
+            time (str, optional): Time limit for the Slurm job in the format HH:MM:SS.
+            wf_id (UUID, optional): Workflow ID for tracking purposes. If not provided, a new one is created.
+            output_settings (dict, optional): Selected output settings for results import.
+            **kwargs: Additional keyword arguments for the workflow.
+
+        Returns:
+            SlurmJob: A SlurmJob instance representing the started workflow job.
+        """
+        result, job_id, wf_id, task_id = self.run_workflow(
+            workflow_name, workflow_version, input_data, email, time, wf_id,
+            output_settings=output_settings,
+            **kwargs)
+        return SlurmJob(result, job_id, wf_id, task_id)
+
+    def run_conversion_workflow_job(self,
+                                    folder_name: str,
+                                    source_format: str = 'zarr',
+                                    target_format: str = 'tiff',
+                                    wf_id: UUID = None
+                                    ) -> SlurmJob:
+        """
+        Run the data conversion workflow on Slurm using the given data folder.
+
+        Args:
+            folder_name (str): The name of the data folder containing source format files.
+            source_format (str): Source data format for conversion (default is 'zarr').
+            target_format (str): Target data format after conversion (default is 'tiff').
+
+        Returns:
+            SlurmJob:
+                the conversion job
+
+        Warning:
+            The default implementation only supports conversion from 'zarr' to 'tiff'.
+            If using other source or target formats, users must implement and configure
+            additional converters themselves.
+        """
+        # Generate a unique config file name
+        config_file = f"config_{folder_name}.txt"
+
+        # Construct all commands to run consecutively
+        data_path = f"{self.slurm_data_path}/{folder_name}"
+        conversion_cmd, sbatch_env, chosen_converter, version = self.get_conversion_command(
+            data_path, config_file, source_format, target_format)
+
+        # Handle both .zarr and .ome.zarr extensions for backward compatibility
+        if source_format == 'zarr':
+            # Treat each selected Zarr store as one atomic input. Imported
+            # OME-Zarr images may contain nested label stores; descending into
+            # a matched parent would submit those labels as extra array tasks,
+            # racing the parent task that removes its converted input.
+            find_cmd = (f"find \"{data_path}/data/in\" -type d "
+                        f"\\( -name \"*.zarr\" -o -name \"*.ome.zarr\" \\) "
+                        f"-prune -print | "
+                        f"awk '{{print NR, $0}}' > \"{config_file}\"")
+        else:
+            find_cmd = (f"find \"{data_path}/data/in\" "
+                        f"-name \"*.{source_format}\" | "
+                        f"awk '{{print NR, $0}}' > \"{config_file}\"")
+
+        commands = [
+            find_cmd,
+            f"N=$(wc -l < \"{config_file}\")",
+            f"echo \"Number of .{source_format} files: $N\"",
+            conversion_cmd
+        ]
+        logger.debug(f"wf_id: {wf_id}")
+        if not wf_id:
+            wf_id = self.workflowTracker.initiate_workflow(
+                "conversion",
+                -1,
+                -1,
+                -1
+            )
+        logger.debug(f"wf_id: {wf_id}")
+        task_id = self.workflowTracker.add_task_to_workflow(
+            wf_id,
+            f"convert_{source_format}_to_{target_format}".upper(),
+            version,
+            data_path,
+            sbatch_env
+        )
+
+        # Run all commands consecutively.
+        # The final command is the sbatch submission. If sbatch rejects the
+        # job (e.g. an invalid --reservation/--partition) or an earlier command
+        # in the chain fails, run_commands raises UnexpectedExit. In that case
+        # NO Slurm job is created, so there is NO Slurm log file to fetch
+        # later: the only diagnostic is the failed command's own stderr/stdout
+        # (e.g. "sbatch: error: Batch job submission failed: Requested
+        # reservation is invalid"). Catch it, log it explicitly, and fall
+        # through with the failed Result so we return a SlurmJob with ok=False
+        # (job_id=-1) instead of a raw traceback. The caller can then surface
+        # the reason via slurmJob.get_error().
+        try:
+            res = self.run_commands(commands, sbatch_env)
+        except UnexpectedExit as e:
+            res = e.result
+            logger.error(
+                "Conversion submission failed before a Slurm job was created "
+                "(exit code %s). No Slurm job was submitted, so there is no "
+                "Slurm log file to retrieve; the error is in the command "
+                "output below. Common cause: an invalid sbatch parameter such "
+                "as a non-existent --reservation or --partition.",
+                getattr(res, "exited", "unknown"))
+            logger.error("Failed conversion command:\n%s",
+                         getattr(res, "command", None) or " && ".join(commands))
+            logger.error("stderr:\n%s", getattr(res, "stderr", ""))
+            logger.error("stdout:\n%s", getattr(res, "stdout", ""))
+
+        slurm_job_id = self.extract_job_id(res)
+        if slurm_job_id < 0:
+            logger.error(
+                "No Slurm job id could be extracted from the conversion "
+                "submission (job was not submitted). Conversion task %s will "
+                "be marked failed; there is no Slurm-side log for this job.",
+                task_id)
+
+        if task_id:
+            self.workflowTracker.start_task(task_id)
+            self.workflowTracker.add_job_id(task_id, slurm_job_id)
+            self.workflowTracker.add_result(task_id, res)
+
+        # The conversion is submitted with --output=omero-%A_%a.log, so its
+        # log(s) live next to the workflow logs as omero-<jobid>_*.log. Track
+        # that glob so cleanup removes exactly those files and the OMERO
+        # scripts can fetch/upload the conversion log (also on failure).
+        conversion_log = self._CONVERTER_LOGFILE.format(
+            slurm_job_id=slurm_job_id).replace('"', '')
+
+        return SlurmJob(res, slurm_job_id, wf_id, task_id,
+                        log_file=conversion_log)
+
+    def extract_job_id(self, result: Result) -> int:
+        """
+        Extract the Slurm job ID from the result of a command.
+
+        Args:
+            result (Result): The result of a command execution.
+
+        Returns:
+            int:
+                The Slurm job ID extracted from the result,
+                or -1 if not found.
+        """
+        stdout = result.stdout
+        if not isinstance(stdout, str):
+            return -1
+        submitted = re.search(r"Submitted batch job\s+(\d+)", stdout)
+        if submitted:
+            return int(submitted.group(1))
+        parsable = re.fullmatch(r"\s*(\d+)(?:;[^\s]+)?\s*", stdout)
+        return int(parsable.group(1)) if parsable else -1
+
+    def get_update_slurm_scripts_command(self) -> str:
+        """Generate the command to update the Git repository containing
+        the Slurm scripts, if necessary.
+
+        Returns:
+            str:
+                A string containing the Git command
+                to update the Slurm scripts.
+        """
+        update_cmd = f"git -C \"{self.slurm_script_path}\" pull"
+        return update_cmd
+
+    def check_job_status(self,
+                         slurm_job_ids: List[int],
+                         env: Optional[Dict[str, str]] = None
+                         ) -> Tuple[Dict[int, str], Result]:
+        """
+        Check the status of Slurm jobs with the given job IDs.
+
+        Note: This doesn't return job arrays individually.
+        It takes the last value returned for those sub ids 
+        (generally the one still PENDING).
+
+        Args:
+            slurm_job_ids (List[int]): The job IDs of the Slurm jobs to check.
+            env (Dict[str, str], optional): Optional environment variables to
+                set when running the command. Defaults to None.
+
+        Returns:
+            Tuple[Dict[int, str], Result]:
+                A tuple containing the status per input ID and the result of 
+                the command execution.
+
+        Raises:
+            SSHException: If the command execution fails or no response is
+                received after multiple retries.
+        """
+        # Filter job IDs to only include valid positive integers
+        valid_job_ids = []
+        for jid in slurm_job_ids:
+            try:
+                if jid is not None:
+                    val = int(jid)
+                    if val > 0:
+                        valid_job_ids.append(val)
+            except (ValueError, TypeError):
+                continue
+                
+        if not valid_job_ids:
+            return {}, None
+
+        cmd = self.get_job_status_command(valid_job_ids)
+        logger.info(f"Getting status of {valid_job_ids} on Slurm")
+        retry_status = 0
+        last_result = None
+        while retry_status < 3:
+            result = self.run_commands([cmd], env=env)
+            last_result = result
+            logger.info(result)
+            if result.ok:
+                if not result.stdout or not result.stdout.strip():
+                    # wait for 3 seconds before checking again
+                    timesleep.sleep(3)
+                    retry_status += 1
+                    logger.debug(
+                        f"Retry {retry_status} getting status of {valid_job_ids}!")
+                else:
+                    try:
+                        job_status_dict = {}
+                        for line in (result.stdout or "").split("\n"):
+                            if line.strip():
+                                parts = line.split()
+                                if len(parts) >= 2:
+                                    raw_id = parts[0].split('_')[0]
+                                    job_status_dict[int(raw_id)] = parts[1]
+                        logger.debug(f"Job statuses: {job_status_dict}")
+                    except Exception as e:
+                        logger.warning(f"Error parsing job status: {e}")
+                        job_status_dict = {}
+
+                    # sacct queries on 'JobIdRaw', which for job arrays is a
+                    # sum: 'JobId' 11_2 is 'JobIdRaw' 13, so asking for 13
+                    # before it exists can return 11_2's row instead. A job we
+                    # asked about but did not get a row for is therefore
+                    # reported as still pending, never as an unknown state:
+                    # callers treat an unrecognized state as a failure.
+                    result_dict = {}
+                    for job_id in valid_job_ids:
+                        if job_id not in job_status_dict:
+                            logger.debug(f"Missing job {job_id} in our "
+                                         f"results! Reporting it as PENDING.")
+                            result_dict[job_id] = 'PENDING'
+                        else:
+                            result_dict[job_id] = job_status_dict[job_id]
+
+                    return result_dict, result
+            else:
+                error = f"Result is not ok: {result}"
+                logger.error(error)
+                raise SSHException(error)
+        
+        # Empty sacct output is not evidence that the jobs failed, so keep the
+        # callers polling instead of raising or failing their workflow.
+        logger.warning(f"Slurm sacct returned empty output for "
+                       f"{valid_job_ids} after {retry_status} retries; "
+                       f"reporting them as PENDING.")
+        return {jid: 'PENDING' for jid in valid_job_ids}, last_result
+
+    def get_job_status_command(self, slurm_job_ids: List[int]) -> str:
+        """
+        Return the Slurm command to get the status of jobs with the given
+        job IDs.
+
+        Args:
+            slurm_job_ids (List[int]): The job IDs of the jobs to check.
+
+        Returns:
+            str: 
+                The Slurm command to get the status of the jobs.
+        """
+        # concat multiple jobs if needed
+        slurm_job_id = " -j ".join([str(id) for id in slurm_job_ids])
+        return self._JOB_STATUS_CMD.format(slurm_job_id=slurm_job_id)
+
+    def extract_data_location_from_log(self, slurm_job_id: str = None,
+                                       logfile: str = None) -> str:
+        """Read SLURM job logfile to find location of the data.
+
+        One of the parameters is required, either id or file.
+
+        Args:
+            slurm_job_id (str): Id of the slurm job
+            logfile (str): Path to the logfile
+
+        Returns:
+            str: Data location according to the log
+
+        Raises:
+            SSHException: If there is an issue with the command execution.
+        """
+        if logfile is None and slurm_job_id is not None:
+            logfile = self._LOGFILE
+            logfile = logfile.format(slurm_job_id=slurm_job_id)
+        cmd = self._LOGFILE_DATA_CMD.format(log_file=logfile)
+        result = self.run_commands([cmd])
+        if result.ok:
+            return result.stdout
+        else:
+            raise SSHException(result)
+
+    def extract_parts_from_url(self, input_url: str) -> Tuple[List[str], str]:
+        """
+        Extract the repository and branch information from the input URL.
+
+        Args:
+            input_url (str): The input GitHub URL.
+
+        Returns:
+            Tuple[List[str], str]:
+                The list of url parts and the branch/version.
+                If no branch is found, it will return "master"
+
+        Raises:
+            ValueError: If the input URL is not a valid GitHub URL.
+        """
+        url_parts = input_url.split("/")
+        if len(url_parts) < 5 or url_parts[2] != "github.com":
+            raise ValueError("Invalid GitHub URL")
+
+        if "tree" in url_parts:
+            # Case: URL contains a branch
+            branch_index = url_parts.index("tree") + 1
+            branch = url_parts[branch_index]
+        else:
+            # Case: URL does not specify a branch
+            branch = "master"
+
+        return url_parts, branch
+
+    def parse_docker_image_version(self, image: str) -> Tuple[str, str]:
+        """
+        Parses the Docker image string to extract the image name and version tag.
+
+        Args:
+            image (str): The Docker image string in the format 'image_name:version'.
+
+        Returns:
+            tuple: A tuple containing:
+                - version (str or None): The version tag if present, otherwise None.
+                - image_name (str): The image name if matched, otherwise the original image string.
+        """
+        # Regular expression to match image:tag format
+        pattern = r'^([^:]+)(?::([^:]+))?$'
+        match = re.match(pattern, image)
+
+        if match:
+            image_name, version = match.groups()
+            return version if version else None, image_name
+        else:
+            return None, image
+
+    def convert_url(self, input_url: str, ext: str = ".json") -> str:
+        """
+        Convert the input GitHub URL to an output URL that retrieves
+        the 'descriptor.json' file in raw format.
+
+        Args:
+            input_url (str): The input GitHub URL.
+            ext (str): (Optional) The input file extension.
+
+        Returns:
+            str: The output URL to the 'descriptor.json' file.
+
+        Raises:
+            ValueError: If the input URL is not a valid GitHub URL.
+        """
+        url_parts, branch = self.extract_parts_from_url(input_url)
+
+        # Construct the output URL by combining the extracted information
+        # with the desired file path
+        output_url = f"https://github.com/{url_parts[3]}/{url_parts[4]}/raw/{branch}/descriptor{ext}"
+
+        return output_url
+
+    def _parse_descriptor_from_repo(self, repo_url: str, name: str) -> Dict:
+        """Fetch and parse a descriptor from a GitHub repository URL.
+
+        Tries ``descriptor.json``, ``descriptor.yaml``, and ``config.yaml``
+        in that order, then parses via :class:`DescriptorParserFactory`.
+
+        Args:
+            repo_url (str): GitHub repository URL (may include ``/tree/<ref>``).
+            name (str): Logical name passed to the parser (e.g. workflow key).
+
+        Returns:
+            Dict: Descriptor in biomero-schema format
+                  (``model_dump(by_alias=True)``).
+
+        Raises:
+            ValueError: If no descriptor file is found or the URL is invalid.
+        """
+        url_parts, branch = self.extract_parts_from_url(repo_url)
+        base = (f"https://github.com/{url_parts[3]}/{url_parts[4]}"
+                f"/raw/{branch}")
+        github_session = self.get_or_create_github_session()
+
+        # Detect a direct-descriptor URL: any path segments after the branch.
+        # Example: .../tree/v0.0.3/descriptor.json  → fetch that exact file.
+        # Example: .../tree/v0.0.3/config.yaml       → fetch that exact file.
+        # Plain tree URL (.../tree/v0.0.3) → file_path_parts is empty → fall
+        # through to auto-discovery (backward-compatible).
+        file_path_parts: List[str] = []
+        if "tree" in url_parts:
+            branch_index = url_parts.index("tree") + 1
+            file_path_parts = [part for part in url_parts[branch_index + 1:] if part]
+
+        if file_path_parts:
+            file_path = "/".join(file_path_parts)
+            direct_url = f"{base}/{file_path}"
+            ghfile = github_session.get(direct_url)
+            if not ghfile.ok:
+                if ghfile.status_code in (403, 429):
+                    raise ValueError(
+                        f"GitHub rate limit exceeded (HTTP {ghfile.status_code}) — "
+                        f"please wait a few minutes and try again: {repo_url}"
+                    )
+                raise ValueError(
+                    f"No descriptor file found for repository: {repo_url} "
+                    f"(HTTP {ghfile.status_code})"
+                )
+            filename = file_path_parts[-1]
+            logger.debug(
+                f"Descriptor found: {file_path} (direct URL,"
+                f" cached={ghfile.from_cache})")
+            raw = (ghfile.json() if filename.endswith(".json")
+                   else yaml.safe_load(ghfile.text))
+            return DescriptorParserFactory.parse_descriptor(
+                raw, name=name
+            ).model_dump(by_alias=True)
+
+        for filename in ("descriptor.json", "descriptor.yaml", "config.yaml"):
+            ghfile = github_session.get(f"{base}/{filename}")
+            if ghfile.status_code in (403, 429):
+                raise ValueError(
+                    f"GitHub rate limit exceeded (HTTP {ghfile.status_code}) — "
+                    f"please wait a few minutes and try again: {repo_url}"
+                )
+            if not ghfile.ok:
+                continue
+            logger.debug(
+                f"Descriptor found: {filename} (cached={ghfile.from_cache})")
+            raw = (ghfile.json() if filename.endswith(".json")
+                   else yaml.safe_load(ghfile.text))
+            return DescriptorParserFactory.parse_descriptor(
+                raw, name=name
+            ).model_dump(by_alias=True)
+
+        raise ValueError(
+            f"No descriptor file found for repository: {repo_url}"
+        )
+
+    def generic_descriptor_from_github(self, workflow: str) -> Dict:
+        """
+        Pull the workflow descriptor from GitHub and convert to generic format.
+
+        Args:
+            workflow (str): Workflow name (looked up in ``slurm_model_repos``) or
+                a direct GitHub repository URL.
+
+        Returns:
+            Dict: The descriptor in biomero-schema format.
+
+        Raises:
+            ValueError: If no descriptor file is found or the URL is invalid.
+        """
+        git_repo = self.slurm_model_repos.get(workflow, workflow)
+        logger.debug(f"Pull workflow: {workflow}: {git_repo}")
+        return self._parse_descriptor_from_repo(git_repo, workflow)
+
+    def get_workflow_parameters(self,
+                                workflow: str) -> Dict[str, Dict[str, Any]]:
+        """
+        Retrieve the parameters of a workflow.
+
+        Args:
+            workflow (str): The workflow for which to retrieve the parameters.
+
+        Returns:
+            Dict[str, Dict[str, Any]]:
+                A dictionary containing the workflow parameters.
+
+        Raises:
+            ValueError: If an error occurs while retrieving the workflow
+                parameters.
+        """
+        descriptor = self.generic_descriptor_from_github(workflow)
+        # convert to omero types
+        logger.debug(descriptor)
+        params_dict = {}
+        for param in descriptor.get('inputs', []):
+            # filter cytomine parameters
+            id_name = param.get('id')
+            if not id_name.startswith('cytomine'):
+                # skip folder params managed by biomero (bilayers image inputs, output dirs)
+                # but keep file-attachment params — they need CLI flags AND OMERO UI input
+                if param.get('set-by-server') and not param.get('file-attachment'):
+                    continue
+                raw_flag = param.get('command-line-flag') or f'--{id_name}'
+                workflow_param = {
+                    'name': id_name,
+                    'default': param.get('default-value'),
+                    'type': param['type'],
+                    'optional': param['optional'],
+                    'cmd_flag': raw_flag.replace("@id", id_name),
+                    'description': param['description'],
+                    'file_attachment': bool(param.get('file-attachment')),
+                    'format': param.get('format') or [],
+                }
+                params_dict[id_name] = workflow_param
+        return params_dict
+
+    def convert_param_type_to_omtype(self,
+                                     param_type: str, _default, *args, **kwargs
+                                     ) -> Any:
+        """
+        Convert a generic type to an OMERO type and instantiates it
+        with args/kwargs.
+
+        Note that Cytomine has a Python Client, and some conversion methods
+        to python types, but nothing particularly worth depending on that
+        library for yet. Might be useful in the future perhaps.
+        (e.g. https://github.com/Cytomine-ULiege/Cytomine-python-client/
+        blob/master/cytomine/cytomine_job.py)
+
+        Args:
+            param_type (str): The param type to convert.
+            _default: The default value. Required to distinguish between float
+                and int.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Any:
+                The converted OMERO type class instance
+                or None if errors occured.
+
+        """
+        class_name = 'String'
+        if param_type == 'integer':
+            class_name = 'Int'
+        elif param_type == 'float':
+            class_name = 'Float'
+        elif param_type == 'boolean':
+            class_name = 'Bool'
+        return self.str_to_class("omero.scripts", class_name,
+                                 *args, **kwargs)
+
+    def get_or_create_github_session(self):
+        # Note, using requests_cache 1.1.1, conditional queries are default:
+        # The cached response will still be used until the remote content actually changes
+        # Even if the 'expire_after' is triggered. This is built into GitHub, which returns
+        # a Etag in the header that only changes when the content (e.g. the descriptor) changes.
+        # If you provide this Etag when querying, you will get a 304 ('no change') and it will
+        # NOT count towards your Github limits. And requests_cache does that for us now.
+        # Not available in Python3.6 though.
+        s = requests_cache.CachedSession(backend=self.cache,
+                                         urls_expire_after={
+                                             # Versioned tree URLs are immutable — cache for 24 h.
+                                             '*/tree/v*': 86400,
+                                             # Everything else (unversioned, master, etc.) — 1 h.
+                                             '*': 3600,
+                                         },
+                                         cache_control=True,
+                                         stale_if_error=True,
+                                         )
+        # Might have bigger issues, this is related to rate limits on GitHub
+        # https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api
+        # If it stays a problem, we have to add an option to add a GH key to the config
+        # E.g. see https://github.com/requests-cache/requests-cache/blob/53134ef0e99d713fed62515dfb7bcfaac5f63f9d/examples/pygithub.py
+        # Here you could have an ACCESS_TOKEN.
+        # An ACCESS_TOKEN could improve api limits to 5000/h (from 60/h).
+        retry_strategy = Retry(
+            total=5,               # Maximum number of retries
+            # Exponential backoff factor (delay between retries)
+            backoff_factor=5,
+            # Retry on these HTTP status codes
+            status_forcelist=[500, 502, 503, 504, 403, 429],
+            allowed_methods=frozenset(['GET'])  # Only retry for GET requests
+        )
+        s.mount('https://github.com/', HTTPAdapter(max_retries=retry_strategy))
+        s.mount('http://github.com/', HTTPAdapter(max_retries=retry_strategy))
+        return s
+
+    def get_workflow_command(self,
+                             workflow: str,
+                             workflow_version: str,
+                             input_data: str,
+                             email: Optional[str] = None,
+                             time: Optional[str] = None,
+                             **kwargs) -> Tuple[str, Dict]:
+        """
+        Generate the Slurm workflow command and environment variables.
+
+        Args:
+            workflow (str): The name of the workflow.
+            workflow_version (str): The version of the workflow.
+            input_data (str): The name of the input data folder containing
+                the input image files.
+            email (str, optional): The email address for job notifications.
+                Defaults to None, which defaults to what is in the job script.
+            time (str, optional): The time limit for the job in the 
+                format HH:MM:SS. Defaults to None, which defaults to what 
+                is in the job script.
+            **kwargs: Additional keyword arguments for the workflow.
+
+        Returns:
+            Tuple[str, Dict]:
+                A tuple containing the Slurm workflow command and
+                the environment variables.
+
+        """
+        model_path = self.slurm_model_paths[workflow.lower()]
+        job_script = self.slurm_model_jobs[workflow.lower()]
+        job_params = list(self.slurm_model_jobs_params[workflow.lower()])
+
+        # grab only the image name, not the group/creator
+        image = self.slurm_model_images[workflow.lower()].split("/")[1]
+
+        sbatch_env = {
+            "DATA_PATH": f"\"{self.slurm_data_path}/{input_data}\"",
+            "IMAGE_PATH": f"\"{self.slurm_images_path}/{model_path}\"",
+            "IMAGE_VERSION": f"{workflow_version}",
+            "SINGULARITY_IMAGE": f"\"{image}_{workflow_version}.sif\"",
+            "SCRIPT_PATH": f"\"{self.slurm_script_path}\"",
+        }
+
+        config_use_gpu = self.slurm_model_use_gpu.get(workflow.lower(), False)
+        use_gpu_value = kwargs.get("use_gpu")
+        if use_gpu_value is None:
+            use_gpu = config_use_gpu
+        else:
+            use_gpu = str(use_gpu_value).lower() in (
+                "true", "1", "yes", "y", "on"
+            )
+
+        if self.inject_gpu_flag:
+            if use_gpu:
+                if self.gpu_partition and not any(
+                    p.startswith(" --partition=") for p in job_params
+                ):
+                    job_params.append(f" --partition={self.gpu_partition}")
+                if self.gpu_gres and not any(
+                    p.startswith(" --gres=") for p in job_params
+                ):
+                    job_params.append(f" --gres={self.gpu_gres}")
+                if self.gpu_gpus and not any(
+                    p.startswith(" --gpus=") for p in job_params
+                ):
+                    job_params.append(f" --gpus={self.gpu_gpus}")
+                if not self.gpu_partition and not self.gpu_gres and not self.gpu_gpus:
+                    logger.warning(
+                        "Workflow %s requested GPU defaults but no generic gpu_partition, gpu_gres, or gpu_gpus is configured.",
+                        workflow,
+                    )
+                sbatch_env["GPU_FLAG"] = "--nv"
+            else:
+                sbatch_env["GPU_FLAG"] = ""
+        elif config_use_gpu:
+            if self.gpu_partition and not any(
+                p.startswith(" --partition=") for p in job_params
+            ):
+                job_params.append(f" --partition={self.gpu_partition}")
+            if self.gpu_gres and not any(
+                p.startswith(" --gres=") for p in job_params
+            ):
+                job_params.append(f" --gres={self.gpu_gres}")
+            if self.gpu_gpus and not any(
+                p.startswith(" --gpus=") for p in job_params
+            ):
+                job_params.append(f" --gpus={self.gpu_gpus}")
+            if not self.gpu_partition and not self.gpu_gres and not self.gpu_gpus:
+                logger.warning(
+                    "Workflow %s requested GPU defaults but no generic gpu_partition, gpu_gres, or gpu_gpus is configured.",
+                    workflow,
+                )
+        # Generic fallback partition: only applied when the job does not already
+        # carry a --partition= directive (per-workflow params or the GPU path),
+        # so per-workflow and GPU partitions always win.
+        if self.slurm_default_partition and not any(
+            p.startswith(" --partition=") for p in job_params
+        ):
+            job_params.append(f" --partition={self.slurm_default_partition}")
+        if self.slurm_data_bind_path:
+            sbatch_env["APPTAINER_BINDPATH"] = f"\"{self.slurm_data_bind_path}\""
+        # Apply global sbatch params as fallback; per-workflow params take precedence.
+        for global_param in self.slurm_global_job_params:
+            flag_prefix = global_param.split("=")[0] + "="
+            if not any(p.startswith(flag_prefix) for p in job_params):
+                job_params.append(global_param)
+        workflow_env = self.workflow_params_to_envvars(**kwargs)
+        env = {**sbatch_env, **workflow_env}
+
+        email_param = "" if email is None else f" --mail-user={email}"
+        time_param = "" if time is None else f" --time={time}"
+        job_params.append(time_param)
+        job_params.append(email_param)
+        job_param = "".join(job_params)
+
+        if self.env_file_submission:
+            logger.debug(f"Using env file submission for workflow {workflow}: {env}")
+            env_file = f"{self.slurm_data_path}/{input_data}/biomero_job_env.sh"
+            env_lines = "\n".join(
+                f"export {key}={shlex.quote(str(value).strip(chr(34)))}"
+                for key, value in env.items()
+            )
+            write_env_cmd = (
+                f"cat > {shlex.quote(env_file)} <<'BIOMERO_ENV'\n"
+                f"{env_lines}\n"
+                "BIOMERO_ENV\n"
+            )
+            sbatch_cmd = (
+                f"{write_env_cmd}"
+                f"sbatch{job_param} --output=omero-%j.log "
+                f"\"{self.slurm_script_path}/{job_script}\" {shlex.quote(env_file)}"
+            )
+            return sbatch_cmd, {}
+
+        sbatch_cmd = (
+            f"sbatch{job_param} --output=omero-%j.log "
+            f'"{self.slurm_script_path}/{job_script}"'
+        )
+        return sbatch_cmd, env
+
+    def get_conversion_command(self, data_path: str,
+                               config_file: str,
+                               source_format: str = 'zarr',
+                               target_format: str = 'tiff') -> Tuple[str, Dict, str, str]:
+        """
+        Generate Slurm conversion command and environment variables for data conversion.
+
+        Args:
+            data_path (str): Path to the data folder.
+            config_file (str): Path to the configuration file.
+            source_format (str): Source data format (default is 'zarr').
+            target_format (str): Target data format (default is 'tiff').
+
+        Returns:
+            Tuple[str, Dict, str, str]:
+                A tuple containing the Slurm conversion command and
+                the environment variables, followed by the converter image name and version.
+
+        Warning:
+            The default implementation only supports conversion from 'zarr' to 'tiff'.
+            If using other source or target formats, users must implement and configure
+            additional converters themselves.
+        """
+        if source_format != "zarr" or target_format != "tiff":
+            # Warn about unsupported conversion; additional converters can be
+            # added outside our knowledge.
+            # Checking Slurm's `slurm_converters_path` is skipped for
+            # performance reasons.
+            logger.warning(
+                f"Conversion from {source_format} to {target_format} is not supported by default!")
+
+        chosen_converter = f"convert_{source_format}_to_{target_format}_latest.sif"
+        version = None
+        if self.converter_images:
+            image = self.converter_images[f"{source_format}_to_{target_format}"]
+            version, image = self.parse_docker_image_version(image)
+            if version:
+                chosen_converter = f"convert_{source_format}_to_{target_format}_{version}.sif"
+        version = version or "latest"
+
+        logger.info(f"Converting with {chosen_converter}")
+        sbatch_env = {
+            "DATA_PATH": f"\"{data_path}\"",
+            "CONVERSION_PATH": f"\"{self.slurm_converters_path}\"",
+            "CONVERTER_IMAGE": chosen_converter,
+            "SCRIPT_PATH": f"\"{self.slurm_script_path}\"",
+            "CONFIG_FILE": f"\"{config_file}\"",
+        }
+        if self.slurm_data_bind_path:
+            sbatch_env["APPTAINER_BINDPATH"] = f"\"{self.slurm_data_bind_path}\""
+        if self.slurm_conversion_partition:
+            sbatch_env["CONVERSION_PARTITION"] = f"\"{self.slurm_conversion_partition}\""
+
+        config_path = f'"$PWD/{config_file}"'
+        conversion_script = (
+            f'"{self.slurm_script_path}/convert_job_array.sh"'
+        )
+        # The conversion job is always submitted via sbatch, so it honours the
+        # same generic sbatch settings as workflow jobs: a partition (its own
+        # slurm_conversion_partition, otherwise the generic
+        # slurm_default_partition fallback) and any global sbatch params
+        # (e.g. --reservation). The conversion-specific partition wins over the
+        # generic default, and an explicit partition flag wins over a global one.
+        conversion_params = self.get_job_params({
+            'partition': self.slurm_conversion_partition})
+        conversion_param = ''.join(' ' + param for param in conversion_params)
+        conversion_cmd = (
+            f"sbatch{conversion_param} --job-name=conversion "
+            "--output=omero-%A_%a.log "
+            f"--export=ALL,CONFIG_PATH={config_path} "
+            f"--array=1-$N {conversion_script}"
+        )
+        
+        if self.env_file_submission:
+            logger.debug(f"Using env file submission for conversion with env: {sbatch_env}")
+            env_file = f"{data_path}/biomero_job_env.sh"
+            env_lines = "\n".join(
+                f"export {key}={shlex.quote(str(value).strip(chr(34)))}"
+                for key, value in sbatch_env.items()
+            )
+            write_env_cmd = (
+                f"cat > {shlex.quote(env_file)} <<'BIOMERO_ENV'\n"
+                f"{env_lines}\n"
+                "BIOMERO_ENV\n"
+            )
+            env_conversion_cmd = (
+                f"{write_env_cmd}"
+                f"{conversion_cmd} {shlex.quote(env_file)}"
+            )
+            return env_conversion_cmd, {}, chosen_converter, version
+
+        return conversion_cmd, sbatch_env, chosen_converter, version
+
+    def workflow_params_to_envvars(self, **kwargs) -> Dict:
+        """
+        Convert workflow parameters to environment variables.
+
+        Args:
+            **kwargs: Additional keyword arguments for the workflow.
+
+        Returns:
+            Dict: A dictionary containing the environment variables.
+        """
+        workflow_env = {key.upper(): f'"{value}"' if isinstance(value, str) or "-" in str(value) else f"{value}"
+                        for key, value in kwargs.items()}
+        logger.debug(workflow_env)
+        return workflow_env
+
+    def get_cellpose_command(self, image_version: str,
+                             input_data: str,
+                             cp_model: str,
+                             nuc_channel: int,
+                             prob_threshold: float,
+                             cell_diameter: float,
+                             email: Optional[str] = None,
+                             time: Optional[str] = None,
+                             use_gpu: bool = True,
+                             model: str = "cellpose") -> Tuple[str, Dict]:
+        """
+        Return the command and environment dictionary to run a CellPose job
+        on the Slurm workload manager.
+        A specific example of using the generic 'get_workflow_command'.
+
+        Args:
+            image_version (str): The version of the Singularity image to use.
+            input_data (str): The name of the input data folder on the shared
+                file system.
+            cp_model (str): The name of the CellPose model to use.
+            nuc_channel (int): The index of the nuclear channel.
+            prob_threshold (float): The probability threshold for
+                nuclei detection.
+            cell_diameter (float): The expected cell diameter in pixels.
+            email (Optional[str]): The email address to send notifications to.
+                Defaults to None.
+            time (Optional[str]): The maximum time for the job to run.
+                Defaults to None.
+            use_gpu (bool): Whether to use GPU for the CellPose job.
+                Defaults to True.
+            model (str): The name of the folder of the Docker image to use.
+                Defaults to "cellpose".
+
+        Returns:
+            Tuple[str, dict]:
+                A tuple containing the Slurm sbatch command
+                and the environment dictionary.
+        """
+        return self.get_workflow_command(workflow=model,
+                                         workflow_version=image_version,
+                                         input_data=input_data,
+                                         email=email,
+                                         time=time,
+                                         cp_model=cp_model,
+                                         nuc_channel=nuc_channel,
+                                         prob_threshold=prob_threshold,
+                                         cell_diameter=cell_diameter,
+                                         use_gpu=use_gpu)
+
+    def copy_zip_locally(self, local_tmp_storage: str, filename: str
+                         ) -> TransferResult:
+        """ Copy a zip file from Slurm to the local server.
+
+        Note about (Transfer)Result:
+
+        Unlike similar classes such as invoke.runners.Result or
+        fabric.runners.Result
+        (which have a concept of “warn and return anyways on failure”)
+        this class has no useful truthiness behavior.
+        If a file transfer fails, some exception will be raised,
+        either an OSError or an error from within Paramiko.
+
+        Args:
+            local_tmp_storage (String): Path to store the zip file locally.
+            filename (String): Zip filename on Slurm.
+
+        Returns:
+            TransferResult: The result of the scp attempt.
+        """
+        logger.info(f"Copying zip {filename} from\
+            Slurm to {local_tmp_storage}")
+        return self.get(
+            remote=f"{filename}.zip",
+            local=local_tmp_storage)
+
+    def zip_data_on_slurm_server(self, data_location: str, filename: str,
+                                 env: Optional[Dict[str, str]] = None
+                                 ) -> Result:
+        """Zip the output folder of a job on Slurm
+
+        Args:
+            data_location (String): Folder on SLURM with the "data/out"
+                subfolder.
+            filename (String): Name to give to the zipfile.
+            env (Dict[str, str], optional): Optional environment variables to 
+                set when running the command. Defaults to None.
+
+        Returns:
+            Result: The result of the zip attempt.
+        """
+        # zip
+        zip_cmd = self.get_zip_command(data_location, filename)
+        logger.info(f"Zipping {data_location} as {filename} on Slurm")
+        return self.run_commands([zip_cmd], env=env)
+
+    def get_zip_command(self, data_location: str, filename: str) -> str:
+        """
+        Generate a command string for zipping the data on Slurm.
+
+        Args:
+            data_location (str): The folder to be zipped.
+            filename (str): The name of the zip archive file to extract.
+                Without extension.
+
+        Returns:
+            str: The command to create the zip file.
+        """
+        if self._uses_infozip():
+            exclusions = " -x '*.biomero-lock'" if self.remote_shallow_zarr else ""
+            return (
+                f"cd \"{data_location}/data/out\" && "
+                f"{self.slurm_zip_cmd} -r "
+                f"\"{data_location}/{filename}.zip\" .{exclusions}"
+            )
+        exclusions = " '-xr!*.biomero-lock'" if self.remote_shallow_zarr else ""
+        return (
+            f"cd \"{data_location}/data/out\" && "
+            f"{self.slurm_zip_cmd} a -y \"{data_location}/{filename}.zip\" -tzip .{exclusions}"
+        )
+
+    def _uses_infozip(self) -> bool:
+        """Return whether ``slurm_zip_cmd`` names the Info-ZIP executable."""
+        try:
+            executable = shlex.split(self.slurm_zip_cmd)[0]
+        except (IndexError, TypeError, ValueError):
+            return False
+        return posixpath.basename(executable) == "zip"
+
+    def _get_infozip_unzip_command(self) -> str:
+        """Resolve unzip next to an explicitly pathed Info-ZIP executable."""
+        executable = shlex.split(self.slurm_zip_cmd)[0]
+        executable_dir = posixpath.dirname(executable)
+        unzip_cmd = posixpath.join(executable_dir, "unzip") \
+            if executable_dir else "unzip"
+        return shlex.quote(unzip_cmd)
+
+    @staticmethod
+    def _get_infozip_filter_args(filter_filetypes: Optional[str]) -> str:
+        """Quote member filters and include files inside Zarr directories."""
+        if not filter_filetypes:
+            return ""
+
+        patterns = []
+        for pattern in shlex.split(filter_filetypes):
+            zarr_path = pattern.rstrip("/")
+            if zarr_path.endswith(".zarr"):
+                pattern = f"{zarr_path}/*"
+            if pattern not in patterns:
+                patterns.append(pattern)
+
+        # ``*.zarr/*`` also matches OME-Zarr members. Passing both patterns
+        # makes Info-ZIP warn that the later, already-consumed pattern did not
+        # match and return status 11 despite extracting the data successfully.
+        if "*.zarr/*" in patterns and "*.ome.zarr/*" in patterns:
+            patterns.remove("*.ome.zarr/*")
+        return "".join(f" {shlex.quote(pattern)}" for pattern in patterns)
+
+    def get_logfile_from_slurm(self,
+                               slurm_job_id: str,
+                               local_tmp_storage: str = "/tmp/",
+                               logfile: str = None
+                               ) -> Tuple[str, str, TransferResult]:
+        """Copy the logfile of the given SLURM job to the local server.
+
+        Note about (Transfer)Result:
+
+        Unlike similar classes such as invoke.runners.Result
+        or fabric.runners.Result
+        (which have a concept of “warn and return anyways on failure”)
+        this class has no useful truthiness behavior.
+        If a file transfer fails, some exception will be raised,
+        either an OSError or an error from within Paramiko.
+
+        Args:
+            slurm_job_id (str): The ID of the SLURM job.
+            local_tmp_storage (str, optional): Path to store the logfile 
+                locally. Defaults to "/tmp/".
+            logfile (str, optional): Path to the logfile on the SLURM server.
+                Defaults to None.
+
+        Returns:
+            Tuple: directory, full path of the logfile, and TransferResult
+        """
+        if logfile is None:
+            logfile = self._LOGFILE
+        logfile = logfile.format(slurm_job_id=slurm_job_id)
+        logger.info(f"Copying logfile {logfile} from Slurm\
+            to {local_tmp_storage}")
+        result = self.get(
+            remote=logfile,
+            local=local_tmp_storage)
+        export_file = local_tmp_storage+logfile
+        return local_tmp_storage, export_file, result
+
+    def get_conversion_logfile_from_slurm(self,
+                                          slurm_job_id: str,
+                                          local_tmp_storage: str = "/tmp/",
+                                          logfile: str = None
+                                          ) -> Tuple[str, str, Any]:
+        """Copy a conversion job's log(s) to local storage as one combined file.
+
+        A conversion is submitted as a Slurm array job with
+        ``--output=omero-%A_%a.log``, so it produces one log per array task
+        (``omero-<jobid>_1.log``, ``omero-<jobid>_2.log``, ...). This reads all
+        matching logs on the Slurm side and writes a single combined log file
+        locally, so it can be attached to OMERO exactly like a workflow log --
+        including when the conversion failed and the logs are the only clue.
+
+        Unlike :meth:`get_logfile_from_slurm` (which sftp-copies a single named
+        file) this resolves the array glob via ``cat`` and tolerates the case
+        where no log files exist (writes an empty file rather than erroring).
+
+        Args:
+            slurm_job_id (str): The ID of the conversion (array) Slurm job.
+            local_tmp_storage (str, optional): Local directory to write the
+                combined log to. Defaults to "/tmp/".
+            logfile (str, optional): Explicit log glob to read (e.g.
+                ``SlurmJob.log_file``). Defaults to the converter glob
+                ``omero-<jobid>_*.log``.
+
+        Returns:
+            Tuple[str, str, Any]: local directory, combined log file path, and
+                the raw ``cat`` Result.
+        """
+        if logfile is None:
+            logfile = self._CONVERTER_LOGFILE.format(
+                slurm_job_id=slurm_job_id).replace('"', '')
+        # cat all matching array-task logs; tolerate none existing so this
+        # never raises while trying to surface a failure log.
+        cat_cmd = f"cat {logfile} 2>/dev/null || true"
+        result = self.run(cat_cmd)
+        export_file = os.path.join(
+            local_tmp_storage, self._LOGFILE.format(slurm_job_id=slurm_job_id))
+        content = result.stdout if result and getattr(
+            result, "stdout", None) else ""
+        with open(export_file, "w") as f:
+            f.write(content)
+        return local_tmp_storage, export_file, result
+
+    def get_unzip_command(self, zipfile: str,
+                          filter_filetypes: str = "*.zarr *.ome.zarr *.tiff *.tif"
+                          ) -> str:
+        """
+        Generate a command string for unzipping a data archive and creating
+        required directories for Slurm jobs.
+
+        Args:
+            zipfile (str): The name of the zip archive file to extract.
+                Without extension.
+            filter_filetypes (str, optional): A space-separated string
+                containing the file extensions to extract from the zip file.
+                E.g. defaults to "*.zarr *.ome.zarr *.tiff *.tif".
+                Setting this argument to `None` will omit the file
+                filter and extract all files.
+
+        Returns:
+            str:
+                The command to extract the specified
+                filetypes from the zip file.
+        """
+        if self._uses_infozip():
+            unzip_cmd = self._get_infozip_unzip_command()
+            filter_args = self._get_infozip_filter_args(filter_filetypes)
+            return (
+                f"mkdir -p \"{self.slurm_data_path}/{zipfile}\""
+                f" \"{self.slurm_data_path}/{zipfile}/data\""
+                f" \"{self.slurm_data_path}/{zipfile}/data/in\""
+                f" \"{self.slurm_data_path}/{zipfile}/data/out\""
+                f" \"{self.slurm_data_path}/{zipfile}/data/gt\";"
+                f" {unzip_cmd} -o"
+                f" \"{self.slurm_data_path}/{zipfile}.zip\""
+                f"{filter_args}"
+                f" -d \"{self.slurm_data_path}/{zipfile}/data/in\""
+                f"{' || [ $? -eq 11 ]' if filter_args else ''}"
+            )
+        unzip_cmd = (
+            f"mkdir -p \"{self.slurm_data_path}/{zipfile}\""
+            f" \"{self.slurm_data_path}/{zipfile}/data\""
+            f" \"{self.slurm_data_path}/{zipfile}/data/in\""
+            f" \"{self.slurm_data_path}/{zipfile}/data/out\""
+            f" \"{self.slurm_data_path}/{zipfile}/data/gt\";"
+            f" {self.slurm_zip_cmd} x -y"
+            f" -o\"{self.slurm_data_path}/{zipfile}/data/in\""
+            f" \"{self.slurm_data_path}/{zipfile}.zip\""
+            f"{self._get_infozip_filter_args(filter_filetypes)}"
+        )
+
+        return unzip_cmd
+
+    def get_image_versions_and_data_files(self, model: str
+                                          ) -> Tuple[List[str], List[str]]:
+        """
+        Retrieve the available image versions and input data files for a
+        given model.
+
+        Args:
+            model (str): The name of the model to query for.
+
+        Returns:
+            Tuple[List[str], List[str]]:
+                A tuple containing two lists:
+                - The first list includes the available image versions, 
+                    sorted in descending order.
+                - The second list includes the available data files.
+
+        Raises:
+            ValueError: If the provided model is not found in the
+                SlurmClient's known model paths.
+        """
+        image_path = self.slurm_model_paths.get(model)
+        if not image_path:
+            raise ValueError(
+                f"No path known for provided model {model}, \
+                    in {self.slurm_model_paths}")
+        cmdlist = [
+            self._VERSION_CMD.format(slurm_images_path=self.slurm_images_path,
+                                     image_path=image_path),
+            self._DATA_CMD.format(slurm_data_path=self.slurm_data_path)]
+        # split responses per command
+        response_list = self.run_commands_split_out(cmdlist)
+        # split lines further into sublists
+        response_list = [
+            [line.strip() for line in response.splitlines() if line.strip()]
+            for response in response_list
+        ]
+        response_list[0] = sorted(response_list[0], reverse=True)
+        return response_list[0], response_list[1]
+
+    def get_all_image_versions_and_data_files(self
+                                              ) -> Tuple[Dict[str, List[str]],
+                                                         List[str]]:
+        """Retrieve all available image versions and data files from
+        the Slurm cluster.
+
+        Returns:
+           Tuple[Dict[str, List[str]], List[str]]:
+                A tuple containing:
+                - A dictionary mapping models to available versions.
+                - A list of available input data folders.
+        """
+        resultdict = {}
+        cmdlist = []
+
+        for path in self.slurm_model_paths.values():
+            pathcmd = self._VERSION_CMD.format(
+                slurm_images_path=self.slurm_images_path,
+                image_path=path)
+            cmdlist.append(pathcmd)
+
+        # Add data path too
+        cmdlist.append(self._DATA_CMD.format(
+            slurm_data_path=self.slurm_data_path))
+
+        # Split responses per command
+        response_list = self.run_commands_split_out(cmdlist)
+
+        # Split lines further into sublists
+        response_list = [
+            [line.strip() for line in response.splitlines() if line.strip()]
+            for response in response_list
+        ]
+
+        for i, k in enumerate(self.slurm_model_paths):
+            # Return highest version first
+            resultdict[k] = sorted(response_list[i], reverse=True)
+
+        return resultdict, response_list[-1]
