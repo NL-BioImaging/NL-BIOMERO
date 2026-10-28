@@ -12,12 +12,18 @@ upgrading does not rewrite them. Shallow results reconstruct in their source
 format, including retained labels.
 
 The demo's Leica, Incucyte database and Incucyte archive preprocessing routes
-all create new stores with ``extra_params.outputformat=omezarr05``. For fresh
-native Zarr workflow exports, ``0.5`` is the default; administrators can select
-``0.4`` explicitly. Select a format supported by the workflow; choosing an
-export version does not convert a reused managed store. TIFF-consuming
-workflows use temporary v2 conversion material so the legacy HPC converter
-continues to work, including when the canonical source is v3.
+all create new stores with ``extra_params.outputformat=omezarr05``. Workflow
+inputs default to ``0.4`` / v2. Administrators can enable **Zarr v3 input
+(OME-Zarr 0.5)** per Bilayers workflow in Settings; this saves the JSON list
+``[UI] zarr_v3_workflows``. BIAFLOWS and TIFF conversion always use v2. Save
+Settings applies to new runs without Slurm Init or a container restart.
+
+Matching formats reuse the backing store directly. A mismatch creates temporary
+workflow input, including reconstructed labels, without replacing canonical
+storage. Returned data in a different format from its canonical source stays
+full. The shallower checks format compatibility before pixel hashing. No second
+canonical copy is kept for compatibility; conversion and full-result storage
+still have a cost.
 
 The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
 ``BIOMERO_SHALLOW_ZARR=true``. Remote processing is then the default; set

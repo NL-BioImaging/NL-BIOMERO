@@ -113,6 +113,15 @@ Plates use the Zarr path. Do not assume that selecting a mask Image means
 (reconstruct-shallow-zarr-on-disk)=
 ## Exporting a standalone Zarr
 
+Workflow compatibility is configured separately from canonical storage.
+`[UI] zarr_v3_workflows` opts selected Bilayers workflows into OME-Zarr 0.5/v3;
+the default is 0.4/v2, and BIAFLOWS and TIFF conversion always use v2. Image
+Transfer reuses matching formats and creates temporary inputs for mismatches,
+including all reconstructed labels. It never replaces a canonical store or
+retains a second canonical copy in another format. If returned data and its
+canonical source use different formats, the result remains full. The shallower
+checks format compatibility before computing pixel identities.
+
 **A shallow result is not a self-contained OME-Zarr for generic readers.**
 Its retained arrays are Zarr, but ordinary readers cannot resolve BIOMERO's
 managed references to the omitted arrays.

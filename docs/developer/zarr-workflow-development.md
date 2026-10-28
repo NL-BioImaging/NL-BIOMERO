@@ -42,20 +42,22 @@ that workflow authors produce.
 
 The BIOMERO/OMERO path supports **OME-NGFF 0.4 on Zarr v2** and
 **OME-NGFF 0.5 on Zarr v3**, including sharded v3 arrays. Existing managed
-stores retain their format when reused or reconstructed for another workflow.
+canonical stores retain their original format.
 Workflows must support the format of their inputs; accepting OME-Zarr does
 not imply support for every NGFF or Zarr version.
 
-The workflow script's OME-Zarr version parameter selects the format for a
-fresh export. Native Zarr workflows default to `0.5`; an explicit `0.4` choice
-creates v2. Reusing a managed store preserves its actual format. TIFF-consuming
-workflows use temporary v2 conversion material, including when their source is
-v3, without changing the canonical store. The NL-BIOMERO demo explicitly
+Workflow inputs default to `0.4` / v2. Administrators opt individual Bilayers
+workflows into `0.5` / v3 using the **Zarr v3 input (OME-Zarr 0.5)** switch or
+`[UI] zarr_v3_workflows`. The worker enforces this for both fresh exports and
+existing stores. Matching formats are reused directly; mismatches are converted
+temporarily with pixels and labels preserved. BIAFLOWS and TIFF conversion always
+use v2. Canonical storage remains unchanged, and cross-format results stay full.
+The NL-BIOMERO demo explicitly
 selects `omezarr05` for new Leica,
 Incucyte database and Incucyte archive conversions in `web/biomero-config.json`.
 Each route passes the same `extra_params.outputformat` setting; Leica also
-passes the selected image UUID. Administrators can select `omezarr04` when a
-workflow needs v2 inputs.
+passes the selected image UUID. This preprocessing setting is independent of
+the per-workflow input compatibility setting.
 
 Workflow authors do **not** need to generate BIOMERO sidecars, ISCC identities,
 RFC 8 shallow copies, or BIOMERO provenance metadata. Produce the supported

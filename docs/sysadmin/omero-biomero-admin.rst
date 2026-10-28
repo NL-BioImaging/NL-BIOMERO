@@ -200,6 +200,12 @@ Adding New Workflows
      an entire plate as a single Zarr. Only plates can be submitted as input (no
      datasets). Enables the dedicated **Plate Workflows** tab in the analyzer UI.
      Requires the :doc:`analyzer-importer-admin` integration to be enabled.
+   - **Zarr v3 input (OME-Zarr 0.5)**: Enable only for Bilayers workflow versions
+     that support v3. The default is v2 / OME-Zarr 0.4; BIAFLOWS and TIFF conversion
+     always use v2. This saves ``[UI] zarr_v3_workflows`` and applies to new runs
+     without Slurm Init. Existing stores keep their format; mismatches become
+     temporary workflow inputs with pixels and labels preserved. Returned data
+     in a different format from its canonical source is retained in full.
 
 3. **Save Settings** to store the configuration
 
