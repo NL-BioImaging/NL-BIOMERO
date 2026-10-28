@@ -46,12 +46,13 @@ canonical stores retain their original format.
 Workflows must support the format of their inputs; accepting OME-Zarr does
 not imply support for every NGFF or Zarr version.
 
-Workflow inputs default to `0.4` / v2. Administrators opt individual Bilayers
+Workflow inputs default to `0.4` / v2. Administrators opt individual native Zarr
 workflows into `0.5` / v3 using the **Zarr v3 input (OME-Zarr 0.5)** switch or
 `[UI] zarr_v3_workflows`. The worker enforces this for both fresh exports and
 existing stores. Matching formats are reused directly; mismatches are converted
-temporarily with pixels and labels preserved. BIAFLOWS and TIFF conversion always
-use v2. Canonical storage remains unchanged, and cross-format results stay full.
+temporarily with pixels and labels preserved. This applies to both Bilayers and
+BIAFLOWS descriptors; TIFF conversion always uses v2. Canonical storage remains
+unchanged, and cross-format results stay full.
 The NL-BIOMERO demo explicitly
 selects `omezarr05` for new Leica,
 Incucyte database and Incucyte archive conversions in `web/biomero-config.json`.

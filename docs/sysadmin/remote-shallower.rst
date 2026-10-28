@@ -14,8 +14,9 @@ format, including retained labels.
 The demo's Leica, Incucyte database and Incucyte archive preprocessing routes
 all create new stores with ``extra_params.outputformat=omezarr05``. Workflow
 inputs default to ``0.4`` / v2. Administrators can enable **Zarr v3 input
-(OME-Zarr 0.5)** per Bilayers workflow in Settings; this saves the JSON list
-``[UI] zarr_v3_workflows``. BIAFLOWS and TIFF conversion always use v2. Save
+(OME-Zarr 0.5)** per native Zarr workflow in Settings; this saves the JSON list
+``[UI] zarr_v3_workflows``. Descriptor style does not restrict this choice;
+TIFF conversion always uses v2. Save
 Settings applies to new runs without Slurm Init or a container restart.
 
 Matching formats reuse the backing store directly. A mismatch creates temporary

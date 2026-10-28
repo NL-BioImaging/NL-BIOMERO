@@ -114,8 +114,8 @@ Plates use the Zarr path. Do not assume that selecting a mask Image means
 ## Exporting a standalone Zarr
 
 Workflow compatibility is configured separately from canonical storage.
-`[UI] zarr_v3_workflows` opts selected Bilayers workflows into OME-Zarr 0.5/v3;
-the default is 0.4/v2, and BIAFLOWS and TIFF conversion always use v2. Image
+`[UI] zarr_v3_workflows` opts selected native Zarr workflows into OME-Zarr 0.5/v3,
+regardless of descriptor style. The default is 0.4/v2; TIFF conversion uses v2. Image
 Transfer reuses matching formats and creates temporary inputs for mismatches,
 including all reconstructed labels. It never replaces a canonical store or
 retains a second canonical copy in another format. If returned data and its

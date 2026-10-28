@@ -78,6 +78,18 @@ overrides into web or biomeroworker, including empty values or fallback defaults
 env precedence prevents the admin interface's saved INI values from taking effect.
 Library support for an env override is not a reason to enable it in the demo.
 
+Every administrator-editable setting must have a matching Runtime or Slurm Init
+indicator in OMERO.biomero and accurate follow-up instructions in these docs.
+Verify the consumer rather than inferring timing from the section name. Shared
+indicators are sufficient for homogeneous groups; mixed sections show both and
+classify each field/subgroup. Runtime applies to new runs or requests after
+saving. Slurm Init installs helper images/generated scripts or rebuilds analytics.
+For Shallow Zarr, mark the helper image as Slurm Init and remote/local selection,
+receipt version and resource limits as runtime; explain that first remote use
+requires an installed helper and matching importer trust settings. Keep deployment
+flags/restarts distinct from these INI-managed settings. Update the sibling web
+plugin and this repository's admin docs together when their behavior changes.
+
 Respect component boundaries: the importer has its own settings and does not
 read `slurm-config.ini`. Preserve its required validation/trust configuration;
 do not force importer settings into the Slurm INI. Where importer trust settings

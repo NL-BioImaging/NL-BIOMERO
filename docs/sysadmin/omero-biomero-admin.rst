@@ -200,7 +200,7 @@ Adding New Workflows
      skipping TIFF conversion. Also enabled by plate mode or a descriptor's Zarr
      requirement. Requires the :doc:`analyzer-importer-admin` integration.
    - **Zarr v3 input (OME-Zarr 0.5)**: Suboption below **Zarr Format Required**.
-     Enable only for a Bilayers workflow version that supports v3. Otherwise,
+     Enable only for a workflow version that supports v3. Otherwise,
      input uses Zarr v2 / OME-Zarr 0.4. Hover a disabled switch for its prerequisite.
 
 3. **Save Settings** to store the configuration
@@ -236,16 +236,29 @@ Editing Existing Workflows
 Required Follow-up Actions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-After model changes (except Additional Slurm Parameters and Zarr toggles):
+The icons beside settings show when changes apply. **Runtime** applies to new
+runs or requests after saving. **Slurm Init** requires running that script after
+saving. Hover an icon for its explanation. Sections containing both kinds show
+both icons; individual fields or subgroups identify which applies.
+
+After changing a workflow's repository, container folder or job script:
 
 1. **Save Settings** first
 2. **Run "Slurm Init" script** - installs changes on Slurm cluster
 3. **Verify with "Slurm Check Setup"** - shows available/pending models
 
 .. note::
-   The **Zarr Workflow** and **Zarr Plate Workflow** toggles take effect immediately
-   after saving — they control BIOMERO's input preparation on the web side and do
-   not require a Slurm Init run.
+   Workflow input modes, the Zarr version, GPU selection and Additional Slurm
+   Parameters are runtime settings. They do not require Slurm Init.
+
+In **Shallow Zarr**, the helper image requires Slurm Init. Remote/local selection,
+the expected tool version, workers, partition, memory and time limit are runtime
+settings. Install the helper before first enabling remote shallowing, and keep
+its image and tool version aligned with the importer's trust configuration.
+Environment overrides still take precedence over the saved INI values.
+
+Analytics tracking and listener choices apply to new clients at runtime; the
+analytics rebuild window applies when Slurm Init rebuilds the views.
 
 .. _zarr-workflow-types:
 
@@ -261,14 +274,15 @@ Zarr Input and Version
 
 With **Zarr Format Required**, BIOMERO reuses a compatible backing store or
 prepares OME-Zarr input and skips TIFF conversion. The indented **Zarr v3 input
-(OME-Zarr 0.5)** switch selects v3; off selects v2 / OME-Zarr 0.4. BIAFLOWS and
-TIFF conversion always use v2.
+(OME-Zarr 0.5)** switch selects v3; off selects v2 / OME-Zarr 0.4. Native Zarr
+workflows can select v3 with either Bilayers or BIAFLOWS descriptors. TIFF
+conversion always uses v2.
 
 The version switch is disabled until Zarr input is enabled manually or required
-by a plate or descriptor, and while the workflow card is locked. Known BIAFLOWS
-workflows cannot enable it. Hover or focus the disabled control for the reason.
+by a plate or descriptor, and while the workflow card is locked. Hover or focus
+the disabled control for the reason.
 Disabling Zarr clears its v3 selection when no plate or descriptor requirement
-remains.
+remains. Both the form and API reject saving v3 without Zarr or plate input.
 
 The existing cube icon turns green for v3 instead of adding another icon. Its
 tooltip names the Zarr and OME-Zarr versions. Plate workflows keep their plate
