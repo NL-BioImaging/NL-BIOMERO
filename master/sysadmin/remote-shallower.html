@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shallow OME-Zarr Storage &mdash; NL-BIOMERO 1.8.0-beta.9 documentation</title>
+  <title>Shallow OME-Zarr Storage &mdash; NL-BIOMERO 1.8.0-beta.11 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -399,7 +399,7 @@ window.addEventListener("load", load);
             NL-BIOMERO
           </a>
               <div class="version">
-                1.8.0-beta.9
+                1.8.0-beta.11
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -578,6 +578,7 @@ window.addEventListener("load", load);
 <li class="toctree-l1"><a class="reference internal" href="omero-biomero-admin.html">OMERO.biomero Plugin Administration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#accessing-admin-interfaces">Accessing Admin Interfaces</a></li>
 <li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#importer-admin-configuration">Importer Admin Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#general-settings">General Settings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#group-folder-mappings">Group Folder Mappings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#configuration-file-management">Configuration File Management</a></li>
 </ul>
@@ -590,7 +591,15 @@ window.addEventListener("load", load);
 </li>
 <li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#settings-categories">Settings Categories</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#ssh-settings">SSH Settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#slurm-settings">SLURM Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#slurm-settings">SLURM Settings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#paths">Paths</a></li>
+<li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#sacct-history-window">SACCT History Window</a></li>
+<li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#repositories">Repositories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#processing-settings">Processing Settings</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#shallow-zarr">Shallow Zarr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#ui-settings">UI Settings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#analytics-settings">Analytics Settings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#converters-settings">Converters Settings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#workflows-settings">Workflows Settings</a><ul>
@@ -601,9 +610,9 @@ window.addEventListener("load", load);
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#zarr-and-plate-workflow-types">Zarr and Plate Workflow Types</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#zarr-workflow">Zarr Workflow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#zarr-plate-workflow">Zarr Plate Workflow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#biaflows-descriptors-and-zarr-auto-detection">BIAFLOWS descriptors and Zarr auto-detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#zarr-input-and-version">Zarr Input and Version</a></li>
+<li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#plate-and-image-input">Plate and Image Input</a></li>
+<li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#descriptors-and-saved-choices">Descriptors and Saved Choices</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#slurm-check-setup-output">Slurm Check Setup Output</a></li>
@@ -1175,6 +1184,27 @@ window.addEventListener("load", load);
 eligible OME-Zarr workflow results. BIOMERO retains new or changed labels and
 references verified source pixels already in managed storage. Original source
 data remains unchanged.</p>
+<p>The matched component releases support OME-Zarr 0.4 / Zarr v2 and OME-Zarr
+0.5 / Zarr v3 Images and Plates. Existing managed stores keep their format;
+upgrading does not rewrite them. Shallow results reconstruct in their source
+format, including retained labels.</p>
+<p>The demo’s Leica, Incucyte database and Incucyte archive preprocessing routes
+all create new stores with <code class="docutils literal notranslate"><span class="pre">extra_params.outputformat=omezarr05</span></code>. Workflow
+inputs default to <code class="docutils literal notranslate"><span class="pre">0.4</span></code> / v2. Administrators can enable <strong>Zarr v3 input
+(OME-Zarr 0.5)</strong> per native Zarr workflow in Settings; this saves the JSON list
+<code class="docutils literal notranslate"><span class="pre">[UI]</span> <span class="pre">zarr_v3_workflows</span></code>. Descriptor style does not restrict this choice;
+TIFF conversion always uses v2. Save
+Settings applies to new runs without Slurm Init or a container restart.</p>
+<p>The web app passes its choice through the existing <code class="docutils literal notranslate"><span class="pre">OME-Zarr_version</span></code> script
+input. Matching formats reuse the backing store directly. A mismatch skips
+canonical reuse and uses the normal OMERO exporter with the requested format.
+The existing canonical stays unchanged, and this run retains full results
+without canonical matching. No second canonical copy is created.</p>
+<p>Matching shallow inputs still reconstruct their original pixels and managed
+labels. For a format mismatch, the normal exporter exports the selected OMERO
+Image or Plate pixels; it does not reconstruct all inherited label layers.
+Returned data in a different format from its canonical source stays full;
+the shallower checks format compatibility before pixel hashing.</p>
 <p>The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
 <code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR=true</span></code>. Remote processing is then the default; set
 <code class="docutils literal notranslate"><span class="pre">BIOMERO_REMOTE_SHALLOW_ZARR=false</span></code> for local importer processing instead.
@@ -1194,11 +1224,47 @@ shallowing new results. Existing shallow results still need their sources.</p></
 and importer work at the cost of a CPU-only HPC helper job.</p></li>
 <li><p>Configure the helper image/resources and run Slurm Init after upgrading.
 This is the normal post-upgrade initialization step and acquires the helper
-image together with the other configured workflow images.</p></li>
+image together with the other configured workflow images when importer,
+shallow storage and remote processing are all enabled.</p></li>
 <li><p>Keep source storage available. This feature reduces duplicate result data;
 it does not replace backups or enable detached execution.</p></li>
 </ul>
 </div>
+<p>Existing feature switches remain independent:</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Feature scope</span><a class="headerlink" href="#id1" title="Permalink to this table"></a></caption>
+<colgroup>
+<col style="width: 35%" />
+<col style="width: 65%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Switch</p></th>
+<th class="head"><p>Effect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">IMPORTER_ENABLED</span></code></p></td>
+<td><p>Selects in-place result import; false uses classic result upload.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR</span></code></p></td>
+<td><p>Enables canonical indexing and new shallow results. False keeps full
+results; existing shallow inputs can still be reconstructed from their
+sources with the required dependencies installed.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BIOMERO_REMOTE_SHALLOW_ZARR</span></code></p></td>
+<td><p>Within enabled shallow storage, selects remote processing (default true)
+or local importer processing (false). It cannot enable shallow storage.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BIOMERO_DETACHED_WORKFLOWS</span></code></p></td>
+<td><p>Selects background execution independently of storage and result-import
+recovery. See <a class="reference internal" href="detached-workflows.html"><span class="doc">Detached BIOMERO Workflows</span></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BIOMERO_ZARR_VIEWER_ENABLED</span></code></p></td>
+<td><p>Controls the web viewer independently of storage and execution.
+See <a class="reference internal" href="zarrviewer.html"><span class="doc">OME-Zarr Viewer</span></a>.</p></td>
+</tr>
+</tbody>
+</table>
 <section id="lifecycle-overview">
 <h2>Lifecycle overview<a class="headerlink" href="#lifecycle-overview" title="Permalink to this heading"></a></h2>
 <p>Only derived workflow results are shallowed. The managed source remains
@@ -1239,8 +1305,8 @@ For a standalone copy on disk, see
 </section>
 <section id="choosing-local-or-remote-shallowing">
 <h2>Choosing local or remote shallowing<a class="headerlink" href="#choosing-local-or-remote-shallowing" title="Permalink to this heading"></a></h2>
-<table class="docutils align-default" id="id1">
-<caption><span class="caption-text">Matched 846-image Plate result handling</span><a class="headerlink" href="#id1" title="Permalink to this table"></a></caption>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Matched 846-image Plate result handling</span><a class="headerlink" href="#id2" title="Permalink to this table"></a></caption>
 <colgroup>
 <col style="width: 38%" />
 <col style="width: 31%" />
@@ -1362,6 +1428,31 @@ the helper image.</p>
 </section>
 <section id="failure-and-observability">
 <h2>Failure and observability<a class="headerlink" href="#failure-and-observability" title="Permalink to this heading"></a></h2>
+<p>Result-import recovery is automatic on compatible storage, with no additional
+feature flag. Before preparing an import, the scripts check filesystem locking,
+atomic replacement and file/directory synchronization using disposable metadata.
+Use coordinated scripts and importer releases that contain recovery support.
+This does not add SSH reconnection or require SSHFS.</p>
+<p>Order recovery protects importer-enabled full Zarr and TIFF results as well
+as shallow results, in both inline and detached workflows. It does not enable
+any of the switches above. Importer-side shallow transaction recovery requires
+an explicitly requested shallow operation and <code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR=true</span></code>;
+ordinary import orders do not enter shallow preparation.</p>
+<p>Recovery saves one small record per newly
+staged workflow-result import plan, reuses order IDs on retry, and restores
+interrupted local shallow transactions. It does not scan or migrate old OMERO
+images, Plates or Zarrs. An explicitly retried older result without a record
+requires review if existing importer orders make resubmission ambiguous.</p>
+<p>If the preflight explicitly reports an unsupported lock or durable-write
+operation, a fresh attempt uses legacy operations and logs that recovery is
+unavailable. This happens before submitting import orders. A busy lock,
+permission failure, disk-full error, storage outage or failure after recovery
+has begun does not trigger fallback. Existing recovery records and unfinished
+prune journals must be resolved using storage supporting recovery.</p>
+<p>Failed imports retain their files and cannot report success in either mode.
+In the legacy fallback, automatic order reuse is unavailable; review previous
+orders before retrying. See the
+<a class="reference external" href="https://nl-bioimaging.github.io/BIOMERO.importer/shallow-zarr/#interrupted-imports-and-recovery">importer recovery guide</a>.</p>
 <p>Unsupported results use full transfer and local importer handling.
 A failed shallowing job runs a recovery job: interrupted
 stores roll back; completed shallow stores retain their verified receipts.

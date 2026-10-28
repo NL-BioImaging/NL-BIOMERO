@@ -104,7 +104,8 @@ There is one important format distinction:
 
 | Selection | What the next workflow receives |
 | --- | --- |
-| Shallow Image or Plate selected for a Zarr workflow | Full Zarr with source intensities and the result's labels |
+| Shallow Image or Plate selected for a Zarr workflow in the same format | Full Zarr with source intensities and the result's labels |
+| Shallow Image or Plate selected for a Zarr workflow in another format | Normal export of selected OMERO pixels; no inherited label reconstruction or canonical matching |
 | Mask Image selected for a TIFF workflow | The selected mask pixels as TIFF, not the original intensities |
 
 Plates use the Zarr path. Do not assume that selecting a mask Image means
@@ -113,12 +114,24 @@ Plates use the Zarr path. Do not assume that selecting a mask Image means
 (reconstruct-shallow-zarr-on-disk)=
 ## Exporting a standalone Zarr
 
+Workflow compatibility is configured separately from canonical storage.
+`[UI] zarr_v3_workflows` opts selected native Zarr workflows into OME-Zarr 0.5/v3,
+regardless of descriptor style. The default is 0.4/v2; TIFF conversion uses v2. Image
+Transfer reuses matching formats and invokes the normal OMERO exporter for
+mismatches, using the requested version. That fallback exports selected OMERO
+pixels without inherited label reconstruction or canonical matching for the run.
+It never replaces a canonical store or retains a second canonical copy in
+another format. If returned data and its
+canonical source use different formats, the result remains full. The shallower
+checks format compatibility before computing pixel identities.
+
 **A shallow result is not a self-contained OME-Zarr for generic readers.**
 Its retained arrays are Zarr, but ordinary readers cannot resolve BIOMERO's
 managed references to the omitted arrays.
 
 For external analysis or sharing, reconstruct it first. The current reconstruction
-produces conventional **OME-NGFF 0.4 / Zarr v2** data with the referenced pixels
+produces conventional **OME-NGFF 0.4 / Zarr v2** or **OME-NGFF 0.5 / Zarr v3**
+data in the source store's format, with the referenced pixels
 and labels copied into the output.
 
 This can be done on disk without submitting another analysis or running an

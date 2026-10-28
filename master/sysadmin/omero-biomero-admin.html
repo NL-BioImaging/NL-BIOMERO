@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OMERO.biomero Plugin Administration &mdash; NL-BIOMERO 1.8.0-beta.9 documentation</title>
+  <title>OMERO.biomero Plugin Administration &mdash; NL-BIOMERO 1.8.0-beta.11 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -34,7 +34,7 @@
             NL-BIOMERO
           </a>
               <div class="version">
-                1.8.0-beta.9
+                1.8.0-beta.11
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -213,6 +213,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">OMERO.biomero Plugin Administration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#accessing-admin-interfaces">Accessing Admin Interfaces</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#importer-admin-configuration">Importer Admin Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#general-settings">General Settings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#group-folder-mappings">Group Folder Mappings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#configuration-file-management">Configuration File Management</a></li>
 </ul>
@@ -225,7 +226,15 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#settings-categories">Settings Categories</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#ssh-settings">SSH Settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#slurm-settings">SLURM Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#slurm-settings">SLURM Settings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#paths">Paths</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sacct-history-window">SACCT History Window</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#repositories">Repositories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#processing-settings">Processing Settings</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#shallow-zarr">Shallow Zarr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ui-settings">UI Settings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#analytics-settings">Analytics Settings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#converters-settings">Converters Settings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#workflows-settings">Workflows Settings</a><ul>
@@ -236,9 +245,9 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#zarr-and-plate-workflow-types">Zarr and Plate Workflow Types</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#zarr-workflow">Zarr Workflow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#zarr-plate-workflow">Zarr Plate Workflow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#biaflows-descriptors-and-zarr-auto-detection">BIAFLOWS descriptors and Zarr auto-detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#zarr-input-and-version">Zarr Input and Version</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#plate-and-image-input">Plate and Image Input</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#descriptors-and-saved-choices">Descriptors and Saved Choices</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#slurm-check-setup-output">Slurm Check Setup Output</a></li>
@@ -806,7 +815,10 @@
 
   <section id="omero-biomero-plugin-administration">
 <span id="id1"></span><h1>OMERO.biomero Plugin Administration<a class="headerlink" href="#omero-biomero-plugin-administration" title="Permalink to this heading"></a></h1>
-<p>The OMERO.biomero plugin provides two administrative interfaces for managing the Importer (ADI) and Analyzer components. These admin screens are accessible from the OMERO.web interface and provide essential configuration options for system administrators.</p>
+<p>Use <strong>Import → Admin</strong> to manage browser uploads and group folders, and
+<strong>Analyze → Admin</strong> to configure workflows and their Slurm resources. This page
+follows the plugin’s settings sections and explains what to change, when it
+takes effect, and which deployment features it requires.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>For technical details about the Metabase integration and container configuration,
@@ -824,56 +836,78 @@ and security configuration, see <a class="reference internal" href="metabase-adm
 <section id="importer-admin-configuration">
 <h2>Importer Admin Configuration<a class="headerlink" href="#importer-admin-configuration" title="Permalink to this heading"></a></h2>
 <p>The Importer Admin tab manages settings for BIOMERO.importer (formerly ADI).</p>
+<section id="general-settings">
+<h3>General Settings<a class="headerlink" href="#general-settings" title="Permalink to this heading"></a></h3>
+<p>These controls save automatically to the <code class="docutils literal notranslate"><span class="pre">UPLOADER</span></code> section of
+<code class="docutils literal notranslate"><span class="pre">biomero-config.json</span></code>. They do not use the Analyzer’s <strong>Save Settings</strong> button.</p>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Browser upload controls</span><a class="headerlink" href="#id4" title="Permalink to this table"></a></caption>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 70%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Control</p></th>
+<th class="head"><p>Effect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Enable Web Uploader</strong></p></td>
+<td><p>Shows the <strong>Upload images</strong> tab. The demo enables this; the web service
+still needs the uploader’s storage and reverse-proxy configuration.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Upload to group folder</strong></p></td>
+<td><p>Assembles uploads under <code class="docutils literal notranslate"><span class="pre">uploads/&lt;username&gt;</span></code> in the active group’s
+mapped folder. Without a mapping, the default uploader destination is used.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Uploader Chunk Size (MB)</strong></p></td>
+<td><p>Size of each resumable upload chunk, default 100 MB and minimum 1 MB.
+Keep it within the reverse proxy’s request-body limit. This is a transfer
+chunk size, not a maximum image size.</p></td>
+</tr>
+</tbody>
+</table>
+<p>See <a class="reference internal" href="resumable-uploader.html"><span class="doc">Resumable Web Uploader</span></a> for supported formats, destination permissions and
+proxy setup. Conversion and preprocessing settings are managed separately from
+these upload controls.</p>
+</section>
 <section id="group-folder-mappings">
 <span id="id2"></span><h3>Group Folder Mappings<a class="headerlink" href="#group-folder-mappings" title="Permalink to this heading"></a></h3>
 <p><strong>Purpose</strong>: Restrict which OMERO groups have access to specific folders that the importer can import from.</p>
 <p><strong>Configuration</strong>:</p>
 <ul class="simple">
-<li><p>Currently supports 1:1 mapping only</p></li>
 <li><p>Each OMERO group can be mapped to one subfolder instead of the full mounted disk folder</p></li>
 </ul>
 <p><strong>Setup Process</strong>:</p>
 <ol class="arabic simple">
 <li><p>Select the target OMERO group</p></li>
-<li><p>Choose the folder from the available options</p></li>
-<li><p>Save the mapping</p></li>
+<li><p>Open the folder picker and expand folders to reach the destination</p></li>
+<li><p>Select the folder, confirm with <strong>Select</strong>, then click <strong>Add mapping</strong></p></li>
 </ol>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p><strong>Folder Selection Limitation</strong>: The folder selector only shows currently loaded subfolders (1st level).</p>
-<p><strong>Workaround</strong>: To select deeper subfolders:</p>
-<ol class="arabic simple">
-<li><p>Go to the “Import Images” tab</p></li>
-<li><p>Navigate and expand the desired subfolder</p></li>
-<li><p>This loads sub-subfolders into ReactJS memory</p></li>
-<li><p>Return to Admin tab where they will now be selectable</p></li>
-</ol>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p><strong>Changes Not Visible Immediately</strong>: Don’t refresh (F5) to see changes. Instead:</p>
-<ol class="arabic simple">
-<li><p>Log out and log in again</p></li>
-<li><p>Change “Select group” to a different group</p></li>
-<li><p>The mapping should take effect showing only the mapped subfolder as import options</p></li>
-</ol>
-</div>
+<p>Use the edit or delete action in <strong>Current Mappings</strong> to change existing entries.
+After editing, confirm the replacement with <strong>Add mapping</strong>. Deleting a mapping
+saves immediately. The picker shows directories and filters out names
+containing a dot, including hidden directories and stores such as <code class="docutils literal notranslate"><span class="pre">.zarr</span></code>.
+Folder mappings do not change filesystem permissions; the relevant services
+still need access to the underlying storage.</p>
 </section>
 <section id="configuration-file-management">
 <h3>Configuration File Management<a class="headerlink" href="#configuration-file-management" title="Permalink to this heading"></a></h3>
-<p><strong>Storage</strong>: Changes are written via Django API to a configuration file.</p>
-<dl class="simple">
-<dt><strong>Environment Variable</strong>: <code class="docutils literal notranslate"><span class="pre">OMERO_BIOMERO_CONFIG_FILE</span></code></dt><dd><ul class="simple">
-<li><p>Example: <code class="docutils literal notranslate"><span class="pre">/opt/omero/web/OMERO.web/var/biomero-config.json</span></code></p></li>
-</ul>
-</dd>
-</dl>
+<p>Uploader settings are saved to the JSON configuration file selected by
+<code class="docutils literal notranslate"><span class="pre">OMERO_BIOMERO_CONFIG_FILE</span></code>. Its default is <code class="docutils literal notranslate"><span class="pre">~/.biomero/biomero-config.json</span></code>.</p>
+<p>Group mappings are saved to the dedicated JSON file selected by
+<code class="docutils literal notranslate"><span class="pre">OMERO_BIOMERO_GROUP_MAPPINGS_FILE</span></code> (default
+<code class="docutils literal notranslate"><span class="pre">~/.biomero/group-mappings.json</span></code>). The plugin also updates mappings in an
+existing legacy <code class="docutils literal notranslate"><span class="pre">biomero-config.json</span></code>. When reading both files, entries in
+the dedicated mappings file take precedence. Share that file with the worker
+when using <a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a>.</p>
 <p><strong>Docker Mount Example</strong>:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">volumes</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"./web/biomero-config.json:/opt/omero/web/OMERO.web/var/biomero-config.json:rw"</span>
 </pre></div>
 </div>
-<p><strong>Important</strong>: Ensure the container user has write access to this file.</p>
+<p><strong>Important</strong>: Give the container user write access to the configuration files
+and their containing directories so updates can be saved.</p>
 <p><strong>Additional Settings</strong>: The configuration file contains more UI variables than what the Admin tab can modify directly.</p>
 </section>
 </section>
@@ -881,28 +915,46 @@ and security configuration, see <a class="reference internal" href="metabase-adm
 <h2>Analyzer Admin Configuration<a class="headerlink" href="#analyzer-admin-configuration" title="Permalink to this heading"></a></h2>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><strong>Zarr workflow support</strong> (see <a class="reference internal" href="#zarr-workflow-types"><span class="std std-ref">Zarr and Plate Workflow Types</span></a> below) requires BIOMERO ≥ 2.4.0
-and biomero.scripts ≥ 2.4.0, and depends on the <a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a>
-integration being enabled first (<code class="docutils literal notranslate"><span class="pre">IMPORTER_ENABLED=true</span></code>).</p>
+<p>Zarr and Plate workflow controls require the <a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a>
+integration (<code class="docutils literal notranslate"><span class="pre">IMPORTER_ENABLED=true</span></code>). Use the matched component versions
+supplied by your NL-BIOMERO release for Zarr v3 and shallow results. Enabling
+an input-format switch does not install the importer or update a workflow’s
+supported formats.</p>
 </div>
 <p>The Analyzer Admin screen is split into two sections: BIOMERO.analyzer settings (left) and OMERO scripts (right).</p>
 <section id="overview">
 <h3>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h3>
 <dl class="simple">
-<dt><strong>Left Side</strong></dt><dd><p>All BIOMERO settings in UI form</p>
+<dt><strong>Left Side</strong></dt><dd><p>Workflow and cluster settings grouped into expandable sections</p>
 </dd>
 <dt><strong>Right Side</strong></dt><dd><p>OMERO scripts, organized with admin scripts “Slurm Init” and “Slurm Check Setup” shown by default</p>
 </dd>
 </dl>
-<p><strong>Important Workflow</strong>: Major changes (like adding new workflows) require:</p>
-<ol class="arabic simple">
-<li><p>Save settings in the left panel</p></li>
-<li><p>Run the “Slurm Init” script from the right panel</p></li>
-</ol>
+<p>For a new workflow, save its configuration, run <strong>Slurm Init</strong>, then use
+<strong>Slurm Check Setup</strong> to verify installation. The icons beside settings distinguish
+changes that need initialization from those used directly by new runs:</p>
+<ul class="simple">
+<li><p><strong>Runtime</strong>: applies to new runs or requests after saving; already running
+jobs keep their launch settings.</p></li>
+<li><p><strong>Slurm Init</strong>: save first, then run the script to create directories, install
+images, regenerate scripts or rebuild analytics as applicable.</p></li>
+</ul>
+<p>Deployment feature flags are configured outside this form and may require
+recreating the affected services. They are distinct from both indicators.</p>
 </section>
 <section id="configuration-management">
 <h3>Configuration Management<a class="headerlink" href="#configuration-management" title="Permalink to this heading"></a></h3>
-<p><strong>File Management</strong>: The Admin interface manages the <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code> file automatically.</p>
+<p>The Analyzer form manages <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code>. NL-BIOMERO shares this file
+between OMERO.web and the workflow worker. With <code class="docutils literal notranslate"><span class="pre">BIOMERO_SLURM_CONFIG_FILE</span></code>
+set on both services, it is the authoritative file: additions, edits and
+deletions in the form apply to that shared configuration.</p>
+<p>Without that setting, BIOMERO retains its legacy layered configuration. Removing
+a value in the form can reveal a value from another configuration file. The
+note above <strong>Save Settings</strong> identifies which mode the deployment uses.</p>
+<p>Supported environment overrides take precedence over INI values. A successful
+save cannot override a worker’s environment, and the web interface cannot show
+worker-local overrides. Keep administrator-managed runtime settings in the
+shared INI; use deployment configuration for feature flags and service secrets.</p>
 <p>For container mounting and file sharing setup, see <a class="reference internal" href="slurm-integration.html"><span class="doc">BIOMERO.analyzer SLURM Integration for NL-BIOMERO</span></a>.</p>
 </section>
 <section id="settings-interface-usage">
@@ -910,9 +962,17 @@ integration being enabled first (<code class="docutils literal notranslate"><spa
 <dl class="simple">
 <dt><strong>Edit Mode</strong></dt><dd><p>Click the pencil icon to make fields editable</p>
 </dd>
-<dt><strong>Saving</strong></dt><dd><p>Click “Save Settings” to write changes to disk via Django API</p>
+<dt><strong>Saving</strong></dt><dd><p>Click <strong>Save Settings</strong> to write changes to disk. Resolve any validation
+errors first; their counts appear beside collapsed section titles.</p>
 </dd>
 <dt><strong>Undo</strong></dt><dd><p>Use “Undo All Changes” to reset current modifications</p>
+</dd>
+<dt><strong>Documentation</strong></dt><dd><p>The <strong>Administrator manual</strong> link and book icons beside settings open the
+relevant guide in a new tab. Section help remains visible when collapsed.</p>
+</dd>
+<dt><strong>Cluster Scripts</strong></dt><dd><p>Click <strong>Slurm Init</strong> or <strong>Slurm Check Setup</strong> in the settings guidance to open
+the same script dialog as the right-hand script cards. Save changed settings
+first, then review the script parameters and run it from that dialog.</p>
 </dd>
 </dl>
 </section>
@@ -921,7 +981,9 @@ integration being enabled first (<code class="docutils literal notranslate"><spa
 <h2>Settings Categories<a class="headerlink" href="#settings-categories" title="Permalink to this heading"></a></h2>
 <section id="ssh-settings">
 <h3>SSH Settings<a class="headerlink" href="#ssh-settings" title="Permalink to this heading"></a></h3>
-<p><strong>SSH Alias Field</strong>: Enter the SSH alias name for your SLURM cluster connection.</p>
+<p><strong>SSH Alias Field</strong>: Selects the SSH host alias used to connect to Slurm. It must
+resolve in the SSH configuration available to the services that submit jobs.
+Run <strong>Slurm Init</strong> after changing the cluster connection.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The alias must match an entry in your SSH config. For SSH setup and configuration details, see <a class="reference internal" href="slurm-integration.html"><span class="doc">BIOMERO.analyzer SLURM Integration for NL-BIOMERO</span></a>.</p>
@@ -929,33 +991,293 @@ integration being enabled first (<code class="docutils literal notranslate"><spa
 </section>
 <section id="slurm-settings">
 <h3>SLURM Settings<a class="headerlink" href="#slurm-settings" title="Permalink to this heading"></a></h3>
-<p><strong>Slurm Data Path</strong>: Path where OMERO data will be stored on the cluster</p>
-<p><strong>Slurm Images Path</strong>: Path where workflow container images are stored</p>
-<p><strong>Slurm Script Path</strong>: Path where job scripts are generated and stored</p>
-<p><strong>Slurm Script Repository</strong>: (Optional) Custom GitHub repository for job scripts</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p><strong>Script Repository</strong>: Leave empty to use auto-generated scripts (recommended). Only specify for advanced custom script repositories.</p>
-</div>
+<section id="paths">
+<h4>Paths<a class="headerlink" href="#paths" title="Permalink to this heading"></a></h4>
+<p>Use paths accessible to the Slurm account on the entrypoint and the relevant
+compute nodes. Absolute paths are clearest; relative paths are resolved against
+the remote account’s home directory. Changing a path does not migrate existing
+data or installed images.</p>
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-text">Storage and container paths</span><a class="headerlink" href="#id5" title="Permalink to this table"></a></caption>
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 57%" />
+<col style="width: 15%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Control</p></th>
+<th class="head"><p>Purpose</p></th>
+<th class="head"><p>Applies</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Slurm Data Path</strong></p></td>
+<td><p>Base directory for transferred inputs and workflow outputs on HPC.</p></td>
+<td><p>Slurm Init</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Slurm Images Path</strong></p></td>
+<td><p>Workflow container images on HPC.</p></td>
+<td><p>Slurm Init</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Slurm Converters Path</strong></p></td>
+<td><p>HPC format-conversion container images.</p></td>
+<td><p>Slurm Init</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Slurm Script Path</strong></p></td>
+<td><p>Generated or custom Slurm job scripts.</p></td>
+<td><p>Slurm Init</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Slurm Data Bind Path</strong></p></td>
+<td><p>Exposes storage inside workflow/conversion containers through
+<code class="docutils literal notranslate"><span class="pre">APPTAINER_BINDPATH</span></code>. Leave blank when cluster defaults suffice.</p></td>
+<td><p>Runtime</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Apptainer Tmp Dir</strong> / <strong>Apptainer Cache Dir</strong></p></td>
+<td><p>Locations for temporary image-build files and the container cache.
+Use when the normal locations lack space. Scheduled image pulls prefer
+node-local <code class="docutils literal notranslate"><span class="pre">SLURM_TMPDIR</span></code> when available.</p></td>
+<td><p>Slurm Init</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="sacct-history-window">
+<h4>SACCT History Window<a class="headerlink" href="#sacct-history-window" title="Permalink to this heading"></a></h4>
+<p>Controls how far back Slurm job-history queries look. Set <strong>SACCT Start Time</strong>
+to an absolute <code class="docutils literal notranslate"><span class="pre">YYYY-MM-DD</span></code> date, or <strong>SACCT Days Ago</strong> to a rolling window.
+Days Ago takes precedence when both are set. With neither configured, the
+built-in start date is <code class="docutils literal notranslate"><span class="pre">2023-01-01</span></code>. Changes apply at runtime. This is separate
+from the analytics rebuild window below.</p>
+</section>
+<section id="repositories">
+<h4>Repositories<a class="headerlink" href="#repositories" title="Permalink to this heading"></a></h4>
+<p>Leave <strong>Slurm Script Repository</strong> empty to generate job scripts from workflow
+descriptors using BIOMERO’s template. Set it only when maintaining a compatible
+repository of custom job scripts. Save and run <strong>Slurm Init</strong> after a change.</p>
+</section>
+<section id="processing-settings">
+<h4>Processing Settings<a class="headerlink" href="#processing-settings" title="Permalink to this heading"></a></h4>
+<section id="job-script-generation">
+<h5>Job Script Generation<a class="headerlink" href="#job-script-generation" title="Permalink to this heading"></a></h5>
+<p>Both switches change generated scripts and require <strong>Slurm Init</strong> after saving:</p>
+<ul class="simple">
+<li><p><strong>Env-File Submission</strong> passes each job’s parameters through a file. Use it
+when cluster SSH policies prevent reliable environment propagation to jobs.</p></li>
+<li><p><strong>Inject GPU Flag</strong> makes GPU access conditional in generated scripts, so a
+workflow supporting both modes can use the same script on CPU and GPU.
+It does not make a GPU-only workflow capable of CPU execution or allocate
+GPUs by itself; resource requests come from the settings below.</p></li>
+</ul>
+</section>
+<section id="partition-and-gpu-fallback">
+<h5>Partition and GPU Fallback<a class="headerlink" href="#partition-and-gpu-fallback" title="Permalink to this heading"></a></h5>
+<p>These are runtime defaults. Leave partition fields blank when the scheduler’s
+defaults are appropriate.</p>
+<table class="docutils align-default" id="id6">
+<caption><span class="caption-text">Submission defaults</span><a class="headerlink" href="#id6" title="Permalink to this table"></a></caption>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 70%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Control</p></th>
+<th class="head"><p>Effect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Default Partition</strong></p></td>
+<td><p>Fallback for workflow and conversion jobs without a more specific
+partition. It takes precedence over a global <code class="docutils literal notranslate"><span class="pre">sbatch_partition</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Slurm Conversion Partition</strong></p></td>
+<td><p>Partition for format-conversion jobs; takes precedence over Default Partition.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>GPU Partition</strong></p></td>
+<td><p>Partition used for GPU workflows unless the workflow sets its own partition.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>GPU GRES</strong> / <strong>GPU GPUS</strong></p></td>
+<td><p>GPU allocation using the cluster’s <code class="docutils literal notranslate"><span class="pre">--gres</span></code> or <code class="docutils literal notranslate"><span class="pre">--gpus</span></code> convention.
+Choose one. Configuring both is invalid.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The workflow’s <strong>GPU Workflow</strong> toggle activates GPU defaults. Per-workflow
+SBATCH settings take precedence over matching defaults; check the effective
+parameters shown on its card. A partition alone may not request a GPU. For
+per-run CPU/GPU switching, the generated script must also use <strong>Inject GPU Flag</strong>.
+Explicit GPU requests in Additional Slurm Parameters still apply independently
+of the toggle.</p>
+</section>
+<section id="image-pull-settings">
+<h5>Image Pull Settings<a class="headerlink" href="#image-pull-settings" title="Permalink to this heading"></a></h5>
+<p><strong>Pull Images via sbatch</strong> moves container acquisition from the login node to
+scheduled compute tasks. Slurm Init submits a bounded array for missing or
+invalid images and reuses valid installed versions. When disabled, it uses the
+legacy background shell path. These settings apply when running <strong>Slurm Init</strong>.</p>
+<ul class="simple">
+<li><p><strong>Pull CPUs</strong>, <strong>Pull Memory</strong>, <strong>Pull Time</strong> and <strong>Pull Partition</strong> set resources
+for image acquisition, independently of analysis resources. Blank values
+inherit matching global SBATCH settings, then scheduler defaults.</p></li>
+<li><p><strong>Pull Concurrency</strong> caps simultaneous image-acquisition tasks to control load
+on shared storage. It does not limit researchers’ analysis jobs.</p></li>
+</ul>
+<p>Use <strong>Slurm Check Setup</strong> to inspect readiness and per-image failures. Saving
+these settings or refreshing GitHub version information does not install images.</p>
+</section>
+<section id="zip-command">
+<h5>ZIP Command<a class="headerlink" href="#zip-command" title="Permalink to this heading"></a></h5>
+<p><strong>Slurm Zip Command</strong> selects the HPC archive executable at runtime. Blank
+auto-detects <code class="docutils literal notranslate"><span class="pre">7z</span></code> or <code class="docutils literal notranslate"><span class="pre">7za</span></code>. Set <code class="docutils literal notranslate"><span class="pre">zip</span></code> to use Info-ZIP; the matching <code class="docutils literal notranslate"><span class="pre">unzip</span></code>
+executable must also be available. This controls archive handling, not
+compression inside Zarr arrays.</p>
+</section>
+<section id="global-sbatch-parameters">
+<h5>Global Sbatch Parameters<a class="headerlink" href="#global-sbatch-parameters" title="Permalink to this heading"></a></h5>
+<p>Add shared Slurm submission options as a full flag name and value, without
+the leading <code class="docutils literal notranslate"><span class="pre">--</span></code>. They are saved as <code class="docutils literal notranslate"><span class="pre">[SLURM]</span> <span class="pre">sbatch_&lt;flag&gt;=&lt;value&gt;</span></code> and apply
+to new workflow, conversion and scheduled image-acquisition submissions.
+Per-workflow overrides and dedicated conversion/image-pull settings take
+precedence. Empty values are ignored.</p>
+<p>Use the workflow’s <strong>Additional Slurm Parameters</strong> for a single workflow.
+See <a class="reference internal" href="#workflow-sbatch-parameters"><span class="std std-ref">Common SBATCH Parameters</span></a> and the
+<a class="reference external" href="https://nl-bioimaging.github.io/biomero/slurm-configuration.html">core Slurm configuration reference</a>
+for flag syntax and detailed precedence.</p>
+</section>
+</section>
+</section>
+<section id="shallow-zarr">
+<h3>Shallow Zarr<a class="headerlink" href="#shallow-zarr" title="Permalink to this heading"></a></h3>
+<p>Avoids storing another copy of unchanged pixels in eligible workflow results.
+Changed pixels and new labels are retained. If a result cannot safely be
+shallowed, BIOMERO retains it in full. Referenced source stores must remain
+available for viewing and reusing shallow results.</p>
+<p>This section appears when <code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR</span></code> is enabled in the deployment;
+it also requires the Analyzer–Importer integration. The demo enables shallow
+storage. Other deployments opt in explicitly. The <strong>Remote shallowing</strong> switch
+chooses where processing happens; turning it off selects local importer
+processing rather than disabling shallow storage.</p>
+<table class="docutils align-default" id="id7">
+<caption><span class="caption-text">Shallow result processing controls</span><a class="headerlink" href="#id7" title="Permalink to this table"></a></caption>
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 57%" />
+<col style="width: 15%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Control</p></th>
+<th class="head"><p>Purpose</p></th>
+<th class="head"><p>Applies</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Remote shallowing</strong></p></td>
+<td><p>Runs the helper on HPC before the return archive is transferred.
+Off processes the full transferred result in the importer.</p></td>
+<td><p>Runtime</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Shallower image</strong></p></td>
+<td><p>Versioned helper container. Install it before first remote use or after
+changing the image; keep the previous image while its jobs are outstanding.</p></td>
+<td><p>Slurm Init</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Shallower tool version</strong></p></td>
+<td><p>Expected version in the helper’s receipt. Must match the helper image
+and the importer’s trust configuration.</p></td>
+<td><p>Runtime</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Shallower workers</strong></p></td>
+<td><p>Positive worker count; also sets CPUs per task. The helper requests no GPU.</p></td>
+<td><p>Runtime</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Shallower partition</strong></p></td>
+<td><p>Overrides Default Partition, then global <code class="docutils literal notranslate"><span class="pre">sbatch_partition</span></code> and finally
+the scheduler default.</p></td>
+<td><p>Runtime</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Shallower memory</strong> / <strong>Shallower time limit</strong></p></td>
+<td><p>Helper limits. Blank values inherit matching global SBATCH settings,
+then scheduler defaults.</p></td>
+<td><p>Runtime</p></td>
+</tr>
+</tbody>
+</table>
+<p>The importer has its own validation/trust configuration and does not read this
+form’s INI file. Coordinate image/tool changes with that service. See
+<a class="reference internal" href="remote-shallower.html"><span class="doc">Shallow OME-Zarr Storage</span></a> for enablement, compatible components, storage obligations
+and measured costs and savings.</p>
+</section>
+<section id="ui-settings">
+<h3>UI Settings<a class="headerlink" href="#ui-settings" title="Permalink to this heading"></a></h3>
+<p id="plate-mask-preview"><strong>Plate Mask Preview</strong>: Exposes a per-run option to create an extra OMERO Plate
+showing one selected segmentation label in the original well/field layout.
+This is useful for browsing masks directly in OMERO’s Plate views. The primary
+result Plate shows the image intensities; all labels remain available in the
+OME-Zarr Viewer, even when this preview option is disabled.</p>
+<p>The option is hidden by default. Enabling it allows users to request a preview;
+it does not create one for every run. It requires Shallow Zarr and Plate results
+imported into a Screen. If several labels are available, users select the label
+by name. If no single label can be selected, only the preview is skipped.
+Creating the preview adds OMERO objects and import work, while sharing the
+existing label pixels. See <a class="reference internal" href="../developer/biomero-shallow-zarr.html"><span class="doc">Working with shallow OME-Zarr results</span></a> for details.</p>
+<p><strong>Dangerous Jobs</strong>: Allows users to create more than ten batch jobs. The
+<strong>Max Batch Jobs</strong> setting caps that choice (10–1000; default 100). With Dangerous
+Jobs disabled, the batching control stays within 2–10 jobs. This caps the user’s
+batch selection, not total cluster concurrency. Set a limit appropriate for your
+cluster and OMERO capacity. These options apply after saving without Slurm Init.</p>
 </section>
 <section id="analytics-settings">
 <h3>Analytics Settings<a class="headerlink" href="#analytics-settings" title="Permalink to this heading"></a></h3>
-<div class="admonition danger">
-<p class="admonition-title">Danger</p>
-<p><strong>Advanced Users Only - Do Not Modify</strong></p>
-</div>
-<p><strong>Tracking Checkbox</strong>: Controls the BIOMERO eventsourcing system</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Disabling tracking will break progress monitoring and result displays in the web interface.</p>
-</div>
+<p>Records workflow events and builds the views used by monitoring, provenance and
+dashboards. Keep <strong>Track Workflows</strong> enabled for the normal BIOMERO deployment.
+Disabling it stops event recording and disables the listeners below, even when
+their individual switches are on. Missing events cannot be reconstructed later.</p>
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text">Tracking controls</span><a class="headerlink" href="#id8" title="Permalink to this table"></a></caption>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 70%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Control</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>SQLAlchemy URL</strong></p></td>
+<td><p>Analytics database connection. A deployment-provided <code class="docutils literal notranslate"><span class="pre">SQLALCHEMY_URL</span></code>
+takes precedence; keep credentials in protected deployment configuration.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Enable Job Accounting</strong></p></td>
+<td><p>Associates Slurm jobs with OMERO users for resource accounting.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Enable Job Progress</strong></p></td>
+<td><p>Builds job-progress views used by the Status dashboard.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Enable Workflow Analytics</strong></p></td>
+<td><p>Builds workflow timing and performance views for the dashboard.</p></td>
+</tr>
+</tbody>
+</table>
+<p>These settings apply to new clients at runtime. Enabling a listener later can
+replay recorded events; it cannot recover events from periods without tracking.</p>
+<p><strong>Rebuild From Date</strong> and <strong>Rebuild From Days Ago</strong> limit event replay when
+<strong>Slurm Init</strong> rebuilds analytics views. Days Ago takes precedence when both
+are set; leaving both blank gives a full rebuild. A limited rebuild excludes
+older jobs from those views. It does not change the SACCT query window.
+See <a class="reference internal" href="metabase-admin.html"><span class="doc">Metabase Administration</span></a> for dashboard access and deployment configuration.</p>
 </section>
 <section id="converters-settings">
 <h3>Converters Settings<a class="headerlink" href="#converters-settings" title="Permalink to this heading"></a></h3>
 <p><strong>For Advanced Users Only</strong></p>
+<p>These are HPC format converters used by analysis workflows. Importer
+preprocessing (for example, converting Leica uploads to OME-Zarr) is configured
+separately and is not changed here.</p>
 <p><strong>Add Converter Button</strong>: Click to add custom data converters</p>
 <p><strong>Name Field</strong>: Use <code class="docutils literal notranslate"><span class="pre">X_to_Y</span></code> format (e.g., <code class="docutils literal notranslate"><span class="pre">zarr_to_tiff</span></code>)</p>
 <p><strong>Docker Image Field</strong>: Specify the container image URL</p>
+<p>Use a versioned image that implements the required conversion interface. Save
+and run <strong>Slurm Init</strong> to acquire it. The legacy Zarr-to-TIFF analysis route
+receives v2 / OME-Zarr 0.4 input; native Zarr workflows skip that conversion.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Custom converters require additional integration work. Most users should rely on built-in converters.</p>
@@ -972,41 +1294,51 @@ integration being enabled first (<code class="docutils literal notranslate"><spa
 descriptor become a workflow users can run</span></a>.</p>
 </div>
 <ol class="arabic simple">
-<li><p><strong>Click “Add Model”</strong> to create a new workflow entry</p></li>
+<li><p><strong>Click “Add Workflow”</strong> to create a new workflow entry</p></li>
 <li><p><strong>Configure Fields</strong>:</p>
 <ul class="simple">
-<li><p><strong>Name</strong>: Workflow identifier (no spaces)</p></li>
+<li><p><strong>Model Name</strong>: Unique lowercase workflow identifier; also used as its
+container folder under Slurm Images Path</p></li>
 <li><p><strong>GitHub Repository</strong>: Versioned URL to workflow code</p></li>
 <li><p><strong>Slurm Job Script</strong>: Job script path (usually auto-generated)</p></li>
 <li><p><strong>Additional Slurm Parameters</strong>: Custom SBATCH options for this workflow</p></li>
-<li><p><strong>Zarr Workflow</strong> <em>(BIOMERO ≥ 2.4.0)</em>: Toggle on if the workflow expects a Zarr
-file as input. BIOMERO skips the usual TIFF conversion and passes the Zarr
-directly to the SLURM job. Requires the <a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a>
-integration to be enabled.</p></li>
-<li><p><strong>Zarr Plate Workflow</strong> <em>(BIOMERO ≥ 2.4.0)</em>: Toggle on if the workflow expects
-an entire plate as a single Zarr. Only plates can be submitted as input (no
-datasets). Enables the dedicated <strong>Plate Workflows</strong> tab in the analyzer UI.
-Requires the <a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a> integration to be enabled.</p></li>
+<li><p><strong>GPU Workflow</strong>: Enables the shared GPU defaults for this workflow.
+Check the effective resource requests and any per-workflow overrides.</p></li>
+<li><p><strong>Plate Workflow (Zarr Only)</strong>: Accept an entire plate as one OME-Zarr
+store. Plate input requires Zarr and appears in the <strong>Plate Workflows</strong> tab.</p></li>
+<li><p><strong>Also Allow Image Input</strong>: Offer the same plate-capable workflow in the
+image tab as well. Requires plate support from the setting or descriptor.</p></li>
+<li><p><strong>Zarr Format Required</strong>: Pass OME-Zarr input directly to the workflow,
+skipping TIFF conversion. Also enabled by plate mode or a descriptor’s Zarr
+requirement. Requires the <a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a> integration.</p></li>
+<li><p><strong>Zarr v3 input (OME-Zarr 0.5)</strong>: Suboption below <strong>Zarr Format Required</strong>.
+Enable only for a workflow version that supports v3. Otherwise,
+input uses Zarr v2 / OME-Zarr 0.4. Hover a disabled switch for its prerequisite.</p></li>
 </ul>
 </li>
 <li><p><strong>Save Settings</strong> to store the configuration</p></li>
 </ol>
 </section>
 <section id="common-sbatch-parameters">
-<h4>Common SBATCH Parameters<a class="headerlink" href="#common-sbatch-parameters" title="Permalink to this heading"></a></h4>
-<p><strong>Format</strong>: Enter as <code class="docutils literal notranslate"><span class="pre">key=value</span></code> pairs (without <code class="docutils literal notranslate"><span class="pre">--</span></code> prefix)</p>
-<p><strong>Examples</strong>:</p>
-<ul class="simple">
-<li><p><strong>GPU allocation</strong>: <code class="docutils literal notranslate"><span class="pre">gres=gpu:1g.10gb:1</span></code></p></li>
-<li><p><strong>Partition selection</strong>: <code class="docutils literal notranslate"><span class="pre">partition=luna-gpu-short</span></code></p></li>
-<li><p><strong>Memory allocation</strong>: <code class="docutils literal notranslate"><span class="pre">mem=15GB</span></code></p></li>
-<li><p><strong>Time limits</strong>: <code class="docutils literal notranslate"><span class="pre">time=08:00:00</span></code> (d-hh:mm:ss format)</p></li>
-</ul>
+<span id="workflow-sbatch-parameters"></span><h4>Common SBATCH Parameters<a class="headerlink" href="#common-sbatch-parameters" title="Permalink to this heading"></a></h4>
+<p>Enter one <code class="docutils literal notranslate"><span class="pre">key=value</span></code> pair at a time, without a leading <code class="docutils literal notranslate"><span class="pre">--</span></code>, then press
+Enter or add it using the control. Always use the extended flag name, such as
+<code class="docutils literal notranslate"><span class="pre">cpus-per-task</span></code> rather than <code class="docutils literal notranslate"><span class="pre">c</span></code>. Values override the matching global defaults
+for this workflow and apply to new runs after saving, without Slurm Init.</p>
+<p>Choose memory, CPU, time, partition and GPU values supported by your cluster.
+The book icon opens the official
+<a class="reference external" href="https://slurm.schedmd.com/sbatch.html#SECTION_OPTIONS">SBATCH options reference</a>.
+Use either <code class="docutils literal notranslate"><span class="pre">gres</span></code> or <code class="docutils literal notranslate"><span class="pre">gpus</span></code> for GPU allocation, consistent with the shared
+GPU settings. The card displays effective global settings and flags conflicts.</p>
 </section>
 <section id="editing-existing-workflows">
 <h4>Editing Existing Workflows<a class="headerlink" href="#editing-existing-workflows" title="Permalink to this heading"></a></h4>
 <p><strong>Edit Model</strong>: Click the pencil icon next to a workflow to modify its settings</p>
 <p><strong>Version Updates</strong>: Change the GitHub Repository URL to update workflow versions</p>
+<p>The <strong>up to date</strong> count compares configured versions with GitHub releases; it
+does not indicate whether their containers are installed on HPC. <strong>Refresh</strong>
+rechecks that information, subject to GitHub rate limits. Use <strong>Slurm Check
+Setup</strong> for actual installation status.</p>
 <p><strong>Parameter Management</strong>: Add, edit, or delete Additional Slurm Parameters</p>
 <p><strong>Reset Changes</strong>: Use “Reset values” button to undo modifications to a specific workflow</p>
 <p><strong>Remove Workflow</strong>: Click “Delete model” to remove a workflow entirely</p>
@@ -1017,7 +1349,11 @@ Requires the <a class="reference internal" href="analyzer-importer-admin.html"><
 </section>
 <section id="required-follow-up-actions">
 <h4>Required Follow-up Actions<a class="headerlink" href="#required-follow-up-actions" title="Permalink to this heading"></a></h4>
-<p>After model changes (except Additional Slurm Parameters and Zarr toggles):</p>
+<p>The icons beside settings show when changes apply. <strong>Runtime</strong> applies to new
+runs or requests after saving. <strong>Slurm Init</strong> requires running that script after
+saving. Hover an icon for its explanation. Sections containing both kinds show
+both icons; individual fields or subgroups identify which applies.</p>
+<p>After changing a workflow’s repository, container folder or job script:</p>
 <ol class="arabic simple">
 <li><p><strong>Save Settings</strong> first</p></li>
 <li><p><strong>Run “Slurm Init” script</strong> - installs changes on Slurm cluster</p></li>
@@ -1025,95 +1361,66 @@ Requires the <a class="reference internal" href="analyzer-importer-admin.html"><
 </ol>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The <strong>Zarr Workflow</strong> and <strong>Zarr Plate Workflow</strong> toggles take effect immediately
-after saving — they control BIOMERO’s input preparation on the web side and do
-not require a Slurm Init run.</p>
+<p>Workflow input modes, the Zarr version, GPU selection and Additional Slurm
+Parameters are runtime settings. They do not require Slurm Init.</p>
 </div>
 </section>
 </section>
 <section id="zarr-and-plate-workflow-types">
 <span id="zarr-workflow-types"></span><h3>Zarr and Plate Workflow Types<a class="headerlink" href="#zarr-and-plate-workflow-types" title="Permalink to this heading"></a></h3>
-<p>From BIOMERO v2.4.0 onward (requires biomero.scripts ≥ 2.4.0 and the
-<a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a> integration enabled), each workflow in the Admin
-can be toggled as a Zarr-based workflow. This changes how BIOMERO prepares input
-data and which UI options users see.</p>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p>Both Zarr options require the <a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a> integration
-(<code class="docutils literal notranslate"><span class="pre">IMPORTER_ENABLED=true</span></code>). Without it, enabling these toggles has no effect.</p>
-</div>
-<section id="zarr-workflow">
-<h4>Zarr Workflow<a class="headerlink" href="#zarr-workflow" title="Permalink to this heading"></a></h4>
-<div class="admonition tip">
-<p class="admonition-title">Tip</p>
-<p>🎥 <strong>Visual explanation · 0:58:</strong> <a class="reference internal" href="../overview.html#video-one-format-flexible-workflows"><span class="std std-ref">See how OME-Zarr can feed Zarr-native
-or TIFF-based workflows</span></a>.</p>
-</div>
-<p>When <strong>Zarr Workflow</strong> is enabled for a model:</p>
-<ul class="simple">
-<li><p>The user’s input images are exported from OMERO as a Zarr file.</p></li>
-<li><p>BIOMERO <strong>skips</strong> the usual TIFF conversion step — no converter runs.</p></li>
-<li><p>The Zarr is placed in the SLURM job’s input directory as-is.</p></li>
-</ul>
-<p>Use this for workflows written to consume Zarr input directly rather than a flat
-folder of TIFF images. Standard BIAFLOWS workflows (which expect a folder of
-TIFFs) are <strong>not compatible</strong> with this option.</p>
+<p>These controls require the <a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a> integration
+(<code class="docutils literal notranslate"><span class="pre">IMPORTER_ENABLED=true</span></code>). They determine the workflow’s input format and the
+image/plate tabs in which it is offered.</p>
+<section id="zarr-input-and-version">
+<h4>Zarr Input and Version<a class="headerlink" href="#zarr-input-and-version" title="Permalink to this heading"></a></h4>
+<p>With <strong>Zarr Format Required</strong>, BIOMERO reuses a compatible backing store or
+prepares OME-Zarr input and skips TIFF conversion. The indented <strong>Zarr v3 input
+(OME-Zarr 0.5)</strong> switch selects v3; off selects v2 / OME-Zarr 0.4. Native Zarr
+workflows can select v3 with either Bilayers or BIAFLOWS descriptors. TIFF
+conversion always uses v2.</p>
+<p>The version switch is disabled until Zarr input is enabled manually or required
+by a plate or descriptor, and while the workflow card is locked. Hover or focus
+the disabled control for the reason.
+Disabling Zarr clears its v3 selection when no plate or descriptor requirement
+remains. Both the form and API reject saving v3 without Zarr or plate input.</p>
+<p>The existing cube icon turns green for v3 instead of adding another icon. Its
+tooltip names the Zarr and OME-Zarr versions. Plate workflows keep their plate
+icon, with the same version color and tooltip. These indicators follow current
+edits; <strong>Save Settings</strong> applies them to new runs.</p>
+<p>Existing stores keep their original format. The web app passes the selected
+version to the workflow script. Compatible stores are reused; a mismatch uses
+the normal OMERO export in the requested format and retains full results for
+that run. It neither replaces the canonical nor registers a second one.
+Matching shallow inputs reconstruct their managed labels; mismatched inputs
+export the selected OMERO pixels without reconstructing inherited label layers.
+This setting does not change importer preprocessing output formats.</p>
 </section>
-<section id="zarr-plate-workflow">
-<h4>Zarr Plate Workflow<a class="headerlink" href="#zarr-plate-workflow" title="Permalink to this heading"></a></h4>
-<p>When <strong>Zarr Plate Workflow</strong> is enabled for a model:</p>
-<ul class="simple">
-<li><p>The workflow can only be submitted with <strong>plates</strong> as input (no datasets).</p></li>
-<li><p>The entire plate is packaged as a <strong>single Zarr</strong> that preserves the full plate
-structure: wells, fields inside the wells, and metadata.</p></li>
-<li><p>No conversion is performed; the plate Zarr is passed directly to the SLURM job.</p></li>
-<li><p>The (image) output is expected to be a Zarr plate as well, which BIOMERO will import back into OMERO while preserving plate structure
-- specifically the labels subdirectory ( <a class="reference external" href="https://ngff.openmicroscopy.org/0.5/#labels-md">https://ngff.openmicroscopy.org/0.5/#labels-md</a> ) images will be in-place imported (if available)</p></li>
-</ul>
-<p><strong>Why this matters</strong>: Previously, submitting a plate for analysis caused BIOMERO to
-treat it as a dataset — a flat folder of individual images, losing all plate
-structure (wells, etc.). Zarr plate mode preserves the complete hierarchy, enabling
-workflows that need to reason about well positions or plate-level metadata.</p>
-<p><strong>Dedicated UI tab</strong>: Zarr plate workflows appear under a separate <strong>Plate Workflows</strong>
-tab in the analyzer interface, distinct from the standard dataset-based workflow
-tab. The submission dialog for plate workflows only allows selecting plates as input
-and output targets — datasets are not shown.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Zarr plate workflows are <strong>not compatible</strong> with standard BIAFLOWS workflows.
-Those workflows read a flat folder of TIFF images and have no awareness of the
-Zarr plate format. A workflow must be specifically written to read the Zarr plate
-structure (wells, acquisitions) in order to work with this option.</p>
-</div>
+<section id="plate-and-image-input">
+<h4>Plate and Image Input<a class="headerlink" href="#plate-and-image-input" title="Permalink to this heading"></a></h4>
+<p><strong>Plate Workflow (Zarr Only)</strong> preserves the well/field hierarchy in one
+OME-Zarr input. Results are imported as plates, including available label views.
+<strong>Also Allow Image Input</strong> additionally offers that same workflow in the image
+tab, using the image dialog for those runs. Enable this only when the workflow
+supports both input structures. Standard BIAFLOWS TIFF workflows do not support
+plate input.</p>
 </section>
-<section id="biaflows-descriptors-and-zarr-auto-detection">
-<span id="biaflows-descriptor-note"></span><h4>BIAFLOWS descriptors and Zarr auto-detection<a class="headerlink" href="#biaflows-descriptors-and-zarr-auto-detection" title="Permalink to this heading"></a></h4>
-<p>BIAFLOWS workflows do <strong>not</strong> support Zarr natively. By design, a BIAFLOWS workflow
-consumes a flat folder of TIFF images as input. This is an implicit convention of the
-BIAFLOWS / cytomine-0.1 descriptor format — the
-<a class="reference external" href="https://web.archive.org/web/20250208125315/https://doc.uliege.cytomine.org/dev-guide/algorithms/descriptor-reference#name-name">descriptor specification</a>
-does not carry any file-type constraint field.</p>
-<p>This has two practical consequences:</p>
-<ol class="arabic simple">
-<li><p><strong>No auto-detection</strong>: BIOMERO cannot read a BIAFLOWS <code class="docutils literal notranslate"><span class="pre">descriptor.json</span></code> and
-automatically determine whether a workflow expects TIFF or Zarr input. The Zarr
-toggles in the Admin UI therefore exist as an explicit, manual configuration choice
-made by the administrator - not something inferred from the descriptor.</p></li>
-<li><p><strong>Full descriptor compatibility</strong>: The cytomine-0.1 descriptor format <em>is</em> read and
-understood by BIOMERO for everything else (parameters, metadata, versioning). Marking
-a workflow as Zarr in the Admin UI simply overrides how BIOMERO stages input data
-before submitting the SLURM job; it does not require any changes to the descriptor
-itself.</p></li>
-</ol>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><strong>Future direction</strong>: BIOMERO is investigating support for a second descriptor schema
-- most likely a subset of <a class="reference external" href="https://www.commonwl.org/">CWL (Common Workflow Language)</a>
-- that <em>does</em> explicitly declare accepted file types and formats. When this is
-available, BIOMERO will be able to auto-detect and validate Zarr compatibility from
-the descriptor, removing the need for the manual toggles. This is a work in
-progress (TBC).</p>
-</div>
+<section id="descriptors-and-saved-choices">
+<span id="biaflows-descriptor-note"></span><h4>Descriptors and Saved Choices<a class="headerlink" href="#descriptors-and-saved-choices" title="Permalink to this heading"></a></h4>
+<p>Bilayers descriptors already declare Zarr and plate requirements. Reading a
+workflow repository can enable those controls, and descriptor requirements also
+apply at runtime. Administrators can additionally enable supported input modes
+manually. BIAFLOWS descriptors do not declare these file-type requirements.</p>
+<p>Bilayers does not yet declare Zarr v2/v3 capabilities. The version is therefore
+an explicit administrator choice: general Zarr support never automatically
+selects v3. Rereading a descriptor preserves a valid manual version choice.
+Version capability interpretation can use this same descriptor path once the
+Bilayers contract defines it.</p>
+<p><strong>Save Settings</strong> persists JSON workflow-name lists in the existing INI <code class="docutils literal notranslate"><span class="pre">[UI]</span></code>
+section: <code class="docutils literal notranslate"><span class="pre">plate_workflows</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_mode_workflows</span></code>, <code class="docutils literal notranslate"><span class="pre">zarr_workflows</span></code> and
+<code class="docutils literal notranslate"><span class="pre">zarr_v3_workflows</span></code>. A missing or empty v3 list selects v2. Renaming or deleting
+a workflow updates its saved list membership; <strong>Reset values</strong> restores its
+loaded choices. The displayed spelling is Zarr or OME-Zarr; existing INI keys
+and internal <code class="docutils literal notranslate"><span class="pre">ZARR</span></code> format values remain compatible.</p>
 </section>
 </section>
 <section id="slurm-check-setup-output">
@@ -1146,8 +1453,14 @@ progress (TBC).</p>
 </section>
 <section id="interface-troubleshooting">
 <h2>Interface Troubleshooting<a class="headerlink" href="#interface-troubleshooting" title="Permalink to this heading"></a></h2>
-<p><strong>Changes Not Visible</strong>: Log out and log back in instead of using browser refresh</p>
-<p><strong>Folder Selection Issues</strong>: Navigate to Import Images tab first to load subfolders, then return to Admin tab</p>
+<p><strong>Saved Analyzer Setting Not Taking Effect</strong>: Confirm the setting was saved,
+check whether its icon requires Slurm Init, and check for worker environment
+overrides or legacy layered configuration. Already running jobs retain their
+launch settings.</p>
+<p><strong>Importer Group Mapping Not Visible</strong>: Re-select the active group; if its
+folder list remains stale, log out and back in to reload it.</p>
+<p><strong>Folder Missing from the Picker</strong>: Expand its parent to load subfolders. Check
+the mounted storage, service permissions and the picker’s dot-name filter.</p>
 <p><strong>Model Not Available After Adding</strong>: Run the “Slurm Init” script after saving new workflow configurations</p>
 <p>For SLURM connection, SSH, and deployment issues, see <a class="reference internal" href="slurm-integration.html"><span class="doc">BIOMERO.analyzer SLURM Integration for NL-BIOMERO</span></a>.</p>
 <p>For Metabase-specific troubleshooting (e.g., “Message seems corrupt” errors),
@@ -1158,6 +1471,9 @@ see <a class="reference internal" href="../developer/containers/metabase.html"><
 <ul class="simple">
 <li><p><a class="reference internal" href="slurm-integration.html"><span class="doc">BIOMERO.analyzer SLURM Integration for NL-BIOMERO</span></a> - SLURM cluster deployment, SSH setup, and system architecture</p></li>
 <li><p><a class="reference internal" href="analyzer-importer-admin.html"><span class="doc">BIOMERO.analyzer + BIOMERO.importer Integration</span></a> - Analyzer + Importer integration (prerequisite for Zarr workflows)</p></li>
+<li><p><a class="reference internal" href="remote-shallower.html"><span class="doc">Shallow OME-Zarr Storage</span></a> - Shallow storage deployment, helper setup and performance</p></li>
+<li><p><a class="reference internal" href="resumable-uploader.html"><span class="doc">Resumable Web Uploader</span></a> - Browser upload storage, formats and reverse-proxy setup</p></li>
+<li><p><a class="reference external" href="https://nl-bioimaging.github.io/biomero/slurm-configuration.html">BIOMERO configuration reference</a> - INI keys, environment overrides and submission precedence</p></li>
 <li><p><a class="reference internal" href="../developer/containers/metabase.html"><span class="doc">Metabase Container</span></a> - Metabase container configuration and troubleshooting</p></li>
 <li><p><a class="reference internal" href="../developer/containers/omeroweb.html"><span class="doc">OMERO Web Container</span></a> - OMERO.web container setup</p></li>
 <li><p><a class="reference internal" href="deployment.html"><span class="doc">Advanced Deployment Guide</span></a> - Initial deployment configuration</p></li>
