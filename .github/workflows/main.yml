@@ -20,6 +20,17 @@ jobs:
       - name: Load build versions
         if: github.event_name == 'pull_request' && startsWith(github.base_ref, 'release/')
         uses: xom9ikk/dotenv@v2.3.0
+      - name: Build web image
+        if: github.event_name == 'pull_request' && startsWith(github.base_ref, 'release/')
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./web/Dockerfile
+          push: false
+          build-args: |
+            BIOMERO_VERSION=${{ env.BIOMERO_VERSION }}
+            OMERO_BIOMERO_VERSION=${{ env.OMERO_BIOMERO_VERSION }}
+            OMERO_FORMS_VERSION=${{ env.OMERO_FORMS_VERSION }}
       - name: Build processor image
         if: github.event_name == 'pull_request' && startsWith(github.base_ref, 'release/')
         uses: docker/build-push-action@v5
