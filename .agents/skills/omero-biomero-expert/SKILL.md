@@ -11,6 +11,10 @@ Never print secrets. Mask `.env`, container env, Metabase datasource JSON, passw
 
 ## Development Branches and Pull Requests
 
+Open pull requests ready for review by default. Use draft status only when the
+user explicitly requests it. Record dependencies and merge order in the PR
+description; do not add a separate pre-review stage.
+
 For NL-BIOMERO and its submodules, including `biomero-importer`, use a dedicated
 branch and a pull request when publishing changes, including hotfixes. Give the
 PR a clear description of the final change and its validation so the user can
