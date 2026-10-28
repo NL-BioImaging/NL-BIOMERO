@@ -580,10 +580,13 @@ tooltip names the Zarr and OME-Zarr versions. Plate workflows keep their plate
 icon, with the same version color and tooltip. These indicators follow current
 edits; **Save Settings** applies them to new runs.
 
-Existing stores keep their original format. When necessary, BIOMERO creates a
-temporary workflow input with pixels and labels preserved. Results whose format
-differs from the canonical source are retained in full. This setting does not
-change importer preprocessing output formats.
+Existing stores keep their original format. The web app passes the selected
+version to the workflow script. Compatible stores are reused; a mismatch uses
+the normal OMERO export in the requested format and retains full results for
+that run. It neither replaces the canonical nor registers a second one.
+Matching shallow inputs reconstruct their managed labels; mismatched inputs
+export the selected OMERO pixels without reconstructing inherited label layers.
+This setting does not change importer preprocessing output formats.
 
 Plate and Image Input
 ^^^^^^^^^^^^^^^^^^^^^

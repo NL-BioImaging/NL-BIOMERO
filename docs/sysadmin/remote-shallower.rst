@@ -19,12 +19,17 @@ inputs default to ``0.4`` / v2. Administrators can enable **Zarr v3 input
 TIFF conversion always uses v2. Save
 Settings applies to new runs without Slurm Init or a container restart.
 
-Matching formats reuse the backing store directly. A mismatch creates temporary
-workflow input, including reconstructed labels, without replacing canonical
-storage. Returned data in a different format from its canonical source stays
-full. The shallower checks format compatibility before pixel hashing. No second
-canonical copy is kept for compatibility; conversion and full-result storage
-still have a cost.
+The web app passes its choice through the existing ``OME-Zarr_version`` script
+input. Matching formats reuse the backing store directly. A mismatch skips
+canonical reuse and uses the normal OMERO exporter with the requested format.
+The existing canonical stays unchanged, and this run retains full results
+without canonical matching. No second canonical copy is created.
+
+Matching shallow inputs still reconstruct their original pixels and managed
+labels. For a format mismatch, the normal exporter exports the selected OMERO
+Image or Plate pixels; it does not reconstruct all inherited label layers.
+Returned data in a different format from its canonical source stays full;
+the shallower checks format compatibility before pixel hashing.
 
 The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
 ``BIOMERO_SHALLOW_ZARR=true``. Remote processing is then the default; set

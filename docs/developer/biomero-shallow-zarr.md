@@ -104,7 +104,8 @@ There is one important format distinction:
 
 | Selection | What the next workflow receives |
 | --- | --- |
-| Shallow Image or Plate selected for a Zarr workflow | Full Zarr with source intensities and the result's labels |
+| Shallow Image or Plate selected for a Zarr workflow in the same format | Full Zarr with source intensities and the result's labels |
+| Shallow Image or Plate selected for a Zarr workflow in another format | Normal export of selected OMERO pixels; no inherited label reconstruction or canonical matching |
 | Mask Image selected for a TIFF workflow | The selected mask pixels as TIFF, not the original intensities |
 
 Plates use the Zarr path. Do not assume that selecting a mask Image means
@@ -116,9 +117,11 @@ Plates use the Zarr path. Do not assume that selecting a mask Image means
 Workflow compatibility is configured separately from canonical storage.
 `[UI] zarr_v3_workflows` opts selected native Zarr workflows into OME-Zarr 0.5/v3,
 regardless of descriptor style. The default is 0.4/v2; TIFF conversion uses v2. Image
-Transfer reuses matching formats and creates temporary inputs for mismatches,
-including all reconstructed labels. It never replaces a canonical store or
-retains a second canonical copy in another format. If returned data and its
+Transfer reuses matching formats and invokes the normal OMERO exporter for
+mismatches, using the requested version. That fallback exports selected OMERO
+pixels without inherited label reconstruction or canonical matching for the run.
+It never replaces a canonical store or retains a second canonical copy in
+another format. If returned data and its
 canonical source use different formats, the result remains full. The shallower
 checks format compatibility before computing pixel identities.
 
