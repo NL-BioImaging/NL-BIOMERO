@@ -71,7 +71,8 @@ Group Folder Mappings
 3. Select the folder, confirm with **Select**, then click **Add mapping**
 
 Use the edit or delete action in **Current Mappings** to change existing entries.
-These actions save directly. The picker shows directories and filters out names
+After editing, confirm the replacement with **Add mapping**. Deleting a mapping
+saves immediately. The picker shows directories and filters out names
 containing a dot, including hidden directories and stores such as ``.zarr``.
 Folder mappings do not change filesystem permissions; the relevant services
 still need access to the underlying storage.
