@@ -157,8 +157,20 @@ SLURM Settings
 UI Settings
 ~~~~~~~~~~~
 
-**Plate Mask Preview**: Allows users to request a separate mask preview Plate
-when importing workflow results.
+.. _plate-mask-preview:
+
+**Plate Mask Preview**: Exposes a per-run option to create an extra OMERO Plate
+showing one selected segmentation label in the original well/field layout.
+This is useful for browsing masks directly in OMERO's Plate views. The primary
+result Plate shows the image intensities; all labels remain available in the
+OME-Zarr Viewer, even when this preview option is disabled.
+
+The option is hidden by default. Enabling it allows users to request a preview;
+it does not create one for every run. It requires Shallow Zarr and Plate results
+imported into a Screen. If several labels are available, users select the label
+by name. If no single label can be selected, only the preview is skipped.
+Creating the preview adds OMERO objects and import work, while sharing the
+existing label pixels. See :doc:`../developer/biomero-shallow-zarr` for details.
 
 **Dangerous Jobs**: Allows users to create more than ten batch jobs. The
 **Max Batch Jobs** setting caps that choice. Set a limit appropriate for your
