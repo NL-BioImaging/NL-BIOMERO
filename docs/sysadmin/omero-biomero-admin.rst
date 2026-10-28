@@ -120,6 +120,15 @@ Settings Interface Usage
 **Undo**
    Use "Undo All Changes" to reset current modifications
 
+**Documentation**
+   The **Administrator manual** link and book icons beside settings open the
+   relevant guide in a new tab. Section help remains visible when collapsed.
+
+**Cluster Scripts**
+   Click **Slurm Init** or **Slurm Check Setup** in the settings guidance to open
+   the same script dialog as the right-hand script cards. Save changed settings
+   first, then review the script parameters and run it from that dialog.
+
 Settings Categories
 -------------------
 
@@ -144,6 +153,16 @@ SLURM Settings
 
 .. warning::
    **Script Repository**: Leave empty to use auto-generated scripts (recommended). Only specify for advanced custom script repositories.
+
+UI Settings
+~~~~~~~~~~~
+
+**Plate Mask Preview**: Allows users to request a separate mask preview Plate
+when importing workflow results.
+
+**Dangerous Jobs**: Allows users to create more than ten batch jobs. The
+**Max Batch Jobs** setting caps that choice. Set a limit appropriate for your
+cluster and OMERO capacity. These options apply after saving without Slurm Init.
 
 Analytics Settings
 ~~~~~~~~~~~~~~~~~~
