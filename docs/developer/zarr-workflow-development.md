@@ -40,9 +40,30 @@ that workflow authors produce.
 
 ## Current compatibility
 
-The current BIOMERO/OMERO path supports **OME-NGFF 0.4 on Zarr v2**. This limit
-comes from the deployed Glencoe export tooling and OMERO Zarr PixelBuffer.
-BIOMERO will move to newer NGFF versions as those dependencies support them.
+The BIOMERO/OMERO path supports **OME-NGFF 0.4 on Zarr v2** and
+**OME-NGFF 0.5 on Zarr v3**, including sharded v3 arrays. Existing managed
+canonical stores retain their original format.
+Workflows must support the format of their inputs; accepting OME-Zarr does
+not imply support for every NGFF or Zarr version.
+
+Workflow inputs default to `0.4` / v2. Administrators opt individual native Zarr
+workflows into `0.5` / v3 using the **Zarr v3 input (OME-Zarr 0.5)** switch or
+`[UI] zarr_v3_workflows`. The web app sends this choice through the existing
+`OME-Zarr_version` script input; scripts also honour explicitly supplied versions.
+Core does not interpret the UI list. Matching formats are reused directly.
+A mismatch skips canonical reuse and invokes the normal OMERO exporter with
+`--format 0.4` or `--format 0.5`. The canonical stays unchanged, the temporary
+export is not promoted, and this run retains full results without canonical matching.
+Matching shallow inputs reconstruct their pixels and managed labels; a mismatch
+exports the selected OMERO pixels without reconstructing inherited labels.
+This applies to both Bilayers and BIAFLOWS descriptors; TIFF conversion always
+uses v2. Cross-format returned results also stay full.
+The NL-BIOMERO demo explicitly
+selects `omezarr05` for new Leica,
+Incucyte database and Incucyte archive conversions in `web/biomero-config.json`.
+Each route passes the same `extra_params.outputformat` setting; Leica also
+passes the selected image UUID. This preprocessing setting is independent of
+the per-workflow input compatibility setting.
 
 Workflow authors do **not** need to generate BIOMERO sidecars, ISCC identities,
 RFC 8 shallow copies, or BIOMERO provenance metadata. Produce the supported

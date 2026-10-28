@@ -11,6 +11,10 @@ Never print secrets. Mask `.env`, container env, Metabase datasource JSON, passw
 
 ## Development Branches and Pull Requests
 
+Open pull requests ready for review by default. Use draft status only when the
+user explicitly requests it. Record dependencies and merge order in the PR
+description; do not add a separate pre-review stage.
+
 For NL-BIOMERO and its submodules, including `biomero-importer`, use a dedicated
 branch and a pull request when publishing changes, including hotfixes. Give the
 PR a clear description of the final change and its validation so the user can
@@ -77,6 +81,18 @@ alternative INI examples aligned where applicable. Do not inject matching env
 overrides into web or biomeroworker, including empty values or fallback defaults:
 env precedence prevents the admin interface's saved INI values from taking effect.
 Library support for an env override is not a reason to enable it in the demo.
+
+Every administrator-editable setting must have a matching Runtime or Slurm Init
+indicator in OMERO.biomero and accurate follow-up instructions in these docs.
+Verify the consumer rather than inferring timing from the section name. Shared
+indicators are sufficient for homogeneous groups; mixed sections show both and
+classify each field/subgroup. Runtime applies to new runs or requests after
+saving. Slurm Init installs helper images/generated scripts or rebuilds analytics.
+For Shallow Zarr, mark the helper image as Slurm Init and remote/local selection,
+receipt version and resource limits as runtime; explain that first remote use
+requires an installed helper and matching importer trust settings. Keep deployment
+flags/restarts distinct from these INI-managed settings. Update the sibling web
+plugin and this repository's admin docs together when their behavior changes.
 
 Respect component boundaries: the importer has its own settings and does not
 read `slurm-config.ini`. Preserve its required validation/trust configuration;

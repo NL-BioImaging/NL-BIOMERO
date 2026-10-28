@@ -6,6 +6,31 @@ eligible OME-Zarr workflow results. BIOMERO retains new or changed labels and
 references verified source pixels already in managed storage. Original source
 data remains unchanged.
 
+The matched component releases support OME-Zarr 0.4 / Zarr v2 and OME-Zarr
+0.5 / Zarr v3 Images and Plates. Existing managed stores keep their format;
+upgrading does not rewrite them. Shallow results reconstruct in their source
+format, including retained labels.
+
+The demo's Leica, Incucyte database and Incucyte archive preprocessing routes
+all create new stores with ``extra_params.outputformat=omezarr05``. Workflow
+inputs default to ``0.4`` / v2. Administrators can enable **Zarr v3 input
+(OME-Zarr 0.5)** per native Zarr workflow in Settings; this saves the JSON list
+``[UI] zarr_v3_workflows``. Descriptor style does not restrict this choice;
+TIFF conversion always uses v2. Save
+Settings applies to new runs without Slurm Init or a container restart.
+
+The web app passes its choice through the existing ``OME-Zarr_version`` script
+input. Matching formats reuse the backing store directly. A mismatch skips
+canonical reuse and uses the normal OMERO exporter with the requested format.
+The existing canonical stays unchanged, and this run retains full results
+without canonical matching. No second canonical copy is created.
+
+Matching shallow inputs still reconstruct their original pixels and managed
+labels. For a format mismatch, the normal exporter exports the selected OMERO
+Image or Plate pixels; it does not reconstruct all inherited label layers.
+Returned data in a different format from its canonical source stays full;
+the shallower checks format compatibility before pixel hashing.
+
 The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
 ``BIOMERO_SHALLOW_ZARR=true``. Remote processing is then the default; set
 ``BIOMERO_REMOTE_SHALLOW_ZARR=false`` for local importer processing instead.
@@ -26,9 +51,34 @@ work from the importer to a CPU-only Slurm helper.
      and importer work at the cost of a CPU-only HPC helper job.
    * Configure the helper image/resources and run Slurm Init after upgrading.
      This is the normal post-upgrade initialization step and acquires the helper
-     image together with the other configured workflow images.
+     image together with the other configured workflow images when importer,
+     shallow storage and remote processing are all enabled.
    * Keep source storage available. This feature reduces duplicate result data;
      it does not replace backups or enable detached execution.
+
+Existing feature switches remain independent:
+
+.. list-table:: Feature scope
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Switch
+     - Effect
+   * - ``IMPORTER_ENABLED``
+     - Selects in-place result import; false uses classic result upload.
+   * - ``BIOMERO_SHALLOW_ZARR``
+     - Enables canonical indexing and new shallow results. False keeps full
+       results; existing shallow inputs can still be reconstructed from their
+       sources with the required dependencies installed.
+   * - ``BIOMERO_REMOTE_SHALLOW_ZARR``
+     - Within enabled shallow storage, selects remote processing (default true)
+       or local importer processing (false). It cannot enable shallow storage.
+   * - ``BIOMERO_DETACHED_WORKFLOWS``
+     - Selects background execution independently of storage and result-import
+       recovery. See :doc:`detached-workflows`.
+   * - ``BIOMERO_ZARR_VIEWER_ENABLED``
+     - Controls the web viewer independently of storage and execution.
+       See :doc:`zarrviewer`.
 
 Lifecycle overview
 ------------------
@@ -198,6 +248,36 @@ the helper image.
 
 Failure and observability
 -------------------------
+
+Result-import recovery is automatic on compatible storage, with no additional
+feature flag. Before preparing an import, the scripts check filesystem locking,
+atomic replacement and file/directory synchronization using disposable metadata.
+Use coordinated scripts and importer releases that contain recovery support.
+This does not add SSH reconnection or require SSHFS.
+
+Order recovery protects importer-enabled full Zarr and TIFF results as well
+as shallow results, in both inline and detached workflows. It does not enable
+any of the switches above. Importer-side shallow transaction recovery requires
+an explicitly requested shallow operation and ``BIOMERO_SHALLOW_ZARR=true``;
+ordinary import orders do not enter shallow preparation.
+
+Recovery saves one small record per newly
+staged workflow-result import plan, reuses order IDs on retry, and restores
+interrupted local shallow transactions. It does not scan or migrate old OMERO
+images, Plates or Zarrs. An explicitly retried older result without a record
+requires review if existing importer orders make resubmission ambiguous.
+
+If the preflight explicitly reports an unsupported lock or durable-write
+operation, a fresh attempt uses legacy operations and logs that recovery is
+unavailable. This happens before submitting import orders. A busy lock,
+permission failure, disk-full error, storage outage or failure after recovery
+has begun does not trigger fallback. Existing recovery records and unfinished
+prune journals must be resolved using storage supporting recovery.
+
+Failed imports retain their files and cannot report success in either mode.
+In the legacy fallback, automatic order reuse is unavailable; review previous
+orders before retrying. See the
+`importer recovery guide <https://nl-bioimaging.github.io/BIOMERO.importer/shallow-zarr/#interrupted-imports-and-recovery>`_.
 
 Unsupported results use full transfer and local importer handling.
 A failed shallowing job runs a recovery job: interrupted

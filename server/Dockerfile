@@ -1,47 +1,18 @@
-# Temporary reader build for https://github.com/glencoesoftware/omero-zarr-pixel-buffer/pull/60
-# (NL-BIOMERO #42; removal tracked in #48). Pin the tested commit rather than following the PR branch.
-# Once the fix is released, remove this stage, its ARG/LABELs and the marked
-# dependency guard/JAR overlay below; keep the Maven release installation.
-ARG OMERO_ZARR_PIXEL_BUFFER_REVISION=da3799e0c59fe9e8e2d562fab67a99b6a6e55b4a
-FROM gradle:9.4.1-jdk17 AS zarr-reader-build
-ARG OMERO_ZARR_PIXEL_BUFFER_REVISION
-USER root
-RUN apt-get update && apt-get install -y --no-install-recommends libblosc1 \
-    && rm -rf /var/lib/apt/lists/*
-WORKDIR /build/reader
-RUN git init . \
-    && git remote add origin https://github.com/glencoesoftware/omero-zarr-pixel-buffer.git \
-    && git fetch --depth=1 origin "$OMERO_ZARR_PIXEL_BUFFER_REVISION" \
-    && git checkout --detach FETCH_HEAD \
-    && test "$(git rev-parse HEAD)" = "$OMERO_ZARR_PIXEL_BUFFER_REVISION"
-# Java 17 builds Java 11-compatible bytecode; upstream tests need libblosc1.
-# Empty publishing properties allow a local build without upstream credentials.
-RUN ./gradlew --no-daemon --console=plain --max-workers=2 \
-    -PArtifactoryUserName= -PArtifactoryPassword= build
-
-# Release dependency resolution. The pinned PR has the same runtime dependencies
-# as 0.7.1; only its reader JAR is substituted below.
+# Resolve the published reader and its runtime dependencies together.
 FROM maven:3.9-eclipse-temurin-11 AS zarr-deps
 ARG OMERO_ZARR_PIXEL_BUFFER_VERSION
 RUN test -n "$OMERO_ZARR_PIXEL_BUFFER_VERSION" || (echo "OMERO_ZARR_PIXEL_BUFFER_VERSION build arg is required" >&2; exit 1)
-# Temporary PR #60 guard: do not silently mix this patch with another dependency set.
-RUN test "$OMERO_ZARR_PIXEL_BUFFER_VERSION" = "0.7.1" || (echo "Pinned reader PR #60 requires OMERO_ZARR_PIXEL_BUFFER_VERSION=0.7.1 for its runtime dependencies" >&2; exit 1)
 COPY server/zarr-pixel-buffer/pom.xml /build/pom.xml
 RUN mvn -B -q -f /build/pom.xml dependency:copy-dependencies \
         -Domero.zarr.pixel.buffer.version=$OMERO_ZARR_PIXEL_BUFFER_VERSION \
         -DincludeScope=runtime \
         -Dmdep.stripVersion=true \
         -DoutputDirectory=/deps
-# Temporary PR #60 overlay: replace the released JAR, keeping its dependencies.
-COPY --from=zarr-reader-build /build/reader/build/libs/omero-zarr-pixel-buffer-0.7.2-SNAPSHOT.jar /deps/omero-zarr-pixel-buffer.jar
 
 FROM openmicroscopy/omero-server:5.6.18
 
 ARG BIOMERO_SCRIPTS_VERSION
 ARG LABEL2ROIS_VERSION
-ARG OMERO_ZARR_PIXEL_BUFFER_REVISION
-LABEL nl.biomero.reader.upstream-pr="https://github.com/glencoesoftware/omero-zarr-pixel-buffer/pull/60" \
-      nl.biomero.reader.revision="${OMERO_ZARR_PIXEL_BUFFER_REVISION}"
 
 # ARG BIOMERO_SCRIPTS_BRANCH=master
 
