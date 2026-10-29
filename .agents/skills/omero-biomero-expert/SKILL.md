@@ -1,6 +1,6 @@
 ---
 name: omero-biomero-expert
-description: OMERO/BIOMERO expert runbook for NL-BIOMERO deployments and documentation. Use for writing or building NL-BIOMERO docs, debugging and operating OMERO.server/web, OMERO.biomero, BIOMERO analyzer/importer/converter, Metabase dashboards, Docker Compose, Slurm/HPC, storage permissions, SSH access, logs, and Postgres verification.
+description: OMERO/BIOMERO expert runbook for NL-BIOMERO deployments, documentation and release announcements. Use for writing or building NL-BIOMERO docs, preparing release messages, debugging and operating OMERO.server/web, OMERO.biomero, BIOMERO analyzer/importer/converter, Metabase dashboards, Docker Compose, Slurm/HPC, storage permissions, SSH access, logs, and Postgres verification.
 ---
 
 # OMERO/BIOMERO Expert
@@ -252,6 +252,7 @@ sudo docker compose logs --tail=120 metabase omeroweb biomero-importer
 Read only the relevant reference before acting:
 
 - [references/documentation.md](references/documentation.md): required for documentation work; audience boundaries, concise feature explanations, measurement evidence, navigation and local preview verification.
+- [references/release-announcements.md](references/release-announcements.md): release-message style, stable-to-stable scope, component versions, upgrade actions and documentation links. Read before drafting release announcements.
 - [references/permissions-and-deployment.md](references/permissions-and-deployment.md): host/container UID/GID issues, project-local SSH, writable bind mounts, `chmod`/ownership workarounds, production vs dev compose, backup/restore guardrails.
 - [references/metabase-dashboards.md](references/metabase-dashboards.md): BIOMERO Analyze/Import iframe failures, dashboard IDs, embedding secrets, H2 inspection, datasource credential repair, signed embed smoke tests.
 - [references/slurm-runtime-patches.md](references/slurm-runtime-patches.md): HPC/Slurm behavior, BIOMERO config options, GPU policy, per-job env files, Apptainer cache/temp, output verification, generated job script normalization.
