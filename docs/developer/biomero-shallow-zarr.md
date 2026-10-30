@@ -147,8 +147,9 @@ manifest. Source pixels remain untouched. See [configuration and recovery](../sy
 [![Full, local shallow and remote shallow compared on stored bytes and measured HPC return copy plus ZIP validation time. Stacked total-time bars include analysis, shallowing and other work; Full runtime was not measured.](../_static/figures/shallow-results.svg)](../_static/figures/shallow-results.svg)
 
 **Historical 846-image comparison; lower is better in every panel.**
-Categories have the same order throughout. A uses the full output's measured
-bytes as 100%. B uses the full ZIP's measured HPC return copy plus archive
+Categories have the same order throughout. A uses the full archive's uncompressed
+file bytes as 100%; both Full and retained results include measurements and
+metadata, excluding shared source data. B uses the full ZIP's measured HPC return copy plus archive
 validation time as 100%; Local transfers that full ZIP before shallowing.
 This is the combined copy/validation stage, not isolated network throughput.
 C stacks the
@@ -164,8 +165,8 @@ The reductions in the headings are observations from this comparison.
 | Other work, I/O and waiting | 155.9 min | 233.7 min |
 | **Total researcher wait** | **318.3 min** | **303.8 min** |
 
-Remote retained **1.91 GB** instead of **7.73 GB**, avoiding approximately
-**5.82 GB per result**; its return ZIP was **87.6% smaller**. Measured return
+Remote retained **1.91 GB** instead of **8.35 GB**, avoiding approximately
+**6.44 GB per result (77.1%)**; its return ZIP was **87.6% smaller**. Measured return
 copy plus validation fell from **81.0 s to 11.1 s**
 (**86.3%, or 69.9 s saved**) in this pair. Shallowing is
 **part of total wait**, not extra time to add to that total. Its stage fell by
@@ -181,6 +182,9 @@ The input identities were cached for both runs. Fresh source indexing took
 the remote helper additionally reserved **0.482 CPU-hours**, with no GPU.
 This is one matched pair, not a new benchmark of the current release.
 [Measurement context](../sysadmin/remote-shallower.rst).
+Reproduce the figure: [measurement data](../_figures/data/shallow-846-image.json),
+[plotting script](../_figures/shallow_methods.py),
+[instructions](../_figures/README.txt).
 
 (reconstruct-shallow-zarr-on-disk)=
 ## Reuse, reconstruction and storage accounting
