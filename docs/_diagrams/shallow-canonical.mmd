@@ -1,0 +1,44 @@
+%%{init: {"flowchart": {"subGraphTitleMargin": {"top": 8, "bottom": 30}}}}%%
+flowchart TB
+    subgraph PREP["Input: canonical source"]
+        direction TB
+        EXIST["<b>Existing backing Zarr</b><br/>No canonical record yet"]
+        FRESH["<b>Eligible fresh export</b><br/>No reusable backing store"]
+        HASHSTORE["<b>ISCC-BIO: read backing Zarr</b><br/>Pixel IDs per image/field + label"]
+        HASHBOTH["<b>ISCC-BIO: read OMERO + export</b><br/>Compare Instance-Code + semantic guards"]
+        EXIST --> HASHSTORE
+        FRESH --> HASHBOTH
+        HASHSTORE -->|"Index in place"| REGISTER["<b>Register canonical generation</b><br/>Marker + OMERO source annotations<br/>Path + generation + pixel IDs"]
+        HASHBOTH -->|"Match: commit to stable storage"| REGISTER
+        HASHSTORE -. "No identity" .-> FALLBACK["Full input without deduplication"]
+        HASHBOTH -. "No match / verification unavailable" .-> FALLBACK
+        CACHED["<b>Valid canonical record</b><br/>Reuse cached pixel IDs"]
+        REGISTER --> SNAP["<b>Record workflow input snapshot</b><br/>Source generation + pixel IDs"]
+        CACHED --> SNAP
+    end
+    SNAP --> WORK["Run workflow on HPC"]
+    FALLBACK --> WORK
+    subgraph RETURN["Output: verify pixels"]
+        direction TB
+        CHECK{"Canonical match + same format?"}
+        HASHOUT["<b>ISCC-BIO: read returned pixels</b><br/>Images + labels<br/>HPC helper or importer"]
+        MATCH{"Matching image pixel IDs?"}
+        SHALLOW["<b>Shallow result</b><br/>Omit duplicates; keep new/changed labels"]
+        FULL["<b>Full result</b><br/>Retain returned arrays"]
+        CHECK -->|"Yes"| HASHOUT
+        CHECK -->|"No"| FULL
+        HASHOUT --> MATCH
+        MATCH -->|"Yes, eligible"| SHALLOW
+        MATCH -->|"Changed / unsupported / uncertain"| FULL
+    end
+    WORK --> CHECK
+    style PREP fill:#f8fafc,stroke:#526171,stroke-width:2px;
+    style RETURN fill:#f8fafc,stroke:#526171,stroke-width:2px;
+    classDef pixelread fill:#fff3d6,stroke:#a57918,stroke-width:2px,color:#17354a;
+    classDef canonical fill:#e7eff6,stroke:#245b83,stroke-width:2px,color:#17354a;
+    classDef full fill:#f3f5f7,stroke:#526171,stroke-width:3px,color:#17354a;
+    classDef shallow fill:#ede9fe,stroke:#7c3aed,stroke-width:3px,color:#4c1d95;
+    class HASHSTORE,HASHBOTH,HASHOUT pixelread;
+    class REGISTER,CACHED,SNAP canonical;
+    class FULL,FALLBACK full;
+    class SHALLOW shallow;
