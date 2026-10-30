@@ -206,9 +206,9 @@ retrieval reconnect within the window. Authentication, host-key and storage
 permission errors still require administrator action. A deadline expiry reports
 the connection problem and preserves existing jobs and recovery material.
 
-Submission reconciliation reserves the Slurm job comment for a tracked task ID.
+Submission reconciliation reserves the Slurm job name for a tracked task ID.
 It requires workflow tracking, ``flock``, writable shared HPC storage and Slurm
-accounting/comment lookup. Unresolved submission intent never triggers a blind
+accounting/job-name lookup. Unresolved submission intent never triggers a blind
 second submission. Archive publication and input transfer require the documented
 atomic filesystem/SFTP operations; retain their records while recovery is pending.
 Interrupted copies restart from the beginning through temporary paths.
