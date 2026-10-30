@@ -146,14 +146,17 @@ Choosing local or remote shallowing
      - None
      - 0.482 CPU-hours; 2 CPUs, 2 GiB memory and no GPU
    * - Final extracted result
-     - 1.898 GB (75.4% below the full result)
-     - 1.913 GB (75.2% below the full result; effectively equal to local)
+     - 1.898 GB (77.3% below the full result)
+     - 1.913 GB (77.1% below the full result; effectively equal to local)
 
 Matched comparisons verified source pixels and labels with local and remote
 shallowing on both 18-image and 846-image Plates. The large-Plate comparison
 reduced the shallowing-specific processing and validation time by 85.5%, while
-producing equivalent final data. Both modes reduced final storage by about 75%
-relative to the 7.73 GB full workflow result. Slurm accounting and billing
+producing equivalent final data. Both modes reduced final storage by about 77%
+relative to the 8.35 GB of uncompressed files in the full return ZIP. This
+comparison includes the Zarr, measurement database and retained metadata;
+the 7.73 GB full Zarr alone excludes the database and is not the denominator.
+Slurm accounting and billing
 policies are site-specific; the allocated CPU-hours in the table provide the
 portable input for estimating that cost.
 
