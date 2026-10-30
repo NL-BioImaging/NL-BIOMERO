@@ -182,3 +182,38 @@ See also
 * :doc:`analyzer-importer-admin`
 * :doc:`../developer/containers/biomeroworker`
 * :doc:`../developer/detached-workflow-supervisor`
+
+
+HPC Connection Interruptions
+----------------------------
+
+Detached execution keeps the accepted workflow independent of the submitting
+browser session. SSH recovery separately reconnects interrupted HPC operations.
+Configure the runtime recovery window in the shared ``slurm-config.ini``::
+
+   [SLURM]
+   ssh_recovery_timeout = 900
+
+The demo selects 900 seconds. Existing deployments without this setting retain
+legacy transport behavior (``0``). No additional feature flag is required. Save
+before launching new workflows; changing the window does not require Slurm Init.
+An explicit ``BIOMERO_SSH_RECOVERY_TIMEOUT`` environment override takes precedence,
+so leave it unset when managing the shared INI.
+
+The activity log reports **Waiting for SSH connection** while known Slurm job
+state and IDs are preserved. Monitoring, compatible submissions and result
+retrieval reconnect within the window. Authentication, host-key and storage
+permission errors still require administrator action. A deadline expiry reports
+the connection problem and preserves existing jobs and recovery material.
+
+Submission reconciliation reserves the Slurm job comment for a tracked task ID.
+It requires workflow tracking, ``flock``, writable shared HPC storage and Slurm
+accounting/comment lookup. Unresolved submission intent never triggers a blind
+second submission. Archive publication and input transfer require the documented
+atomic filesystem/SFTP operations; retain their records while recovery is pending.
+Interrupted copies restart from the beginning through temporary paths.
+
+These guarantees apply to the matching BIOMERO core/scripts recovery paths, not
+arbitrary shell commands. See the
+`core SSH recovery reference <https://nl-bioimaging.github.io/biomero/slurm-configuration.html#ssh-recovery>`_
+for requirements and manual reconciliation limits.
