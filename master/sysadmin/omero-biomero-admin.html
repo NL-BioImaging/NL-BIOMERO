@@ -225,7 +225,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#settings-categories">Settings Categories</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ssh-settings">SSH Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ssh-settings">SSH Settings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#ssh-recovery-window">SSH recovery window</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#slurm-settings">SLURM Settings</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#paths">Paths</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#sacct-history-window">SACCT History Window</a></li>
@@ -296,6 +299,7 @@
 <li class="toctree-l2"><a class="reference internal" href="detached-workflows.html#operational-behavior">Operational behavior</a></li>
 <li class="toctree-l2"><a class="reference internal" href="detached-workflows.html#troubleshooting">Troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="detached-workflows.html#see-also">See also</a></li>
+<li class="toctree-l2"><a class="reference internal" href="detached-workflows.html#hpc-connection-interruptions">HPC Connection Interruptions</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="resumable-uploader.html">Resumable Web Uploader</a><ul>
@@ -535,12 +539,15 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../developer/biomero-shallow-zarr.html">Working with shallow OME-Zarr results</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#what-is-stored">What is stored?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#what-you-see-in-omero">What you see in OMERO</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#how-biomero-checks-that-pixels-are-unchanged">How BIOMERO checks that pixels are unchanged</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#using-results-in-another-workflow">Using results in another workflow</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#exporting-a-standalone-zarr">Exporting a standalone Zarr</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#local-remote-and-detached-processing">Local, remote and detached processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#on-disk-shallow-off-versus-on">On disk: shallow off versus on</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#in-omero-two-different-references">In OMERO: two different references</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#workflow-input-reuse-reconstruct-or-export">Workflow input: reuse, reconstruct or export</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#what-registering-or-promoting-a-canonical-zarr-entails">What registering or promoting a canonical Zarr entails</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#when-verification-runs">When verification runs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#reconstructing-a-standalone-result">Reconstructing a standalone result</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#results-measured-benefits-and-costs">Results: measured benefits and costs</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../developer/containers/index.html">Container Development</a><ul>
@@ -989,6 +996,20 @@ Run <strong>Slurm Init</strong> after changing the cluster connection.</p>
 <p class="admonition-title">Note</p>
 <p>The alias must match an entry in your SSH config. For SSH setup and configuration details, see <a class="reference internal" href="slurm-integration.html"><span class="doc">BIOMERO.analyzer SLURM Integration for NL-BIOMERO</span></a>.</p>
 </div>
+<section id="ssh-recovery-window">
+<h4>SSH recovery window<a class="headerlink" href="#ssh-recovery-window" title="Permalink to this heading"></a></h4>
+<p><strong>SSH recovery window (seconds)</strong> is a Runtime setting stored as
+<code class="docutils literal notranslate"><span class="pre">[SLURM]</span> <span class="pre">ssh_recovery_timeout</span></code>. Temporary HPC connection failures are retried
+for up to 900 seconds (15 minutes) by default, in both inline and detached
+workflows. Missing or empty settings use this default. Enter a positive whole
+number to change the window, or <code class="docutils literal notranslate"><span class="pre">0</span></code> to disable recovery. Saving applies to new
+runs; Slurm Init is not required. A nonempty <code class="docutils literal notranslate"><span class="pre">BIOMERO_SSH_RECOVERY_TIMEOUT</span></code>
+environment override takes precedence over the saved value.</p>
+<p>Each interruption gets its own window, starting at the first failed attempt.
+Healthy job runtime does not consume it. Only replay-safe operations are retried;
+authentication and permission failures still require administrator attention.
+See <a class="reference internal" href="detached-workflows.html"><span class="doc">Detached BIOMERO Workflows</span></a> for dependencies, recovery records and limitations.</p>
+</section>
 </section>
 <section id="slurm-settings">
 <h3>SLURM Settings<a class="headerlink" href="#slurm-settings" title="Permalink to this heading"></a></h3>

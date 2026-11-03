@@ -189,6 +189,22 @@ Run **Slurm Init** after changing the cluster connection.
 .. note::
    The alias must match an entry in your SSH config. For SSH setup and configuration details, see :doc:`slurm-integration`.
 
+SSH recovery window
+^^^^^^^^^^^^^^^^^^^
+
+**SSH recovery window (seconds)** is a Runtime setting stored as
+``[SLURM] ssh_recovery_timeout``. Temporary HPC connection failures are retried
+for up to 900 seconds (15 minutes) by default, in both inline and detached
+workflows. Missing or empty settings use this default. Enter a positive whole
+number to change the window, or ``0`` to disable recovery. Saving applies to new
+runs; Slurm Init is not required. A nonempty ``BIOMERO_SSH_RECOVERY_TIMEOUT``
+environment override takes precedence over the saved value.
+
+Each interruption gets its own window, starting at the first failed attempt.
+Healthy job runtime does not consume it. Only replay-safe operations are retried;
+authentication and permission failures still require administrator attention.
+See :doc:`detached-workflows` for dependencies, recovery records and limitations.
+
 SLURM Settings
 ~~~~~~~~~~~~~~
 

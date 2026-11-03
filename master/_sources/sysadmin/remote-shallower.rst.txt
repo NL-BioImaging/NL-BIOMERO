@@ -126,6 +126,21 @@ For a standalone copy on disk, see
 Choosing local or remote shallowing
 -----------------------------------
 
+A Plate-scale comparison of full v3 and remote-shallow v2 results retained
+84.5%, 83.7% and 89.5% less compressed Zarr data for 18, 846 and 2,844 images,
+respectively. These figures exclude the existing shared source. Storage savings
+do not guarantee faster result delivery: the 846-image workflow took
+175.3 minutes full versus 190.2 minutes remote-shallow. At 2,844 images, remote
+shallowing itself took 110.4 minutes and canonical preparation took 180.1 minutes.
+The large full run required recovery; its recorded stages remain available,
+with the explicit recovery wait removed from the plotted elapsed time.
+See :doc:`../developer/biomero-shallow-zarr` for the scale comparison, phase
+breakdown and measurement limits.
+
+The following **earlier cached-input comparison** isolates local versus remote
+placement more closely. Its storage scope includes non-Zarr output files and
+must not be mixed with the Zarr-only figures above.
+
 .. list-table:: Matched 846-image Plate result handling
    :header-rows: 1
    :widths: 34 28 28
@@ -146,23 +161,26 @@ Choosing local or remote shallowing
      - None
      - 0.482 CPU-hours; 2 CPUs, 2 GiB memory and no GPU
    * - Final extracted result
-     - 1.898 GB (75.4% below the full result)
-     - 1.913 GB (75.2% below the full result; effectively equal to local)
+     - 1.898 GB (77.3% below the full result)
+     - 1.913 GB (77.1% below the full result; effectively equal to local)
 
 Matched comparisons verified source pixels and labels with local and remote
-shallowing on both 18-image and 846-image Plates. The large-Plate comparison
+shallowing on both 18-image and 846-image Plates. The 846-image comparison
 reduced the shallowing-specific processing and validation time by 85.5%, while
-producing equivalent final data. Both modes reduced final storage by about 75%
-relative to the 7.73 GB full workflow result. Slurm accounting and billing
+producing equivalent final data. Both modes reduced final storage by about 77%
+relative to the 8.35 GB of uncompressed files in the full return ZIP. This
+comparison includes the Zarr, measurement database and retained metadata;
+the 7.73 GB full Zarr alone excludes the database and is not the denominator.
+Slurm accounting and billing
 policies are site-specific; the allocated CPU-hours in the table provide the
 portable input for estimating that cost.
 
 The complete remote workflow finished 14 min 34 s (4.6%) faster, but unrelated
 variation on the mounted storage obscured much of the stage-level saving.
 End-to-end time remains dependent on storage load and the Slurm queue; the table
-therefore compares the work affected directly by remote shallowing. Choose local
-processing only when avoiding the additional HPC allocation is more important
-than transfer volume and importer time. See
+therefore compares the work affected directly by remote shallowing. Local
+processing avoids the additional HPC helper allocation; remote processing reduces
+return volume and moves verification work away from the importer. See
 :doc:`../developer/biomero-shallow-zarr` for the data model and reconstruction.
 
 Requirements and enablement

@@ -225,7 +225,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="omero-biomero-admin.html#settings-categories">Settings Categories</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#ssh-settings">SSH Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#ssh-settings">SSH Settings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#ssh-recovery-window">SSH recovery window</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="omero-biomero-admin.html#slurm-settings">SLURM Settings</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#paths">Paths</a></li>
 <li class="toctree-l4"><a class="reference internal" href="omero-biomero-admin.html#sacct-history-window">SACCT History Window</a></li>
@@ -296,6 +299,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#operational-behavior">Operational behavior</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#see-also">See also</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hpc-connection-interruptions">HPC Connection Interruptions</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="resumable-uploader.html">Resumable Web Uploader</a><ul>
@@ -535,12 +539,15 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../developer/biomero-shallow-zarr.html">Working with shallow OME-Zarr results</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#what-is-stored">What is stored?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#what-you-see-in-omero">What you see in OMERO</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#how-biomero-checks-that-pixels-are-unchanged">How BIOMERO checks that pixels are unchanged</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#using-results-in-another-workflow">Using results in another workflow</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#exporting-a-standalone-zarr">Exporting a standalone Zarr</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#local-remote-and-detached-processing">Local, remote and detached processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#on-disk-shallow-off-versus-on">On disk: shallow off versus on</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#in-omero-two-different-references">In OMERO: two different references</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#workflow-input-reuse-reconstruct-or-export">Workflow input: reuse, reconstruct or export</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#what-registering-or-promoting-a-canonical-zarr-entails">What registering or promoting a canonical Zarr entails</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#when-verification-runs">When verification runs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#reconstructing-a-standalone-result">Reconstructing a standalone result</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#results-measured-benefits-and-costs">Results: measured benefits and costs</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../developer/containers/index.html">Container Development</a><ul>
@@ -816,12 +823,10 @@
 
   <section id="detached-biomero-workflows">
 <span id="detached-workflows"></span><h1>Detached BIOMERO Workflows<a class="headerlink" href="#detached-biomero-workflows" title="Permalink to this heading"></a></h1>
-<div class="versionadded">
-<p><span class="versionmodified added">New in version 1.8.0: </span>Detached workflow execution is controlled by an opt-in feature flag. The fresh NL-BIOMERO
-demo configuration enables it, but existing and custom deployments continue
-to use inline execution until <code class="docutils literal notranslate"><span class="pre">BIOMERO_DETACHED_WORKFLOWS</span></code> is explicitly
-enabled.</p>
-</div>
+<p>Detached workflows continue in the background after the submitting OMERO
+session ends. Enable them with <code class="docutils literal notranslate"><span class="pre">BIOMERO_DETACHED_WORKFLOWS</span></code>; the supplied demo
+configuration enables this mode. If the flag is absent or false, workflows run
+inline.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><strong>Summary for system administrators:</strong></p>
@@ -862,9 +867,8 @@ being transferred from a browser.</p>
 the flag is absent or <code class="docutils literal notranslate"><span class="pre">FALSE</span></code>, workflows use inline execution.</p>
 <div class="admonition important">
 <p class="admonition-title">Important</p>
-<p>Update <code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code> to the corresponding NL-BIOMERO release before
-enabling detached workflows. The worker must include the same compatible
-<code class="docutils literal notranslate"><span class="pre">biomero-scripts</span></code> release as OMERO.server. The supplied NL-BIOMERO images
+<p>Detached execution requires the same compatible <code class="docutils literal notranslate"><span class="pre">biomero-scripts</span></code> release
+in <code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code> and OMERO.server. The supplied NL-BIOMERO images
 keep these versions aligned through <code class="docutils literal notranslate"><span class="pre">BIOMERO_SCRIPTS_VERSION</span></code>.</p>
 <p>Detached mode currently supports one active <code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code> per BIOMERO
 tracking database. Multiple worker replicas are not supported.</p>
@@ -980,6 +984,41 @@ connect to the same BIOMERO tracking database.</p>
 <li><p><a class="reference internal" href="../developer/containers/biomeroworker.html"><span class="doc">BIOMERO Worker Container</span></a></p></li>
 <li><p><a class="reference internal" href="../developer/detached-workflow-supervisor.html"><span class="doc">Detached Workflow Supervisor</span></a></p></li>
 </ul>
+</section>
+<section id="hpc-connection-interruptions">
+<h2>HPC Connection Interruptions<a class="headerlink" href="#hpc-connection-interruptions" title="Permalink to this heading"></a></h2>
+<p>SSH recovery reconnects interrupted HPC operations in both inline and detached
+workflows. It is enabled by default with a 900-second (15-minute) recovery window.
+Configure the window in the shared <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">SLURM</span><span class="p">]</span>
+<span class="n">ssh_recovery_timeout</span> <span class="o">=</span> <span class="mi">900</span>
+</pre></div>
+</div>
+<p>Missing or empty settings use the 900-second default. Set <code class="docutils literal notranslate"><span class="pre">0</span></code> to disable
+recovery. Save before launching new workflows; changing the window does not
+require Slurm Init.
+The window begins at the first failed attempt in each interruption. Healthy
+queueing, processing and helper runtime do not consume it. Nested operations
+share the current interruption’s deadline.
+The administrator page exposes this as <strong>SSH recovery window (seconds)</strong>.
+An explicit, nonempty <code class="docutils literal notranslate"><span class="pre">BIOMERO_SSH_RECOVERY_TIMEOUT</span></code> override takes precedence,
+so leave it unset when managing the shared INI.</p>
+<p>The activity log reports <strong>Waiting for SSH connection</strong> while known Slurm job
+state and IDs are preserved. Monitoring, compatible submissions and result
+retrieval reconnect within the window. Authentication, host-key and storage
+permission errors still require administrator action. If the window expires,
+the workflow fails. Existing jobs and recovery records are preserved, but the
+workflow does not automatically resume later.</p>
+<p>Submission reconciliation reserves the Slurm job name for a tracked task ID.
+It requires workflow tracking, <code class="docutils literal notranslate"><span class="pre">flock</span></code>, writable shared HPC storage and Slurm
+accounting/job-name lookup. Unresolved submission intent never triggers a blind
+second submission. Archive publication and input transfer require the documented
+atomic filesystem/SFTP operations; retain their records while recovery is pending.
+Interrupted copies restart from the beginning through temporary paths.</p>
+<p>These guarantees apply to the matching BIOMERO core/scripts recovery paths, not
+arbitrary shell commands. See the
+<a class="reference external" href="https://nl-bioimaging.github.io/biomero/slurm-configuration.html#ssh-recovery">core SSH recovery reference</a>
+for requirements and manual reconciliation limits.</p>
 </section>
 </section>
 
