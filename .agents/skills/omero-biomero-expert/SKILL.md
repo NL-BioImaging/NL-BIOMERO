@@ -56,6 +56,10 @@ in separate site repositories.
 
 ### Feature flags and demo defaults
 
+Compatibility means keeping supported deployments working. Correct bugs by
+default and test existing execution modes; do not preserve faulty behavior
+behind a default-off switch merely to call the change backward compatible.
+
 Implement new optional features behind a feature flag. A missing, empty or
 explicitly false flag must leave the feature disabled, preserving existing
 behavior for deployments upgrading without configuration changes.
