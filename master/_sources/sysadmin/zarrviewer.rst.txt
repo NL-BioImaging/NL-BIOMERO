@@ -139,6 +139,54 @@ An OMERO path such as ``/archive/alice/example.ome.zarr`` then resolves to
 ``/data/alice/example.ome.zarr``. The relative path below the two roots must be
 identical.
 
+Metadata Document Limit
+-----------------------
+
+Large segmentation provenance and consolidated JSON metadata can exceed the
+viewer's default limit of 4 MiB per document. The supplied demo environments
+set a 1 GiB ceiling:
+
+.. code-block:: ini
+
+   BIOMERO_ZARR_MAX_METADATA_BYTES=1073741824
+
+The supplied Compose files forward this value through OMERO.web's startup
+configuration interface:
+
+.. code-block:: yaml
+
+   services:
+     omeroweb:
+       environment:
+         CONFIG_omero_web_zarr__viewer_max__metadata__bytes: "${BIOMERO_ZARR_MAX_METADATA_BYTES:-4194304}"
+
+Custom deployments must include this mapping for the environment value to take
+effect. Missing or empty values retain the package's 4 MiB limit. A plain
+``BIOMERO_ZARR_MAX_METADATA_BYTES`` variable inside the container does not set
+the registered OMERO setting. In ``CONFIG_`` names, single underscores encode
+dots and double underscores preserve literal underscores.
+
+Choose a ceiling that fits the deployment's metadata and web-worker memory.
+Parsing JSON uses memory proportional to document size, with additional memory
+for parsed objects and concurrent requests. Pixel data is still read in chunks;
+this setting does not increase pixel or movie export limits.
+
+After changing the value, recreate only OMERO.web using the deployment's
+existing environment file and Compose options. For the default demo:
+
+.. code-block:: bash
+
+   docker compose --env-file .env up -d --no-deps --no-build --force-recreate omeroweb
+   docker compose --env-file .env exec omeroweb \
+     /opt/omero/web/venv3/bin/omero config get omero.web.zarr_viewer.max_metadata_bytes
+
+The demo reports ``1073741824``. A metadata-limit-only change needs no package
+or image rebuild; upgrading the viewer package itself requires a rebuilt web
+image or a published image containing the selected version. Workflow workers
+can continue running during the web recreation; web users may need to sign in
+again. See the `upstream metadata configuration
+<https://nl-bioimaging.github.io/BIOMERO.ZarrViewer/configuration/#metadata-document-size>`_.
+
 Apply and verify
 ----------------
 

@@ -328,6 +328,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#storage-path-mapping">Storage path mapping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#metadata-document-limit">Metadata Document Limit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#apply-and-verify">Apply and verify</a></li>
 </ul>
 </li>
@@ -932,6 +933,44 @@ prefix, set that prefix separately:</p>
 <p>An OMERO path such as <code class="docutils literal notranslate"><span class="pre">/archive/alice/example.ome.zarr</span></code> then resolves to
 <code class="docutils literal notranslate"><span class="pre">/data/alice/example.ome.zarr</span></code>. The relative path below the two roots must be
 identical.</p>
+</section>
+<section id="metadata-document-limit">
+<h2>Metadata Document Limit<a class="headerlink" href="#metadata-document-limit" title="Permalink to this heading"></a></h2>
+<p>Large segmentation provenance and consolidated JSON metadata can exceed the
+viewer’s default limit of 4 MiB per document. The supplied demo environments
+set a 1 GiB ceiling:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="na">BIOMERO_ZARR_MAX_METADATA_BYTES</span><span class="o">=</span><span class="s">1073741824</span>
+</pre></div>
+</div>
+<p>The supplied Compose files forward this value through OMERO.web’s startup
+configuration interface:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">services</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">omeroweb</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">CONFIG_omero_web_zarr__viewer_max__metadata__bytes</span><span class="p">:</span><span class="w"> </span><span class="s">"${BIOMERO_ZARR_MAX_METADATA_BYTES:-4194304}"</span>
+</pre></div>
+</div>
+<p>Custom deployments must include this mapping for the environment value to take
+effect. Missing or empty values retain the package’s 4 MiB limit. A plain
+<code class="docutils literal notranslate"><span class="pre">BIOMERO_ZARR_MAX_METADATA_BYTES</span></code> variable inside the container does not set
+the registered OMERO setting. In <code class="docutils literal notranslate"><span class="pre">CONFIG_</span></code> names, single underscores encode
+dots and double underscores preserve literal underscores.</p>
+<p>Choose a ceiling that fits the deployment’s metadata and web-worker memory.
+Parsing JSON uses memory proportional to document size, with additional memory
+for parsed objects and concurrent requests. Pixel data is still read in chunks;
+this setting does not increase pixel or movie export limits.</p>
+<p>After changing the value, recreate only OMERO.web using the deployment’s
+existing environment file and Compose options. For the default demo:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>--env-file<span class="w"> </span>.env<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>--no-deps<span class="w"> </span>--no-build<span class="w"> </span>--force-recreate<span class="w"> </span>omeroweb
+docker<span class="w"> </span>compose<span class="w"> </span>--env-file<span class="w"> </span>.env<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>omeroweb<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>/opt/omero/web/venv3/bin/omero<span class="w"> </span>config<span class="w"> </span>get<span class="w"> </span>omero.web.zarr_viewer.max_metadata_bytes
+</pre></div>
+</div>
+<p>The demo reports <code class="docutils literal notranslate"><span class="pre">1073741824</span></code>. A metadata-limit-only change needs no package
+or image rebuild; upgrading the viewer package itself requires a rebuilt web
+image or a published image containing the selected version. Workflow workers
+can continue running during the web recreation; web users may need to sign in
+again. See the <a class="reference external" href="https://nl-bioimaging.github.io/BIOMERO.ZarrViewer/configuration/#metadata-document-size">upstream metadata configuration</a>.</p>
 </section>
 <section id="apply-and-verify">
 <h2>Apply and verify<a class="headerlink" href="#apply-and-verify" title="Permalink to this heading"></a></h2>
