@@ -197,6 +197,10 @@ Configure the runtime recovery window in the shared ``slurm-config.ini``::
 The demo selects 900 seconds. Existing deployments without this setting retain
 legacy transport behavior (``0``). No additional feature flag is required. Save
 before launching new workflows; changing the window does not require Slurm Init.
+The window begins at the first failed attempt in each interruption. Healthy
+queueing, processing and helper runtime do not consume it. Nested operations
+share the current interruption's deadline and caller heartbeat callbacks.
+The administrator page exposes this as **SSH recovery window (seconds)**.
 An explicit ``BIOMERO_SSH_RECOVERY_TIMEOUT`` environment override takes precedence,
 so leave it unset when managing the shared INI.
 
