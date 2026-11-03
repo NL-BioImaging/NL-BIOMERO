@@ -10,7 +10,7 @@
     "28 verified measurements; repetition counts are technical, not independent biological samples.",
     "Storage scope: retained compressed Zarr file sizes before cleanup; excludes existing shared source and non-Zarr outputs. GB = 10^9 bytes.",
     "Full uses a v3 source; Remote uses a v2 source, canonical input and remote shallowing. This compares configurations, not the isolated effect of shallowing.",
-    "Mean times and phase values retain the original report rounding to 0.01 minutes. Sample SDs come from the supplied summary.json groups and were independently recomputed from its per-run records. Error bars show one sample SD, not a confidence interval; no sample SD exists for n=1.",
+    "Mean times and phase values retain original report rounding to 0.01 minutes. Sample SDs and individual runtimes come from summary.json groups and per-run records. Storage error bars show one SD; runtime error bars are two-sided Student-t 95% CIs for the mean. Difference intervals use unpaired Welch degrees of freedom. These approximations assume independent runs; shared load, skew and cache history limit inference. No CI is estimated for n=1.",
     "Large Full retains all measured phases, but plotted elapsed time excludes only the separately reported failed-state/awaiting-manual-recovery interval (2846.23 min). Raw total and phases remain in this file. Polling/validation and orchestration gaps remain included; this adjusted record is not an uninterrupted-run estimate.",
     "Large Remote used repaired source provenance; this source-history qualification accompanies its measured timings.",
     "Helper seconds are reported separately at higher precision than the rounded minute stages.",
@@ -50,7 +50,19 @@
             "orchestration_gaps": 0.08
           },
           "excluded_wait_stage": null,
-          "stored_sd_bytes": 13.291601358251258
+          "stored_sd_bytes": 13.291601358251258,
+          "total_samples_min": [
+            6.3289939,
+            9.0767767,
+            5.915408350000001,
+            12.221964083333335,
+            9.392782533333333,
+            11.715874033333334,
+            6.448898483333334,
+            9.1769267,
+            15.986346233333334,
+            53.624810016666665
+          ]
         },
         "remote": {
           "zarr_format": 2,
@@ -81,7 +93,19 @@
             "orchestration_gaps": 0.09
           },
           "excluded_wait_stage": null,
-          "stored_sd_bytes": 11.222992272810115
+          "stored_sd_bytes": 11.222992272810115,
+          "total_samples_min": [
+            5.769180866666667,
+            6.594130466666667,
+            15.822875666666667,
+            14.988543783333334,
+            6.980217216666667,
+            12.281783149999999,
+            5.587614416666667,
+            6.072184116666667,
+            16.100181533333334,
+            38.280367999999996
+          ]
         }
       }
     },
@@ -118,7 +142,12 @@
             "orchestration_gaps": 0.24
           },
           "excluded_wait_stage": null,
-          "stored_sd_bytes": 166.50625613872091
+          "stored_sd_bytes": 166.50625613872091,
+          "total_samples_min": [
+            186.69608738333332,
+            172.12602315,
+            167.0741419
+          ]
         },
         "remote": {
           "zarr_format": 2,
@@ -149,7 +178,12 @@
             "orchestration_gaps": 0.22
           },
           "excluded_wait_stage": null,
-          "stored_sd_bytes": 384.9341935101808
+          "stored_sd_bytes": 384.9341935101808,
+          "total_samples_min": [
+            176.30031035,
+            229.11893953333336,
+            165.09364631666668
+          ]
         }
       }
     },

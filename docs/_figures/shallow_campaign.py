@@ -3,6 +3,32 @@ import math
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
+from scipy.stats import t as student_t
+
+
+def runtime_ci(run):
+    """Student-t 95% CI half-width; adjusted totals need their own SD."""
+    key = "adjusted_total_sd_min" if run["excluded_wait_stage"] else "total_sd_min"
+    sd = run.get(key)
+    if run["n"] < 2 or sd is None:
+        return None
+    return float(student_t.ppf(.975, run["n"] - 1)) * sd / math.sqrt(run["n"])
+
+
+def runtime_difference_ci(full, remote):
+    """Unpaired Welch CI for Remote minus Full, without assuming matched runs."""
+    if any(r["n"] < 2 or r["excluded_wait_stage"]
+           or r.get("total_sd_min") is None for r in (full, remote)):
+        return None
+    variances = [r["total_sd_min"] ** 2 / r["n"] for r in (full, remote)]
+    variance = sum(variances)
+    delta = remote["total_min"] - full["total_min"]
+    if variance == 0:
+        return delta, delta, delta
+    df = variance ** 2 / sum(v ** 2 / (r["n"] - 1)
+                             for v, r in zip(variances, (full, remote)))
+    half = float(student_t.ppf(.975, df)) * math.sqrt(variance)
+    return delta, delta - half, delta + half
 
 
 def plot_campaign(data, output, png=False):
@@ -34,6 +60,11 @@ def plot_campaign(data, output, png=False):
             excluded = run["excluded_wait_stage"]
             if excluded is not None and excluded not in run["stages_min"]:
                 raise ValueError("excluded wait stage must name a measured stage")
+            samples = run.get("total_samples_min", [])
+            if samples and (len(samples) != run["n"]
+                    or any(not math.isfinite(v) or v < 0 for v in samples)
+                    or abs(sum(samples) / len(samples) - run["total_min"]) > .005):
+                raise ValueError("runtime samples must match n and the reported mean")
             # The report rounds each independent stage to 0.01 minute.
             tolerance = (len(run["stages_min"]) + 1) * .005 + 1e-6
             if abs(sum(run["stages_min"].values()) - run["total_min"]) > tolerance:
@@ -86,9 +117,11 @@ def plot_campaign(data, output, png=False):
         totals = [r["total_min"] - r["stages_min"].get(r["excluded_wait_stage"], 0)
                   for r in runs]
         adjusted = any(r["excluded_wait_stage"] for r in runs)
-        deviations = [r.get("adjusted_total_sd_min" if r["excluded_wait_stage"] else "total_sd_min")
-                      for r in runs]
-        ymax = max(t + (sd or 0) for t, sd in zip(totals, deviations)) * 1.25
+        deviations = [runtime_ci(r) for r in runs]
+        samples = [[v - r["stages_min"].get(r["excluded_wait_stage"], 0)
+                    for v in r.get("total_samples_min", [])] for r in runs]
+        ymax = max([t + (ci or 0) for t, ci in zip(totals, deviations)]
+                   + [v for values in samples for v in values]) * 1.2
         for x, run in enumerate(runs):
             stages = run["stages_min"]
             prep = sum(stages[k] for k in ("input_compatibility", "canonical_preparation",
@@ -100,14 +133,19 @@ def plot_campaign(data, output, png=False):
             for minutes, color in zip(selected, stage_colors):
                 ax.bar(x, minutes, bottom=bottom, width=.55, color=color, zorder=3)
                 bottom += minutes
-            sd = deviations[x]
-            if sd is not None:
-                ax.errorbar(x, bottom, yerr=sd, fmt="none", ecolor="#172d40",
+            ci = deviations[x]
+            if ci is not None:
+                ax.errorbar(x, bottom, yerr=ci, fmt="none", ecolor="#172d40",
                             capsize=4, linewidth=1.2, zorder=4)
+            values = samples[x]
+            offsets = [0 if len(values) == 1 else -.19 + .38 * j / (len(values) - 1)
+                       for j in range(len(values))]
+            ax.scatter([x + offset for offset in offsets], values, s=18,
+                       facecolor="white", edgecolor="#172d40", linewidth=.9, zorder=5)
             caption = f"{totals[x]:.2f} min"
             if not adjusted:
                 caption += f"\n{100 * totals[x] / totals[0]:.1f}% of Full"
-            ax.text(x, bottom + (sd or 0) + ymax * .025, caption,
+            ax.text(x, bottom + (ci or 0) + ymax * .025, caption,
                     ha="center", va="bottom", fontsize=10)
             if run["recovered"]:
                 return_top = sum(selected[:4])
@@ -115,13 +153,17 @@ def plot_campaign(data, output, png=False):
                             xy=(x, return_top), xytext=(x, ymax * .35),
                             ha="center", fontsize=9, color="#24654f",
                             arrowprops={"arrowstyle": "->", "color": "#24654f"})
-        if not adjusted:
-            delta = totals[1] - totals[0]
-            title = f"{delta:+.2f} min ({100 * delta / totals[0]:+.1f}%) vs Full"
+        difference = runtime_difference_ci(*runs)
+        if difference is not None:
+            delta, low, high = difference
+            title = (f"Mean difference: {delta:+.2f} min\n"
+                     f"95% CI [{low:+.1f}, {high:+.1f}] min")
+        elif not adjusted:
+            title = f"Observed difference: {totals[1] - totals[0]:+.2f} min"
         else:
             title = "* Recovery wait removed; other gaps retained"
         ax.set_title(title, fontsize=11, pad=12)
-        lower = min(0, min(t - (sd or 0) for t, sd in zip(totals, deviations)))
+        lower = min(0, min(t - (ci or 0) for t, ci in zip(totals, deviations)))
         ax.set_ylim(lower * 1.15, ymax)
         ax.set_ylabel("Minutes (scale varies by Plate)" if col == 0 else "")
         for row in (0, 1):
@@ -138,10 +180,7 @@ def plot_campaign(data, output, png=False):
                frameon=False, fontsize=10)
     repaired_labels = [p["label"].lower() for p in plates
                        if p["runs"]["remote"]["source_metadata_repaired"]]
-    has_sd = any(r.get(k) is not None for p in plates for r in p["runs"].values()
-                 for k in ("stored_sd_bytes", "total_sd_min", "adjusted_total_sd_min"))
-    footnote = ("Means ± sample SD where supplied. " if has_sd
-                else "Means; numeric SDs not supplied. ")
+    footnote = "A: mean ± SD. B: mean with 95% CI; dots are individual runs. "
     footnote += "Configurations differ in Zarr format. "
     if repaired_labels:
         footnote += f"† {', '.join(repaired_labels).capitalize()} shallow source provenance repaired. "

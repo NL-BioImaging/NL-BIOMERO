@@ -157,16 +157,18 @@ enough disk space for the full copy.
 
 **Full v3 versus remote-shallow v2**, with 10, 3 and 1 technical repetitions per
 configuration for small, medium and large Plates. Storage excludes the existing
-shared source and non-Zarr output; GB is decimal. Bars show **mean ± sample SD**;
-large Plates have no error bars (n = 1). Storage SDs are too small to distinguish
-at this scale. Small-Plate elapsed times vary substantially between repetitions.
-Format, cache history and shared-storage load also differ between runs.
+shared source and non-Zarr output; GB is decimal. **A: mean ± SD** (storage
+variation is too small to distinguish). **B: mean with 95% Student-t CI and
+individual timings**; headings give the unpaired Welch 95% CI for shallow minus
+Full. No CI is estimated for n = 1. These intervals assume independent workflow
+executions; shared load and cache history limit that assumption. Formats also differ.
 
 Shallow results retain **83.7-89.5% less Zarr data**. At medium scale,
-return/packaging/extraction falls by **12.11 min**, but overall waiting increases
+return/packaging/extraction falls by **12.11 min**, but observed mean waiting increases
 by **14.87 min (+8.5%)**. At large scale, canonical preparation (**180.1 min**),
 shallowing (**110.4 min**) and result return (**168.8 min**) each approach or
-exceed analysis execution (**154.0 min**).
+exceed analysis execution (**154.0 min**). Both estimated runtime-difference CIs
+include zero; these runs do not establish a timing advantage.
 
 **Large Full (*)** removes only the explicit recovery wait:
 4,012.72 - 2,846.23 = **1,166.49 min**. Its ZIP retrieval was interrupted;

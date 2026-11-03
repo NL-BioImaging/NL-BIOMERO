@@ -6,7 +6,7 @@ Data:       data/shallow-plate-comparison.json (current Plate-scale campaign)
 Processing: shallow_methods.py, shallow_campaign.py
 Published:  ../_static/figures/shallow-results.svg
 
-With matplotlib installed, regenerate the current figure from the repository root:
+With matplotlib and scipy installed, regenerate the current figure from the repository root:
 
     python docs/_figures/shallow_methods.py
 
@@ -22,12 +22,25 @@ configurations per Plate. stored_bytes counts retained compressed Zarr files,
 excluding shared source and non-Zarr outputs. total_min and stages_min are the
 reported mean wall-clock minutes; helper_execution_s retains separately reported
 second precision. n records technical repetitions. total_sd_min and optional
-stored_sd_bytes supply sample SDs for elapsed time and retained bytes. Error
-bars show mean +/- one sample SD for n >= 2; null means unknown, not zero.
+stored_sd_bytes supply sample SDs for elapsed time and retained bytes. Panel A
+uses one sample SD; panel B uses a Student-t 95% confidence interval for the mean:
+t(0.975, n-1) * SD / sqrt(n), for n >= 2. Null means unknown, not zero.
 Storage SDs are divided by the Full mean to use the same percent scale as the
 bars; they do not estimate uncertainty of a ratio. Do not sum stage SDs to obtain
 total SD (stages covary). For adjusted elapsed time, supply adjusted_total_sd_min
 computed from adjusted per-run times; the original total SD is not reused.
+total_samples_min supplies individual runtimes, plotted with deterministic
+horizontal offsets. Its length and mean must match n and total_min (allowing
+report rounding). Limits include every point; no outliers are removed.
+Timing headings show an unpaired Welch 95% CI for Remote minus Full. Runs are
+not assumed paired just because their replicate numbers match. Both difference
+CIs include zero in this dataset; do not claim a demonstrated speedup.
+These are approximate intervals assuming independent runs, not a hierarchical
+benchmark model. Shared load, skew and first-use/warm cache history limit that
+assumption. The points expose variation that a mean alone would hide. See
+Kalibera and Jones, Rigorous Benchmarking in Reasonable Time:
+https://kar.kent.ac.uk/33611/
+
 Current SDs come from the supplied summary.json groups and were independently
 recomputed from its per-run values. Small and medium configurations have n=10
 and n=3, respectively; the large configurations have n=1 and retain null SDs.
