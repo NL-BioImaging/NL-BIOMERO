@@ -121,7 +121,8 @@ def plot_campaign(data, output, png=False):
         else:
             title = "* Recovery wait removed; other gaps retained"
         ax.set_title(title, fontsize=11, pad=12)
-        ax.set_ylim(0, ymax)
+        lower = min(0, min(t - (sd or 0) for t, sd in zip(totals, deviations)))
+        ax.set_ylim(lower * 1.15, ymax)
         ax.set_ylabel("Minutes (scale varies by Plate)" if col == 0 else "")
         for row in (0, 1):
             axis = axes[row, col]

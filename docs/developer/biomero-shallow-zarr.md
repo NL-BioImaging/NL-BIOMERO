@@ -157,8 +157,9 @@ enough disk space for the full copy.
 
 **Full v3 versus remote-shallow v2**, with 10, 3 and 1 technical repetitions per
 configuration for small, medium and large Plates. Storage excludes the existing
-shared source and non-Zarr output; GB is decimal. Bars show means; numeric SDs
-were not included in the supplied summary.
+shared source and non-Zarr output; GB is decimal. Bars show **mean ± sample SD**;
+large Plates have no error bars (n = 1). Storage SDs are too small to distinguish
+at this scale. Small-Plate elapsed times vary substantially between repetitions.
 Format, cache history and shared-storage load also differ between runs.
 
 Shallow results retain **83.7-89.5% less Zarr data**. At medium scale,
