@@ -16,6 +16,11 @@ release. Keep the tone direct and approachable. Explain each addition through
 what researchers or administrators can now do, with short supporting bullets.
 Use configuration snippets only when they make an upgrade action clearer.
 
+Use [the component-note convention](component-release-notes.md) for individual
+packages. Link their release bodies from Subcomponent Updates; keep this
+announcement focused on combined benefits and coordinated upgrade actions
+instead of repeating every component fix and PR.
+
 ## Establish what is actually shipping
 
 - Compare the proposed release with the previous stable release, not just the
