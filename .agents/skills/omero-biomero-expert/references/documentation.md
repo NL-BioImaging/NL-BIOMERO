@@ -13,6 +13,15 @@ an internal development diary. It does not automatically mean **User Guide**.
 Image analysts who work with code belong to the developer audience, even when
 they do not develop BIOMERO itself. Concise writing can still be technical.
 
+Keep normal behavior, usage and configuration separate from version-to-version
+upgrade instructions. Deployment prerequisites belong in setup/admin guides;
+migration steps belong in dedicated upgrade documentation, and release-specific
+changes belong in release notes. PR dependencies, release coordination and
+validation plans belong in PRs or maintainer records. For an unreleased feature,
+describe the intended product behavior without inventing an upgrade narrative.
+A bug fix does not automatically warrant a compatibility section in a general
+guide; document changed behavior only where it helps that guide's reader.
+
 ## Explain a feature once
 
 - Lead with what the feature does and why it is useful. Let measured benefits
@@ -21,8 +30,8 @@ they do not develop BIOMERO itself. Concise writing can still be technical.
   Workflows", not "Optional ...". Explain enablement in the page, not its title.
 - Keep the admin overview short: a small benefits/costs table, configuration,
   and operational limits. Link to the developer explanation for internals.
-- Start feature pages with purpose, practical enablement/demo-versus-upgrade
-  behaviour, then a short "Summary for system administrators" note before
+- Start feature pages with purpose and practical enablement, including the
+  supplied demo's defaults, then a short "Summary for system administrators" note before
   detailed setup. Write as documentation for the released feature, not the
   branch or validation campaign that produced it. Use a version notice only
   when a stable-version compatibility boundary is essential to the reader.
@@ -33,8 +42,8 @@ they do not develop BIOMERO itself. Concise writing can still be technical.
 - On the developer page, go deeper without repeating the admin overview or
   explaining the same lifecycle in several different forms. Prefer one useful
   Mermaid diagram over repeated prose when relationships are hard to follow.
-- Keep prerequisites and compatibility limits explicit. The demo opts into
-  features; custom upgrades must follow the applicable flags. Check actual
+- Keep prerequisites and compatibility limits explicit. Explain which features
+  the demo enables and how custom deployments configure them. Check actual
   gating behaviour: remote shallowing defaults on only within enabled shallow
   storage; it does nothing without the main shallow flag.
 - Test plans, site-specific smoke instructions, implementation history,
