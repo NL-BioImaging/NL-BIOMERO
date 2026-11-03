@@ -1096,6 +1096,19 @@ z
     <text style="font-size: 10px; font-family: 'Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: middle" x="688.756364" y="393.714465" transform="rotate(-0 688.756364 393.714465)">1166.49 min</text>
    </g>
    <g id="patch_51">
+    <path d="M 688.756364 472.904605 
+Q 688.756364 482.38543 688.756364 490.748222 
+" style="fill: none; stroke: #24654f; stroke-linecap: round"/>
+    <path d="M 690.556364 487.148222 
+L 688.756364 490.748222 
+L 686.956364 487.148222 
+" style="fill: none; stroke: #24654f; stroke-linecap: round"/>
+   </g>
+   <g id="text_67">
+    <text style="font-size: 9px; font-family: 'Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', sans-serif; fill: #24654f" transform="translate(652.489176 457.358748)">Return interrupted</text>
+    <text style="font-size: 9px; font-family: 'Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', sans-serif; fill: #24654f" transform="translate(649.492457 467.009561)">(0.12 min recorded)</text>
+   </g>
+   <g id="patch_52">
     <path d="M 760.333636 519.552 
 L 814.633636 519.552 
 L 814.633636 500.996262 
@@ -1103,7 +1116,7 @@ L 760.333636 500.996262
 z
 " clip-path="url(#p3deabc60b2)" style="fill: #9bbbcf"/>
    </g>
-   <g id="patch_52">
+   <g id="patch_53">
     <path d="M 760.333636 500.996262 
 L 814.633636 500.996262 
 L 814.633636 485.146204 
@@ -1111,7 +1124,7 @@ L 760.333636 485.146204
 z
 " clip-path="url(#p3deabc60b2)" style="fill: #245b83"/>
    </g>
-   <g id="patch_53">
+   <g id="patch_54">
     <path d="M 760.333636 485.146204 
 L 814.633636 485.146204 
 L 814.633636 473.777816 
@@ -1119,7 +1132,7 @@ L 760.333636 473.777816
 z
 " clip-path="url(#p3deabc60b2)" style="fill: #b58a24"/>
    </g>
-   <g id="patch_54">
+   <g id="patch_55">
     <path d="M 760.333636 473.777816 
 L 814.633636 473.777816 
 L 814.633636 456.395775 
@@ -1127,7 +1140,7 @@ L 760.333636 456.395775
 z
 " clip-path="url(#p3deabc60b2)" style="fill: #40957b"/>
    </g>
-   <g id="patch_55">
+   <g id="patch_56">
     <path d="M 760.333636 456.395775 
 L 814.633636 456.395775 
 L 814.633636 455.109856 
@@ -1135,24 +1148,24 @@ L 760.333636 455.109856
 z
 " clip-path="url(#p3deabc60b2)" style="fill: #d8dee5"/>
    </g>
-   <g id="text_67">
+   <g id="text_68">
     <text style="font-size: 10px; font-family: 'Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: middle" x="787.483636" y="449.369325" transform="rotate(-0 787.483636 449.369325)">625.92 min</text>
    </g>
-   <g id="text_68">
+   <g id="text_69">
     <text style="font-size: 11px; font-family: 'Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: middle" x="738.12" y="357.430746" transform="rotate(-0 738.12 357.430746)">* Recovery wait removed; other gaps retained</text>
    </g>
   </g>
-  <g id="text_69">
+  <g id="text_70">
    <text style="font-weight: 700; font-size: 15px; font-family: 'Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="64.8" y="29.927531" transform="rotate(-0 64.8 29.927531)">A  Result storage: up to 89.5% less retained Zarr data</text>
   </g>
-  <g id="text_70">
+  <g id="text_71">
    <text style="font-weight: 700; font-size: 14px; font-family: 'Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="64.8" y="304.644937" transform="rotate(-0 64.8 304.644937)">B  Recorded elapsed time: large Full excludes the recovery wait</text>
   </g>
-  <g id="text_71">
-   <text style="font-size: 9px; font-family: 'Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="64.8" y="622.1952" transform="rotate(-0 64.8 622.1952)">Means; dispersion unavailable. Configurations differ in Zarr format. † Large shallow source provenance repaired. Shared source excluded.</text>
+  <g id="text_72">
+   <text style="font-size: 9px; font-family: 'Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="64.8" y="622.1952" transform="rotate(-0 64.8 622.1952)">Means; numeric SDs not supplied. Configurations differ in Zarr format. † Large shallow source provenance repaired. Shared source excluded.</text>
   </g>
   <g id="legend_1">
-   <g id="patch_56">
+   <g id="patch_57">
     <path d="M 209.648437 578.448925 
 L 229.648437 578.448925 
 L 229.648437 571.448925 
@@ -1160,10 +1173,10 @@ L 209.648437 571.448925
 z
 " style="fill: #9bbbcf; stroke: #9bbbcf; stroke-linejoin: miter"/>
    </g>
-   <g id="text_72">
+   <g id="text_73">
     <text style="font-size: 10px; font-family: 'Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="237.648437" y="578.448925" transform="rotate(-0 237.648437 578.448925)">Input preparation</text>
    </g>
-   <g id="patch_57">
+   <g id="patch_58">
     <path d="M 209.648437 592.594237 
 L 229.648437 592.594237 
 L 229.648437 585.594237 
@@ -1171,10 +1184,10 @@ L 209.648437 585.594237
 z
 " style="fill: #245b83; stroke: #245b83; stroke-linejoin: miter"/>
    </g>
-   <g id="text_73">
+   <g id="text_74">
     <text style="font-size: 10px; font-family: 'Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="237.648437" y="592.594237" transform="rotate(-0 237.648437 592.594237)">Analysis execution</text>
    </g>
-   <g id="patch_58">
+   <g id="patch_59">
     <path d="M 340.467188 578.448925 
 L 360.467188 578.448925 
 L 360.467188 571.448925 
@@ -1182,10 +1195,10 @@ L 340.467188 571.448925
 z
 " style="fill: #b58a24; stroke: #b58a24; stroke-linejoin: miter"/>
    </g>
-   <g id="text_74">
+   <g id="text_75">
     <text style="font-size: 10px; font-family: 'Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="368.467188" y="578.448925" transform="rotate(-0 368.467188 578.448925)">Remote shallower</text>
    </g>
-   <g id="patch_59">
+   <g id="patch_60">
     <path d="M 340.467188 592.716113 
 L 360.467188 592.716113 
 L 360.467188 585.716113 
@@ -1193,10 +1206,10 @@ L 340.467188 585.716113
 z
 " style="fill: #40957b; stroke: #40957b; stroke-linejoin: miter"/>
    </g>
-   <g id="text_75">
+   <g id="text_76">
     <text style="font-size: 10px; font-family: 'Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="368.467188" y="592.716113" transform="rotate(-0 368.467188 592.716113)">Return / packaging / extraction</text>
    </g>
-   <g id="patch_60">
+   <g id="patch_61">
     <path d="M 524.0875 578.448925 
 L 544.0875 578.448925 
 L 544.0875 571.448925 
@@ -1204,7 +1217,7 @@ L 524.0875 571.448925
 z
 " style="fill: #d8dee5; stroke: #d8dee5; stroke-linejoin: miter"/>
    </g>
-   <g id="text_76">
+   <g id="text_77">
     <text style="font-size: 10px; font-family: 'Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="552.0875" y="578.448925" transform="rotate(-0 552.0875 578.448925)">Other work and waiting</text>
    </g>
   </g>

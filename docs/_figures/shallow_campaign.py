@@ -20,6 +20,14 @@ def plot_campaign(data, output, png=False):
                     raise ValueError(f"{plate['label']}.{mode}.{key}: invalid measurement")
             if run["n"] < 1 or run["zarr_format"] not in (2, 3):
                 raise ValueError("positive repetition count and Zarr format 2 or 3 required")
+            for key in ("stored_sd_bytes", "total_sd_min", "adjusted_total_sd_min"):
+                value = run.get(key)
+                if value is not None and (isinstance(value, bool)
+                        or not isinstance(value, (int, float))
+                        or not math.isfinite(value) or value < 0):
+                    raise ValueError(f"{key} must be a finite, non-negative SD or null")
+                if value is not None and run["n"] < 2:
+                    raise ValueError("sample SD requires at least two observations")
             for value in run["stages_min"].values():
                 if not math.isfinite(value) or value < 0:
                     raise ValueError("stage times must be finite and non-negative")
@@ -58,12 +66,19 @@ def plot_campaign(data, output, png=False):
         for x, (run, color) in enumerate(zip(runs, (grey, purple))):
             percent = 100 * run["stored_bytes"] / runs[0]["stored_bytes"]
             ax.bar(x, percent, width=.55, color=color, zorder=3)
-            ax.text(x, percent + 3, f"{percent:.1f}%\n{run['stored_bytes'] / 1e9:.3f} GB",
+            sd = run.get("stored_sd_bytes")
+            sd_percent = 0 if sd is None else 100 * sd / runs[0]["stored_bytes"]
+            if sd is not None:
+                ax.errorbar(x, percent, yerr=sd_percent, fmt="none", ecolor="#172d40",
+                            capsize=4, linewidth=1.2, zorder=4)
+            ax.text(x, percent + sd_percent + 3, f"{percent:.1f}%\n{run['stored_bytes'] / 1e9:.3f} GB",
                     ha="center", va="bottom", fontsize=10)
         saved = 100 * (1 - runs[1]["stored_bytes"] / runs[0]["stored_bytes"])
         ax.text(.74, .8, f"{saved:.1f}% saved", transform=ax.transAxes,
                 ha="center", fontsize=11, color=purple, weight="bold")
-        ax.set_ylim(0, 128)
+        storage_upper = max(100 * (r["stored_bytes"] + (r.get("stored_sd_bytes") or 0)) /
+                            runs[0]["stored_bytes"] for r in runs)
+        ax.set_ylim(0, max(128, storage_upper * 1.2))
         ax.set_ylabel("% of Full retained Zarr bytes" if col == 0 else "")
         ax.axhline(100, color=grey, lw=.8, ls="--", alpha=.6)
 
@@ -71,7 +86,9 @@ def plot_campaign(data, output, png=False):
         totals = [r["total_min"] - r["stages_min"].get(r["excluded_wait_stage"], 0)
                   for r in runs]
         adjusted = any(r["excluded_wait_stage"] for r in runs)
-        ymax = max(totals) * 1.25
+        deviations = [r.get("adjusted_total_sd_min" if r["excluded_wait_stage"] else "total_sd_min")
+                      for r in runs]
+        ymax = max(t + (sd or 0) for t, sd in zip(totals, deviations)) * 1.25
         for x, run in enumerate(runs):
             stages = run["stages_min"]
             prep = sum(stages[k] for k in ("input_compatibility", "canonical_preparation",
@@ -83,10 +100,21 @@ def plot_campaign(data, output, png=False):
             for minutes, color in zip(selected, stage_colors):
                 ax.bar(x, minutes, bottom=bottom, width=.55, color=color, zorder=3)
                 bottom += minutes
+            sd = deviations[x]
+            if sd is not None:
+                ax.errorbar(x, bottom, yerr=sd, fmt="none", ecolor="#172d40",
+                            capsize=4, linewidth=1.2, zorder=4)
             caption = f"{totals[x]:.2f} min"
             if not adjusted:
                 caption += f"\n{100 * totals[x] / totals[0]:.1f}% of Full"
-            ax.text(x, bottom + ymax * .025, caption, ha="center", va="bottom", fontsize=10)
+            ax.text(x, bottom + (sd or 0) + ymax * .025, caption,
+                    ha="center", va="bottom", fontsize=10)
+            if run["recovered"]:
+                return_top = sum(selected[:4])
+                ax.annotate(f"Return interrupted\n({stages['result_return_packaging_extraction']:.2f} min recorded)",
+                            xy=(x, return_top), xytext=(x, ymax * .35),
+                            ha="center", fontsize=9, color="#24654f",
+                            arrowprops={"arrowstyle": "->", "color": "#24654f"})
         if not adjusted:
             delta = totals[1] - totals[0]
             title = f"{delta:+.2f} min ({100 * delta / totals[0]:+.1f}%) vs Full"
@@ -109,7 +137,11 @@ def plot_campaign(data, output, png=False):
                frameon=False, fontsize=10)
     repaired_labels = [p["label"].lower() for p in plates
                        if p["runs"]["remote"]["source_metadata_repaired"]]
-    footnote = "Means; dispersion unavailable. Configurations differ in Zarr format. "
+    has_sd = any(r.get(k) is not None for p in plates for r in p["runs"].values()
+                 for k in ("stored_sd_bytes", "total_sd_min", "adjusted_total_sd_min"))
+    footnote = ("Means ± sample SD where supplied. " if has_sd
+                else "Means; numeric SDs not supplied. ")
+    footnote += "Configurations differ in Zarr format. "
     if repaired_labels:
         footnote += f"† {', '.join(repaired_labels).capitalize()} shallow source provenance repaired. "
     fig.text(.075, .018, footnote + "Shared source excluded.", fontsize=9)

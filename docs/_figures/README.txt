@@ -21,8 +21,15 @@ The plate-comparison-v1 schema contains a plates list, with full and remote
 configurations per Plate. stored_bytes counts retained compressed Zarr files,
 excluding shared source and non-Zarr outputs. total_min and stages_min are the
 reported mean wall-clock minutes; helper_execution_s retains separately reported
-second precision. n records technical repetitions. total_sd_min is null because
-the supplied summary did not include dispersion; no error bars are invented.
+second precision. n records technical repetitions. total_sd_min and optional
+stored_sd_bytes supply sample SDs for elapsed time and retained bytes. Error
+bars show mean +/- one sample SD for n >= 2; null means unknown, not zero.
+Storage SDs are divided by the Full mean to use the same percent scale as the
+bars; they do not estimate uncertainty of a ratio. Do not sum stage SDs to obtain
+total SD (stages covary). For adjusted elapsed time, supply adjusted_total_sd_min
+computed from adjusted per-run times; the original total SD is not reused.
+The supplied summary lacks numeric SDs, so current total_sd_min values remain
+null. Populate them from the corresponding per-condition summary or raw runs.
 
 The source report's SHA-256 is recorded in provenance; the original is archived
 outside the published documentation. Source metadata repair and recovery are

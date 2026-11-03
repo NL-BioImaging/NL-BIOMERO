@@ -142,108 +142,39 @@ byte or pyramid rendering of the returned store.
 Pruning uses same-filesystem moves and a rollback journal before committing the
 manifest. Source pixels remain untouched. See [configuration and recovery](../sysadmin/remote-shallower.rst).
 
+(reconstruct-shallow-zarr-on-disk)=
+## Reconstructing a standalone result
+
+The [reconstruction recipe](https://github.com/NL-BioImaging/BIOMERO.shallower#reconstruct-a-full-zarr)
+creates a self-contained Image or Plate at a **new destination**, using its
+referenced source and retained labels. It preserves v2/v3 format and leaves
+OMERO registrations unchanged. Keep all referenced stores available and allow
+enough disk space for the full copy.
+
 ## Results: measured benefits and costs
 
 [![Retained Zarr storage and recorded elapsed time for small, medium and large Plates. Large Full excludes its explicit recovery wait; all other recorded phases remain.](../_static/figures/shallow-results.svg)](../_static/figures/shallow-results.svg)
 
-**Full v3 versus remote-shallow v2; lower is better.** Bars show reported means
-for 10, 3 and 1 technical repetitions per configuration, respectively. Storage
-is the sum of retained compressed Zarr file sizes before cleanup, excluding
-existing shared source data and non-Zarr output. GB is decimal. Dispersion was
-not supplied with the summary, so error bars cannot be reconstructed.
-The configurations differ in source format and input preparation as well as
-shallowing; differences cannot be attributed to shallowing alone.
+**Full v3 versus remote-shallow v2**, with 10, 3 and 1 technical repetitions per
+configuration for small, medium and large Plates. Storage excludes the existing
+shared source and non-Zarr output; GB is decimal. Bars show means; numeric SDs
+were not included in the supplied summary.
+Format, cache history and shared-storage load also differ between runs.
 
-| Plate images | Full Zarr | Shallow Zarr | Avoided result storage | Recorded elapsed time: Full → shallow |
-| --- | --- | --- | --- | --- |
-| 18 | 0.164 GB | 0.026 GB | **84.5% / 0.139 GB** | 14.0 → 12.9 min |
-| 846 | 7.902 GB | 1.289 GB | **83.7% / 6.613 GB** | 175.3 → 190.2 min |
-| 2,844 | 26.438 GB | 2.772 GB | **89.5% / 23.667 GB** | 1,166.5* → 625.9† min |
+Shallow results retain **83.7-89.5% less Zarr data**. At medium scale,
+return/packaging/extraction falls by **12.11 min**, but overall waiting increases
+by **14.87 min (+8.5%)**. At large scale, canonical preparation (**180.1 min**),
+shallowing (**110.4 min**) and result return (**168.8 min**) each approach or
+exceed analysis execution (**154.0 min**).
 
-**\* Large Full is adjusted recorded time, not an uninterrupted-run estimate.**
-Its reported 4,012.72 min includes 2,846.23 min explicitly recorded as failed
-state / awaiting manual recovery. Only that interval is removed in the figure:
-4,012.72 − 2,846.23 = **1,166.49 min**. The remaining 454.82 min of analysis
-submission/polling/validation and 431.55 min of orchestration gaps are retained
-within grey “other work and waiting”; they are not analysis compute. Its
-0.12-minute return stage records an interrupted attempt, not a complete
-successful return. These boundaries prevent a reliable large-Plate end-to-end
-speedup claim. **† Large shallow used repaired source provenance.** Its measured
-stages remain useful, with that qualification.
+**Large Full (*)** removes only the explicit recovery wait:
+4,012.72 - 2,846.23 = **1,166.49 min**. Its ZIP retrieval was interrupted;
+the green return stage records only **0.12 min**, while grey includes long
+polling and orchestration gaps. This adjusted record is not an uninterrupted-run
+speedup comparison. **Large shallow (†)** used repaired source provenance.
 
-### Where time is spent
-
-| Stage (minutes) | 18 Full / shallow | 846 Full / shallow | 2,844 Full / shallow |
-| --- | --- | --- | --- |
-| Input preparation, including canonical staging | 0.96 / 0.63 | 30.65 / 35.30 | 96.73 / 180.23 |
-| Analysis execution | 3.16 / 2.94 | 62.05 / 69.14 | 152.65 / 153.95 |
-| Remote shallower execution | — / 0.23 | — / 14.88 | — / 110.42 |
-| Result return, packaging and extraction | 3.34 / 2.84 | 78.13 / 66.02 | Interrupted / 168.83 |
-
-Input preparation sums compatibility/conversion, canonical preparation and other
-input preparation/transfer. Canonical preparation includes validation where no
-isolated boundary was available. Figure B stacks these stages with remaining
-work and waiting; source indexing/staging costs are included in the recorded
-workflow time. Scheduler queues remain included, separately from execution in
-the data file. Shared storage, cache history and concurrent HPC activity affect
-these measurements; technical repetitions do not establish biological power.
-
-At medium scale, return/packaging/extraction fell by **12.11 min**, but the
-complete workflow took **14.87 min longer (+8.5%)**. On the large shallow run,
-canonical preparation alone took **180.10 min**, remote shallower execution
-**110.42 min**, and result return/packaging/extraction **168.83 min**, alongside
-**153.95 min** of analysis. Storage savings therefore come with substantial
-processing and data-handling costs; they do not imply faster result delivery.
-The supplied campaign summary does not isolate network transfer time or
-provide CPU allocation/billing figures.
-
-Reproduce the figure: [measurement data](../_figures/data/shallow-plate-comparison.json),
-[plotting script](../_figures/shallow_methods.py),
-[campaign plotting module](../_figures/shallow_campaign.py),
-[instructions](../_figures/README.txt).
-The data preserve all six reported totals and phase breakdowns, including the
-large Full recovery wait; exclusion is a plotting rule, not a change to evidence.
-
-### Earlier local versus remote comparison
-
-A separate historical 846-image pair used cached source identities and compared
-local with remote shallowing, both v2. It retained **1.90 / 1.91 GB**, versus
-**8.35 GB** of complete Full output, including measurements and metadata
-(**77.3% / 77.1% avoided**). This is a different storage scope from the Zarr-only
-campaign above. The return ZIP was **87.6% smaller** remotely; measured HPC
-copy plus ZIP validation took **81.0 → 11.1 s**. This combined stage is not
-isolated network throughput.
-
-Return-side shallowing/validation took **107.1 → 15.5 min**, while complete
-submission-to-DONE time took **318.3 → 303.8 min** under variable storage load.
-A separate Full workflow was not timed in that pair, so it does not measure net
-shallowing overhead. Fresh indexing took **34.6 min** separately and is excluded
-from those cached-input totals. See the [historical measurements](../_figures/data/shallow-846-image.json)
-and [local/remote operational comparison](../sysadmin/remote-shallower.rst).
-
-(reconstruct-shallow-zarr-on-disk)=
-## Reuse, reconstruction and storage accounting
-
-| Next use | Representation supplied |
-| --- | --- |
-| Same-format native Zarr workflow | Reconstructed full Zarr, including inherited and new labels |
-| Different-format workflow | Normal export of selected OMERO pixels; inherited labels are not reconstructed and canonical matching is disabled for that run |
-| TIFF workflow on a mask Image | Selected mask pixels through the existing v2-to-TIFF route |
-| External sharing | Explicitly reconstructed, self-contained Zarr |
-
-V2 / OME-Zarr 0.4 and v3 / OME-Zarr 0.5 remain distinct profiles. Existing stores
-keep their format; native workflows default to v2 and opt into v3 individually.
-A shallow directory is a private BIOMERO representation, not standalone
-OME-Zarr or an RFC 8 Collection.
-
-The existing [standalone reconstruction recipe](https://github.com/NL-BioImaging/BIOMERO.shallower#reconstruct-a-full-zarr)
-creates a full Image or Plate at a **new destination**, preserving its format
-and leaving OMERO registrations unchanged. It needs all referenced stores and
-enough free space. This is a materialized copy, not an in-place undo command.
-
-Operation reports support optional `bytesBefore` / `bytesAfter` measurements
-(`--benchmark-bytes` for standalone normalization). Normal runs omit these to
-avoid extra filesystem scans. Where measured, **avoided result bytes = before
-− after**; archive savings and allocated filesystem space require separate
-measurements. A retrospective audit cannot report an exact original result size
-when that measurement was never recorded.
+[Data](../_figures/data/shallow-plate-comparison.json) and
+[reproduction instructions](../_figures/README.txt) preserve the full phase
+breakdown. An [earlier local/remote comparison](../sysadmin/remote-shallower.rst)
+measured **87.6% less return ZIP data** remotely; its combined copy/validation
+stage took **81.0 to 11.1 s**. That comparison uses a different storage scope.
