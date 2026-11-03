@@ -3,12 +3,10 @@
 Detached BIOMERO Workflows
 ==========================
 
-.. versionadded:: 1.8.0
-
-   Detached workflow execution is controlled by an opt-in feature flag. The fresh NL-BIOMERO
-   demo configuration enables it, but existing and custom deployments continue
-   to use inline execution until ``BIOMERO_DETACHED_WORKFLOWS`` is explicitly
-   enabled.
+Detached workflows continue in the background after the submitting OMERO
+session ends. Enable them with ``BIOMERO_DETACHED_WORKFLOWS``; the supplied demo
+configuration enables this mode. If the flag is absent or false, workflows run
+inline.
 
 .. note::
    **Summary for system administrators:**
@@ -55,9 +53,8 @@ The supplied Compose files pass this feature flag to the required services. If
 the flag is absent or ``FALSE``, workflows use inline execution.
 
 .. important::
-   Update ``biomeroworker`` to the corresponding NL-BIOMERO release before
-   enabling detached workflows. The worker must include the same compatible
-   ``biomero-scripts`` release as OMERO.server. The supplied NL-BIOMERO images
+   Detached execution requires the same compatible ``biomero-scripts`` release
+   in ``biomeroworker`` and OMERO.server. The supplied NL-BIOMERO images
    keep these versions aligned through ``BIOMERO_SCRIPTS_VERSION``.
 
    Detached mode currently supports one active ``biomeroworker`` per BIOMERO
@@ -187,28 +184,29 @@ See also
 HPC Connection Interruptions
 ----------------------------
 
-Detached execution keeps the accepted workflow independent of the submitting
-browser session. SSH recovery separately reconnects interrupted HPC operations.
-Configure the runtime recovery window in the shared ``slurm-config.ini``::
+SSH recovery reconnects interrupted HPC operations in both inline and detached
+workflows. It is enabled by default with a 900-second (15-minute) recovery window.
+Configure the window in the shared ``slurm-config.ini``::
 
    [SLURM]
    ssh_recovery_timeout = 900
 
-The demo selects 900 seconds. Existing deployments without this setting retain
-legacy transport behavior (``0``). No additional feature flag is required. Save
-before launching new workflows; changing the window does not require Slurm Init.
+Missing or empty settings use the 900-second default. Set ``0`` to disable
+recovery. Save before launching new workflows; changing the window does not
+require Slurm Init.
 The window begins at the first failed attempt in each interruption. Healthy
 queueing, processing and helper runtime do not consume it. Nested operations
-share the current interruption's deadline and caller heartbeat callbacks.
+share the current interruption's deadline.
 The administrator page exposes this as **SSH recovery window (seconds)**.
-An explicit ``BIOMERO_SSH_RECOVERY_TIMEOUT`` environment override takes precedence,
+An explicit, nonempty ``BIOMERO_SSH_RECOVERY_TIMEOUT`` override takes precedence,
 so leave it unset when managing the shared INI.
 
 The activity log reports **Waiting for SSH connection** while known Slurm job
 state and IDs are preserved. Monitoring, compatible submissions and result
 retrieval reconnect within the window. Authentication, host-key and storage
-permission errors still require administrator action. A deadline expiry reports
-the connection problem and preserves existing jobs and recovery material.
+permission errors still require administrator action. If the window expires,
+the workflow fails. Existing jobs and recovery records are preserved, but the
+workflow does not automatically resume later.
 
 Submission reconciliation reserves the Slurm job name for a tracked task ID.
 It requires workflow tracking, ``flock``, writable shared HPC storage and Slurm
