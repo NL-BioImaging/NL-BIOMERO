@@ -1,0 +1,68 @@
+<style>
+.shallow-file-comparison { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; margin:24px 0; }
+.shallow-tree { border:3px solid #526171; border-radius:8px; overflow:hidden; background:#fff; }
+.shallow-tree.on { border-color:#7c3aed; }
+.shallow-tree header { padding:14px 18px; background:#e5e7eb; color:#17354a; border-bottom:2px solid #526171; }
+.shallow-tree.on header { background:#ede9fe; color:#4c1d95; border-bottom-color:#7c3aed; }
+.shallow-tree header strong { display:block; font:700 19px/1.4 Arial,sans-serif; }
+.shallow-tree header small { font:14px/1.4 Arial,sans-serif; }
+.shallow-tree pre.tree-files { margin:0; padding:18px; border:0; background:#fff; color:#17354a; font:14px/1.7 Consolas,"Liberation Mono",monospace; white-space:pre; overflow-x:auto; }
+.tree-root { font-weight:700; }
+.tree-section { display:block; }
+.tree-pixels { background:#e7eff6; }
+.tree-labels { background:#e6f2ec; }
+.tree-added { background:#fff3d6; font-weight:700; }
+.tree-modified { background:#ede9fe; color:#4c1d95; font-weight:700; }
+.tree-gap { color:#a5afb9; }
+@media(max-width:760px) { .shallow-file-comparison { grid-template-columns:1fr; } }
+</style>
+<div class="shallow-file-comparison" role="group" aria-label="Directory contents with shallow storage off and on">
+  <section class="shallow-tree off" aria-label="Shallow off: full result directory">
+    <header><strong>Shallow OFF</strong><small>Full result directory</small></header>
+    <pre class="tree-files"><span class="tree-section"><span class="tree-root">📁 result.ome.zarr/</span>
+├── 📄 .zgroup
+├── 📄 .zattrs
+</span><span class="tree-section tree-pixels">├── 📁 0/
+│   ├── 📄 .zarray
+│   ├── 📄 0.0
+│   └── …
+├── 📁 1/
+│   ├── 📄 .zarray
+│   ├── 📄 0.0
+│   └── …
+</span><span class="tree-section tree-labels">└── 📁 labels/
+    ├── 📄 .zgroup
+    ├── 📄 .zattrs
+    └── 📁 cells/
+        ├── 📄 .zgroup
+        ├── 📄 .zattrs
+        └── 📁 0/
+            ├── 📄 .zarray
+            ├── 📄 0.0
+            └── …</span></pre>
+  </section>
+  <section class="shallow-tree on" aria-label="Shallow on: reference-backed result directory">
+    <header><strong>Shallow ON</strong><small>Reference-backed result directory</small></header>
+    <pre class="tree-files"><span class="tree-section"><span class="tree-root">📁 result.ome.zarr/</span>
+├── 📄 .zgroup
+<span class="tree-modified">├── 📄 .zattrs  ✎ modified</span>
+</span><span class="tree-section"><span class="tree-added">├── 📄 .biomero-shallow.json
+├── 📄 .biomero-shallow-report.json</span>
+<span class="tree-gap">│
+│
+│
+│
+│
+│</span>
+</span><span class="tree-section tree-labels">└── 📁 labels/
+    ├── 📄 .zgroup
+    ├── 📄 .zattrs
+    └── 📁 cells/
+        ├── 📄 .zgroup
+        ├── 📄 .zattrs
+        └── 📁 0/
+            ├── 📄 .zarray
+            ├── 📄 0.0
+            └── …</span></pre>
+  </section>
+</div>

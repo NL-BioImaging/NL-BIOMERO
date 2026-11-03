@@ -1,0 +1,24 @@
+flowchart TB
+    SELECT["<b>Select an OMERO Image or Plate + a workflow</b>"]
+    TYPE{"Workflow input format?"}
+    SELECT --> TYPE
+    TYPE -->|"TIFF"| TIFF["<b>Prepare selected OMERO pixel view</b><br/>Reuse/export v2 Zarr → TIFF<br/>No full label reconstruction or canonical promotion"]
+    TYPE -->|"Native Zarr v2 or v3"| FORMAT{"Stored representation matches<br/>the requested Zarr format?"}
+    FORMAT -->|"No: different format"| TEMP["<b>Fresh export in requested format</b><br/>Selected OMERO pixels only<br/>No canonical promotion; stored source unchanged"]
+    FORMAT -->|"Yes: shallow result"| RESTORE["<b>Reconstruct a temporary full Zarr</b><br/>Read referenced source + inherited/new labels<br/>Existing shallow result stays unchanged"]
+    FORMAT -->|"Yes: full managed Zarr"| REUSE["<b>Reuse full store</b><br/>With shallowing enabled: reuse canonical identities<br/>or index this store if needed"]
+    FORMAT -->|"No reusable backing Zarr"| EXPORT["<b>Fresh export in requested format</b><br/>With shallowing enabled: verify and promote<br/>as canonical when eligible"]
+    RESTORE --> RUN["<b>Send full input to the HPC workflow</b><br/>The workflow does not need a shallow-Zarr reader"]
+    REUSE --> RUN
+    EXPORT --> RUN
+    TEMP --> RUN
+    TIFF --> RUN
+    RESTORE -. "Referenced pixels unavailable" .-> STOP["Stop; incomplete data cannot be restored"]
+    classDef full fill:#e7eff6,stroke:#526171,stroke-width:2px,color:#17354a;
+    classDef shallow fill:#faf7ff,stroke:#7c3aed,stroke-width:3px,color:#17354a;
+    classDef temporary fill:#f3f5f7,stroke:#526171,color:#17354a;
+    classDef action fill:#fff3d6,stroke:#a57918,color:#17354a;
+    class REUSE,RUN full;
+    class RESTORE shallow;
+    class TIFF,TEMP temporary;
+    class EXPORT action;

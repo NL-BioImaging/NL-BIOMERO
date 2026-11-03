@@ -1,0 +1,26 @@
+flowchart TB
+    subgraph OFF["SHALLOW OFF"]
+        direction LR
+        OFFREC["<b>OMERO result</b><br/>PixelBuffer path points to full result"]
+        FULL["<b>Shared storage: result.ome.zarr/</b><br/>Image arrays + pyramids + labels"]
+        OFFREC -->|"Read intensities"| FULL
+    end
+    subgraph ON["SHALLOW ON"]
+        direction LR
+        ONREC["<b>OMERO result</b><br/>PixelBuffer path points to source<br/>MapAnnotation: biomero.zarr.shallow"]
+        SRC["<b>Shared storage: source.ome.zarr/</b><br/>Original image arrays + pyramids<br/>Retained for dependent results"]
+        RESULT["<b>Shared storage: result.ome.zarr/</b><br/>Retained labels + shallow JSON files"]
+        ONREC -->|"Read intensities"| SRC
+        ONREC -. "Annotation: locate result labels / reuse" .-> RESULT
+        RESULT -. "Manifest: locate omitted image arrays" .-> SRC
+    end
+    OFF ~~~ ON
+    style OFF fill:#f5f7fa,stroke:#526171,stroke-width:3px;
+    style ON fill:#faf7ff,stroke:#7c3aed,stroke-width:3px;
+    classDef source fill:#e7eff6,stroke:#245b83,color:#17354a;
+    classDef result fill:#e6f2ec,stroke:#28765b,color:#17354a;
+    classDef record fill:#f3f5f7,stroke:#526171,color:#17354a;
+    class SRC,FULL source;
+    class RESULT result;
+    class OFFREC record;
+    style ONREC fill:#ede9fe,stroke:#7c3aed,stroke-width:3px,color:#4c1d95;

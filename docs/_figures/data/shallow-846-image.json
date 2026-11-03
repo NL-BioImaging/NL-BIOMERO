@@ -1,0 +1,49 @@
+{
+  "title": "Historical matched 846-image Plate comparison",
+  "provenance": {
+    "narrative_report_sha256": "b60039356267d498fd08936fae2dca1b02afa5a467b098af9b0d2bb84c14f4c7",
+    "measurements_report_sha256": "f5b063bea220b13d3c90718cb13a44d17e8476059ef7c4f8cbcc1cc4ae87da8d",
+    "result_storage_report_sha256": "a932515becad3201509e50c7af21ed1d29675f4cd590aa0f6fd30536f68151e8"
+  },
+  "notes": [
+    "One local/remote pair; input identities were cached.",
+    "Full bytes and return-copy time are pre-shallow measurements from the local run, not an independently timed Full workflow.",
+    "Byte counts are logical file sizes; return-copy timing includes archive validation.",
+    "Storage compares the complete uncompressed Full output with complete retained result files, including measurements and metadata overhead. The 7726998765-byte Full Zarr alone excludes the measurement database and is not this denominator.",
+    "Fresh source indexing and existing shared-source storage are excluded."
+  ],
+  "runs": {
+    "full": {
+      "zarr_format": 2,
+      "stored_bytes": 8349603053,
+      "return_copy_validation_s": 80.983,
+      "timing": null
+    },
+    "local": {
+      "zarr_format": 2,
+      "stored_bytes": 1898421322,
+      "return_copy_validation_s": 80.983,
+      "timing": {
+        "analysis_s": 3318,
+        "shallowing_stages_s": {
+          "identity": 4089.186,
+          "normalization": 2337.594
+        },
+        "total_s": 19099.601507
+      }
+    },
+    "remote": {
+      "zarr_format": 2,
+      "stored_bytes": 1913445569,
+      "return_copy_validation_s": 11.109,
+      "timing": {
+        "analysis_s": 3271,
+        "shallowing_stages_s": {
+          "hpc_helper": 868,
+          "importer_validation": 63.492
+        },
+        "total_s": 18226.038933
+      }
+    }
+  }
+}
