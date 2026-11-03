@@ -2,7 +2,7 @@
 
 Run: python docs/_figures/shallow_methods.py [--data measurements.json]
      [--output figure.svg] [--png]
-Measurements live in data/shallow-846-image.json; see README.txt for its format.
+Measurements live in data/; see README.txt for their formats.
 """
 import argparse
 import json
@@ -51,15 +51,11 @@ def load_measurements(path):
 
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--data", type=Path, default=HERE / "data" / "shallow-846-image.json")
+parser.add_argument("--data", type=Path, default=HERE / "data" / "shallow-plate-comparison.json")
 parser.add_argument("--output", type=Path,
                     default=HERE.parent / "_static" / "figures" / "shallow-results.svg")
 parser.add_argument("--png", action="store_true", help="Also write a PNG beside the SVG")
 args = parser.parse_args()
-try:
-    data = load_measurements(args.data)
-except (OSError, ValueError, KeyError, TypeError) as exc:
-    parser.error(f"Invalid measurement data: {exc}")
 if args.output.suffix.lower() != ".svg":
     parser.error("--output must be an SVG filename")
 args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -67,6 +63,15 @@ plt.rcParams.update({"font.family": ["Arial", "DejaVu Sans", "sans-serif"],
                      "font.size": 11, "svg.fonttype": "none",
                      "svg.hashsalt": "biomero-shallow-results",
                      "savefig.facecolor": "white"})
+try:
+    data = json.loads(args.data.read_text(encoding="utf-8"))
+    if data.get("schema") == "plate-comparison-v1":
+        from shallow_campaign import plot_campaign
+        plot_campaign(data, args.output, args.png)
+        raise SystemExit(0)
+    data = load_measurements(args.data)
+except (OSError, ValueError, KeyError, TypeError) as exc:
+    parser.error(f"Invalid measurement data: {exc}")
 BLUE, GREEN, GREY = "#245b83", "#28765b", "#526171"
 
 fig = plt.figure(figsize=(12, 8.3))

@@ -142,49 +142,84 @@ byte or pyramid rendering of the returned store.
 Pruning uses same-filesystem moves and a rollback journal before committing the
 manifest. Source pixels remain untouched. See [configuration and recovery](../sysadmin/remote-shallower.rst).
 
-## Results: measured benefits and limits
+## Results: measured benefits and costs
 
-[![Full, local shallow and remote shallow compared on stored bytes and measured HPC return copy plus ZIP validation time. Stacked total-time bars include analysis, shallowing and other work; Full runtime was not measured.](../_static/figures/shallow-results.svg)](../_static/figures/shallow-results.svg)
+[![Retained Zarr storage and recorded elapsed time for small, medium and large Plates. Large Full excludes its explicit recovery wait; all other recorded phases remain.](../_static/figures/shallow-results.svg)](../_static/figures/shallow-results.svg)
 
-**Historical 846-image comparison; lower is better in every panel.**
-Categories have the same order throughout. A uses the full archive's uncompressed
-file bytes as 100%; both Full and retained results include measurements and
-metadata, excluding shared source data. B uses the full ZIP's measured HPC return copy plus archive
-validation time as 100%; Local transfers that full ZIP before shallowing.
-This is the combined copy/validation stage, not isolated network throughput.
-C stacks the
-measured analysis and shallowing stages with the remaining work to show total
-submission-to-DONE time. Total percentages use Local = 100%.
-**No separate Full run was timed at this scale.** GB is decimal.
-The reductions in the headings are observations from this comparison.
+**Full v3 versus remote-shallow v2; lower is better.** Bars show reported means
+for 10, 3 and 1 technical repetitions per configuration, respectively. Storage
+is the sum of retained compressed Zarr file sizes before cleanup, excluding
+existing shared source data and non-Zarr output. GB is decimal. Dispersion was
+not supplied with the summary, so error bars cannot be reconstructed.
+The configurations differ in source format and input preparation as well as
+shallowing; differences cannot be attributed to shallowing alone.
 
-| Time breakdown | Local shallow | Remote shallow |
-| --- | --- | --- |
-| Analysis job | 55.3 min | 54.5 min |
-| Return-side shallowing / validation | 107.1 min | 15.5 min |
-| Other work, I/O and waiting | 155.9 min | 233.7 min |
-| **Total researcher wait** | **318.3 min** | **303.8 min** |
+| Plate images | Full Zarr | Shallow Zarr | Avoided result storage | Recorded elapsed time: Full → shallow |
+| --- | --- | --- | --- | --- |
+| 18 | 0.164 GB | 0.026 GB | **84.5% / 0.139 GB** | 14.0 → 12.9 min |
+| 846 | 7.902 GB | 1.289 GB | **83.7% / 6.613 GB** | 175.3 → 190.2 min |
+| 2,844 | 26.438 GB | 2.772 GB | **89.5% / 23.667 GB** | 1,166.5* → 625.9† min |
 
-Remote retained **1.91 GB** instead of **8.35 GB**, avoiding approximately
-**6.44 GB per result (77.1%)**; its return ZIP was **87.6% smaller**. Measured return
-copy plus validation fell from **81.0 s to 11.1 s**
-(**86.3%, or 69.9 s saved**) in this pair. Shallowing is
-**part of total wait**, not extra time to add to that total. Its stage fell by
-91.6 min, but other work increased by 77.8 min. Permanent archive staging alone
-took 115.7 min locally versus 190.1 min remotely under variable storage load.
-Total wait therefore fell by only **14.6 min (4.6%)**.
+**\* Large Full is adjusted recorded time, not an uninterrupted-run estimate.**
+Its reported 4,012.72 min includes 2,846.23 min explicitly recorded as failed
+state / awaiting manual recovery. Only that interval is removed in the figure:
+4,012.72 − 2,846.23 = **1,166.49 min**. The remaining 454.82 min of analysis
+submission/polling/validation and 431.55 min of orchestration gaps are retained
+within grey “other work and waiting”; they are not analysis compute. Its
+0.12-minute return stage records an interrupted attempt, not a complete
+successful return. These boundaries prevent a reliable large-Plate end-to-end
+speedup claim. **† Large shallow used repaired source provenance.** Its measured
+stages remain useful, with that qualification.
 
-These are stage costs, not measured net overhead versus Full. Subtracting them
-does not predict a shallow-off runtime: archive sizes and I/O would also change.
+### Where time is spent
 
-The input identities were cached for both runs. Fresh source indexing took
-**34.6 min** separately and is excluded above. Storage excludes the shared source;
-the remote helper additionally reserved **0.482 CPU-hours**, with no GPU.
-This is one matched pair, not a new benchmark of the current release.
-[Measurement context](../sysadmin/remote-shallower.rst).
-Reproduce the figure: [measurement data](../_figures/data/shallow-846-image.json),
+| Stage (minutes) | 18 Full / shallow | 846 Full / shallow | 2,844 Full / shallow |
+| --- | --- | --- | --- |
+| Input preparation, including canonical staging | 0.96 / 0.63 | 30.65 / 35.30 | 96.73 / 180.23 |
+| Analysis execution | 3.16 / 2.94 | 62.05 / 69.14 | 152.65 / 153.95 |
+| Remote shallower execution | — / 0.23 | — / 14.88 | — / 110.42 |
+| Result return, packaging and extraction | 3.34 / 2.84 | 78.13 / 66.02 | Interrupted / 168.83 |
+
+Input preparation sums compatibility/conversion, canonical preparation and other
+input preparation/transfer. Canonical preparation includes validation where no
+isolated boundary was available. Figure B stacks these stages with remaining
+work and waiting; source indexing/staging costs are included in the recorded
+workflow time. Scheduler queues remain included, separately from execution in
+the data file. Shared storage, cache history and concurrent HPC activity affect
+these measurements; technical repetitions do not establish biological power.
+
+At medium scale, return/packaging/extraction fell by **12.11 min**, but the
+complete workflow took **14.87 min longer (+8.5%)**. On the large shallow run,
+canonical preparation alone took **180.10 min**, remote shallower execution
+**110.42 min**, and result return/packaging/extraction **168.83 min**, alongside
+**153.95 min** of analysis. Storage savings therefore come with substantial
+processing and data-handling costs; they do not imply faster result delivery.
+The supplied campaign summary does not isolate network transfer time or
+provide CPU allocation/billing figures.
+
+Reproduce the figure: [measurement data](../_figures/data/shallow-plate-comparison.json),
 [plotting script](../_figures/shallow_methods.py),
+[campaign plotting module](../_figures/shallow_campaign.py),
 [instructions](../_figures/README.txt).
+The data preserve all six reported totals and phase breakdowns, including the
+large Full recovery wait; exclusion is a plotting rule, not a change to evidence.
+
+### Earlier local versus remote comparison
+
+A separate historical 846-image pair used cached source identities and compared
+local with remote shallowing, both v2. It retained **1.90 / 1.91 GB**, versus
+**8.35 GB** of complete Full output, including measurements and metadata
+(**77.3% / 77.1% avoided**). This is a different storage scope from the Zarr-only
+campaign above. The return ZIP was **87.6% smaller** remotely; measured HPC
+copy plus ZIP validation took **81.0 → 11.1 s**. This combined stage is not
+isolated network throughput.
+
+Return-side shallowing/validation took **107.1 → 15.5 min**, while complete
+submission-to-DONE time took **318.3 → 303.8 min** under variable storage load.
+A separate Full workflow was not timed in that pair, so it does not measure net
+shallowing overhead. Fresh indexing took **34.6 min** separately and is excluded
+from those cached-input totals. See the [historical measurements](../_figures/data/shallow-846-image.json)
+and [local/remote operational comparison](../sysadmin/remote-shallower.rst).
 
 (reconstruct-shallow-zarr-on-disk)=
 ## Reuse, reconstruction and storage accounting
