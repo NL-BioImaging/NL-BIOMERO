@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Working with shallow OME-Zarr results &mdash; NL-BIOMERO 1.8.0-beta.11 documentation</title>
+  <title>Working with shallow OME-Zarr results &mdash; NL-BIOMERO 1.8.0-beta.12 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -399,7 +399,7 @@ window.addEventListener("load", load);
             NL-BIOMERO
           </a>
               <div class="version">
-                1.8.0-beta.11
+                1.8.0-beta.12
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -904,12 +904,15 @@ window.addEventListener("load", load);
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Working with shallow OME-Zarr results</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#what-is-stored">What is stored?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#what-you-see-in-omero">What you see in OMERO</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#how-biomero-checks-that-pixels-are-unchanged">How BIOMERO checks that pixels are unchanged</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#using-results-in-another-workflow">Using results in another workflow</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#exporting-a-standalone-zarr">Exporting a standalone Zarr</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#local-remote-and-detached-processing">Local, remote and detached processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#on-disk-shallow-off-versus-on">On disk: shallow off versus on</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#in-omero-two-different-references">In OMERO: two different references</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#workflow-input-reuse-reconstruct-or-export">Workflow input: reuse, reconstruct or export</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#what-registering-or-promoting-a-canonical-zarr-entails">What registering or promoting a canonical Zarr entails</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#when-verification-runs">When verification runs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reconstructing-a-standalone-result">Reconstructing a standalone result</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#results-measured-benefits-and-costs">Results: measured benefits and costs</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="containers/index.html">Container Development</a><ul>
@@ -1185,181 +1188,391 @@ window.addEventListener("load", load);
 
   <section id="working-with-shallow-ome-zarr-results">
 <h1>Working with shallow OME-Zarr results<a class="headerlink" href="#working-with-shallow-ome-zarr-results" title="Permalink to this heading"></a></h1>
-<p>Shallow storage keeps your analysis results without storing another copy of
-unchanged source pixels. New segmentation labels and other changed data remain
-in the result; unchanged pixels are referenced from their existing managed
-location. Your original data is not modified.</p>
-<p>This can substantially reduce storage for repeated analyses of the same Images
-or Plates. Earlier examples saved around 90% of result disk space, at the cost
-of additional verification and processing. Savings depend on what the workflow
-changes, not just the number of images.</p>
-<p>Your administrator enables the feature and chooses local or remote processing.
-There is no extra step when you submit a supported workflow. For configuration
-and the short performance comparison, see
-<a class="reference internal" href="../sysadmin/remote-shallower.html"><span class="std std-doc">Shallow OME-Zarr Storage</span></a>.</p>
-<section id="what-is-stored">
-<h2>What is stored?<a class="headerlink" href="#what-is-stored" title="Permalink to this heading"></a></h2>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Part</p></th>
-<th class="head"><p>Contents</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>Managed source</p></td>
-<td><p>Full image pixels, reused from an existing Zarr or converted into a reusable Zarr when needed</p></td>
-</tr>
-<tr class="row-odd"><td><p>Shallow result</p></td>
-<td><p>New or changed labels, result metadata, and references to unchanged source pixels or inherited labels</p></td>
-</tr>
-<tr class="row-even"><td><p>Reconstructed result</p></td>
-<td><p>A full, self-contained Zarr assembled when needed for another workflow or external use</p></td>
-</tr>
-</tbody>
-</table>
-<p>The shallow result’s <code class="docutils literal notranslate"><span class="pre">.biomero-shallow.json</span></code> manifest records how these parts
-fit together. <strong>Keep its referenced source and label stores available.</strong> A
-shallow directory alone is not a backup of the complete result. Ask your
-administrator before moving or deleting managed data.</p>
-<p>BIOMERO keeps one canonical registration per OMERO Image or Plate. When an
-input is already a managed Zarr, it is indexed in place; duplicate OMERO
-imports may therefore share that physical source. Otherwise BIOMERO creates
-one stable canonical Zarr and reuses it. It does not retain historical copies
-of generated canonical stores.</p>
-<p>Only derived workflow results are shallowed. Uploading a Zarr does not by
-itself trigger deduplication. If returned image pixels have changed, or BIOMERO
-cannot safely establish a match, it retains the full result.</p>
+<style>
+.wy-nav-content { max-width: 1100px; }
+.wy-table-responsive table { width: 100%; table-layout: fixed; }
+.wy-table-responsive table td, .wy-table-responsive table th { white-space: normal; }
+.wy-table-responsive code { overflow-wrap: anywhere; }
+</style><p>BIOMERO stores a workflow result as <strong>retained data plus references to unchanged
+managed pixels</strong>. The result remains a distinct OMERO Image or Plate with its
+own provenance. Storage is saved on the shared filesystem, without deleting the
+source or suppressing result registration.</p>
+<section id="on-disk-shallow-off-versus-on">
+<h2>On disk: shallow off versus on<a class="headerlink" href="#on-disk-shallow-off-versus-on" title="Permalink to this heading"></a></h2>
+<p><strong>Example: one 2D v2 Image, unchanged intensities, one new <code class="docutils literal notranslate"><span class="pre">cells</span></code> label.</strong>
+The directory contents below represent the same analysis result.
+<strong>The two comparisons use grey borders for Shallow OFF and purple for Shallow
+ON.</strong> Here, fills describe contents: blue pixels, green labels, yellow
+reference/provenance metadata.</p>
+<style>
+.shallow-file-comparison { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; margin:24px 0; }
+.shallow-tree { border:3px solid #526171; border-radius:8px; overflow:hidden; background:#fff; }
+.shallow-tree.on { border-color:#7c3aed; }
+.shallow-tree header { padding:14px 18px; background:#e5e7eb; color:#17354a; border-bottom:2px solid #526171; }
+.shallow-tree.on header { background:#ede9fe; color:#4c1d95; border-bottom-color:#7c3aed; }
+.shallow-tree header strong { display:block; font:700 19px/1.4 Arial,sans-serif; }
+.shallow-tree header small { font:14px/1.4 Arial,sans-serif; }
+.shallow-tree pre.tree-files { margin:0; padding:18px; border:0; background:#fff; color:#17354a; font:14px/1.7 Consolas,"Liberation Mono",monospace; white-space:pre; overflow-x:auto; }
+.tree-root { font-weight:700; }
+.tree-section { display:block; }
+.tree-pixels { background:#e7eff6; }
+.tree-labels { background:#e6f2ec; }
+.tree-added { background:#fff3d6; font-weight:700; }
+.tree-modified { background:#ede9fe; color:#4c1d95; font-weight:700; }
+.tree-gap { color:#a5afb9; }
+@media(max-width:760px) { .shallow-file-comparison { grid-template-columns:1fr; } }
+</style>
+<div class="shallow-file-comparison" role="group" aria-label="Directory contents with shallow storage off and on">
+  <section class="shallow-tree off" aria-label="Shallow off: full result directory">
+    <header><strong>Shallow OFF</strong><small>Full result directory</small></header>
+    <pre class="tree-files"><span class="tree-section"><span class="tree-root">📁 result.ome.zarr/</span>
+├── 📄 .zgroup
+├── 📄 .zattrs
+</span><span class="tree-section tree-pixels">├── 📁 0/
+│   ├── 📄 .zarray
+│   ├── 📄 0.0
+│   └── …
+├── 📁 1/
+│   ├── 📄 .zarray
+│   ├── 📄 0.0
+│   └── …
+</span><span class="tree-section tree-labels">└── 📁 labels/
+    ├── 📄 .zgroup
+    ├── 📄 .zattrs
+    └── 📁 cells/
+        ├── 📄 .zgroup
+        ├── 📄 .zattrs
+        └── 📁 0/
+            ├── 📄 .zarray
+            ├── 📄 0.0
+            └── …</span></pre>
+  </section>
+  <section class="shallow-tree on" aria-label="Shallow on: reference-backed result directory">
+    <header><strong>Shallow ON</strong><small>Reference-backed result directory</small></header>
+    <pre class="tree-files"><span class="tree-section"><span class="tree-root">📁 result.ome.zarr/</span>
+├── 📄 .zgroup
+<span class="tree-modified">├── 📄 .zattrs  ✎ modified</span>
+</span><span class="tree-section"><span class="tree-added">├── 📄 .biomero-shallow.json
+├── 📄 .biomero-shallow-report.json</span>
+<span class="tree-gap">│
+│
+│
+│
+│
+│</span>
+</span><span class="tree-section tree-labels">└── 📁 labels/
+    ├── 📄 .zgroup
+    ├── 📄 .zattrs
+    └── 📁 cells/
+        ├── 📄 .zgroup
+        ├── 📄 .zattrs
+        └── 📁 0/
+            ├── 📄 .zarray
+            ├── 📄 0.0
+            └── …</span></pre>
+  </section>
+</div>
+<p><strong>The blue folders disappear from the result:</strong> full-resolution image
+chunks and their pyramid arrays. The original source retains those pixels.
+<strong>Green is added by the workflow, not by the shallower:</strong> those label files
+remain in both result formats. Two small JSON files are added; <code class="docutils literal notranslate"><span class="pre">.zattrs</span></code> loses
+<code class="docutils literal notranslate"><span class="pre">multiscales</span></code> and gains a <code class="docutils literal notranslate"><span class="pre">biomero</span></code> pointer to the shallow manifest.
+These edits affect the returned image metadata; the source is unchanged by
+shallowing. Other output files, such as CSV measurements, remain.</p>
+<p>The file <code class="docutils literal notranslate"><span class="pre">0.0</span></code> is an example pixel chunk; <code class="docutils literal notranslate"><span class="pre">…</span></code> stands for further chunk files.
+Blank rows on the right align the retained labels; they are not files.
+This is a file-layout example, not a file-count or size scale. <code class="docutils literal notranslate"><span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">1</span></code>, … are
+example array names; <code class="docutils literal notranslate"><span class="pre">s0</span></code>, <code class="docutils literal notranslate"><span class="pre">s1</span></code>, … work too. A Plate repeats the image layout
+under its well/field paths. V3 uses <code class="docutils literal notranslate"><span class="pre">zarr.json</span></code> in place of the v2 metadata files;
+the same keep/omit/reference distinction applies.</p>
 </section>
-<section id="what-you-see-in-omero">
-<h2>What you see in OMERO<a class="headerlink" href="#what-you-see-in-omero" title="Permalink to this heading"></a></h2>
-<p>You can browse the registered results as Images or Plates. OMERO’s pixel-reading
-component, the <strong>PixelBuffer</strong>, reads original intensities from the managed source
-and mask pixels from retained label arrays. Missing duplicate arrays are not
-replaced with zeros, and viewing does not require another full copy.</p>
-<ul class="simple">
-<li><p><strong>Image results:</strong> the primary Image shows source intensities and opens all
-result labels in the OME-Zarr Viewer. Separate mask Images remain available
-as lightweight input projections for TIFF-based workflows.</p></li>
-<li><p><strong>Plate results:</strong> the primary Plate shows source intensities. An optional
-label-backed preview shows one selected label in the same well/field layout.
-Other labels remain in the result even when not registered as separate Plates.</p></li>
-</ul>
-<p>These are views of shared data, not independent copies of all its pixels.
-A label preview is not the complete set of labels. The Plate preview control is
-hidden by default because the OME-Zarr Viewer displays the labels on the primary
-Plate. An administrator can expose it with
-<code class="docutils literal notranslate"><span class="pre">allow_plate_label_preview</span> <span class="pre">=</span> <span class="pre">true</span></code> under <code class="docutils literal notranslate"><span class="pre">[UI]</span></code> in <code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code>.</p>
-</section>
-<section id="how-biomero-checks-that-pixels-are-unchanged">
-<h2>How BIOMERO checks that pixels are unchanged<a class="headerlink" href="#how-biomero-checks-that-pixels-are-unchanged" title="Permalink to this heading"></a></h2>
-<p>BIOMERO uses <strong>ISCC-BIO pixel identities</strong> to compare workflow inputs and results.
-It records or reuses input identities, then calculates identities from the
-returned pixels before removing duplicates.</p>
-<p>The IMAGEWALK method examines decoded image pixels rather than relying on a
-filename or a checksum of the whole Zarr directory. Recompression or adding a
-label can change stored files without changing the original image. BIOMERO
-also checks properties such as shape, data type, axes and spatial transforms;
-a matching filename or copied identity annotation is not enough.</p>
-<p>Images and labels are checked independently. If a follow-up workflow receives
-five existing label layers and adds four new ones, unchanged inherited layers
-can remain references while the four new layers are stored in the new result.
-Reconstruction includes all nine. A changed label is retained rather than
-mistaken for the old one.</p>
-<p>This is conservative pixel verification, not an adversarial security guarantee.
-For the exact comparison fields, see the
-<a class="reference external" href="https://nl-bioimaging.github.io/biomero-schema/pixel-identity/">PixelIdentity reference</a>.</p>
-</section>
-<section id="using-results-in-another-workflow">
-<h2>Using results in another workflow<a class="headerlink" href="#using-results-in-another-workflow" title="Permalink to this heading"></a></h2>
-<p>Select the shallow result normally. For a <strong>Zarr-consuming workflow</strong>, BIOMERO
-Image Transfer reconstructs a full Zarr containing source pixels and the
-result’s inherited and new labels before sending it to HPC.</p>
+<section id="in-omero-two-different-references">
+<h2>In OMERO: two different references<a class="headerlink" href="#in-omero-two-different-references" title="Permalink to this heading"></a></h2>
 <pre  class="mermaid">
-        flowchart LR
-    S[&quot;Managed source pixels&quot;] --&gt; R[&quot;Reconstruct full Zarr&quot;]
-    L[&quot;Shallow result&lt;br/&gt;References and retained labels&quot;] --&gt; R
-    R --&gt; W[&quot;Next Zarr workflow&quot;]
-    W --&gt; C{&quot;Returned pixels&lt;br/&gt;verified unchanged?&quot;}
-    C --&gt;|Yes, eligible result| N[&quot;Store shallow result&quot;]
-    C --&gt;|Changed or uncertain| F[&quot;Keep full result&quot;]
-    </pre><p>Reconstruction takes time and temporary disk space proportional to the data
-being assembled. It restores a usable full representation; it does not undo
-or modify the stored shallow result.</p>
-<p>There is one important format distinction:</p>
+        flowchart TB
+    subgraph OFF[&quot;SHALLOW OFF&quot;]
+        direction LR
+        OFFREC[&quot;&lt;b&gt;OMERO result&lt;/b&gt;&lt;br/&gt;PixelBuffer path points to full result&quot;]
+        FULL[&quot;&lt;b&gt;Shared storage: result.ome.zarr/&lt;/b&gt;&lt;br/&gt;Image arrays + pyramids + labels&quot;]
+        OFFREC --&gt;|&quot;Read intensities&quot;| FULL
+    end
+    subgraph ON[&quot;SHALLOW ON&quot;]
+        direction LR
+        ONREC[&quot;&lt;b&gt;OMERO result&lt;/b&gt;&lt;br/&gt;PixelBuffer path points to source&lt;br/&gt;MapAnnotation: biomero.zarr.shallow&quot;]
+        SRC[&quot;&lt;b&gt;Shared storage: source.ome.zarr/&lt;/b&gt;&lt;br/&gt;Original image arrays + pyramids&lt;br/&gt;Retained for dependent results&quot;]
+        RESULT[&quot;&lt;b&gt;Shared storage: result.ome.zarr/&lt;/b&gt;&lt;br/&gt;Retained labels + shallow JSON files&quot;]
+        ONREC --&gt;|&quot;Read intensities&quot;| SRC
+        ONREC -. &quot;Annotation: locate result labels / reuse&quot; .-&gt; RESULT
+        RESULT -. &quot;Manifest: locate omitted image arrays&quot; .-&gt; SRC
+    end
+    OFF ~~~ ON
+    style OFF fill:#f5f7fa,stroke:#526171,stroke-width:3px;
+    style ON fill:#faf7ff,stroke:#7c3aed,stroke-width:3px;
+    classDef source fill:#e7eff6,stroke:#245b83,color:#17354a;
+    classDef result fill:#e6f2ec,stroke:#28765b,color:#17354a;
+    classDef record fill:#f3f5f7,stroke:#526171,color:#17354a;
+    class SRC,FULL source;
+    class RESULT result;
+    class OFFREC record;
+    style ONREC fill:#ede9fe,stroke:#7c3aed,stroke-width:3px,color:#4c1d95;
+
+    </pre><p>The importer creates a new result Image or Plate in both cases. With shallow
+storage on, it registers the <strong>source pixel path</strong> for primary intensities and
+adds a <strong><code class="docutils literal notranslate"><span class="pre">biomero.zarr.shallow</span></code> MapAnnotation</strong> locating the shallow result and
+its references. The viewer and later transfers use that result reference to
+find labels and reconstruct the collection.</p>
+<p><strong>PixelBuffer does not need to interpret the shallow manifest:</strong> it reads the
+source path already registered by the importer. Label-backed mask Images and
+the optional Plate preview similarly register their retained label paths.
+<a class="reference internal" href="../sysadmin/omero-biomero-admin.html#plate-mask-preview"><span class="std std-ref">Preview controls</span></a>.</p>
+<p>The two JSON files have separate jobs:</p>
 <table class="docutils align-default">
 <thead>
-<tr class="row-odd"><th class="head"><p>Selection</p></th>
-<th class="head"><p>What the next workflow receives</p></th>
+<tr class="row-odd"><th class="head"><p>File</p></th>
+<th class="head"><p>Purpose</p></th>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>Shallow Image or Plate selected for a Zarr workflow in the same format</p></td>
-<td><p>Full Zarr with source intensities and the result’s labels</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">.biomero-shallow.json</span></code></p></td>
+<td><p>Which image/label nodes exist, which arrays were omitted, and their source storage roots, paths, generations and identities</p></td>
 </tr>
-<tr class="row-odd"><td><p>Shallow Image or Plate selected for a Zarr workflow in another format</p></td>
-<td><p>Normal export of selected OMERO pixels; no inherited label reconstruction or canonical matching</p></td>
-</tr>
-<tr class="row-even"><td><p>Mask Image selected for a TIFF workflow</p></td>
-<td><p>The selected mask pixels as TIFF, not the original intensities</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">.biomero-shallow-report.json</span></code></p></td>
+<td><p>Decision, input snapshot and tool provenance; remote receipts bind this report to the expected helper run</p></td>
 </tr>
 </tbody>
 </table>
-<p>Plates use the Zarr path. Do not assume that selecting a mask Image means
-“mask pixels only” when the next workflow expects a full Zarr.</p>
+<p>Source indexing is separate: canonical-source annotations
+(<code class="docutils literal notranslate"><span class="pre">biomero.zarr.source</span></code> / <code class="docutils literal notranslate"><span class="pre">biomero.zarr.plate-source</span></code>) record the reusable input.
+Indexing can also add a <code class="docutils literal notranslate"><span class="pre">.biomero-canonical.json</span></code> marker to the source store;
+this is metadata, not another pixel copy.
+<strong>Keep the source, retained labels and their references together in retention
+and backup policy.</strong> The shallow folder alone is incomplete.</p>
 </section>
-<section id="exporting-a-standalone-zarr">
-<span id="reconstruct-shallow-zarr-on-disk"></span><h2>Exporting a standalone Zarr<a class="headerlink" href="#exporting-a-standalone-zarr" title="Permalink to this heading"></a></h2>
-<p>Workflow compatibility is configured separately from canonical storage.
-<code class="docutils literal notranslate"><span class="pre">[UI]</span> <span class="pre">zarr_v3_workflows</span></code> opts selected native Zarr workflows into OME-Zarr 0.5/v3,
-regardless of descriptor style. The default is 0.4/v2; TIFF conversion uses v2. Image
-Transfer reuses matching formats and invokes the normal OMERO exporter for
-mismatches, using the requested version. That fallback exports selected OMERO
-pixels without inherited label reconstruction or canonical matching for the run.
-It never replaces a canonical store or retains a second canonical copy in
-another format. If returned data and its
-canonical source use different formats, the result remains full. The shallower
-checks format compatibility before computing pixel identities.</p>
-<p><strong>A shallow result is not a self-contained OME-Zarr for generic readers.</strong>
-Its retained arrays are Zarr, but ordinary readers cannot resolve BIOMERO’s
-managed references to the omitted arrays.</p>
-<p>For external analysis or sharing, reconstruct it first. The current reconstruction
-produces conventional <strong>OME-NGFF 0.4 / Zarr v2</strong> or <strong>OME-NGFF 0.5 / Zarr v3</strong>
-data in the source store’s format, with the referenced pixels
-and labels copied into the output.</p>
-<p>This can be done on disk without submitting another analysis or running an
-OMERO script. The
-<a class="reference external" href="https://github.com/NL-BioImaging/BIOMERO.shallower#reconstruct-a-full-zarr">standalone reconstruction recipe</a>
-uses the same <code class="docutils literal notranslate"><span class="pre">materialize_shallow_zarr</span></code> Python function as Image Transfer.
-It requires access to the managed source/label stores and their storage mappings;
-ask your administrator if you do not have filesystem access.</p>
-<p>Choose a new destination and allow space for the full result. Original stores
-are left unchanged. Creating this standalone copy does not automatically
-register another object in OMERO.</p>
-<p>BIOMERO’s shallow manifest is a private storage representation, inspired by
-the shallow-copy use case of OME-NGFF RFC 8; it is not itself a portable
-RFC 8 Collection.</p>
+<section id="workflow-input-reuse-reconstruct-or-export">
+<h2>Workflow input: reuse, reconstruct or export<a class="headerlink" href="#workflow-input-reuse-reconstruct-or-export" title="Permalink to this heading"></a></h2>
+<p>The workflow receives full input in its requested format. It does not resolve
+BIOMERO shallow references itself.</p>
+<pre  class="mermaid">
+        flowchart TB
+    SELECT[&quot;&lt;b&gt;Select an OMERO Image or Plate + a workflow&lt;/b&gt;&quot;]
+    TYPE{&quot;Workflow input format?&quot;}
+    SELECT --&gt; TYPE
+    TYPE --&gt;|&quot;TIFF&quot;| TIFF[&quot;&lt;b&gt;Prepare selected OMERO pixel view&lt;/b&gt;&lt;br/&gt;Reuse/export v2 Zarr → TIFF&lt;br/&gt;No full label reconstruction or canonical promotion&quot;]
+    TYPE --&gt;|&quot;Native Zarr v2 or v3&quot;| FORMAT{&quot;Stored representation matches&lt;br/&gt;the requested Zarr format?&quot;}
+    FORMAT --&gt;|&quot;No: different format&quot;| TEMP[&quot;&lt;b&gt;Fresh export in requested format&lt;/b&gt;&lt;br/&gt;Selected OMERO pixels only&lt;br/&gt;No canonical promotion; stored source unchanged&quot;]
+    FORMAT --&gt;|&quot;Yes: shallow result&quot;| RESTORE[&quot;&lt;b&gt;Reconstruct a temporary full Zarr&lt;/b&gt;&lt;br/&gt;Read referenced source + inherited/new labels&lt;br/&gt;Existing shallow result stays unchanged&quot;]
+    FORMAT --&gt;|&quot;Yes: full managed Zarr&quot;| REUSE[&quot;&lt;b&gt;Reuse full store&lt;/b&gt;&lt;br/&gt;With shallowing enabled: reuse canonical identities&lt;br/&gt;or index this store if needed&quot;]
+    FORMAT --&gt;|&quot;No reusable backing Zarr&quot;| EXPORT[&quot;&lt;b&gt;Fresh export in requested format&lt;/b&gt;&lt;br/&gt;With shallowing enabled: verify and promote&lt;br/&gt;as canonical when eligible&quot;]
+    RESTORE --&gt; RUN[&quot;&lt;b&gt;Send full input to the HPC workflow&lt;/b&gt;&lt;br/&gt;The workflow does not need a shallow-Zarr reader&quot;]
+    REUSE --&gt; RUN
+    EXPORT --&gt; RUN
+    TEMP --&gt; RUN
+    TIFF --&gt; RUN
+    RESTORE -. &quot;Referenced pixels unavailable&quot; .-&gt; STOP[&quot;Stop; incomplete data cannot be restored&quot;]
+    classDef full fill:#e7eff6,stroke:#526171,stroke-width:2px,color:#17354a;
+    classDef shallow fill:#faf7ff,stroke:#7c3aed,stroke-width:3px,color:#17354a;
+    classDef temporary fill:#f3f5f7,stroke:#526171,color:#17354a;
+    classDef action fill:#fff3d6,stroke:#a57918,color:#17354a;
+    class REUSE,RUN full;
+    class RESTORE shallow;
+    class TIFF,TEMP temporary;
+    class EXPORT action;
+
+    </pre><p><strong>Reconstruction</strong> assembles a temporary full Zarr from the source and all
+retained/referenced labels. <strong>Export</strong> reads the selected OMERO pixel view; it
+does not reconstruct the shallow result’s full label collection. A format
+mismatch uses export and leaves the original canonical registration unchanged.</p>
+<section id="what-registering-or-promoting-a-canonical-zarr-entails">
+<h3>What registering or promoting a canonical Zarr entails<a class="headerlink" href="#what-registering-or-promoting-a-canonical-zarr-entails" title="Permalink to this heading"></a></h3>
+<p>A <strong>canonical Zarr</strong> is the stable managed pixel source and identity record used
+to compare later workflow results. Establishing it runs during input transfer
+when shallow storage is enabled and an eligible canonical record is missing.
+Yellow steps below mark ISCC-BIO pixel reads.</p>
+<pre  class="mermaid">
+        %%{init: {&quot;flowchart&quot;: {&quot;subGraphTitleMargin&quot;: {&quot;top&quot;: 8, &quot;bottom&quot;: 30}}}}%%
+flowchart TB
+    subgraph PREP[&quot;Input: canonical source&quot;]
+        direction TB
+        EXIST[&quot;&lt;b&gt;Existing backing Zarr&lt;/b&gt;&lt;br/&gt;No canonical record yet&quot;]
+        FRESH[&quot;&lt;b&gt;Eligible fresh export&lt;/b&gt;&lt;br/&gt;No reusable backing store&quot;]
+        HASHSTORE[&quot;&lt;b&gt;ISCC-BIO: read backing Zarr&lt;/b&gt;&lt;br/&gt;Pixel IDs per image/field + label&quot;]
+        HASHBOTH[&quot;&lt;b&gt;ISCC-BIO: read OMERO + export&lt;/b&gt;&lt;br/&gt;Compare Instance-Code + semantic guards&quot;]
+        EXIST --&gt; HASHSTORE
+        FRESH --&gt; HASHBOTH
+        HASHSTORE --&gt;|&quot;Index in place&quot;| REGISTER[&quot;&lt;b&gt;Register canonical generation&lt;/b&gt;&lt;br/&gt;Marker + OMERO source annotations&lt;br/&gt;Path + generation + pixel IDs&quot;]
+        HASHBOTH --&gt;|&quot;Match: commit to stable storage&quot;| REGISTER
+        HASHSTORE -. &quot;No identity&quot; .-&gt; FALLBACK[&quot;Full input without deduplication&quot;]
+        HASHBOTH -. &quot;No match / verification unavailable&quot; .-&gt; FALLBACK
+        CACHED[&quot;&lt;b&gt;Valid canonical record&lt;/b&gt;&lt;br/&gt;Reuse cached pixel IDs&quot;]
+        REGISTER --&gt; SNAP[&quot;&lt;b&gt;Record workflow input snapshot&lt;/b&gt;&lt;br/&gt;Source generation + pixel IDs&quot;]
+        CACHED --&gt; SNAP
+    end
+    SNAP --&gt; WORK[&quot;Run workflow on HPC&quot;]
+    FALLBACK --&gt; WORK
+    subgraph RETURN[&quot;Output: verify pixels&quot;]
+        direction TB
+        CHECK{&quot;Canonical match + same format?&quot;}
+        HASHOUT[&quot;&lt;b&gt;ISCC-BIO: read returned pixels&lt;/b&gt;&lt;br/&gt;Images + labels&lt;br/&gt;HPC helper or importer&quot;]
+        MATCH{&quot;Matching image pixel IDs?&quot;}
+        SHALLOW[&quot;&lt;b&gt;Shallow result&lt;/b&gt;&lt;br/&gt;Omit duplicates; keep new/changed labels&quot;]
+        FULL[&quot;&lt;b&gt;Full result&lt;/b&gt;&lt;br/&gt;Retain returned arrays&quot;]
+        CHECK --&gt;|&quot;Yes&quot;| HASHOUT
+        CHECK --&gt;|&quot;No&quot;| FULL
+        HASHOUT --&gt; MATCH
+        MATCH --&gt;|&quot;Yes, eligible&quot;| SHALLOW
+        MATCH --&gt;|&quot;Changed / unsupported / uncertain&quot;| FULL
+    end
+    WORK --&gt; CHECK
+    style PREP fill:#f8fafc,stroke:#526171,stroke-width:2px;
+    style RETURN fill:#f8fafc,stroke:#526171,stroke-width:2px;
+    classDef pixelread fill:#fff3d6,stroke:#a57918,stroke-width:2px,color:#17354a;
+    classDef canonical fill:#e7eff6,stroke:#245b83,stroke-width:2px,color:#17354a;
+    classDef full fill:#f3f5f7,stroke:#526171,stroke-width:3px,color:#17354a;
+    classDef shallow fill:#ede9fe,stroke:#7c3aed,stroke-width:3px,color:#4c1d95;
+    class HASHSTORE,HASHBOTH,HASHOUT pixelread;
+    class REGISTER,CACHED,SNAP canonical;
+    class FULL,FALLBACK full;
+    class SHALLOW shallow;
+
+    </pre><table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Starting point</p></th>
+<th class="head"><p>Pixel calculation</p></th>
+<th class="head"><p>What canonical registration changes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Existing authoritative backing Zarr</p></td>
+<td><p>ISCC-BIO reads that store directly; per-image/field and label identities</p></td>
+<td><p>Adds the marker and OMERO source records in place; no new pixel copy</p></td>
+</tr>
+<tr class="row-odd"><td><p>Eligible fresh OMERO export</p></td>
+<td><p>ISCC-BIO compares OMERO pixels with exported pixels</p></td>
+<td><p>Commits the verified export to stable managed canonical storage and attaches source records</p></td>
+</tr>
+<tr class="row-even"><td><p>Valid canonical already registered</p></td>
+<td><p>Reuses cached identities for that generation</p></td>
+<td><p>Records the workflow’s input snapshot; no repeated source hash</p></td>
+</tr>
+</tbody>
+</table>
+<p>Only the matching generation is reused. A temporary format-mismatch export or
+TIFF conversion input is not promoted. Failed indexing/promotion leaves the
+full workflow input usable without deduplication for that selection. Missing
+dependencies of a shallow input must be resolved before it can be reconstructed.
+Returned pixels are calculated again at the return-side comparison shown above.</p>
 </section>
-<section id="local-remote-and-detached-processing">
-<h2>Local, remote and detached processing<a class="headerlink" href="#local-remote-and-detached-processing" title="Permalink to this heading"></a></h2>
-<p>Local and remote shallowing aim to produce the same logical result. Local
-processing happens after the full output is transferred back. Remote processing
-happens on HPC before transfer, saving network traffic and local extraction work
-but requiring additional HPC CPU resources.</p>
-<p>The relevant comparison is where shallowing work occurs, not how quickly an
-unrelated storage mount happened to copy or extract a result. In a matched
-846-image Plate comparison, local identity evaluation and normalization took
-1 h 47 min 7 s. The remote path used a 14 min 28 s CPU-only helper followed by
-1 min 3 s of importer validation, an 85.5% reduction for those stages. The
-return archive was 87.6% smaller, while final extracted storage was equivalent.
-Queueing and mounted-storage performance still determine how much of that
-stage-level gain appears in the complete workflow time.</p>
-<p>Neither changes the workflow’s scientific parameters. Remote shallowing can
-run with or without detached execution. <strong>Only detached execution removes the
-workflow’s dependency on the submitting session</strong>; shallow storage alone is
-not a reason to close the session during an inline workflow.</p>
-<p>See the <a class="reference internal" href="../sysadmin/remote-shallower.html"><span class="std std-doc">administrator’s guide</span></a> for processing
-choices and <a class="reference internal" href="../sysadmin/detached-workflows.html"><span class="std std-doc">detached workflows</span></a> for session
-behaviour.</p>
+</section>
+<section id="when-verification-runs">
+<h2>When verification runs<a class="headerlink" href="#when-verification-runs" title="Permalink to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Route</p></th>
+<th class="head"><p>Order</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Shallow off</p></td>
+<td><p>Workflow → full ZIP → transfer → full result registration</p></td>
+</tr>
+<tr class="row-odd"><td><p>Shallow on, remote</p></td>
+<td><p>Workflow → HPC verification/pruning → smaller ZIP → transfer → receipt validation → registration</p></td>
+</tr>
+<tr class="row-even"><td><p>Shallow on, local</p></td>
+<td><p>Workflow → full ZIP → transfer → importer verification/pruning → registration</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Responsibility</p></th>
+<th class="head"><p>Implementation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Pixel traversal and codes</p></td>
+<td><p><a class="reference external" href="https://github.com/bio-codes/iscc-bio">bio-codes / ISCC-BIO</a>, through <code class="docutils literal notranslate"><span class="pre">iscc_bio.api.biocode</span></code>; IMAGEWALK reads decoded highest-resolution pixels per image/field or label</p></td>
+</tr>
+<tr class="row-odd"><td><p>Equality decision</p></td>
+<td><p>BIOMERO compares <code class="docutils literal notranslate"><span class="pre">instanceCode</span></code>, role, shape, dtype, axes and coordinate transformations</p></td>
+</tr>
+<tr class="row-even"><td><p>Storage, transactions and references</p></td>
+<td><p>BIOMERO.shallower; shared contracts from biomero-schema</p></td>
+</tr>
+<tr class="row-odd"><td><p>HPC orchestration and OMERO registration</p></td>
+<td><p>BIOMERO core/scripts and BIOMERO.importer, respectively</p></td>
+</tr>
+</tbody>
+</table>
+<p>The aggregate ISCC and similarity-oriented Data-Code are recorded but <strong>do not
+authorize removal</strong>. A checksum of the complete Zarr file tree is not an
+equality key. Returned identities are computed from pixels rather than trusted
+from workflow metadata. See the <a class="reference external" href="https://nl-bioimaging.github.io/biomero-schema/pixel-identity/">exact comparison contract</a>.</p>
+<p>Highest-resolution equality is the preservation criterion: lower-resolution
+pyramids are reused from the source, not independently compared. This preserves
+the scientific pixel representation checked by the method, rather than every
+byte or pyramid rendering of the returned store.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Condition</p></th>
+<th class="head"><p>Action</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Shallow storage disabled; ordinary upload; TIFF result</p></td>
+<td><p>No shallow operation</p></td>
+</tr>
+<tr class="row-odd"><td><p>Input/output Zarr profiles differ</p></td>
+<td><p>Keep full; check format metadata before pixel hashing</p></td>
+</tr>
+<tr class="row-even"><td><p>Eligible collection with matching image identities</p></td>
+<td><p>Omit duplicate image pyramids; reference matching inherited labels; retain new/changed labels</p></td>
+</tr>
+<tr class="row-odd"><td><p>Changed image, unsupported identity, incomplete or ambiguous match</p></td>
+<td><p>Keep the full collection</p></td>
+</tr>
+<tr class="row-even"><td><p>Invalid receipt, missing referenced source or unresolved transaction</p></td>
+<td><p>Stop and preserve evidence for recovery; absent pixels cannot be treated as a full result</p></td>
+</tr>
+</tbody>
+</table>
+<p>Pruning uses same-filesystem moves and a rollback journal before committing the
+manifest. Source pixels remain untouched. See <a class="reference internal" href="../sysadmin/remote-shallower.html"><span class="std std-doc">configuration and recovery</span></a>.</p>
+</section>
+<section id="reconstructing-a-standalone-result">
+<span id="reconstruct-shallow-zarr-on-disk"></span><h2>Reconstructing a standalone result<a class="headerlink" href="#reconstructing-a-standalone-result" title="Permalink to this heading"></a></h2>
+<p>The <a class="reference external" href="https://github.com/NL-BioImaging/BIOMERO.shallower#reconstruct-a-full-zarr">reconstruction recipe</a>
+creates a self-contained Image or Plate at a <strong>new destination</strong>, using its
+referenced source and retained labels. It preserves v2/v3 format and leaves
+OMERO registrations unchanged. Keep all referenced stores available and allow
+enough disk space for the full copy.</p>
+</section>
+<section id="results-measured-benefits-and-costs">
+<h2>Results: measured benefits and costs<a class="headerlink" href="#results-measured-benefits-and-costs" title="Permalink to this heading"></a></h2>
+<p><a class="reference download internal" download="" href="../_downloads/e5bfd8e7b281a61d830fe1d7aa592f14/shallow-results.svg"><span class="xref download myst"><img alt="Retained Zarr storage and recorded elapsed time for small, medium and large Plates. Large Full excludes its explicit recovery wait; all other recorded phases remain." src="../_images/shallow-results.svg" /></span></a></p>
+<p><strong>Full v3 versus remote-shallow v2</strong>, with 10, 3 and 1 technical repetitions per
+configuration for small, medium and large Plates. Storage excludes the existing
+shared source and non-Zarr output; GB is decimal. <strong>A: mean ± SD</strong> (storage
+variation is too small to distinguish). <strong>B: mean with 95% Student-t CI and
+individual timings</strong>; headings give the unpaired Welch 95% CI for shallow minus
+Full. No CI is estimated for n = 1. These intervals assume independent workflow
+executions; shared load and cache history limit that assumption. Formats also differ.</p>
+<p>Shallow results retain <strong>83.7-89.5% less Zarr data</strong>. At medium scale,
+return/packaging/extraction falls by <strong>12.11 min</strong>, but observed mean waiting increases
+by <strong>14.87 min (+8.5%)</strong>. At large scale, canonical preparation (<strong>180.1 min</strong>),
+shallowing (<strong>110.4 min</strong>) and result return (<strong>168.8 min</strong>) each approach or
+exceed analysis execution (<strong>154.0 min</strong>). Both estimated runtime-difference CIs
+include zero; these runs do not establish a timing advantage.</p>
+<p><strong>Large Full (*)</strong> removes only the explicit recovery wait:
+4,012.72 - 2,846.23 = <strong>1,166.49 min</strong>. Its ZIP retrieval was interrupted;
+the green return stage records only <strong>0.12 min</strong>, while grey includes long
+polling and orchestration gaps. This adjusted record is not an uninterrupted-run
+speedup comparison. <strong>Large shallow (†)</strong> used repaired source provenance.</p>
+<p><a class="reference download internal" download="" href="../_downloads/60b4d0641fc78bc01f92d4c6e5925402/shallow-plate-comparison.json"><span class="xref download myst">Data</span></a> and
+<a class="reference download internal" download="" href="../_downloads/828c5f88d72e18b9227750fc231eca11/README.txt"><span class="xref download myst">reproduction instructions</span></a> preserve the full phase
+breakdown. An <a class="reference internal" href="../sysadmin/remote-shallower.html"><span class="std std-doc">earlier local/remote comparison</span></a>
+measured <strong>87.6% less return ZIP data</strong> remotely; its combined copy/validation
+stage took <strong>81.0 to 11.1 s</strong>. That comparison uses a different storage scope.</p>
 </section>
 </section>
 
