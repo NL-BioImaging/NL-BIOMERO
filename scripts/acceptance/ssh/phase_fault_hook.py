@@ -174,7 +174,8 @@ def install(directory):
             result = native_download(client,remote,destination_directory)
             assert report['faults'] == 1 and len(report['attempts']) >= 2
             path = Path(result.local)
-            assert hashlib.sha256(path.read_bytes()).hexdigest() == expected_hash
+            with path.open('rb') as stream:
+                assert hashlib.file_digest(stream, 'sha256').hexdigest() == expected_hash
             with zipfile.ZipFile(path) as archive:
                 assert archive.testzip() is None
             assert all(not path.exists() for path in temporary_paths)
