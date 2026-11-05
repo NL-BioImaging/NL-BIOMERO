@@ -228,6 +228,33 @@ nl-biomero-database-biomero-1
 
 ## OMERO Script Processor Environment
 
+### Ownership and detached execution
+
+For processor, workflow or recovery changes, read the shared
+[BIOMERO design and ownership guidance](https://github.com/NL-BioImaging/biomero/blob/main/.agents/skills/biomero-dev/SKILL.md#design-reuse-and-responsibility).
+Keep the general principles there rather than copying them into this runbook.
+
+`biomeroworker/processor.py` is an OMERO execution adapter and process supervisor.
+Its detached workers reuse the workflow pipeline from `biomero-scripts` and
+launcher/claim/resume state from `biomero.detached`. Keep worker lifecycle,
+concurrency, OMERO sessions and restart discovery here; reuse core's HPC
+operations and recovery/reconciliation instead of adding another implementation.
+Check existing processor supervision before introducing a new worker/watchdog.
+Move reusable domain behavior to core and reusable OMERO behavior to the shared
+script pipeline, preserving the core/OMERO dependency boundary.
+
+A processor restart should resume eligible unfinished work using persisted IDs
+and progress, not blindly repeat submission/import or reset recovery policy.
+Distinguish a transient connection loss, an interrupted process, intentional
+cancellation and a terminal workflow attempt. Restart supervision must not
+silently resurrect terminal attempts or interpret lost observation as HPC failure.
+
+Detached execution is optional but strongly recommended for long workflows;
+preserve the supported inline path and test both modes for shared changes.
+A possible detached-only direction for 3.0 is not a current removal decision.
+
+### Script environment forwarding
+
 Environment variables configured on the `biomeroworker` Compose service are
 not automatically inherited by downloaded OMERO script subprocesses. The
 repository overrides OMERO's processor at `biomeroworker/processor.py`; its
