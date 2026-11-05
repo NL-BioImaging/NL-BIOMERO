@@ -1,0 +1,27 @@
+{
+  "purpose": "Portable adaptations of private integration helpers; no captured runtime evidence or site configuration is included.",
+  "implementation_context": "https://github.com/NL-BioImaging/biomero/pull/61",
+  "historical_core_revision": "0a98c43",
+  "historical_acc_reproducer_handoff_revision": "3a58bd8",
+  "revision_note": "Historical context only. These private helper files were not all tracked at those revisions. Hashes identify the actual adaptation inputs. Record the current NL-BIOMERO commit and installed component versions for each new acceptance run.",
+  "sources": [
+    {"file": "check_ssh_blackhole.py", "sha256": "070e8da0f1736ae2be9bbb98476a4a35f2f2c7fb7fc2e24b1cd5aa4d529979c3", "adapted_into": ["private_ssh.py", "check_monitor.py"]},
+    {"file": "check_original_allocation.py", "sha256": "222ca1d49f78265c13ed4a782fce5b6ad08ad2a83fc0cf21975459ff64829e51", "adapted_into": ["check_allocation.py"]},
+    {"file": "native_workflow_hook.py", "sha256": "a240c8bfd7433d18e76256564d7a81a036a81a5da52d13c6fa41599cafdf2ede", "adapted_into": ["workflow_hook.py"]},
+    {"file": "audit_workflow_jobs.py", "sha256": "5fcd1863eaaf65c5ef25e141280384cf7dc7a66bf9878a96feb9076c17038934", "adapted_into": ["audit_workflow.py"]},
+    {"file": "audit_persisted_jobs.py", "sha256": "8daf65824945abeadd4f94065a37cd9102a5f28c64455025df3581320addd44a", "adapted_into": ["audit_workflow.py"]},
+    {"file": "phase_fault_hook.py", "sha256": "35d9f6addc4dacdf319929ba12ddcdfd7a0ff7c8f598c2f1b95765700943e3fa", "adapted_into": ["phase_fault_hook.py"]},
+    {"file": "phase_fault_cli.py", "sha256": "6d1f8b9851f65984787c64bd53d098302e49cea476d6aa0622dc59f1d252ca6d", "adapted_into": ["phase_fault_cli.py"]},
+    {"file": "audit_terminal_history.py", "sha256": "a72ff7fb5d677dc1bb79ab093b53d41ffedab06bc126bae75d8d7d02bdec882a", "adapted_into": ["audit_terminal_history.py"]}
+  ],
+  "changes": [
+    "Runtime arguments replace private credentials, paths, project names and workflow IDs.",
+    "Only explicit owned connections and supplied workflow/task/job identities can be faulted.",
+    "Running allocation checks, dormant hook installation, cleanup and expected-outcome checks are explicit.",
+    "Reports contain allowlisted evidence; raw exceptions, configuration and command output are excluded.",
+    "Compose execution examples are separate from portable Python integration logic.",
+    "Phase hooks retain the original native retry boundaries; partial filenames are reduced to basenames in reports, and shared private report writing is reused.",
+    "Terminal auditing reuses configured client lifecycle and reports only source event types/versions, statuses and supplied workflow identities."
+  ],
+  "validation_scope": "Offline tests establish argument safety, private loopback relay cleanup, error-output redaction and real temporary SQLite event-store initialization/replay. They do not establish live SSH or workflow acceptance."
+}
