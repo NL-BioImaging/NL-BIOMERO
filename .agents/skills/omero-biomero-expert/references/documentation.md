@@ -24,6 +24,9 @@ guide; document changed behavior only where it helps that guide's reader.
 
 ## Explain a feature once
 
+- Detailed OMERO.biomero administrator controls belong in the dedicated
+  NL-BIOMERO admin guide. Component READMEs provide an overview and link to that
+  guide; avoid adding isolated option manuals to scripts or library READMEs.
 - Lead with what the feature does and why it is useful. Let measured benefits
   speak for themselves; avoid hype or universal performance promises.
 - Use descriptive titles, like "Shallow OME-Zarr Storage" or "Detached BIOMERO

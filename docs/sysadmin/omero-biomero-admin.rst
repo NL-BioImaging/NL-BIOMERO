@@ -396,6 +396,11 @@ no workflow shortcut. Turning it off does not disable automatic RO-Crate
 handling; disable shallow storage to require full results. The setting is
 independent of input format and is not inferred from Bilayers descriptors.
 
+OMERO.biomero uses this saved preference as the default for a normal workflow
+script input when launching a new run. An explicitly supplied input takes
+precedence, including false. Running the OMERO script directly uses its own
+default of false; scripts do not read the web interface's ``[UI]`` settings.
+
 This path supports results containing an enclosing image and its produced label
 datasets. A bare labels-only output is not automatically materialized into a
 full result. See :doc:`remote-shallower` for the supported output scope and
