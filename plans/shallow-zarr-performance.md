@@ -10,8 +10,9 @@ must not hold up the pixel API, pyramid comparison and documentation work.
 Keep the storage savings of shallow results while reducing the work between
 GPU analysis and researchers receiving their results. Remove the unused raw
 store checksum, compare existing small-resolution pixels, and describe exactly
-which ISCC-BIO functionality BIOMERO uses. Capture a route for approved
-workflows to declare unchanged originals and avoid pixel comparison altogether.
+which ISCC-BIO functionality BIOMERO uses. Capture automatic interpretation of
+workflow outputs and a separate per-workflow setting to avoid pixel comparison
+when original image arrays need not be returned.
 
 Shallowing remains subject to the existing feature enablement. Unsupported or
 unmatched results continue through the full-result import route. Preserve all
@@ -124,8 +125,9 @@ to the same explanation.
 
 Proposed methods wording, to publish only after implementation:
 
-> BIOMERO generates a resolution-specific pixel fingerprint for each OME-Zarr
-> image or Plate field using ISCC-BIO. It reads the coarsest compatible stored
+> When pixel comparison is required, BIOMERO generates a resolution-specific
+> pixel fingerprint for each OME-Zarr image or Plate field using ISCC-BIO.
+> It reads the coarsest compatible stored
 > pyramid level and processes its planes in IMAGEWALK Z -> C -> T order, with
 > row-major, big-endian pixel encoding. BIOMERO compares the resulting ISCC
 > Instance-Codes together with image metadata and comparison-profile
@@ -144,47 +146,83 @@ enablement, fallback and operational costs. Developer/methods documentation
 should specify the algorithm, contract and recorded provenance. Keep proposed
 behaviour out of the current released-feature instructions until it exists.
 
-## 4. Allow approved workflow declarations to skip original-pixel comparison
+## 4. Interpret outputs automatically; offer a separate workflow setting
 
-Add a per-workflow administrator policy, following the existing workflow
-settings pattern. An administrator can approve a particular workflow/version
-to preserve original image pixels. Alternatively, an approved descriptor or
-output declaration can select the shortcut for a particular run and output.
-Automatic interpretation must respect the administrator's explicit override.
-Missing policy preserves verification; the presence of an RO-Crate alone does
-not enable the shortcut. Keep this under existing shallow feature gating.
+Use the following decision order. These are proposed behaviours, not features
+implemented by this planning PR.
 
-The declaration must identify the run, the actual workflow version, the input
-source/generation and the specific returned image node that preserves it.
-Support parameter-dependent behaviour through actual recorded run values.
-Distinguish unchanged originals, labels-only overlays and derived images;
-`output is Zarr` or `subtype is label` is not enough. Do not assume a generic
-`use_gpu`, `output_to_layer` or other parameter name expresses preservation.
+| Condition | Result handling |
+| --- | --- |
+| Shallow storage is disabled | Keep full results; no shallow pruning or deduplication-only fingerprint work |
+| Shallow storage is enabled and usable RO-Crate output evidence exists | Interpret it automatically, without an admin toggle or workflow allowlist |
+| No usable output evidence, but the workflow's admin setting says original pixels need not be returned | Reuse the known input and skip original-pixel comparison for that workflow |
+| No usable evidence or workflow setting | Use the pixels-only, compatible-pyramid equality checks; keep full results when matching cannot succeed |
 
-Reuse standard workflow/run provenance links and add a small, explicit
-BIOMERO preservation profile where needed. Decide its vocabulary in the shared
-schema work; no preservation boolean is claimed to be an existing Bilayers or
-Workflow Run RO-Crate standard. The approval is a workflow contract, not a
-requirement to introduce digital signatures or perform another full checksum.
+### Automatic RO-Crate handling
 
-For an approved labels-only output contract, precise RO-Crate output pointers
-may provide the required output scope without a separate preservation boolean.
-BIOMERO can retain those label datasets and bind them to the known source,
-rather than checking copied image arrays that the contract does not designate
-as results. This is an explicit interpretation of the approved workflow
-contract, not an inference from every unlisted sibling directory. It still
-requires unambiguous source/run binding and support for importing such overlays.
+Recognized, consistent RO-Crate output links are sufficient evidence to select
+the relevant result handling. This is ordinary upgraded behaviour within
+enabled shallow storage: do not introduce a separate opt-in, per-workflow
+approval, allowlist or signature requirement for it.
 
-Retain cheap source binding, format, layout and metadata validation. Skip the
-original pixel sweep only where the approved relationship applies. Record
-`declared unchanged` or `source-linked labels-only` separately from
-full-resolution or pyramid verification;
-do not fabricate an Instance-Code or mark unmeasured data as pixel-verified.
-Permit source references without calculating an otherwise unused source code
-for such runs; this requires an explicit contract path rather than dummy IDs.
-Keep label handling independent. Unrelated outputs continue through their
-normal comparison or full-import route. Unusable declarations fall back to
-verification, then full import if a match cannot be established.
+For Joost's label-level output example, resolve the run's input through
+BIOMERO's execution record, retain the declared label datasets and other
+results, and link them to that known source. Skip comparing the enclosing
+copied originals. No extra unchanged-pixels boolean is needed for this
+labels-only case. The parent image copy does not need to be proven unchanged
+because BIOMERO uses the authoritative input as the image background.
+
+Keep cheap run/input/output binding and structural checks. A pointer to an
+entire Zarr root alone does not identify which image arrays are derived
+results. Missing or unusable evidence falls through to the workflow setting
+or equality checks. Retain additional derived images and sidecars; do not
+interpret an incomplete crate as an exhaustive file-deletion list.
+
+### Independent administrator setting, with future Bilayers presets
+
+Add a per-workflow setting whose meaning is: original image pixels need not
+be returned for this workflow; use the known input and retain the derived
+results. It supplies the shortcut when no usable RO-Crate evidence exists.
+Administrators configure it like existing GPU and Zarr workflow settings, not
+as a prerequisite for automatic RO-Crate handling. Leaving it unset or false
+does not disable usable RO-Crate evidence. Disabling shallow storage is the
+way to require full stored results.
+
+A later input-descriptor integration may preset this same setting when
+Bilayers explicitly describes the required output behaviour. Follow existing
+OMERO.biomero conventions for descriptor-derived values, manual overrides,
+explanation/tooltips and Runtime indication. Do not invent an unrelated GPU
+parameter interpretation or present a proposed Bilayers field as implemented.
+If new preservation vocabulary is needed, document it as an explicit
+extension rather than claiming that it is already a Bilayers standard.
+
+### Record the actual decision and support full stored results
+
+Record the handling basis as RO-Crate output interpretation, administrator
+workflow setting, descriptor-derived setting when implemented, or pixel
+comparison. Include the executed workflow version and source/run binding for
+provenance, without requiring a new admin approval for every workflow version.
+Do not fabricate an Instance-Code or mark unmeasured pixels as verified.
+Source-linked runs must not calculate otherwise unused source identities just
+to populate mandatory fields. Keep label handling independent.
+
+The existing shallow-storage enablement controls the whole feature. When it
+is off, RO-Crate evidence and the workflow setting cannot cause original image
+arrays to be removed. Full returned Zarrs stay self-contained for other tools.
+If a labels-only result needs materialization to satisfy full-result storage,
+assemble the source and labels using the reconstruction route rather than
+silently storing a shallow reference. Document the implemented behaviour for
+that case explicitly.
+
+### Release documentation
+
+At each release, document exactly which paths exist: supported RO-Crate output
+forms, the actual admin setting, supported descriptor presets and the fallback
+comparison method. Include the main shallow-storage off/full-results choice.
+Publish future descriptor ideas only as roadmap material, not as available
+configuration. Update the methods wording and recorded decision basis to match
+the shipped behaviour; distinguish pixel comparison from source-linked output
+interpretation or a workflow setting.
 
 ### Findings from the supplied output example
 
@@ -200,20 +238,21 @@ Useful existing information:
   `object` identifies a TIFF input and parameter values; `result` identifies
   an OME-Zarr output.
 - `FormalParameter`, `PropertyValue` and `exampleOfWork` connect parameter
-  definitions to actual values. These can support a versioned, parameter-aware
-  workflow approval rule without guessing from parameter defaults.
+  definitions to actual values. These can support parameter-aware output
+  interpretation without guessing from parameter defaults.
 - The configuration identifies a container/tag, citations and a label output
   described as the input image with segmentation in OME-Zarr labels.
 
-Information still needed for skipping comparison:
+Information to resolve when interpreting the original root-level example:
 
-- An explicit machine-readable unchanged-pixels relationship, its scope and
-  a binding to BIOMERO's canonical source generation and current run.
+- The scope of the returned results and a binding to BIOMERO's canonical
+  source generation and current run. A label-level output can identify the
+  derived content without an additional unchanged-pixels assertion.
 - Array-level mapping for image/Plate fields and a separate treatment of
   outputs whose image pixels are derived results.
-- A reliable workflow/version identity from BIOMERO's execution record. The
-  sample configuration's container tag helps identification but is not an
-  immutable container digest or an executed-workflow attestation.
+- The workflow/version from BIOMERO's execution record for provenance; no
+  additional administrator approval or container attestation is required to
+  interpret recognized RO-Crate output evidence.
 
 The TIFF -> Zarr provenance and human-readable output description do not by
 themselves assert unchanged numerical pixels. The actual Zarr was absent, so
@@ -249,12 +288,12 @@ and no unresolved local entity references. This was not a full JSON-LD or
 RO-Crate profile conformance validation. No accompanying Zarr was supplied;
 NGFF image association and pixel layout were not checked.
 
-For an approved workflow whose declared results are those labels plus any
-other explicitly described products, BIOMERO can use the labels-only contract
-above to avoid comparing the enclosing copied originals. The pointer alone
-does not assert unchanged parent image pixels, enumerate all other results,
-or identify which immutable BIOMERO input supplies the parent image. Preserve
-additional results and sidecars according to the approved contract.
+With shallow storage enabled, BIOMERO should automatically interpret these
+usable label output links and avoid comparing the enclosing copied originals.
+No administrator approval is required. Resolve the corresponding immutable
+input from the BIOMERO run record and preserve additional results and sidecars.
+The pointer identifies produced labels rather than asserting parent-pixel
+equality; the labels-only route does not need such an assertion.
 
 The run still identifies a TIFF input, so BIOMERO must use its execution record
 to resolve the corresponding managed canonical source; the metadata does not
@@ -266,8 +305,8 @@ The original supplied config used Bilayers `subtype: [label]`. Presence of a
 label/mask subtype helps classify a produced output; its absence does not
 establish preservation, nor does its presence establish unchanged sibling image
 arrays. Prefer positive output scope and input association over inferring a
-shortcut from a missing subtype. These output links are useful for the
-approved labels-only contract without requiring another preservation boolean.
+shortcut from a missing subtype. These output links supply usable automatic
+labels-only evidence without requiring another preservation boolean.
 
 ## Evidence and acceptance
 
@@ -310,29 +349,41 @@ Required acceptance for the pixel/pyramid work:
 
 Additional acceptance for the declaration extension:
 
-- [ ] Admin approval and explicit disable, absent declarations, parameter
+- [ ] Usable RO-Crate output evidence automatically selects source-linked
+  handling with no workflow admin approval, opt-in or allowlist.
+- [ ] The independent admin workflow setting supplies the shortcut when output
+  evidence is absent. Unset/false leaves automatic RO-Crate handling available;
+  with neither source of evidence, the new equality checks run.
+- [ ] Implemented descriptor presets follow existing UI persistence, manual
+  override and explanation conventions. Future preset support is not claimed
+  in release configuration documentation before it exists.
+- [ ] Recognized output evidence, absent/unusable metadata, parameter
   conditions, multiple inputs, mixed outputs and wrong-run bindings are tested.
-- [ ] The approved path performs no original-pixel sweep and records its
-  declaration basis. Unknown metadata does not silently enable it.
+  The shortcut performs no original-pixel sweep and records its actual basis.
+- [ ] With shallow storage disabled, neither metadata nor the workflow setting
+  prunes image arrays or runs deduplication-only hashing. Full stored Zarrs are
+  self-contained, including materialization where supported and needed.
 - [ ] Sidecars and measurement files survive processing and RO-Crate provenance
   remains accurate after pruning; removed image arrays are represented by the
   appropriate managed-source relationship rather than misleading file entries.
-- [ ] Label-level `result`/`exampleOfWork` bindings can select approved
+- [ ] Label-level `result`/`exampleOfWork` bindings automatically select
   labels-only handling, including source association and mixed derived outputs.
   A missing mask/label subtype never enables the shortcut by itself.
 
 ## Implementation ownership and order
 
 1. **biomero-schema:** the versioned current comparison contract/profile and
-   stale-record detection; a separate declaration basis if the trusted
+   stale-record detection; a separate decision basis if the shortcut
    extension is implemented. No parallel legacy identity support is required.
 2. **BIOMERO.shallower:** lower-level pixel reader/hash adapter, pyramid
    selection, compatibility checks, bounded early rejection and receipts.
 3. **BIOMERO.importer and biomero-scripts/core as required:** source-profile
    caching, transfer snapshot and receipt consumption. Keep the UI policy out
    of core configuration ownership; scripts pass the selected run policy.
-4. **OMERO.biomero:** the proposed administrator-managed workflow policy,
-   persistence and Runtime indication, when implementing the extension.
+4. **OMERO.biomero:** the independent workflow setting, persistence and Runtime
+   indication. Descriptor-derived presets use existing override/explanation
+   conventions when that later integration is implemented; output RO-Crate
+   interpretation itself requires no new admin control.
 5. **NL-BIOMERO:** coordinated published dependency pins, matching helper/trust
    settings, integration coverage and user/admin/methods documentation.
 
