@@ -152,7 +152,7 @@ def install(directory):
             sftp = client.sftp()
             original_sftp_get = sftp.get
 
-            def get_with_callback(remote_path, local_path, callback=None, *a, **kw):
+            def get_with_callback(remotepath, localpath, callback=None, *a, **kw):
                 def progress(transferred,total):
                     if report['faults'] == 0 and 0 < transferred < total:
                         report.update(faults=1, partial_bytes=transferred,total_bytes=total,
@@ -162,7 +162,7 @@ def install(directory):
                         raise EOFError('Owned acceptance fault: partial native SFTP ZIP interrupted')
                     if callback:
                         callback(transferred,total)
-                return original_sftp_get(remote_path,local_path,progress,*a,**kw)
+                return original_sftp_get(remotepath,localpath,progress,*a,**kw)
             sftp.get = get_with_callback
             try:
                 return original_get(*args,**kwargs)
