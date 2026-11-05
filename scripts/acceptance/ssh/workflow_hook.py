@@ -18,6 +18,16 @@ from private_ssh import close_owned, proxy_client, version, write_report
 PTH_NAME = 'zz_biomero_ssh_acceptance.pth'
 
 
+def record_heartbeat(callback, report, lock, target):
+    """Observe keepAlive's False result without changing pipeline behavior."""
+    result = callback()
+    with lock:
+        key = 'heartbeat_failures' if result is False else 'heartbeats'
+        report[key].append(time.monotonic())
+        write_report(target, report)
+    return result
+
+
 def load_control(directory):
     try:
         value = json.loads((directory / 'control.json').read_text(encoding='utf-8'))
@@ -44,7 +54,7 @@ def install(directory):
         target = directory / (str(UUID(control['case_id'])) + '.json')
         report = {key: control[key] for key in ('case_id', 'mode', 'workflow_id', 'task_id', 'job_id',
                                                'pause_seconds', 'detection_timeout', 'expect')}
-        report.update(status='WAITING', phase='workflow-monitor', heartbeats=[], events=[])
+        report.update(status='WAITING', phase='workflow-monitor', heartbeats=[], heartbeat_failures=[], events=[])
         try:
             workflow = self.workflowTracker.repository.get(UUID(control['workflow_id']))
             task_id = UUID(control['task_id'])
@@ -93,10 +103,7 @@ def install(directory):
                 return private_baseline
             for marker, callback in callbacks.items():
                 def traced(callback=callback):
-                    callback()
-                    with lock:
-                        report['heartbeats'].append(time.monotonic())
-                        write_report(target, report)
+                    return record_heartbeat(callback, report, lock, target)
                 state.heartbeats[marker] = traced
             relay.pause.set()
             event('private_connection_paused')
@@ -216,6 +223,7 @@ def main():
                          and report.get('error_type') == 'SSHRecoveryTimeout')
             report['phase_check_passed'] = (bool(recovered or timed_out)
                                              and len(report.get('heartbeats', [])) > 1
+                                             and not report.get('heartbeat_failures')
                                              and not report.get('cleanup_errors')
                                              and any(e['event'] == 'private_connection_cleaned_up'
                                                      for e in report.get('events', [])))

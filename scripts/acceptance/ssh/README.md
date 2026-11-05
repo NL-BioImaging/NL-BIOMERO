@@ -133,7 +133,9 @@ One exclusive claim prevents repeated faults for the same armed case.
 
 Status exit 3 means not yet armed/observed, not a pass. Exit 0 means the **monitor
 phase** matched `--expect`, callbacks succeeded more than once, and cleanup was
-recorded. An arbitrary exception cannot pass a timeout case. `--expect timeout`
+recorded. An explicit `False` from a heartbeat (such as OMERO `keepAlive`) is
+recorded as failure and prevents a phase pass; the callback's original return
+value or exception is preserved. An arbitrary exception cannot pass a timeout case. `--expect timeout`
 requires a deliberately short positive window in the isolated deployment and a
 pause exceeding that window plus detection/retry overhead. The pipeline's native
 timeout/cancellation exception propagates unchanged; terminal state is not reset.

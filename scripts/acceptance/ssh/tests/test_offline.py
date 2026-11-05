@@ -139,17 +139,33 @@ class OfflineTests(unittest.TestCase):
             report = dict(status='MONITOR_RAISED', expect='timeout', error_type='ValueError',
                           heartbeats=[1, 2], cleanup_errors=[],
                           events=[{'event': 'private_connection_cleaned_up'}])
-            for error_type, events, expected in (
-                ('ValueError', report['events'], 2),
-                ('SSHRecoveryTimeout', [], 2),
-                ('SSHRecoveryTimeout', report['events'], 0),
+            for error_type, events, failures, expected in (
+                ('ValueError', report['events'], [], 2),
+                ('SSHRecoveryTimeout', [], [], 2),
+                ('SSHRecoveryTimeout', report['events'], [3], 2),
+                ('SSHRecoveryTimeout', report['events'], [], 0),
             ):
-                report.update(error_type=error_type, events=events)
+                report.update(error_type=error_type, events=events, heartbeat_failures=failures)
                 private_ssh.write_report(directory / (case_id + '.json'), report)
                 result = subprocess.run([sys.executable, str(ROOT / 'workflow_hook.py'), 'status',
                                          '--control-dir', str(directory)], capture_output=True, text=True)
                 self.assertEqual(result.returncode, expected)
                 self.assertEqual(json.loads(result.stdout)['phase_check_passed'], expected == 0)
+
+    def test_heartbeat_false_is_failure_and_preserves_callback_result(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / 'report.json'
+            report = {'heartbeats': [], 'heartbeat_failures': []}
+            lock = threading.Lock()
+            for value in (False, True, None):
+                self.assertIs(workflow_hook.record_heartbeat(lambda: value, report, lock, target), value)
+            self.assertEqual(len(report['heartbeats']), 2)
+            self.assertEqual(len(report['heartbeat_failures']), 1)
+            def failing_callback():
+                raise RuntimeError('callback failed')
+            with self.assertRaises(RuntimeError):
+                workflow_hook.record_heartbeat(failing_callback, report, lock, target)
+            self.assertEqual(len(report['heartbeats']), 2)
 
 
 class TrackingRuntimeTest(unittest.TestCase):
