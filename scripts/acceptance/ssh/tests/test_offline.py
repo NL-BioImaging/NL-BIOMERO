@@ -206,6 +206,24 @@ class TrackingRuntimeTest(unittest.TestCase):
                         identity = client.workflowTracker.initiate_workflow('fixture', '', 0, 0)
                     with configured_client(str(config)) as second:
                         self.assertEqual(second.workflowTracker.repository.get(identity).id, identity)
+                        # Audit real persisted source events against a controlled projection.
+                        # Analytics are disabled here: this verifies the audit, not production
+                        # listener durability or rebuild acceptance.
+                        from datetime import datetime
+                        from biomero.database import WorkflowProgressView
+                        from audit_terminal_history import terminal_record
+                        second.workflowTracker.fail_workflow(identity, 'controlled test failure')
+                        session = EngineManager.get_session()
+                        projection = WorkflowProgressView(workflow_id=identity, status='FAILED',
+                                                          start_time=datetime.now())
+                        session.add(projection)
+                        session.commit()
+                        result = terminal_record(second, identity)
+                        self.assertIs(result['terminal_consistent'], True)
+                        self.assertEqual(result['source_terminal_count'], 1)
+                        projection.status = 'DONE'
+                        session.commit()
+                        self.assertIs(terminal_record(second, identity)['terminal_consistent'], False)
             finally:
                 EngineManager.close_engine()
 

@@ -11,6 +11,8 @@ deployment against allocations and data owned by that test.
 | `check_allocation.py` | A fixture is RUNNING before the private outage; the same allocation completes, its exact result downloads, and accounting contains one allocation | Image analysis, ZIP recovery or OMERO import |
 | `workflow_hook.py` | A private relay interrupts monitoring of one supplied workflow/task/job while RUNNING, with the real pipeline's recovery state and callbacks | Final workflow/import outcome; the selected execution mode must be corroborated separately |
 | `audit_workflow.py` | Persisted workflow/task membership and one matching Slurm allocation | Exactly-once import, mandatory provenance or tracking/projection consistency |
+| `phase_fault_cli.py` / `phase_fault_hook.py` | Lost final submission acknowledgement and interrupted partial ZIP download on one armed workflow | Earlier unresolved submission intent, every publication/crash window, or final import correctness |
+| `audit_terminal_history.py` | Terminal source events agree with projections for explicitly supplied workflow IDs | Reconstruction of historical missing events or a replacement for a fresh failure/rebuild acceptance run |
 
 The relay stops forwarding without dropping queued TCP bytes. It never changes a
 firewall, kills an SSH daemon, or pauses a container. Authentication comes from
@@ -164,6 +166,85 @@ docker compose -p "$TEST_PROJECT" exec -T --user 0 biomeroworker \
 docker compose -p "$TEST_PROJECT" restart biomeroworker
 ```
 
+### Submission acknowledgement and partial ZIP download
+
+Use a **separate** new `PHASE_CONTROL_DIR`. Install before launching the dedicated
+workflow, then arm its UUID before submission. The fixture adapter must provide
+enough preparation time to discover that UUID. The hook checks a unique analysis
+task named `ANALYSIS_TASK_NAME` inside that exact workflow. It changes only that
+client's methods during the matched native operation and restores them in
+`finally`; BIOMERO's published recovery code performs the retries.
+
+```sh
+docker compose -p "$TEST_PROJECT" exec -T --user 0 biomeroworker \
+  python "$BUNDLE_IN_WORKER/phase_fault_cli.py" install --control-dir "$PHASE_CONTROL_DIR" \
+  --owner-uid "$WORKER_UID" --owner-gid "$WORKER_GID" \
+  --enable-faults --ack-isolated-worker
+docker compose -p "$TEST_PROJECT" restart biomeroworker
+
+# Launch the owned fixture using the site's normal workflow launcher, then arm:
+docker compose -p "$TEST_PROJECT" exec -T --user "$WORKER_UID:$WORKER_GID" biomeroworker \
+  python "$BUNDLE_IN_WORKER/phase_fault_cli.py" arm --control-dir "$PHASE_CONTROL_DIR" \
+  --workflow-id "$WORKFLOW_ID" --mode "$EXECUTION_MODE" --task-name "$ANALYSIS_TASK_NAME" \
+  --remote-parent "$REMOTE_TEST_PARENT" --phase submit --phase zip \
+  --enable-faults --ack-isolated-worker
+docker compose -p "$TEST_PROJECT" exec -T --user "$WORKER_UID:$WORKER_GID" biomeroworker \
+  python "$BUNDLE_IN_WORKER/phase_fault_cli.py" status --control-dir "$PHASE_CONTROL_DIR"
+```
+
+Either phase may be selected alone. `submit` drops the successful command response
+once **after the native submission receipt has been published**. Native receipt
+reconciliation must recover the original job ID. The report's attempts count is
+command/reconciliation calls, not submissions. Separately run `audit_workflow.py`
+to prove one matching allocation. This does not test an earlier unresolved-intent
+window before a receipt exists.
+
+`zip` targets only that task's one job archive beneath
+`REMOTE_TEST_PARENT/biomero_<workflow UUID>`. The archive must exceed 64 KiB; a
+smaller fixture is reported as REFUSED and downloads normally without faulting.
+A fixture-only incompressible sidecar can supply sufficient size. The hook closes
+only the owned connection after a real partial SFTP transfer, then checks that
+native retry starts with an empty temporary file, removes partial files and
+publishes a ZIP with the original SHA256 and valid CRCs. Restore fixture changes
+afterward. Final workflow outcome, pixels and mandatory provenance remain separate
+acceptance assertions.
+
+Status exits 0 only when every selected phase reports RECOVERED; WAITING, REFUSED
+and RAISED are not passes. Disarm between cases. In the operator's cleanup trap,
+disarm/uninstall using the same control directory and restart the isolated worker
+before the final clean workflow. Uninstall retains private reports and removes
+only this installation's exact `.pth` content.
+
+```sh
+docker compose -p "$TEST_PROJECT" exec -T --user "$WORKER_UID:$WORKER_GID" biomeroworker \
+  python "$BUNDLE_IN_WORKER/phase_fault_cli.py" disarm --control-dir "$PHASE_CONTROL_DIR"
+docker compose -p "$TEST_PROJECT" exec -T --user 0 biomeroworker \
+  python "$BUNDLE_IN_WORKER/phase_fault_cli.py" uninstall --control-dir "$PHASE_CONTROL_DIR"
+docker compose -p "$TEST_PROJECT" restart biomeroworker
+```
+
+### Terminal source history before and after Init
+
+Audit explicit owned workflow IDs before an analytics rebuild. For a fresh
+controlled terminal failure, require FAILED both before and after ordinary Init,
+then independently observe that detached supervision starts no new allocation.
+Use distinct report filenames for each observation.
+
+```sh
+docker compose -p "$TEST_PROJECT" exec -T --user "$WORKER_UID:$WORKER_GID" biomeroworker \
+  python "$BUNDLE_IN_WORKER/audit_terminal_history.py" "$WORKFLOW_ID" \
+  --expect FAILED --output "$EVIDENCE_DIR/terminal-before-init.json"
+```
+
+This uses normal configured client initialization, which can create missing
+tables, followed by read-only queries. It never triggers Init, rebuild, repair or
+resume. Without `--expect`, it rejects contradictions between terminal projections
+and terminal source events; an unfinished workflow is not a terminal pass. With
+`--expect`, exactly one matching terminal source event is required. If historical
+terminal projections lack their source event, preserve the evidence and resolve
+that inconsistency before rebuilding or resuming; this probe does not invent the
+missing history.
+
 ## Coverage limits and source provenance
 
 The original private helpers and their hashes are recorded in
@@ -175,8 +256,8 @@ The original workflow hook could claim already-completed allocations; this
 adaptation deliberately rejects that case. Fresh published-candidate live runs
 are required. Offline checks do not replace them.
 
-This bundle does **not** supply submission-response-loss, ZIP interruption,
-zero-window/permanent-error, processor restart/cancellation, converter/image-init
+This bundle does **not** supply unresolved-intent submission, all ZIP publication
+windows, zero-window/permanent-error, processor restart/cancellation, converter/image-init
 or full import/provenance fixtures. Those require the site's existing phase
 adapters and separate assertions. Do not mark those acceptance criteria complete
 from these reports. No complete worker-restart test is claimed.
