@@ -71,7 +71,7 @@ pixels is BIOMERO's deduplication policy. Workflows are expected to return
 consistent image pyramids. Do not describe the result as a full-resolution
 pixel-equality proof or as perceptual ISCC matching.
 
-### Profiles, cached sources and backward compatibility
+### Current profile and stale canonical records
 
 Introduce an explicit versioned comparison profile in the shared contracts.
 Record the selected resolution's dataset path, shape and transforms alongside
@@ -79,13 +79,28 @@ the original image semantics, code lengths and implementation versions.
 Dataset paths identify what was read; compatibility must not require identical
 path spelling. Treat this profile as BIOMERO-specific, not a new ISCC standard.
 
-Existing full-resolution records and manifests remain readable with their
-original meaning. Never relabel an old full-resolution code as a pyramid code,
-compare unlike profiles, or silently reinterpret an existing shallow result.
-Cache the required new fingerprint against the same immutable source
-generation, without recreating or reimporting the canonical store. Index on
-first use where necessary; reuse the cached profile on later runs. Keep old
-references valid and preserve the normal full-result fallback.
+Use one current comparison contract/profile. When a cached canonical record
+has an old or missing profile, treat the identity as stale and regenerate the
+record using the new pixels-only, selected-resolution method. Read the same
+authoritative backing Zarr; stale identity metadata is not a reason to export,
+copy, convert or reimport it. Cache the refreshed record for subsequent runs.
+An already imported Zarr without any canonical identity follows this same
+indexing route when its backing-store provenance is available.
+
+Do not maintain parallel full-resolution and pyramid identity caches, preserve
+the slow algorithm for legacy records, or interpret a missing profile as a
+request for full-resolution verification. Never relabel or compare codes from
+different profiles. Full-resolution pixel hashing remains necessary only for
+cases such as a single-level image, not to preserve obsolete cache semantics.
+
+`PixelIdentity` was already included in published `biomero-schema 0.2`; the
+later `0.3.0b2` is a prerelease. Version the changed contract/profile explicitly
+so stale records are recognized rather than silently reinterpreted. The final
+NL-BIOMERO 1.8 release has not shipped: preserving every earlier development
+identity or shallow-manifest variant is not a requirement for this work.
+Handle any incompatible prerelease test fixtures explicitly instead of adding
+a permanent legacy comparison path. Invalidating a record must not delete the
+physical source or retained label stores.
 
 Do not force v2 sources into v3. Source format reuse and requested export
 format continue to follow the existing route: an incompatible canonical format
@@ -267,9 +282,12 @@ Required acceptance for the pixel/pyramid work:
   when computing the selected original-image fingerprint.
 - [ ] Coarsest-level selection, nonnumeric paths, cross-store compatibility,
   missing pyramids and single-level images have regression coverage.
-- [ ] Missing legacy profile fields retain full-resolution semantics. Old
-  sources, old shallow manifests, mismatched formats and failed comparisons
-  remain importable without forced migration or data loss.
+- [ ] Old or missing identity profiles trigger regeneration with the current
+  method against the existing backing Zarr, then reuse the refreshed cache.
+  This does not invoke legacy hashing, fresh export, source copying or reimport.
+- [ ] Previously imported v2/v3 Zarrs without identity records remain usable.
+  Stale-record handling preserves backing stores; mismatched formats and
+  failed comparisons keep the normal full-result import route.
 - [ ] New and changed labels, measurements and derived images survive; source
   pixels remain immutable. Invalid/unmatched results retain the full fallback.
 - [ ] Local and remote receipt consumers agree on profiles. Cached identities
@@ -292,8 +310,9 @@ Additional acceptance for the declaration extension:
 
 ## Implementation ownership and order
 
-1. **biomero-schema:** comparison profiles and backward-compatible records;
-   a separate declaration basis if the trusted extension is implemented.
+1. **biomero-schema:** the versioned current comparison contract/profile and
+   stale-record detection; a separate declaration basis if the trusted
+   extension is implemented. No parallel legacy identity support is required.
 2. **BIOMERO.shallower:** lower-level pixel reader/hash adapter, pyramid
    selection, compatibility checks, bounded early rejection and receipts.
 3. **BIOMERO.importer and biomero-scripts/core as required:** source-profile
