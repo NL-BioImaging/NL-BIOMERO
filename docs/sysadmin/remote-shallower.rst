@@ -1,10 +1,11 @@
 Shallow OME-Zarr Storage
 ========================
 
-Shallow storage avoids keeping another copy of unchanged image pixels in
-eligible OME-Zarr workflow results. BIOMERO retains new or changed labels and
-references verified source pixels already in managed storage. Original source
-data remains unchanged.
+Shallow storage avoids keeping another copy of original image pixels in
+eligible OME-Zarr workflow results. BIOMERO retains derived images, labels and
+sidecars, and references the known input already in managed storage. It selects
+this route from usable output declarations, an administrator's workflow policy
+or a compatible pixel comparison. Original source data remains unchanged.
 
 The matched component releases support OME-Zarr 0.4 / Zarr v2 and OME-Zarr
 0.5 / Zarr v3 Images and Plates. Existing managed stores keep their format;
@@ -36,10 +37,12 @@ The NL-BIOMERO demo enables shallow Zarr. Other deployments opt in with
 ``BIOMERO_REMOTE_SHALLOW_ZARR=false`` for local importer processing instead.
 Without shallow Zarr enabled, the remote setting has no effect.
 
-Remote processing is recommended when Slurm is available. It produces the same
-shallow result as local processing, while removing duplicate data before the
-return archive is created and moving the expensive verification and shallowing
-work from the importer to a CPU-only Slurm helper.
+Remote processing is recommended when Slurm is available. Eligible results are
+shallowed before the return archive is created, reducing return data and moving
+comparison work to a CPU-only Slurm helper. It uses current cached source
+fingerprints or source-linked output metadata. If a comparison needs a missing
+or stale fingerprint, the result travels in full; the importer reads the actual
+managed source, refreshes its cache and performs the comparison locally.
 
 .. note::
    **Summary for system administrators:**
@@ -92,17 +95,17 @@ non-Zarr results continue through their usual import path.
    flowchart TD
        A["Existing managed Zarr"] --> C["Full source Zarr<br/>Retained unchanged"]
        B["Non-Zarr input"] -->|"Create reusable Zarr"| C
-       C --> I["Record or reuse source<br/>ISCC-BIO pixel identities"]
+       C --> I["Record source binding<br/>Reuse current fingerprints when available"]
        I --> T["Transfer full Zarr to HPC"]
        T --> H["Workflow produces images and labels"]
        H --> Q{"Where is eligibility checked?"}
        Q -->|"Remote"| R["On HPC, before ZIP and transfer"]
        Q -->|"Local"| L["In importer, after full transfer"]
-       R --> V{"Pixels match source<br/>and result is eligible?"}
+       R --> V{"Output declaration, workflow policy<br/>or compatible pixel match?"}
        L --> V
-       I -. "Recorded identities" .-> V
+       I -. "Run-bound source metadata" .-> V
        V -->|"Changed or uncertain"| F["Keep full result"]
-       V -->|"Verified unchanged"| S["Shallow result<br/>Remove duplicate result arrays<br/>Keep new labels and managed references"]
+       V -->|"Eligible"| S["Shallow result<br/>Use managed original image<br/>Keep derived results and references"]
        F --> O["Register results in OMERO"]
        S --> O
        C -. "PixelBuffer reads source pixels" .-> O
@@ -115,6 +118,23 @@ non-Zarr results continue through their usual import path.
 In remote mode, transfer follows the eligibility decision: eligible results
 travel shallow; other results travel in full. New or changed labels are retained;
 unchanged inherited labels may also be referenced instead of duplicated.
+
+Usable RO-Crate label outputs are interpreted automatically while shallow
+storage is enabled. The declaration must bind the produced labels to the current
+run and known input; a pointer to an entire Zarr root alone is insufficient.
+Without usable evidence, **Skip original-pixel comparison** on the
+workflow's admin card offers the same source-linked route. With neither, BIOMERO
+compares the coarsest compatible stored image pyramid level, covering all
+channels, Z slices and timepoints. Labels remain independently compared at full
+resolution. This reduces comparison reads but is not proof of full-resolution
+image equality; see the :doc:`../developer/biomero-shallow-zarr` explanation.
+
+The supported source-linked output contains an enclosing image and its label
+datasets. Additional derived stores and sidecars are preserved. Bare labels-only
+outputs are not automatically materialized; workflows requiring full stored
+results must return a complete image/label collection. Neither declarations nor
+workflow policies override disabled shallow storage, which performs no
+deduplication-only hashing or pruning.
 
 A shallow result is a BIOMERO-managed representation, not a self-contained
 OME-Zarr for generic readers. OMERO's registered pixel paths reference the
@@ -263,6 +283,18 @@ provides image, tool version, worker count, partition, memory and time settings.
 These fields save the worker's Slurm configuration, not the importer's separate
 settings. Keep the importer trust settings aligned. Run Slurm Init after changing
 the helper image.
+
+The workflow-level **Skip original-pixel comparison** switch is independent of
+these helper controls. For workflows known to leave original pixels unchanged,
+it avoids comparison work per run. See :doc:`omero-biomero-admin` for its saved
+configuration, Runtime timing and the full decision order.
+
+When comparison is needed, old or missing source fingerprints are refreshed
+from the existing managed backing Zarr and cached for later runs. This does not
+export, copy or reimport the source, and there is one current comparison cache.
+The HPC helper does not reindex a post-analysis input copy: that copy may have
+been changed by the workflow. A cache refresh therefore happens locally when
+the remote helper cannot use a current fingerprint.
 
 Failure and observability
 -------------------------

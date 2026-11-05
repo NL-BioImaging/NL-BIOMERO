@@ -345,19 +345,66 @@ See :ref:`workflow-sbatch-parameters` and the
 `core Slurm configuration reference <https://nl-bioimaging.github.io/biomero/slurm-configuration.html>`_
 for flag syntax and detailed precedence.
 
+.. _shallow-zarr-admin:
+
 Shallow Zarr
 ~~~~~~~~~~~~
 
-Avoids storing another copy of unchanged pixels in eligible workflow results.
-Changed pixels and new labels are retained. If a result cannot safely be
-shallowed, BIOMERO retains it in full. Referenced source stores must remain
-available for viewing and reusing shallow results.
+Avoids storing another copy of original image pixels in eligible workflow
+results. BIOMERO retains derived images and labels, and uses the known source
+as the image background when an output declaration or workflow setting permits
+it. Otherwise it compares compatible stored pyramid pixels. Unsupported or
+ambiguous results stay full. Referenced sources must remain available.
 
 This section appears when ``BIOMERO_SHALLOW_ZARR`` is enabled in the deployment;
 it also requires the Analyzer–Importer integration. The demo enables shallow
 storage. Other deployments opt in explicitly. The **Remote shallowing** switch
 chooses where processing happens; turning it off selects local importer
 processing rather than disabling shallow storage.
+
+Result handling follows this order:
+
+.. list-table:: Result storage decision
+   :header-rows: 1
+   :widths: 42 58
+
+   * - Condition
+     - Behaviour
+   * - Shallow storage disabled
+     - Keep full results; metadata and workflow settings cannot trigger pruning.
+   * - Usable, run-bound RO-Crate label output declaration
+     - Reuse the known input automatically, without original-pixel comparison
+       or another administrator approval.
+   * - No usable declaration; workflow shortcut enabled
+     - Reuse the known input according to the saved workflow policy.
+   * - Neither declaration nor shortcut
+     - Compare compatible stored pyramid pixels; retain the full result when
+       no supported match can be established.
+
+The **Skip original-pixel comparison** switch is on each workflow card under
+**Shallow result storage**. Shallow storage saves space, but comparing returned
+pixels with the input takes time. Enable the switch for a workflow you know
+leaves original pixels unchanged, such as one that adds segmentation labels.
+BIOMERO can then reuse the input without that comparison, reducing comparison
+work per run. Original managed input pixels are never modified, and new labels
+and other derived results are retained.
+
+It is a **Runtime** setting: saving
+applies to new runs. It stores the JSON workflow-name list
+``[UI] original_pixels_not_required_workflows``. Missing, blank or ``[]`` means
+no workflow shortcut. Turning it off does not disable automatic RO-Crate
+handling; disable shallow storage to require full results. The setting is
+independent of input format and is not inferred from Bilayers descriptors.
+
+OMERO.biomero uses this saved preference as the default for a normal workflow
+script input when launching a new run. An explicitly supplied input takes
+precedence, including false. Running the OMERO script directly uses its own
+default of false; scripts do not read the web interface's ``[UI]`` settings.
+
+This path supports results containing an enclosing image and its produced label
+datasets. A bare labels-only output is not automatically materialized into a
+full result. See :doc:`remote-shallower` for the supported output scope and
+:doc:`../developer/biomero-shallow-zarr` for comparison semantics.
 
 .. list-table:: Shallow result processing controls
    :header-rows: 1
