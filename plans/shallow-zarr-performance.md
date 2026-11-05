@@ -223,9 +223,10 @@ improve enumeration rather than treating the crate as an exhaustive deletion
 list. Do not infer preservation from segmentation-related parameter names.
 Do not publish the original archive or its workstation paths in this PR.
 
-### Joost's revised label-level output reference
+### Joost's revised label-level output metadata
 
-The subsequently supplied excerpt identifies the actual produced dataset:
+The subsequently supplied full `ro-crate-metadata.json` identifies the actual
+produced dataset:
 
 ```json
 {
@@ -235,12 +236,18 @@ The subsequently supplied excerpt identifies the actual produced dataset:
 }
 ```
 
-This is more useful than pointing the output parameter at the enclosing Zarr
-root: it locates the derived label content. In the complete crate, the run's
-`CreateAction.result` should reference that label entity as well, so the
-parameter-to-dataset link also belongs to the relevant execution. Check the
-graph's dataset membership links and use NGFF metadata to establish the image
-association rather than relying only on the `/labels/` path spelling.
+The revised metadata connects all three relevant links to that entity:
+
+- The run's `CreateAction.result` identifies the label dataset.
+- The dataset's `exampleOfWork` identifies the workflow's `#output` parameter.
+- The crate root's `hasPart` includes the label dataset.
+
+This locates the derived label content and binds the output parameter to its
+execution, rather than designating the enclosing Zarr root as the result.
+Local structural inspection found valid JSON, 50 uniquely identified entities
+and no unresolved local entity references. This was not a full JSON-LD or
+RO-Crate profile conformance validation. No accompanying Zarr was supplied;
+NGFF image association and pixel layout were not checked.
 
 For an approved workflow whose declared results are those labels plus any
 other explicitly described products, BIOMERO can use the labels-only contract
@@ -249,12 +256,18 @@ does not assert unchanged parent image pixels, enumerate all other results,
 or identify which immutable BIOMERO input supplies the parent image. Preserve
 additional results and sidecars according to the approved contract.
 
+The run still identifies a TIFF input, so BIOMERO must use its execution record
+to resolve the corresponding managed canonical source; the metadata does not
+provide that BIOMERO source/generation binding itself. The revised graph also
+still omits a measurement CSV entity/result, so it is not a basis for dropping
+the sidecar found in the original example archive.
+
 The original supplied config used Bilayers `subtype: [label]`. Presence of a
 label/mask subtype helps classify a produced output; its absence does not
 establish preservation, nor does its presence establish unchanged sibling image
 arrays. Prefer positive output scope and input association over inferring a
-shortcut from a missing subtype. Only the revised excerpt has been reviewed;
-no updated complete crate or Zarr has been validated.
+shortcut from a missing subtype. These output links are useful for the
+approved labels-only contract without requiring another preservation boolean.
 
 ## Evidence and acceptance
 
