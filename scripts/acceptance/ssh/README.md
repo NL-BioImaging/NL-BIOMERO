@@ -73,6 +73,22 @@ ACC uses Podman: translate only the surrounding `exec`/copy/restart commands to
 its established Podman deployment adapter. The Python test logic is unchanged;
 there is no container-engine abstraction in this bundle.
 
+For hook reloads, use OMERO's native processor stop/start from the isolated server
+container. Set `SERVER_SERVICE` to that Compose service (normally `omeroserver`),
+then identify the intended worker's configured `PROCESSOR_ID`; do not assume an
+ID belonging to another worker. The local acceptance setup used `Processor-0`.
+
+```sh
+docker compose -p "$TEST_PROJECT" exec -T "$SERVER_SERVICE" \
+  /opt/omero/server/venv3/bin/omero admin ice server list
+```
+
+Run the stop/start commands below only while that processor is idle, except for
+an explicitly controlled restart-recovery case. Confirm its state and normal
+script metadata availability before launching a test. A container being up is
+not sufficient readiness evidence. Local acceptance verified this native reload;
+a plain Docker container restart encountered a separate processor-discovery issue.
+
 ### Shared monitor boundary and original allocation
 
 `JOB_ID` below must be an existing owned integration allocation, normally one
@@ -106,7 +122,10 @@ docker compose -p "$TEST_PROJECT" exec -T --user 0 biomeroworker \
   python "$BUNDLE_IN_WORKER/workflow_hook.py" install --control-dir "$CONTROL_DIR" \
   --owner-uid "$WORKER_UID" --owner-gid "$WORKER_GID" \
   --enable-faults --ack-isolated-worker
-docker compose -p "$TEST_PROJECT" restart biomeroworker
+docker compose -p "$TEST_PROJECT" exec -T "$SERVER_SERVICE" \
+  /opt/omero/server/venv3/bin/omero admin ice server stop "$PROCESSOR_ID"
+docker compose -p "$TEST_PROJECT" exec -T "$SERVER_SERVICE" \
+  /opt/omero/server/venv3/bin/omero admin ice server start "$PROCESSOR_ID"
 ```
 
 For **each mode**, use the site's normal smoke launcher/UI to start one dedicated
@@ -158,12 +177,15 @@ Disarm between cases. In an operator `finally`/shell trap, disarm and uninstall;
 the latter removes only the exact generated `.pth` content and retains reports.
 Do not reuse a control directory with another installation. After both modes,
 restore the site's mode/recovery settings and any fixture script, uninstall, then
-restart only the isolated worker and run a clean ordinary workflow.
+reload only the isolated processor and run a clean ordinary workflow.
 
 ```sh
 docker compose -p "$TEST_PROJECT" exec -T --user 0 biomeroworker \
   python "$BUNDLE_IN_WORKER/workflow_hook.py" uninstall --control-dir "$CONTROL_DIR"
-docker compose -p "$TEST_PROJECT" restart biomeroworker
+docker compose -p "$TEST_PROJECT" exec -T "$SERVER_SERVICE" \
+  /opt/omero/server/venv3/bin/omero admin ice server stop "$PROCESSOR_ID"
+docker compose -p "$TEST_PROJECT" exec -T "$SERVER_SERVICE" \
+  /opt/omero/server/venv3/bin/omero admin ice server start "$PROCESSOR_ID"
 ```
 
 ### Submission acknowledgement and partial ZIP download
@@ -180,7 +202,10 @@ docker compose -p "$TEST_PROJECT" exec -T --user 0 biomeroworker \
   python "$BUNDLE_IN_WORKER/phase_fault_cli.py" install --control-dir "$PHASE_CONTROL_DIR" \
   --owner-uid "$WORKER_UID" --owner-gid "$WORKER_GID" \
   --enable-faults --ack-isolated-worker
-docker compose -p "$TEST_PROJECT" restart biomeroworker
+docker compose -p "$TEST_PROJECT" exec -T "$SERVER_SERVICE" \
+  /opt/omero/server/venv3/bin/omero admin ice server stop "$PROCESSOR_ID"
+docker compose -p "$TEST_PROJECT" exec -T "$SERVER_SERVICE" \
+  /opt/omero/server/venv3/bin/omero admin ice server start "$PROCESSOR_ID"
 
 # Launch the owned fixture using the site's normal workflow launcher, then arm:
 docker compose -p "$TEST_PROJECT" exec -T --user "$WORKER_UID:$WORKER_GID" biomeroworker \
@@ -211,7 +236,7 @@ acceptance assertions.
 
 Status exits 0 only when every selected phase reports RECOVERED; WAITING, REFUSED
 and RAISED are not passes. Disarm between cases. In the operator's cleanup trap,
-disarm/uninstall using the same control directory and restart the isolated worker
+disarm/uninstall using the same control directory and reload the isolated processor
 before the final clean workflow. Uninstall retains private reports and removes
 only this installation's exact `.pth` content.
 
@@ -220,7 +245,10 @@ docker compose -p "$TEST_PROJECT" exec -T --user "$WORKER_UID:$WORKER_GID" biome
   python "$BUNDLE_IN_WORKER/phase_fault_cli.py" disarm --control-dir "$PHASE_CONTROL_DIR"
 docker compose -p "$TEST_PROJECT" exec -T --user 0 biomeroworker \
   python "$BUNDLE_IN_WORKER/phase_fault_cli.py" uninstall --control-dir "$PHASE_CONTROL_DIR"
-docker compose -p "$TEST_PROJECT" restart biomeroworker
+docker compose -p "$TEST_PROJECT" exec -T "$SERVER_SERVICE" \
+  /opt/omero/server/venv3/bin/omero admin ice server stop "$PROCESSOR_ID"
+docker compose -p "$TEST_PROJECT" exec -T "$SERVER_SERVICE" \
+  /opt/omero/server/venv3/bin/omero admin ice server start "$PROCESSOR_ID"
 ```
 
 ### Terminal source history before and after Init
@@ -260,7 +288,8 @@ This bundle does **not** supply unresolved-intent submission, all ZIP publicatio
 windows, zero-window/permanent-error, processor restart/cancellation, converter/image-init
 or full import/provenance fixtures. Those require the site's existing phase
 adapters and separate assertions. Do not mark those acceptance criteria complete
-from these reports. No complete worker-restart test is claimed.
+from these reports. These probes alone do not establish full worker/container
+restart recovery.
 
 Offline validation (installed core required for the real temporary-SQLite tracker
 test; only SSH validation/descriptor lookup are replaced there):
