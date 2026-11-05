@@ -152,9 +152,18 @@ schema work; no preservation boolean is claimed to be an existing Bilayers or
 Workflow Run RO-Crate standard. The approval is a workflow contract, not a
 requirement to introduce digital signatures or perform another full checksum.
 
+For an approved labels-only output contract, precise RO-Crate output pointers
+may provide the required output scope without a separate preservation boolean.
+BIOMERO can retain those label datasets and bind them to the known source,
+rather than checking copied image arrays that the contract does not designate
+as results. This is an explicit interpretation of the approved workflow
+contract, not an inference from every unlisted sibling directory. It still
+requires unambiguous source/run binding and support for importing such overlays.
+
 Retain cheap source binding, format, layout and metadata validation. Skip the
 original pixel sweep only where the approved relationship applies. Record
-`declared unchanged` separately from full-resolution or pyramid verification;
+`declared unchanged` or `source-linked labels-only` separately from
+full-resolution or pyramid verification;
 do not fabricate an Instance-Code or mark unmeasured data as pixel-verified.
 Permit source references without calculating an otherwise unused source code
 for such runs; this requires an explicit contract path rather than dummy IDs.
@@ -198,6 +207,39 @@ not listed as a run result/data entity in its graph: retain such files and
 improve enumeration rather than treating the crate as an exhaustive deletion
 list. Do not infer preservation from segmentation-related parameter names.
 Do not publish the original archive or its workstation paths in this PR.
+
+### Joost's revised label-level output reference
+
+The subsequently supplied excerpt identifies the actual produced dataset:
+
+```json
+{
+  "@id": "1.ome.zarr/labels/empanada_seg_2d/",
+  "@type": "Dataset",
+  "exampleOfWork": { "@id": "#output" }
+}
+```
+
+This is more useful than pointing the output parameter at the enclosing Zarr
+root: it locates the derived label content. In the complete crate, the run's
+`CreateAction.result` should reference that label entity as well, so the
+parameter-to-dataset link also belongs to the relevant execution. Check the
+graph's dataset membership links and use NGFF metadata to establish the image
+association rather than relying only on the `/labels/` path spelling.
+
+For an approved workflow whose declared results are those labels plus any
+other explicitly described products, BIOMERO can use the labels-only contract
+above to avoid comparing the enclosing copied originals. The pointer alone
+does not assert unchanged parent image pixels, enumerate all other results,
+or identify which immutable BIOMERO input supplies the parent image. Preserve
+additional results and sidecars according to the approved contract.
+
+The original supplied config used Bilayers `subtype: [label]`. Presence of a
+label/mask subtype helps classify a produced output; its absence does not
+establish preservation, nor does its presence establish unchanged sibling image
+arrays. Prefer positive output scope and input association over inferring a
+shortcut from a missing subtype. Only the revised excerpt has been reviewed;
+no updated complete crate or Zarr has been validated.
 
 ## Evidence and acceptance
 
@@ -244,6 +286,9 @@ Additional acceptance for the declaration extension:
 - [ ] Sidecars and measurement files survive processing and RO-Crate provenance
   remains accurate after pruning; removed image arrays are represented by the
   appropriate managed-source relationship rather than misleading file entries.
+- [ ] Label-level `result`/`exampleOfWork` bindings can select approved
+  labels-only handling, including source association and mixed derived outputs.
+  A missing mask/label subtype never enables the shortcut by itself.
 
 ## Implementation ownership and order
 
