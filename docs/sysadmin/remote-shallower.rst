@@ -122,7 +122,7 @@ unchanged inherited labels may also be referenced instead of duplicated.
 Usable RO-Crate label outputs are interpreted automatically while shallow
 storage is enabled. The declaration must bind the produced labels to the current
 run and known input; a pointer to an entire Zarr root alone is insufficient.
-Without usable evidence, **Original image pixels need not be returned** on the
+Without usable evidence, **Skip original-pixel comparison** on the
 workflow's admin card offers the same source-linked route. With neither, BIOMERO
 compares the coarsest compatible stored image pyramid level, covering all
 channels, Z slices and timepoints. Labels remain independently compared at full
@@ -284,12 +284,10 @@ These fields save the worker's Slurm configuration, not the importer's separate
 settings. Keep the importer trust settings aligned. Run Slurm Init after changing
 the helper image.
 
-The workflow-level **Original image pixels need not be returned** switch is
-independent of these helper controls. Its JSON workflow-name list is stored as
-``[UI] original_pixels_not_required_workflows`` in the shared INI. Missing,
-blank or ``[]`` leaves the workflow shortcut disabled. Saving applies to new
-runs without Slurm Init. Usable RO-Crate declarations remain automatic with the
-switch off; see :doc:`omero-biomero-admin` for the full decision order.
+The workflow-level **Skip original-pixel comparison** switch is independent of
+these helper controls. For workflows known to leave original pixels unchanged,
+it avoids comparison work per run. See :doc:`omero-biomero-admin` for its saved
+configuration, Runtime timing and the full decision order.
 
 When comparison is needed, old or missing source fingerprints are refreshed
 from the existing managed backing Zarr and cached for later runs. This does not

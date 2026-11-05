@@ -381,8 +381,15 @@ Result handling follows this order:
      - Compare compatible stored pyramid pixels; retain the full result when
        no supported match can be established.
 
-The **Original image pixels need not be returned** switch is on each workflow
-card under **Shallow result storage**. It is a **Runtime** setting: saving
+The **Skip original-pixel comparison** switch is on each workflow card under
+**Shallow result storage**. Shallow storage saves space, but comparing returned
+pixels with the input takes time. Enable the switch for a workflow you know
+leaves original pixels unchanged, such as one that adds segmentation labels.
+BIOMERO can then reuse the input without that comparison, reducing comparison
+work per run. Original managed input pixels are never modified, and new labels
+and other derived results are retained.
+
+It is a **Runtime** setting: saving
 applies to new runs. It stores the JSON workflow-name list
 ``[UI] original_pixels_not_required_workflows``. Missing, blank or ``[]`` means
 no workflow shortcut. Turning it off does not disable automatic RO-Crate
