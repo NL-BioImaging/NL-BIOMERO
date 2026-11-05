@@ -14,7 +14,7 @@ import threading
 import time
 from uuid import uuid4
 
-from private_ssh import close_owned, common_arguments, finish, proxy_client, validate_common
+from private_ssh import close_owned, common_arguments, finish, proxy_client, require_known_host, validate_common
 
 
 def main():
@@ -39,7 +39,6 @@ def main():
 
     def probe(report):
         from biomero import SlurmClient, ssh_recovery
-        import paramiko
         client = SlurmClient.from_config(configfile=args.config_file, config_only=True)
         relay = proxy = timer = None
         job_id = None
@@ -61,7 +60,7 @@ def main():
             raise AssertionError('fixture_state_deadline')
 
         try:
-            client.client.set_missing_host_key_policy(paramiko.RejectPolicy())
+            require_known_host(client)
             client.open()
             if client.gateway is not None:
                 raise ValueError('gateway_adapter_required')

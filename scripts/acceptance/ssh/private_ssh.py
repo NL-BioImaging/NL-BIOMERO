@@ -81,12 +81,19 @@ class Relay:
             thread.join(max(0, deadline - time.monotonic()))
 
 
+def require_known_host(connection):
+    """Load existing user known_hosts before enforcing native strict policy."""
+    import paramiko
+    connection.client.load_system_host_keys()
+    connection.client.set_missing_host_key_policy(paramiko.RejectPolicy())
+
+
 def proxy_client(original, recovery_window, detection_timeout):
     """Reuse existing authentication and a verified host key without exposing them."""
     from biomero import SlurmClient
     import paramiko
     if not original.is_connected:
-        original.client.set_missing_host_key_policy(paramiko.RejectPolicy())
+        require_known_host(original)
         original.open()
     if original.gateway is not None:
         raise ValueError('gateway_adapter_required')

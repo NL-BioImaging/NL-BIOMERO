@@ -22,6 +22,22 @@ import workflow_hook
 
 
 class OfflineTests(unittest.TestCase):
+    def test_existing_known_hosts_loaded_before_strict_policy(self):
+        import paramiko
+        with tempfile.TemporaryDirectory() as directory:
+            known_hosts = Path(directory) / '.ssh' / 'known_hosts'
+            known_hosts.parent.mkdir()
+            key = paramiko.RSAKey.generate(1024)
+            known_hosts.write_text('localhost ' + key.get_name() + ' ' + key.get_base64() + '\n')
+            client = paramiko.SSHClient()
+            try:
+                with patch('paramiko.client.os.path.expanduser', return_value=str(known_hosts)):
+                    private_ssh.require_known_host(types.SimpleNamespace(client=client))
+                self.assertEqual(client._system_host_keys['localhost'][key.get_name()], key)
+                self.assertIsInstance(client._policy, paramiko.RejectPolicy)
+            finally:
+                client.close()
+
     def test_private_relay_pause_restore_and_cleanup(self):
         listener = socket.socket()
         listener.bind(('127.0.0.1', 0))

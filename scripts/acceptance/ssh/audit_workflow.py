@@ -13,7 +13,7 @@ from pathlib import Path
 import shlex
 from uuid import UUID
 
-from private_ssh import finish, validate_common
+from private_ssh import finish, require_known_host, validate_common
 
 
 @contextmanager
@@ -41,9 +41,8 @@ def main():
         parser.error('Job ID must be positive')
 
     def audit(report):
-        import paramiko
         with configured_client(args.config_file) as client:
-            client.client.set_missing_host_key_policy(paramiko.RejectPolicy())
+            require_known_host(client)
             workflow = client.workflowTracker.repository.get(args.workflow_id)
             task = client.workflowTracker.repository.get(args.task_id)
             assert args.task_id in workflow.tasks
