@@ -9,8 +9,8 @@
 </style>
 ```
 
-BIOMERO stores a workflow result as **retained data plus references to unchanged
-managed pixels**. The result remains a distinct OMERO Image or Plate with its
+BIOMERO stores a workflow result as **retained data plus references to its known
+managed input**. The result remains a distinct OMERO Image or Plate with its
 own provenance. Storage is saved on the shared filesystem, without deleting the
 source or suppressing result registration.
 
@@ -61,7 +61,7 @@ The two JSON files have separate jobs:
 
 | File | Purpose |
 | --- | --- |
-| `.biomero-shallow.json` | Which image/label nodes exist, which arrays were omitted, and their source storage roots, paths, generations and identities |
+| `.biomero-shallow.json` | Image/label nodes, omitted arrays, source storage bindings and decision basis; measured identities when comparison was used |
 | `.biomero-shallow-report.json` | Decision, input snapshot and tool provenance; remote receipts bind this report to the expected helper run |
 
 Source indexing is separate: canonical-source annotations
@@ -86,57 +86,104 @@ mismatch uses export and leaves the original canonical registration unchanged.
 
 ### What registering or promoting a canonical Zarr entails
 
-A **canonical Zarr** is the stable managed pixel source and identity record used
-to compare later workflow results. Establishing it runs during input transfer
-when shallow storage is enabled and an eligible canonical record is missing.
-Yellow steps below mark ISCC-BIO pixel reads.
+A **canonical Zarr** is the stable managed source bound to a workflow input.
+Its locator, generation and image semantics can be recorded without hashing
+original pixels. Comparison fingerprints are calculated only when needed;
+source-linked handling does not require an otherwise unused fingerprint.
+Yellow steps below mark pixel reads.
 
 ```{mermaid} ../_diagrams/shallow-canonical.mmd
 ```
 
 | Starting point | Pixel calculation | What canonical registration changes |
 | --- | --- | --- |
-| Existing authoritative backing Zarr | ISCC-BIO reads that store directly; per-image/field and label identities | Adds the marker and OMERO source records in place; no new pixel copy |
-| Eligible fresh OMERO export | ISCC-BIO compares OMERO pixels with exported pixels | Commits the verified export to stable managed canonical storage and attaches source records |
-| Valid canonical already registered | Reuses cached identities for that generation | Records the workflow's input snapshot; no repeated source hash |
+| Existing authoritative backing Zarr | Original-image hashing is deferred until comparison needs it; labels retain their separate policy | Records source binding and semantics in place; no new pixel copy |
+| Eligible fresh OMERO export | Full-resolution source/export verification remains a separate promotion check | Commits the verified export to stable managed canonical storage and attaches source records |
+| Current comparison fingerprint already cached | Reuses that fingerprint for the same source generation and compatible resolution | Records the workflow input snapshot; no repeated source hash |
+| Old or missing comparison profile | Local importer reads the same authoritative backing Zarr when comparison is needed | Replaces the cached record with the current profile; no export, copy or reimport |
 
 Only the matching generation is reused. A temporary format-mismatch export or
 TIFF conversion input is not promoted. Failed indexing/promotion leaves the
 full workflow input usable without deduplication for that selection. Missing
 dependencies of a shallow input must be resolved before it can be reconstructed.
-Returned pixels are calculated again at the return-side comparison shown above.
+Old records are detected as stale, never relabelled as current fingerprints.
+There is one current cache rather than parallel legacy and pyramid identities.
+The remote helper uses current cached fingerprints; it cannot refresh them from
+the authoritative managed store. Missing/stale fingerprints keep the remote
+result full so the importer can compare and cache from the actual source.
+Post-analysis HPC input copies are not authoritative comparison sources.
 
-## When verification runs
+## Output handling and comparison
+
+The decision order is:
+
+| Condition | Handling |
+| --- | --- |
+| Shallow storage disabled | Full results, without deduplication-only hashing or pruning |
+| Enabled, usable run-bound RO-Crate label output declaration | Automatically use the known input as image background; no original-pixel comparison or admin approval |
+| No usable declaration, workflow setting enabled | Use the same source-linked route under the recorded workflow policy |
+| Neither | Compare compatible stored pyramid pixels; unsupported or unmatched results stay full |
+
+The administrator setting is
+`[UI] original_pixels_not_required_workflows`; see the
+{ref}`admin controls <shallow-zarr-admin>`.
+It is independent of automatic RO-Crate handling and input-format selection.
+No Bilayers output-preservation preset is inferred.
+
+Supported declarations connect the run's input and label-level `result` with
+the output parameter's `exampleOfWork` and the crate's `hasPart`. The execution
+record supplies the managed source binding. A root-level Zarr pointer alone
+does not identify which image arrays are derived. Cheap format, layout and
+semantic guards still apply; missing or ambiguous evidence falls through to
+the setting or comparison. The supported result includes the enclosing image
+and label datasets; bare labels-only materialization is not implemented.
+Additional derived stores and sidecars are retained.
+
+The original RO-Crate is retained. If its graph explicitly inventories an array
+or label subtree that shallowing would remove, the artifact stays full rather
+than leaving stale file claims or rewriting an arbitrary graph. For supported
+label-output declarations, the retained crate describes the produced labels
+and the committed shallow manifest records the managed-source relationships.
+
+Each binding records whether it used `ro-crate-output`, `workflow-setting` or
+`pixel-comparison`. Source-linked decisions do not invent a pixel fingerprint
+or claim that returned original pixels were measured.
 
 | Route | Order |
 | --- | --- |
 | Shallow off | Workflow → full ZIP → transfer → full result registration |
-| Shallow on, remote | Workflow → HPC verification/pruning → smaller ZIP → transfer → receipt validation → registration |
-| Shallow on, local | Workflow → full ZIP → transfer → importer verification/pruning → registration |
+| Shallow on, remote | Workflow → HPC output handling/comparison → ZIP → transfer → receipt validation or local comparison → registration |
+| Shallow on, local | Workflow → full ZIP → transfer → importer output handling/comparison → registration |
 
 | Responsibility | Implementation |
 | --- | --- |
-| Pixel traversal and codes | [bio-codes / ISCC-BIO](https://github.com/bio-codes/iscc-bio), through `iscc_bio.api.biocode`; IMAGEWALK reads decoded highest-resolution pixels per image/field or label |
-| Equality decision | BIOMERO compares `instanceCode`, role, shape, dtype, axes and coordinate transformations |
+| Pixel traversal and codes | [ISCC-BIO](https://github.com/bio-codes/iscc-bio) `generate_biocode(planes)`; decoded numerical planes from a stored level, without the high-level file/store checksum |
+| Comparison policy | BIOMERO selects the coarsest compatible stored image level, retains all C/Z/T coverage and checks full-image and selected-level semantics; labels use full resolution |
+| Equality decision | Matching current profiles, code lengths, Instance-Codes and semantic guards; dataset path spelling is provenance, not an equality key |
 | Storage, transactions and references | BIOMERO.shallower; shared contracts from biomero-schema |
 | HPC orchestration and OMERO registration | BIOMERO core/scripts and BIOMERO.importer, respectively |
 
-The aggregate ISCC and similarity-oriented Data-Code are recorded but **do not
-authorize removal**. A checksum of the complete Zarr file tree is not an
-equality key. Returned identities are computed from pixels rather than trusted
-from workflow metadata. See the [exact comparison contract](https://nl-bioimaging.github.io/biomero-schema/pixel-identity/).
+The pixel API's composite ISCC-SUM and similarity-oriented Data-Code are
+recorded but **do not authorize removal**. No raw file-tree checksum or rendered
+thumbnail is calculated. Numerical planes follow IMAGEWALK Z → C → T traversal
+with upstream canonical pixel encoding. A single-level image uses full
+resolution; compatible stored levels require matching dimensions, dtype, axes
+and transformations without omitting channels, Z slices or timepoints.
 
-Highest-resolution equality is the preservation criterion: lower-resolution
-pyramids are reused from the source, not independently compared. This preserves
-the scientific pixel representation checked by the method, rather than every
-byte or pyramid rendering of the returned store.
+Selected-level byte equality is exact. Inferring unchanged full-resolution
+pixels from a smaller pyramid is **BIOMERO's deduplication approximation**,
+not a full-resolution equality proof or perceptual ISCC matching. Workflows
+must return internally consistent pyramids. The
+[shared comparison contract](https://nl-bioimaging.github.io/biomero-schema/pixel-identity/)
+defines profile fields, code lengths, reproducibility versions and scientific
+scope; it is the canonical algorithm reference.
 
 | Condition | Action |
 | --- | --- |
 | Shallow storage disabled; ordinary upload; TIFF result | No shallow operation |
 | Input/output Zarr profiles differ | Keep full; check format metadata before pixel hashing |
-| Eligible collection with matching image identities | Omit duplicate image pyramids; reference matching inherited labels; retain new/changed labels |
-| Changed image, unsupported identity, incomplete or ambiguous match | Keep the full collection |
+| Eligible collection with a source-linked decision or matching image fingerprints | Omit returned original-image pyramids; reference matching inherited labels; retain new/changed labels |
+| Comparison required but fingerprints differ, or source/layout binding is unsupported or ambiguous | Keep the full collection |
 | Invalid receipt, missing referenced source or unresolved transaction | Stop and preserve evidence for recovery; absent pixels cannot be treated as a full result |
 
 Pruning uses same-filesystem moves and a rollback journal before committing the
@@ -152,6 +199,10 @@ OMERO registrations unchanged. Keep all referenced stores available and allow
 enough disk space for the full copy.
 
 ## Results: measured benefits and costs
+
+These measurements used the earlier full-resolution comparison path. They
+describe the recorded storage and execution costs, not the speed of the
+selected-resolution comparison or declaration shortcuts above.
 
 [![Retained Zarr storage and recorded elapsed time for small, medium and large Plates. Large Full excludes its explicit recovery wait; all other recorded phases remain.](../_static/figures/shallow-results.svg)](../_static/figures/shallow-results.svg)
 

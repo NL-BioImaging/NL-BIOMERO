@@ -910,7 +910,7 @@ window.addEventListener("load", load);
 <li class="toctree-l3"><a class="reference internal" href="#what-registering-or-promoting-a-canonical-zarr-entails">What registering or promoting a canonical Zarr entails</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#when-verification-runs">When verification runs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output-handling-and-comparison">Output handling and comparison</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#reconstructing-a-standalone-result">Reconstructing a standalone result</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#results-measured-benefits-and-costs">Results: measured benefits and costs</a></li>
 </ul>
@@ -1193,8 +1193,8 @@ window.addEventListener("load", load);
 .wy-table-responsive table { width: 100%; table-layout: fixed; }
 .wy-table-responsive table td, .wy-table-responsive table th { white-space: normal; }
 .wy-table-responsive code { overflow-wrap: anywhere; }
-</style><p>BIOMERO stores a workflow result as <strong>retained data plus references to unchanged
-managed pixels</strong>. The result remains a distinct OMERO Image or Plate with its
+</style><p>BIOMERO stores a workflow result as <strong>retained data plus references to its known
+managed input</strong>. The result remains a distinct OMERO Image or Plate with its
 own provenance. Storage is saved on the shared filesystem, without deleting the
 source or suppressing result registration.</p>
 <section id="on-disk-shallow-off-versus-on">
@@ -1334,7 +1334,7 @@ the optional Plate preview similarly register their retained label paths.
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">.biomero-shallow.json</span></code></p></td>
-<td><p>Which image/label nodes exist, which arrays were omitted, and their source storage roots, paths, generations and identities</p></td>
+<td><p>Image/label nodes, omitted arrays, source storage bindings and decision basis; measured identities when comparison was used</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">.biomero-shallow-report.json</span></code></p></td>
 <td><p>Decision, input snapshot and tool provenance; remote receipts bind this report to the expected helper run</p></td>
@@ -1384,53 +1384,60 @@ does not reconstruct the shallow result’s full label collection. A format
 mismatch uses export and leaves the original canonical registration unchanged.</p>
 <section id="what-registering-or-promoting-a-canonical-zarr-entails">
 <h3>What registering or promoting a canonical Zarr entails<a class="headerlink" href="#what-registering-or-promoting-a-canonical-zarr-entails" title="Permalink to this heading"></a></h3>
-<p>A <strong>canonical Zarr</strong> is the stable managed pixel source and identity record used
-to compare later workflow results. Establishing it runs during input transfer
-when shallow storage is enabled and an eligible canonical record is missing.
-Yellow steps below mark ISCC-BIO pixel reads.</p>
+<p>A <strong>canonical Zarr</strong> is the stable managed source bound to a workflow input.
+Its locator, generation and image semantics can be recorded without hashing
+original pixels. Comparison fingerprints are calculated only when needed;
+source-linked handling does not require an otherwise unused fingerprint.
+Yellow steps below mark pixel reads.</p>
 <pre  class="mermaid">
         %%{init: {&quot;flowchart&quot;: {&quot;subGraphTitleMargin&quot;: {&quot;top&quot;: 8, &quot;bottom&quot;: 30}}}}%%
 flowchart TB
     subgraph PREP[&quot;Input: canonical source&quot;]
         direction TB
-        EXIST[&quot;&lt;b&gt;Existing backing Zarr&lt;/b&gt;&lt;br/&gt;No canonical record yet&quot;]
+        EXIST[&quot;&lt;b&gt;Existing backing Zarr&lt;/b&gt;&lt;br/&gt;Authoritative managed input&quot;]
         FRESH[&quot;&lt;b&gt;Eligible fresh export&lt;/b&gt;&lt;br/&gt;No reusable backing store&quot;]
-        HASHSTORE[&quot;&lt;b&gt;ISCC-BIO: read backing Zarr&lt;/b&gt;&lt;br/&gt;Pixel IDs per image/field + label&quot;]
+        LOCATE[&quot;&lt;b&gt;Record source binding + semantics&lt;/b&gt;&lt;br/&gt;Defer unused original-image hashing&quot;]
         HASHBOTH[&quot;&lt;b&gt;ISCC-BIO: read OMERO + export&lt;/b&gt;&lt;br/&gt;Compare Instance-Code + semantic guards&quot;]
-        EXIST --&gt; HASHSTORE
+        EXIST --&gt; LOCATE
         FRESH --&gt; HASHBOTH
-        HASHSTORE --&gt;|&quot;Index in place&quot;| REGISTER[&quot;&lt;b&gt;Register canonical generation&lt;/b&gt;&lt;br/&gt;Marker + OMERO source annotations&lt;br/&gt;Path + generation + pixel IDs&quot;]
+        LOCATE --&gt;|&quot;Index in place&quot;| REGISTER[&quot;&lt;b&gt;Register canonical generation&lt;/b&gt;&lt;br/&gt;Marker + OMERO source annotations&lt;br/&gt;Path + generation + available fingerprints&quot;]
         HASHBOTH --&gt;|&quot;Match: commit to stable storage&quot;| REGISTER
-        HASHSTORE -. &quot;No identity&quot; .-&gt; FALLBACK[&quot;Full input without deduplication&quot;]
+        LOCATE -. &quot;No supported source binding&quot; .-&gt; FALLBACK[&quot;Full input without deduplication&quot;]
         HASHBOTH -. &quot;No match / verification unavailable&quot; .-&gt; FALLBACK
-        CACHED[&quot;&lt;b&gt;Valid canonical record&lt;/b&gt;&lt;br/&gt;Reuse cached pixel IDs&quot;]
-        REGISTER --&gt; SNAP[&quot;&lt;b&gt;Record workflow input snapshot&lt;/b&gt;&lt;br/&gt;Source generation + pixel IDs&quot;]
+        CACHED[&quot;&lt;b&gt;Valid canonical record&lt;/b&gt;&lt;br/&gt;Reuse current fingerprints when available&quot;]
+        REGISTER --&gt; SNAP[&quot;&lt;b&gt;Record workflow input snapshot&lt;/b&gt;&lt;br/&gt;Source generation + metadata&quot;]
         CACHED --&gt; SNAP
     end
     SNAP --&gt; WORK[&quot;Run workflow on HPC&quot;]
     FALLBACK --&gt; WORK
-    subgraph RETURN[&quot;Output: verify pixels&quot;]
+    subgraph RETURN[&quot;Output: choose result handling&quot;]
         direction TB
-        CHECK{&quot;Canonical match + same format?&quot;}
-        HASHOUT[&quot;&lt;b&gt;ISCC-BIO: read returned pixels&lt;/b&gt;&lt;br/&gt;Images + labels&lt;br/&gt;HPC helper or importer&quot;]
-        MATCH{&quot;Matching image pixel IDs?&quot;}
+        CHECK{&quot;Known source + compatible format/layout?&quot;}
+        POLICY{&quot;Usable run-bound label declaration&lt;br/&gt;or workflow policy?&quot;}
+        HASHOUT[&quot;&lt;b&gt;Compare compatible stored pixels&lt;/b&gt;&lt;br/&gt;Current profile + semantic guards&lt;br/&gt;Images at selected level; labels full resolution&quot;]
+        MATCH{&quot;Matching fingerprints?&quot;}
         SHALLOW[&quot;&lt;b&gt;Shallow result&lt;/b&gt;&lt;br/&gt;Omit duplicates; keep new/changed labels&quot;]
         FULL[&quot;&lt;b&gt;Full result&lt;/b&gt;&lt;br/&gt;Retain returned arrays&quot;]
-        CHECK --&gt;|&quot;Yes&quot;| HASHOUT
+        CHECK --&gt;|&quot;Yes&quot;| POLICY
         CHECK --&gt;|&quot;No&quot;| FULL
+        POLICY --&gt;|&quot;Yes: use known source&quot;| SHALLOW
+        POLICY --&gt;|&quot;No: comparison required&quot;| HASHOUT
         HASHOUT --&gt; MATCH
         MATCH --&gt;|&quot;Yes, eligible&quot;| SHALLOW
         MATCH --&gt;|&quot;Changed / unsupported / uncertain&quot;| FULL
     end
     WORK --&gt; CHECK
+    REFRESH[&quot;&lt;b&gt;Missing/stale fingerprint&lt;/b&gt;&lt;br/&gt;Remote: return full result&lt;br/&gt;Local: read authoritative source and refresh cache&quot;]
+    HASHOUT -. &quot;Source record needs refresh&quot; .-&gt; REFRESH
+    REFRESH --&gt; HASHOUT
     style PREP fill:#f8fafc,stroke:#526171,stroke-width:2px;
     style RETURN fill:#f8fafc,stroke:#526171,stroke-width:2px;
     classDef pixelread fill:#fff3d6,stroke:#a57918,stroke-width:2px,color:#17354a;
     classDef canonical fill:#e7eff6,stroke:#245b83,stroke-width:2px,color:#17354a;
     classDef full fill:#f3f5f7,stroke:#526171,stroke-width:3px,color:#17354a;
     classDef shallow fill:#ede9fe,stroke:#7c3aed,stroke-width:3px,color:#4c1d95;
-    class HASHSTORE,HASHBOTH,HASHOUT pixelread;
-    class REGISTER,CACHED,SNAP canonical;
+    class HASHBOTH,HASHOUT,REFRESH pixelread;
+    class LOCATE,REGISTER,CACHED,SNAP canonical;
     class FULL,FALLBACK full;
     class SHALLOW shallow;
 
@@ -1443,16 +1450,20 @@ flowchart TB
 </thead>
 <tbody>
 <tr class="row-even"><td><p>Existing authoritative backing Zarr</p></td>
-<td><p>ISCC-BIO reads that store directly; per-image/field and label identities</p></td>
-<td><p>Adds the marker and OMERO source records in place; no new pixel copy</p></td>
+<td><p>Original-image hashing is deferred until comparison needs it; labels retain their separate policy</p></td>
+<td><p>Records source binding and semantics in place; no new pixel copy</p></td>
 </tr>
 <tr class="row-odd"><td><p>Eligible fresh OMERO export</p></td>
-<td><p>ISCC-BIO compares OMERO pixels with exported pixels</p></td>
+<td><p>Full-resolution source/export verification remains a separate promotion check</p></td>
 <td><p>Commits the verified export to stable managed canonical storage and attaches source records</p></td>
 </tr>
-<tr class="row-even"><td><p>Valid canonical already registered</p></td>
-<td><p>Reuses cached identities for that generation</p></td>
-<td><p>Records the workflow’s input snapshot; no repeated source hash</p></td>
+<tr class="row-even"><td><p>Current comparison fingerprint already cached</p></td>
+<td><p>Reuses that fingerprint for the same source generation and compatible resolution</p></td>
+<td><p>Records the workflow input snapshot; no repeated source hash</p></td>
+</tr>
+<tr class="row-odd"><td><p>Old or missing comparison profile</p></td>
+<td><p>Local importer reads the same authoritative backing Zarr when comparison is needed</p></td>
+<td><p>Replaces the cached record with the current profile; no export, copy or reimport</p></td>
 </tr>
 </tbody>
 </table>
@@ -1460,11 +1471,59 @@ flowchart TB
 TIFF conversion input is not promoted. Failed indexing/promotion leaves the
 full workflow input usable without deduplication for that selection. Missing
 dependencies of a shallow input must be resolved before it can be reconstructed.
-Returned pixels are calculated again at the return-side comparison shown above.</p>
+Old records are detected as stale, never relabelled as current fingerprints.
+There is one current cache rather than parallel legacy and pyramid identities.
+The remote helper uses current cached fingerprints; it cannot refresh them from
+the authoritative managed store. Missing/stale fingerprints keep the remote
+result full so the importer can compare and cache from the actual source.
+Post-analysis HPC input copies are not authoritative comparison sources.</p>
 </section>
 </section>
-<section id="when-verification-runs">
-<h2>When verification runs<a class="headerlink" href="#when-verification-runs" title="Permalink to this heading"></a></h2>
+<section id="output-handling-and-comparison">
+<h2>Output handling and comparison<a class="headerlink" href="#output-handling-and-comparison" title="Permalink to this heading"></a></h2>
+<p>The decision order is:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Condition</p></th>
+<th class="head"><p>Handling</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Shallow storage disabled</p></td>
+<td><p>Full results, without deduplication-only hashing or pruning</p></td>
+</tr>
+<tr class="row-odd"><td><p>Enabled, usable run-bound RO-Crate label output declaration</p></td>
+<td><p>Automatically use the known input as image background; no original-pixel comparison or admin approval</p></td>
+</tr>
+<tr class="row-even"><td><p>No usable declaration, workflow setting enabled</p></td>
+<td><p>Use the same source-linked route under the recorded workflow policy</p></td>
+</tr>
+<tr class="row-odd"><td><p>Neither</p></td>
+<td><p>Compare compatible stored pyramid pixels; unsupported or unmatched results stay full</p></td>
+</tr>
+</tbody>
+</table>
+<p>The administrator setting is
+<code class="docutils literal notranslate"><span class="pre">[UI]</span> <span class="pre">original_pixels_not_required_workflows</span></code>; see the
+<a class="reference internal" href="../sysadmin/omero-biomero-admin.html#shallow-zarr-admin"><span class="std std-ref">admin controls</span></a>.
+It is independent of automatic RO-Crate handling and input-format selection.
+No Bilayers output-preservation preset is inferred.</p>
+<p>Supported declarations connect the run’s input and label-level <code class="docutils literal notranslate"><span class="pre">result</span></code> with
+the output parameter’s <code class="docutils literal notranslate"><span class="pre">exampleOfWork</span></code> and the crate’s <code class="docutils literal notranslate"><span class="pre">hasPart</span></code>. The execution
+record supplies the managed source binding. A root-level Zarr pointer alone
+does not identify which image arrays are derived. Cheap format, layout and
+semantic guards still apply; missing or ambiguous evidence falls through to
+the setting or comparison. The supported result includes the enclosing image
+and label datasets; bare labels-only materialization is not implemented.
+Additional derived stores and sidecars are retained.</p>
+<p>The original RO-Crate is retained. If its graph explicitly inventories an array
+or label subtree that shallowing would remove, the artifact stays full rather
+than leaving stale file claims or rewriting an arbitrary graph. For supported
+label-output declarations, the retained crate describes the produced labels
+and the committed shallow manifest records the managed-source relationships.</p>
+<p>Each binding records whether it used <code class="docutils literal notranslate"><span class="pre">ro-crate-output</span></code>, <code class="docutils literal notranslate"><span class="pre">workflow-setting</span></code> or
+<code class="docutils literal notranslate"><span class="pre">pixel-comparison</span></code>. Source-linked decisions do not invent a pixel fingerprint
+or claim that returned original pixels were measured.</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Route</p></th>
@@ -1476,10 +1535,10 @@ Returned pixels are calculated again at the return-side comparison shown above.<
 <td><p>Workflow → full ZIP → transfer → full result registration</p></td>
 </tr>
 <tr class="row-odd"><td><p>Shallow on, remote</p></td>
-<td><p>Workflow → HPC verification/pruning → smaller ZIP → transfer → receipt validation → registration</p></td>
+<td><p>Workflow → HPC output handling/comparison → ZIP → transfer → receipt validation or local comparison → registration</p></td>
 </tr>
 <tr class="row-even"><td><p>Shallow on, local</p></td>
-<td><p>Workflow → full ZIP → transfer → importer verification/pruning → registration</p></td>
+<td><p>Workflow → full ZIP → transfer → importer output handling/comparison → registration</p></td>
 </tr>
 </tbody>
 </table>
@@ -1491,27 +1550,35 @@ Returned pixels are calculated again at the return-side comparison shown above.<
 </thead>
 <tbody>
 <tr class="row-even"><td><p>Pixel traversal and codes</p></td>
-<td><p><a class="reference external" href="https://github.com/bio-codes/iscc-bio">bio-codes / ISCC-BIO</a>, through <code class="docutils literal notranslate"><span class="pre">iscc_bio.api.biocode</span></code>; IMAGEWALK reads decoded highest-resolution pixels per image/field or label</p></td>
+<td><p><a class="reference external" href="https://github.com/bio-codes/iscc-bio">ISCC-BIO</a> <code class="docutils literal notranslate"><span class="pre">generate_biocode(planes)</span></code>; decoded numerical planes from a stored level, without the high-level file/store checksum</p></td>
 </tr>
-<tr class="row-odd"><td><p>Equality decision</p></td>
-<td><p>BIOMERO compares <code class="docutils literal notranslate"><span class="pre">instanceCode</span></code>, role, shape, dtype, axes and coordinate transformations</p></td>
+<tr class="row-odd"><td><p>Comparison policy</p></td>
+<td><p>BIOMERO selects the coarsest compatible stored image level, retains all C/Z/T coverage and checks full-image and selected-level semantics; labels use full resolution</p></td>
 </tr>
-<tr class="row-even"><td><p>Storage, transactions and references</p></td>
+<tr class="row-even"><td><p>Equality decision</p></td>
+<td><p>Matching current profiles, code lengths, Instance-Codes and semantic guards; dataset path spelling is provenance, not an equality key</p></td>
+</tr>
+<tr class="row-odd"><td><p>Storage, transactions and references</p></td>
 <td><p>BIOMERO.shallower; shared contracts from biomero-schema</p></td>
 </tr>
-<tr class="row-odd"><td><p>HPC orchestration and OMERO registration</p></td>
+<tr class="row-even"><td><p>HPC orchestration and OMERO registration</p></td>
 <td><p>BIOMERO core/scripts and BIOMERO.importer, respectively</p></td>
 </tr>
 </tbody>
 </table>
-<p>The aggregate ISCC and similarity-oriented Data-Code are recorded but <strong>do not
-authorize removal</strong>. A checksum of the complete Zarr file tree is not an
-equality key. Returned identities are computed from pixels rather than trusted
-from workflow metadata. See the <a class="reference external" href="https://nl-bioimaging.github.io/biomero-schema/pixel-identity/">exact comparison contract</a>.</p>
-<p>Highest-resolution equality is the preservation criterion: lower-resolution
-pyramids are reused from the source, not independently compared. This preserves
-the scientific pixel representation checked by the method, rather than every
-byte or pyramid rendering of the returned store.</p>
+<p>The pixel API’s composite ISCC-SUM and similarity-oriented Data-Code are
+recorded but <strong>do not authorize removal</strong>. No raw file-tree checksum or rendered
+thumbnail is calculated. Numerical planes follow IMAGEWALK Z → C → T traversal
+with upstream canonical pixel encoding. A single-level image uses full
+resolution; compatible stored levels require matching dimensions, dtype, axes
+and transformations without omitting channels, Z slices or timepoints.</p>
+<p>Selected-level byte equality is exact. Inferring unchanged full-resolution
+pixels from a smaller pyramid is <strong>BIOMERO’s deduplication approximation</strong>,
+not a full-resolution equality proof or perceptual ISCC matching. Workflows
+must return internally consistent pyramids. The
+<a class="reference external" href="https://nl-bioimaging.github.io/biomero-schema/pixel-identity/">shared comparison contract</a>
+defines profile fields, code lengths, reproducibility versions and scientific
+scope; it is the canonical algorithm reference.</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Condition</p></th>
@@ -1525,10 +1592,10 @@ byte or pyramid rendering of the returned store.</p>
 <tr class="row-odd"><td><p>Input/output Zarr profiles differ</p></td>
 <td><p>Keep full; check format metadata before pixel hashing</p></td>
 </tr>
-<tr class="row-even"><td><p>Eligible collection with matching image identities</p></td>
-<td><p>Omit duplicate image pyramids; reference matching inherited labels; retain new/changed labels</p></td>
+<tr class="row-even"><td><p>Eligible collection with a source-linked decision or matching image fingerprints</p></td>
+<td><p>Omit returned original-image pyramids; reference matching inherited labels; retain new/changed labels</p></td>
 </tr>
-<tr class="row-odd"><td><p>Changed image, unsupported identity, incomplete or ambiguous match</p></td>
+<tr class="row-odd"><td><p>Comparison required but fingerprints differ, or source/layout binding is unsupported or ambiguous</p></td>
 <td><p>Keep the full collection</p></td>
 </tr>
 <tr class="row-even"><td><p>Invalid receipt, missing referenced source or unresolved transaction</p></td>
@@ -1549,6 +1616,9 @@ enough disk space for the full copy.</p>
 </section>
 <section id="results-measured-benefits-and-costs">
 <h2>Results: measured benefits and costs<a class="headerlink" href="#results-measured-benefits-and-costs" title="Permalink to this heading"></a></h2>
+<p>These measurements used the earlier full-resolution comparison path. They
+describe the recorded storage and execution costs, not the speed of the
+selected-resolution comparison or declaration shortcuts above.</p>
 <p><a class="reference download internal" download="" href="../_downloads/e5bfd8e7b281a61d830fe1d7aa592f14/shallow-results.svg"><span class="xref download myst"><img alt="Retained Zarr storage and recorded elapsed time for small, medium and large Plates. Large Full excludes its explicit recovery wait; all other recorded phases remain." src="../_images/shallow-results.svg" /></span></a></p>
 <p><strong>Full v3 versus remote-shallow v2</strong>, with 10, 3 and 1 technical repetitions per
 configuration for small, medium and large Plates. Storage excludes the existing

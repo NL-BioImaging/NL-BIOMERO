@@ -545,7 +545,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#what-registering-or-promoting-a-canonical-zarr-entails">What registering or promoting a canonical Zarr entails</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#when-verification-runs">When verification runs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#output-handling-and-comparison">Output handling and comparison</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#reconstructing-a-standalone-result">Reconstructing a standalone result</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#results-measured-benefits-and-costs">Results: measured benefits and costs</a></li>
 </ul>
@@ -1168,18 +1168,69 @@ for flag syntax and detailed precedence.</p>
 </section>
 </section>
 <section id="shallow-zarr">
-<h3>Shallow Zarr<a class="headerlink" href="#shallow-zarr" title="Permalink to this heading"></a></h3>
-<p>Avoids storing another copy of unchanged pixels in eligible workflow results.
-Changed pixels and new labels are retained. If a result cannot safely be
-shallowed, BIOMERO retains it in full. Referenced source stores must remain
-available for viewing and reusing shallow results.</p>
+<span id="shallow-zarr-admin"></span><h3>Shallow Zarr<a class="headerlink" href="#shallow-zarr" title="Permalink to this heading"></a></h3>
+<p>Avoids storing another copy of original image pixels in eligible workflow
+results. BIOMERO retains derived images and labels, and uses the known source
+as the image background when an output declaration or workflow setting permits
+it. Otherwise it compares compatible stored pyramid pixels. Unsupported or
+ambiguous results stay full. Referenced sources must remain available.</p>
 <p>This section appears when <code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR</span></code> is enabled in the deployment;
 it also requires the Analyzer–Importer integration. The demo enables shallow
 storage. Other deployments opt in explicitly. The <strong>Remote shallowing</strong> switch
 chooses where processing happens; turning it off selects local importer
 processing rather than disabling shallow storage.</p>
+<p>Result handling follows this order:</p>
 <table class="docutils align-default" id="id7">
-<caption><span class="caption-text">Shallow result processing controls</span><a class="headerlink" href="#id7" title="Permalink to this table"></a></caption>
+<caption><span class="caption-text">Result storage decision</span><a class="headerlink" href="#id7" title="Permalink to this table"></a></caption>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 58%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Condition</p></th>
+<th class="head"><p>Behaviour</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Shallow storage disabled</p></td>
+<td><p>Keep full results; metadata and workflow settings cannot trigger pruning.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Usable, run-bound RO-Crate label output declaration</p></td>
+<td><p>Reuse the known input automatically, without original-pixel comparison
+or another administrator approval.</p></td>
+</tr>
+<tr class="row-even"><td><p>No usable declaration; workflow shortcut enabled</p></td>
+<td><p>Reuse the known input according to the saved workflow policy.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Neither declaration nor shortcut</p></td>
+<td><p>Compare compatible stored pyramid pixels; retain the full result when
+no supported match can be established.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The <strong>Skip original-pixel comparison</strong> switch is on each workflow card under
+<strong>Shallow result storage</strong>. Shallow storage saves space, but comparing returned
+pixels with the input takes time. Enable the switch for a workflow you know
+leaves original pixels unchanged, such as one that adds segmentation labels.
+BIOMERO can then reuse the input without that comparison, reducing comparison
+work per run. Original managed input pixels are never modified, and new labels
+and other derived results are retained.</p>
+<p>It is a <strong>Runtime</strong> setting: saving
+applies to new runs. It stores the JSON workflow-name list
+<code class="docutils literal notranslate"><span class="pre">[UI]</span> <span class="pre">original_pixels_not_required_workflows</span></code>. Missing, blank or <code class="docutils literal notranslate"><span class="pre">[]</span></code> means
+no workflow shortcut. Turning it off does not disable automatic RO-Crate
+handling; disable shallow storage to require full results. The setting is
+independent of input format and is not inferred from Bilayers descriptors.</p>
+<p>OMERO.biomero uses this saved preference as the default for a normal workflow
+script input when launching a new run. An explicitly supplied input takes
+precedence, including false. Running the OMERO script directly uses its own
+default of false; scripts do not read the web interface’s <code class="docutils literal notranslate"><span class="pre">[UI]</span></code> settings.</p>
+<p>This path supports results containing an enclosing image and its produced label
+datasets. A bare labels-only output is not automatically materialized into a
+full result. See <a class="reference internal" href="remote-shallower.html"><span class="doc">Shallow OME-Zarr Storage</span></a> for the supported output scope and
+<a class="reference internal" href="../developer/biomero-shallow-zarr.html"><span class="doc">Working with shallow OME-Zarr results</span></a> for comparison semantics.</p>
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text">Shallow result processing controls</span><a class="headerlink" href="#id8" title="Permalink to this table"></a></caption>
 <colgroup>
 <col style="width: 28%" />
 <col style="width: 57%" />
@@ -1253,8 +1304,8 @@ cluster and OMERO capacity. These options apply after saving without Slurm Init.
 dashboards. Keep <strong>Track Workflows</strong> enabled for the normal BIOMERO deployment.
 Disabling it stops event recording and disables the listeners below, even when
 their individual switches are on. Missing events cannot be reconstructed later.</p>
-<table class="docutils align-default" id="id8">
-<caption><span class="caption-text">Tracking controls</span><a class="headerlink" href="#id8" title="Permalink to this table"></a></caption>
+<table class="docutils align-default" id="id9">
+<caption><span class="caption-text">Tracking controls</span><a class="headerlink" href="#id9" title="Permalink to this table"></a></caption>
 <colgroup>
 <col style="width: 30%" />
 <col style="width: 70%" />

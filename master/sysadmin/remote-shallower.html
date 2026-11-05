@@ -910,7 +910,7 @@ window.addEventListener("load", load);
 <li class="toctree-l3"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#what-registering-or-promoting-a-canonical-zarr-entails">What registering or promoting a canonical Zarr entails</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#when-verification-runs">When verification runs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#output-handling-and-comparison">Output handling and comparison</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#reconstructing-a-standalone-result">Reconstructing a standalone result</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#results-measured-benefits-and-costs">Results: measured benefits and costs</a></li>
 </ul>
@@ -1188,10 +1188,11 @@ window.addEventListener("load", load);
 
   <section id="shallow-ome-zarr-storage">
 <h1>Shallow OME-Zarr Storage<a class="headerlink" href="#shallow-ome-zarr-storage" title="Permalink to this heading"></a></h1>
-<p>Shallow storage avoids keeping another copy of unchanged image pixels in
-eligible OME-Zarr workflow results. BIOMERO retains new or changed labels and
-references verified source pixels already in managed storage. Original source
-data remains unchanged.</p>
+<p>Shallow storage avoids keeping another copy of original image pixels in
+eligible OME-Zarr workflow results. BIOMERO retains derived images, labels and
+sidecars, and references the known input already in managed storage. It selects
+this route from usable output declarations, an administrator’s workflow policy
+or a compatible pixel comparison. Original source data remains unchanged.</p>
 <p>The matched component releases support OME-Zarr 0.4 / Zarr v2 and OME-Zarr
 0.5 / Zarr v3 Images and Plates. Existing managed stores keep their format;
 upgrading does not rewrite them. Shallow results reconstruct in their source
@@ -1217,10 +1218,12 @@ the shallower checks format compatibility before pixel hashing.</p>
 <code class="docutils literal notranslate"><span class="pre">BIOMERO_SHALLOW_ZARR=true</span></code>. Remote processing is then the default; set
 <code class="docutils literal notranslate"><span class="pre">BIOMERO_REMOTE_SHALLOW_ZARR=false</span></code> for local importer processing instead.
 Without shallow Zarr enabled, the remote setting has no effect.</p>
-<p>Remote processing is recommended when Slurm is available. It produces the same
-shallow result as local processing, while removing duplicate data before the
-return archive is created and moving the expensive verification and shallowing
-work from the importer to a CPU-only Slurm helper.</p>
+<p>Remote processing is recommended when Slurm is available. Eligible results are
+shallowed before the return archive is created, reducing return data and moving
+comparison work to a CPU-only Slurm helper. It uses current cached source
+fingerprints or source-linked output metadata. If a comparison needs a missing
+or stale fingerprint, the result travels in full; the importer reads the actual
+managed source, refreshes its cache and performs the comparison locally.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><strong>Summary for system administrators:</strong></p>
@@ -1282,17 +1285,17 @@ non-Zarr results continue through their usual import path.</p>
         flowchart TD
     A[&quot;Existing managed Zarr&quot;] --&gt; C[&quot;Full source Zarr&lt;br/&gt;Retained unchanged&quot;]
     B[&quot;Non-Zarr input&quot;] --&gt;|&quot;Create reusable Zarr&quot;| C
-    C --&gt; I[&quot;Record or reuse source&lt;br/&gt;ISCC-BIO pixel identities&quot;]
+    C --&gt; I[&quot;Record source binding&lt;br/&gt;Reuse current fingerprints when available&quot;]
     I --&gt; T[&quot;Transfer full Zarr to HPC&quot;]
     T --&gt; H[&quot;Workflow produces images and labels&quot;]
     H --&gt; Q{&quot;Where is eligibility checked?&quot;}
     Q --&gt;|&quot;Remote&quot;| R[&quot;On HPC, before ZIP and transfer&quot;]
     Q --&gt;|&quot;Local&quot;| L[&quot;In importer, after full transfer&quot;]
-    R --&gt; V{&quot;Pixels match source&lt;br/&gt;and result is eligible?&quot;}
+    R --&gt; V{&quot;Output declaration, workflow policy&lt;br/&gt;or compatible pixel match?&quot;}
     L --&gt; V
-    I -. &quot;Recorded identities&quot; .-&gt; V
+    I -. &quot;Run-bound source metadata&quot; .-&gt; V
     V --&gt;|&quot;Changed or uncertain&quot;| F[&quot;Keep full result&quot;]
-    V --&gt;|&quot;Verified unchanged&quot;| S[&quot;Shallow result&lt;br/&gt;Remove duplicate result arrays&lt;br/&gt;Keep new labels and managed references&quot;]
+    V --&gt;|&quot;Eligible&quot;| S[&quot;Shallow result&lt;br/&gt;Use managed original image&lt;br/&gt;Keep derived results and references&quot;]
     F --&gt; O[&quot;Register results in OMERO&quot;]
     S --&gt; O
     C -. &quot;PixelBuffer reads source pixels&quot; .-&gt; O
@@ -1304,6 +1307,21 @@ non-Zarr results continue through their usual import path.</p>
     </pre><p>In remote mode, transfer follows the eligibility decision: eligible results
 travel shallow; other results travel in full. New or changed labels are retained;
 unchanged inherited labels may also be referenced instead of duplicated.</p>
+<p>Usable RO-Crate label outputs are interpreted automatically while shallow
+storage is enabled. The declaration must bind the produced labels to the current
+run and known input; a pointer to an entire Zarr root alone is insufficient.
+Without usable evidence, <strong>Skip original-pixel comparison</strong> on the
+workflow’s admin card offers the same source-linked route. With neither, BIOMERO
+compares the coarsest compatible stored image pyramid level, covering all
+channels, Z slices and timepoints. Labels remain independently compared at full
+resolution. This reduces comparison reads but is not proof of full-resolution
+image equality; see the <a class="reference internal" href="../developer/biomero-shallow-zarr.html"><span class="doc">Working with shallow OME-Zarr results</span></a> explanation.</p>
+<p>The supported source-linked output contains an enclosing image and its label
+datasets. Additional derived stores and sidecars are preserved. Bare labels-only
+outputs are not automatically materialized; workflows requiring full stored
+results must return a complete image/label collection. Neither declarations nor
+workflow policies override disabled shallow storage, which performs no
+deduplication-only hashing or pruning.</p>
 <p>A shallow result is a BIOMERO-managed representation, not a self-contained
 OME-Zarr for generic readers. OMERO’s registered pixel paths reference the
 managed source or retained labels; OMERO does not invent missing pixels.
@@ -1449,6 +1467,16 @@ provides image, tool version, worker count, partition, memory and time settings.
 These fields save the worker’s Slurm configuration, not the importer’s separate
 settings. Keep the importer trust settings aligned. Run Slurm Init after changing
 the helper image.</p>
+<p>The workflow-level <strong>Skip original-pixel comparison</strong> switch is independent of
+these helper controls. For workflows known to leave original pixels unchanged,
+it avoids comparison work per run. See <a class="reference internal" href="omero-biomero-admin.html"><span class="doc">OMERO.biomero Plugin Administration</span></a> for its saved
+configuration, Runtime timing and the full decision order.</p>
+<p>When comparison is needed, old or missing source fingerprints are refreshed
+from the existing managed backing Zarr and cached for later runs. This does not
+export, copy or reimport the source, and there is one current comparison cache.
+The HPC helper does not reindex a post-analysis input copy: that copy may have
+been changed by the workflow. A cache refresh therefore happens locally when
+the remote helper cannot use a current fingerprint.</p>
 </section>
 <section id="failure-and-observability">
 <h2>Failure and observability<a class="headerlink" href="#failure-and-observability" title="Permalink to this heading"></a></h2>
