@@ -32,6 +32,10 @@ Reviewers check every pull request against these principles.
   swallowed. Someone reading the logs must be able to tell what happened.
 - Prefer typed structures over free-form dicts and string keys for state
   that crosses functions or components.
+- Give every setting one source, one reader and one parser. Other code and
+  components receive the parsed value instead of reading the environment or
+  INI again; values that must match across components come from that single
+  source.
 - Backward compatibility means supported deployments keep working; it does
   not mean every new feature must support older execution paths. Where a
   feature's prerequisites are missing (for example, Zarr result handling needs
