@@ -53,17 +53,21 @@ submodules, including hotfixes and guidance changes.
   following the [independent review procedure](../nl-biomero-review/SKILL.md),
   address the findings, and summarize the outcome in the PR. Any capable agent
   that did not write the change can be the reviewer.
-- The user's "approved" or "accepted" (in conversation or as a PR comment)
-  authorizes merging that PR: squash-merge it once the checks pass and delete
-  its branch. Agent PRs are opened with the user's credential, so GitHub does
-  not let the user approve them formally; do not wait for a GitHub approval.
-  Without that authorization, do not merge. Do not push directly to
+- The user's unconditional "approved" or "accepted" of a specific PR (in
+  conversation or as a PR comment) authorizes only the squash-merge of that PR:
+  merge it once the checks pass, respecting any recorded merge order, then
+  delete its remote and local branch. If the approval is conditional or it is
+  unclear which PR it covers, ask. Agent PRs are opened with the user's
+  credential, so GitHub does not let the user approve them formally; do not
+  wait for a GitHub approval. Tags, GitHub releases or prereleases, stack
+  restarts and deployments still need their own explicit authorization (see
+  the prerelease rules in `omero-biomero-expert`). Do not push directly to
   `main`/`master` unless the user explicitly asks.
 - Before creating a PR, verify the intended repository, head branch and base
   branch; local clones may also reference upstream forks. If the GitHub CLI is
   unavailable, use the REST API with the configured Git credential, keeping it
   in memory and never printing or writing it.
-- This workflow does not authorize unrelated publication, merging, releases,
+- Otherwise this workflow does not authorize publication, merging, releases,
   deployment or destructive actions.
 
 ## Agent guidance
@@ -105,18 +109,20 @@ Guidance must work for any agent or tool, from any provider.
 The user's primary checkouts belong to the user: one per repository on its
 default branch, with BIOMERO.importer as NL-BIOMERO's `biomero-importer`
 submodule. Read from them freely, but do not switch their branch, commit,
-stash, reset, clean or delete in them, except for a local deployment below.
-Deployment repositories (such as `deploy-omero`, site forks of NL-BIOMERO and
-the local Slurm clusters) are also the user's; keep them and their deployment
-branches. They have their own operations skills.
+stash, reset, clean or delete in them; the only exception is switching branch
+for a local deployment, below.
 
+- Deployment repositories (such as `deploy-omero`, site forks of NL-BIOMERO and
+  the local Slurm clusters) are also the user's: keep them and their deployment
+  branches, and follow the operations skills in those repositories.
 - A local stack deployment uses the primary checkouts: NL-BIOMERO with
   `docker-compose-dev.yml`, the local OMERO.biomero checkout and
-  NL-BIOMERO-Local-Slurm or NL-BIOMERO-Local-Slurm-GPU. To verify a release or
-  PR branch locally (for example before merging a prerelease), check out that
-  pushed branch in these checkouts when the user asks. Report which branches
-  they are on, and return them to the default branch when the user is done
-  with the deployment.
+  NL-BIOMERO-Local-Slurm or NL-BIOMERO-Local-Slurm-GPU. When the user asks to
+  verify a release or PR branch locally (for example before merging a
+  prerelease), confirm the checkouts are clean, then switch them to that pushed
+  branch; never commit, stash, reset or clean there. Report which branches they
+  are on, and switch them back to the default branch when the deployment is
+  finished or the user says so.
 
 - Do agent work in a dedicated checkout created for the task: a `git worktree`
   of the primary checkout or a separate clone, in a temporary or clearly
