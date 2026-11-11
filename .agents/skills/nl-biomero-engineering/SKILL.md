@@ -31,6 +31,27 @@ Reviewers check every pull request against these principles.
 - Prefer typed structures over free-form dicts and string keys for state
   that crosses functions or components.
 
+## Issues and the project board
+
+Planned work is tracked on the
+[BIOMERO Roadmap board](https://github.com/orgs/NL-BioImaging/projects/2).
+The board is private; the issues in the repositories are public.
+
+- Start work from an issue on the board, in the repository whose code
+  changes. For work across repositories, create a parent issue in NL-BIOMERO
+  with one sub-issue per repository; NL-BIOMERO issues and sub-issues are
+  added to the board automatically. Add any other issue yourself:
+  `gh project item-add 2 --owner NL-BioImaging --url <issue-url>`.
+- If a component repository is not yet linked to the board, link it:
+  `gh project link 2 --owner NL-BioImaging --repo NL-BioImaging/<repo>`.
+- Set Status as work moves: In Progress when you start, Blocked with a comment
+  explaining why. Done follows from closing the issue. Priority, Impact and
+  Effort are the user's decisions; suggest values in a comment, do not set them.
+- In every PR description, write `Closes NL-BioImaging/<repo>#<n>` for each
+  issue the PR completes and `Refs NL-BioImaging/<repo>#<n>` for partial work.
+  GitHub closes the issue only when the PR merges into the default branch.
+  A guidance-only or trivial chore PR may have no issue; say so in the PR.
+
 ## Development branches and pull requests
 
 Work on a dedicated branch and publish it: commit and push work in progress
