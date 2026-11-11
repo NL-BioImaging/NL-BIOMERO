@@ -18,7 +18,9 @@ Reviewers check every pull request against these principles.
 - Keep it simple. Prefer the smallest change that solves the problem; do not
   add layers, frameworks, options or abstractions for hypothetical needs.
 - Reuse before adding. Extend the component's existing modules, helpers and
-  patterns instead of building a parallel implementation.
+  patterns instead of building a parallel implementation. Put behavior in the
+  component that owns it (see each component's ownership section) and keep
+  workflow decisions in the callers rather than in shared libraries.
 - Match the surrounding code: its naming, structure, error handling, logging
   and test style. New code should look like it was written by the same team.
 - Keep functions focused and readable. Split long functions with many exits
@@ -30,17 +32,15 @@ Reviewers check every pull request against these principles.
   swallowed. Someone reading the logs must be able to tell what happened.
 - Prefer typed structures over free-form dicts and string keys for state
   that crosses functions or components.
-- Put behavior in the component that owns it (see each component's
-  ownership section) and keep workflow decisions in the callers rather than
-  in shared libraries.
 - Backward compatibility means supported deployments keep working; it does
-  not mean every new feature must support older execution paths. Gate a new
-  feature on its real prerequisites (for example, Zarr result handling needs
-  the importer together with BIOMERO core) instead of retrofitting it into
-  legacy paths.
+  not mean every new feature must support older execution paths. Where a
+  feature's prerequisites are missing (for example, Zarr result handling needs
+  the importer together with BIOMERO core), leave the feature disabled and log
+  why, instead of retrofitting it into those paths.
 - Documentation is part of a feature. When a feature is disabled for a
   release, withdrawn or removed, hide or remove its documentation pages and
-  navigation in the same change, so the docs describe only what users can use.
+  navigation (Sphinx, MkDocs, READMEs, UI help) in the same change, so the docs
+  describe only what users can use.
 
 ## Issues and the project board
 
