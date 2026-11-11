@@ -63,10 +63,9 @@ allocated HPC resources and monetary cost. State material comparison limits;
 do not turn smoke timings into controlled speedup claims or extrapolate large
 Plate performance linearly from image count alone.
 
-Preserve detailed measurements outside the published docs before removing them.
-The current shallow-Zarr archive is
-`D:\workspace\.verification\biomero-shallower-release-notes`; private,
-environment-specific raw artifacts remain in their evidence store. Keep
+Preserve detailed measurements outside the published docs before removing them,
+in the maintainers' private evidence store (ask for its location); private,
+environment-specific raw artifacts remain there. Keep
 original reports and structured measurements with provenance and unknown
 fields, rather than inventing values. Do not publish host-specific/private
 operational details with a public summary.

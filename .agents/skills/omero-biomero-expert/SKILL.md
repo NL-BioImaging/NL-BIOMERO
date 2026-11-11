@@ -5,47 +5,20 @@ description: OMERO/BIOMERO expert runbook for NL-BIOMERO deployments, documentat
 
 # OMERO/BIOMERO Expert
 
+Read the shared [NL-BIOMERO engineering rules](../nl-biomero-engineering/SKILL.md)
+first; they cover engineering principles, branches and pull requests, agent
+guidance and local checkout cleanup for every component repository.
+
 Use this skill for NL-BIOMERO work on dev or prod. Prefer inspection over guesses: identify the active host, read the relevant compose/env/log state, verify data paths and permissions, then run a focused smoke test.
 
 Never print secrets. Mask `.env`, container env, Metabase datasource JSON, passwords, secret keys, JWTs, and tokens in user-facing output.
 
 ## Development Branches and Pull Requests
 
-Open pull requests ready for review by default. Use draft status only when the
-user explicitly requests it. Record dependencies and merge order in the PR
-description; do not add a separate pre-review stage.
-
-For NL-BIOMERO and its submodules, including `biomero-importer`, use a dedicated
-branch and a pull request when publishing changes, including hotfixes. Give the
-PR a clear description of the final change and its validation so the user can
-review the work and follow its history.
-
-On an existing non-default branch intended for a pull request, make focused,
-coherent commits and push them as normal completion of authorized development
-work. Do not hold the branch locally merely to run a slow full suite: run cheap,
-relevant checks that catch immediate mistakes, inspect the diff, then let the
-required GitHub Actions checks be the full-suite gate. If CI fails, inspect it
-and push a follow-up fix. Incremental branch commits may stay small because the
-pull request will normally be squash-merged.
-
-When the user authorizes integration (for example, "merge it"), merge through
-the PR after the relevant checks pass. Prefer squash merging so each PR becomes
-one logical commit that can be reverted as a unit, unless the user requests a
-different merge strategy. Do not interpret the integration instruction as a
-request to push directly to `main` or `master`; use a direct push only when the
-user explicitly requests that exception.
-
-If GitHub CLI is unavailable, create the PR through GitHub's REST API using the
-repository's configured Git credential. Keep the credential in memory and
-never print it or write it to disk. Before creating the PR, explicitly set and
-verify the intended repository, head branch and default base branch; this is
-especially important for NL-BIOMERO because local clones may also reference an
-OME upstream. Subsequent PR updates are ordinary pushes to the same branch.
-
-Use proportionate local verification before a direct default-branch push,
-release, change without suitable CI coverage, or higher-risk operation. This
-workflow does not authorize unrelated publication, merging, deployment, or
-destructive actions.
+Follow the shared [branch and pull request rules](../nl-biomero-engineering/SKILL.md#development-branches-and-pull-requests).
+NL-BIOMERO clones may also reference an OME upstream, so verify the target
+repository is `NL-BioImaging/NL-BIOMERO` before opening a PR. Use proportionate
+local verification before a release or a change without suitable CI coverage.
 
 ## Repository Scope and Example Contract
 
@@ -394,16 +367,16 @@ p_info.deltaT = TimeI(rdouble(d_t), UnitsTime.SECOND)  # raises type error on sa
 
 ## Building the NL-BIOMERO Docs Locally
 
-The docs live in `d:\workspace\NL-BIOMERO\docs\` and use Sphinx with a pre-created venv.
+The docs live in `docs/` and use Sphinx, typically from a pre-created venv in `docs/venv`.
 
 Read `references/documentation.md` before writing or reorganizing docs. A request
 for user-facing prose does not automatically mean the **User Guide** category.
 
 To build the **current branch only** (no multi-version):
 
-```powershell
-cd d:\workspace\NL-BIOMERO\docs
-.\venv\Scripts\sphinx-build -b html . _build_local
+```bash
+cd docs
+venv/bin/sphinx-build -b html . _build_local   # Windows: .\venv\Scripts\sphinx-build
 ```
 
 After changing navigation, or when any page shows stale sidebar content, force
@@ -411,17 +384,9 @@ all pages to be regenerated with `-E -a -b html . _build_local`. Check the exact
 HTML page the user is viewing, not just the homepage. If using another worktree,
 state its source branch and output path; do not silently open an older build.
 
-Output is written to `_build_local\`. Open in a browser:
-
-```powershell
-start d:\workspace\NL-BIOMERO\docs\_build_local\index.html
-```
-
-Or open with the browser tool using:
-
-```
-file:///d:/workspace/NL-BIOMERO/docs/_build_local/index.html
-```
+Output is written to `docs/_build_local/`. Open
+`docs/_build_local/index.html` in a browser (as a `file://` URL of the absolute
+path in your checkout).
 
 Do **not** use `make html` or `sphinx-multiversion` — those build all tagged versions and are slow. The direct `sphinx-build` call above is the correct approach for local preview.
 
