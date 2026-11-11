@@ -41,10 +41,14 @@ submodules, including hotfixes and guidance changes.
 - Open pull requests ready for review by default; use draft status only when
   the user asks. Record dependencies and merge order in the PR description,
   with a clear description of the final change and its validation. Do not add
-  a separate pre-review stage.
+  a separate draft or pre-PR stage.
 - Make focused, coherent commits and push them as you go. Run cheap, relevant
   checks before pushing and let the required CI checks be the full-suite gate.
   If CI fails, inspect it and push a follow-up fix.
+- Before asking the user to review, have the open PR reviewed independently
+  following the [independent review procedure](../nl-biomero-review/SKILL.md),
+  address the findings, and summarize the outcome in the PR. Any capable agent
+  that did not write the change can be the reviewer.
 - Merge only when the user authorizes it, through the PR after the checks pass.
   Prefer squash merging so each PR is one revertible commit. Do not push
   directly to `main`/`master` unless the user explicitly asks.
