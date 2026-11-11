@@ -149,11 +149,13 @@ for a local deployment, below.
 - Deployment repositories (such as `deploy-omero`, site forks of NL-BIOMERO and
   the local Slurm clusters) are also the user's: keep them and their deployment
   branches, and follow the operations skills in those repositories.
-- A local stack deployment uses the primary checkouts: NL-BIOMERO with
-  `docker-compose-dev.yml`, the local OMERO.biomero checkout and
-  NL-BIOMERO-Local-Slurm or NL-BIOMERO-Local-Slurm-GPU. When the user asks to
-  verify a release or PR branch locally (for example before merging a
-  prerelease), confirm the checkouts are clean, then switch them to that pushed
+- A local stack deployment uses the primary NL-BIOMERO checkout with
+  `docker-compose.yml`, which builds the images with the pinned component
+  versions, and NL-BIOMERO-Local-Slurm or NL-BIOMERO-Local-Slurm-GPU. Use
+  `docker-compose-dev.yml` only when actively developing the OMERO.biomero
+  frontend: it mounts the OMERO.biomero checkout cloned next to NL-BIOMERO (see
+  the OMERO.biomero README) so changes show without rebuilding images. When the user
+  asks to verify a release or PR branch locally, confirm the checkouts are clean, then switch them to that pushed
   branch; never commit, stash, reset or clean there. Report which branches they
   are on, and switch them back to the default branch when the deployment is
   finished or the user says so.
