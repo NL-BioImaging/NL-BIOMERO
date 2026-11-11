@@ -48,7 +48,12 @@ submodules, including hotfixes and guidance changes.
   scope or a required merge order across repositories.
 - Make focused, coherent commits and push them as you go. Run cheap, relevant
   checks before pushing and let the required CI checks be the full-suite gate.
-  If CI fails, inspect it and push a follow-up fix.
+  If CI fails, inspect it and push a follow-up fix. Use proportionate local
+  verification before a release, a direct default-branch push or a change
+  without suitable CI coverage.
+- Preserve unrelated working-tree changes and never use destructive Git
+  commands (`reset --hard`, `clean`, force-push, branch deletion of unmerged
+  work) unless the user asks.
 - Before asking the user to review, have the open PR reviewed independently
   following the [independent review procedure](../nl-biomero-review/SKILL.md),
   address the findings, and summarize the outcome in the PR. Any capable agent
