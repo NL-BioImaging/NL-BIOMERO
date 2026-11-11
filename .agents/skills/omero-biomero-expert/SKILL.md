@@ -137,8 +137,8 @@ means all artifacts are ready:
    number (for example core `2.9.0b24` with scripts `v2.9.0-beta.24`). Scripts
    must match the released core/importer APIs; verify their release tag is
    available.
-4. Update OMERO.biomero to published core/importer dependencies, merge and
-   prerelease it. Verify its PyPI package contains no feature-branch dependencies.
+4. Update OMERO.biomero to published core/importer dependencies (it comes late
+   because it depends on both), merge and prerelease it. Verify its PyPI package contains no feature-branch dependencies.
 5. Prepare NL-BIOMERO last, on a `release/X.Y.Z-beta.N` branch with its own
    PR: advance the clean importer submodule to its released commit, pin the
    prereleased component versions in `.env` and `.env.shared`, restore release
@@ -146,24 +146,27 @@ means all artifacts are ready:
    Preserve deployment-specific paths/credentials and the enabled demo flags.
    Validate resolved build arguments, shared config mounts and feature settings.
 6. Test that exact setup locally before merging: build and run the stack from
-   the release branch with the published components (see the local deployment
-   rules in the shared engineering skill) against NL-BIOMERO-Local-Slurm or
-   NL-BIOMERO-Local-Slurm-GPU, and run the acceptance cases for the release.
-   Record the plan in `plans/releases/X.Y.Z-beta.N.md` and the outcome in
-   `plans/releases/X.Y.Z-beta.N-local-acceptance.md`: tested versions and
-   commits, PASS/FAIL/NOT_RUN per case, defects found and fixed, and what is
-   left for ACC. Fixes go back through the component order above.
-7. Once the user accepts the release PR, squash-merge it into `master` and,
-   when authorized, publish a GitHub semver release such as
-   `vX.Y.Z-beta.N`, explicitly marked as a prerelease. GitHub release tags
+   the release branch with `docker-compose.yml`, the release Dockerfile blocks
+   and the `.env` pins (not `docker-compose-dev.yml`, which mounts local
+   source), against NL-BIOMERO-Local-Slurm or NL-BIOMERO-Local-Slurm-GPU, and
+   run the release's acceptance cases. Record the plan and outcome in
+   `plans/releases/X.Y.Z-beta.N.md` and `plans/releases/X.Y.Z-beta.N-local-acceptance.md`,
+   following [the 1.8.0-beta.13 plan](../../../plans/releases/1.8.0-beta.13.md)
+   and [its local acceptance report](../../../plans/releases/1.8.0-beta.13-local-acceptance.md).
+   Component fixes go back through steps 1-4.
+7. On the user's unconditional acceptance of the release PR (see the merge
+   rules in the shared engineering skill), squash-merge it into `master`.
+8. Publishing the GitHub prerelease, such as `vX.Y.Z-beta.N`, needs its own
+   explicit authorization. Mark it as a prerelease. GitHub release tags
    own package versions; do not introduce source-file version bumps. Updating
    deployment references in `.env` is separate from package versioning.
-8. The published NL-BIOMERO release triggers container builds. Verify every
-   required image build/push succeeds before handing the pinned image tags to
-   ACC for redeployment. Coordinate its smoke test before a full-Plate test;
+9. The published NL-BIOMERO prerelease builds all stack containers for ACC to
+   pull. Verify every required image build/push succeeds before handing the
+   pinned image tags to ACC for redeployment. Coordinate its smoke test before a full-Plate test;
    do not automatically start deployment or analysis jobs.
 
-Structure the release PR description as in previous release PRs: component
+Structure the release PR description as in previous release PRs (for example
+NL-BIOMERO #66): component
 checklist (version, PR and published artifact per component), configuration for
 acceptance, ACC acceptance criteria, validation and publication status, local
 acceptance report link and published image verification. Draft the release
