@@ -8,7 +8,9 @@ the project's Docker Hub images. Not a site's production deployment.
 
 1. Shared rules for all component repositories:
    [`.agents/skills/nl-biomero-engineering/SKILL.md`](.agents/skills/nl-biomero-engineering/SKILL.md)
-2. Stack, deployment, documentation and release runbook:
+2. Independent PR review procedure:
+   [`.agents/skills/nl-biomero-review/SKILL.md`](.agents/skills/nl-biomero-review/SKILL.md)
+3. Stack, deployment, documentation and release runbook:
    [`.agents/skills/omero-biomero-expert/SKILL.md`](.agents/skills/omero-biomero-expert/SKILL.md)
    and the `references/` it routes to.
 
