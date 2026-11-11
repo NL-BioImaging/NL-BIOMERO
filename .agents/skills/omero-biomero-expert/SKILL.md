@@ -147,8 +147,8 @@ means all artifacts are ready:
    Validate resolved build arguments, shared config mounts and feature settings.
 6. Test that exact setup locally before merging: build and run the stack from
    the release branch with `docker-compose.yml`, the release Dockerfile blocks
-   and the `.env` pins (not `docker-compose-dev.yml`, which mounts local
-   source), against NL-BIOMERO-Local-Slurm or NL-BIOMERO-Local-Slurm-GPU, and
+   and the `.env` pins (`docker-compose-dev.yml` is for live OMERO.biomero
+   frontend development), against NL-BIOMERO-Local-Slurm or NL-BIOMERO-Local-Slurm-GPU, and
    run the release's acceptance cases. Record the plan and outcome in
    `plans/releases/X.Y.Z-beta.N.md` and `plans/releases/X.Y.Z-beta.N-local-acceptance.md`,
    following [the 1.8.0-beta.13 plan](../../../plans/releases/1.8.0-beta.13.md)
