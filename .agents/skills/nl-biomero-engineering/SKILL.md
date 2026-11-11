@@ -40,8 +40,9 @@ submodules, including hotfixes and guidance changes.
 
 - Open pull requests ready for review by default; use draft status only when
   the user asks. Record dependencies and merge order in the PR description,
-  with a clear description of the final change and its validation. Do not add
-  a separate draft or pre-PR stage.
+  with a clear description of the final change and its validation. Do not hold
+  work back in a draft PR or local branch; the independent review below runs
+  on the ready PR.
 - Make focused, coherent commits and push them as you go. Run cheap, relevant
   checks before pushing and let the required CI checks be the full-suite gate.
   If CI fails, inspect it and push a follow-up fix.
