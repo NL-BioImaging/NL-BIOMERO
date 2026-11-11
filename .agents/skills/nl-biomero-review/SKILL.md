@@ -38,6 +38,8 @@ the change fits. Check, in this order:
    behavior and flag state (enabled, false, missing, empty) covered.
 4. **Configuration and documentation:** feature-flag and settings rules,
    docs and guidance updated with the behavior.
+5. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
+   why it has none.
 
 Verify each finding against the code before reporting it; drop what you
 cannot substantiate. Report findings ranked as **blocking**, **should fix** or
