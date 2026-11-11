@@ -86,6 +86,9 @@ submodules, including hotfixes and guidance changes.
 - Keep one PR per scope. Add further changes with the same scope to the open
   PR instead of opening a stacked or follow-up PR; split only for a separate
   scope or a required merge order across repositories.
+- During a review or other longer piece of work, collect guidance changes on
+  one open guidance PR per repository and merge it when that work is done.
+  Keep guidance PRs separate from PRs that change code or configuration.
 - Make focused, coherent commits and push them as you go. Run cheap, relevant
   checks before pushing and let the required CI checks be the full-suite gate.
   If CI fails, inspect it and push a follow-up fix. Use proportionate local
