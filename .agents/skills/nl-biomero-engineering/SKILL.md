@@ -67,8 +67,14 @@ Guidance must work for any agent or tool, from any provider.
   shape: ownership and boundaries, configuration, testing, documentation,
   release notes.
 - Tool-specific files only point to the shared guidance and never contain
-  rules. Example: a `CLAUDE.md` containing just `@AGENTS.md`. Tool metadata
-  such as `agents/openai.yaml` may describe a skill but must not add rules.
+  rules, so every tool discovers the same content natively:
+  - `CLAUDE.md` contains just `@AGENTS.md`.
+  - `.claude/skills/<name>/SKILL.md` is a discovery stub per skill: the same
+    frontmatter as `.agents/skills/<name>/SKILL.md` and a body that only
+    links to it. Update the stub's frontmatter whenever the source changes.
+    Do not use symlinks; Windows checkouts turn them into plain files.
+  - Tool metadata such as `agents/openai.yaml` may describe a skill but must
+    not add rules.
 - Write rules as imperatives with a one-line reason. Do not name a specific
   agent, model or tool in a rule; say "run the tests", not which tool runs them.
 - Keep durable rules separate from status. Do not put version pins, release
