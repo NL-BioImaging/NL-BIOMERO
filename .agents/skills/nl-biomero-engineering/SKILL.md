@@ -30,6 +30,10 @@ Reviewers check every pull request against these principles.
   decided and why, at least at DEBUG; actions that change or delete data, or
   run remote work, log at INFO. Errors are logged with context, never silently
   swallowed. Someone reading the logs must be able to tell what happened.
+  A feature that is simply switched off is the normal path: log that skip at
+  DEBUG, and use WARNING when a feature is enabled but cannot run, so results
+  silently fall back. Either log an error or raise it with its context, not
+  both; the code that handles the exception logs it once, with its traceback.
 - Prefer typed structures over free-form dicts and string keys for state
   that crosses functions or components.
 - Give every setting one source, one reader and one parser. Other code and
