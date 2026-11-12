@@ -1,0 +1,32 @@
+name: Test biomeroworker processor
+
+on:
+  pull_request:
+    branches: [master]
+    paths: ["biomeroworker/**", ".env", ".github/workflows/processor-tests.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # The processor tests need the biomero release this stack pins (.env),
+      # so a pin that lacks what the processor uses fails here.
+      - name: Install pytest and the pinned biomero
+        run: |
+          BIOMERO_VERSION=$(grep '^BIOMERO_VERSION=' .env | cut -d= -f2)
+          python -m pip install pytest "biomero==${BIOMERO_VERSION}"
+
+      - name: Run processor tests
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: python -m pytest biomeroworker/tests -q

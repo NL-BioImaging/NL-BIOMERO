@@ -18,7 +18,8 @@ from uuid import uuid4
 import pytest
 
 SOURCE = Path(__file__).parents[1] / 'processor.py'
-CLASSES = {'WorkflowSupervisor', 'WorkflowWorker'}
+CLASSES = {'WorkflowSupervisor', 'WorkflowWorker', 'ClaimLost',
+           'RecordedInputsClient'}
 FUNCTIONS = {'polling_script_runner'}
 
 
@@ -184,7 +185,8 @@ def test_young_workflow_without_launcher_is_looked_at_again(core):
 
 def running_worker(supervisor, workflow_id=None):
     worker = SimpleNamespace(workflow_id=workflow_id or uuid4(),
-                             launcher_task_id=uuid4(), holds_slot=True)
+                             launcher_task_id=uuid4(), holds_slot=True,
+                             claim_lost=Event())
     supervisor.active_workers[worker.workflow_id] = worker
     return worker
 
@@ -223,7 +225,9 @@ def test_lost_claim_is_an_error(core, caplog):
     tracker = Mock()
     tracker.claim_launcher_task.return_value = False
     supervisor = supervisor_with(tracker, [])
-    running_worker(supervisor)
+    tracker.repository.get.return_value = SimpleNamespace(
+        claimed_by='another-supervisor')
+    worker = running_worker(supervisor)
 
     with caplog.at_level(logging.ERROR, logger='biomero.detached.supervisor'):
         supervisor.renew_claims()
@@ -231,6 +235,7 @@ def test_lost_claim_is_an_error(core, caplog):
     assert any(record.levelno == logging.ERROR
                and 'Lost the claim' in record.getMessage()
                for record in caplog.records)
+    assert worker.claim_lost.is_set()
 
 
 def test_clean_shutdown_releases_the_claims(core):
@@ -391,3 +396,225 @@ def test_cancelled_batched_parent_cancels_its_unfinished_children(core):
     # asked once, not on every poll
     assert tracker.request_workflow_cancel.call_count == 2
     assert (failed, pending) == (2, {})
+
+
+# ------------------- lost claim, renewal errors, wiring ------------------- #
+
+def test_conflicting_renewal_that_is_still_ours_does_not_stop_the_worker(core):
+    tracker = Mock()
+    tracker.claim_launcher_task.return_value = False
+    supervisor = supervisor_with(tracker, [])
+    tracker.repository.get.return_value = SimpleNamespace(
+        claimed_by=supervisor.owner)
+    worker = running_worker(supervisor)
+
+    supervisor.renew_claims()
+
+    assert not worker.claim_lost.is_set()
+
+
+def test_one_unreadable_claim_does_not_skip_the_other_renewals(core, caplog):
+    tracker = Mock()
+    tracker.claim_launcher_task.side_effect = [RuntimeError('db'), True]
+    supervisor = supervisor_with(tracker, [])
+    running_worker(supervisor)
+    second = running_worker(supervisor)
+
+    with caplog.at_level(logging.WARNING, logger='biomero.detached.supervisor'):
+        supervisor.renew_claims()
+
+    assert tracker.claim_launcher_task.call_count == 2
+    assert tracker.claim_launcher_task.call_args.args[0] == (
+        second.launcher_task_id)
+    assert any(r.levelno == logging.WARNING and 'trying again' in r.getMessage()
+               for r in caplog.records)
+
+
+def test_renewal_interval_is_a_third_of_the_core_lease():
+    constants_line = [line for line in SOURCE.read_text(
+        encoding='utf-8').splitlines()
+        if line.startswith('CLAIM_RENEW_SECONDS')]
+    assert constants_line == [
+        'CLAIM_RENEW_SECONDS = LAUNCHER_CLAIM_LEASE_SECONDS // 3']
+
+
+def make_worker(namespace, supervisor=None):
+    return namespace['WorkflowWorker'](
+        uuid4(), uuid4(), False, supervisor or Mock(shutdown_event=Event()))
+
+
+def test_worker_stops_at_its_next_check_after_the_claim_is_lost(core):
+    namespace = processor_namespace()
+    worker = make_worker(namespace)
+    tracker = Mock()
+    cancel_check = tracker.raise_if_cancel_requested
+    worker.stop_when_claim_lost(tracker)
+
+    tracker.raise_if_cancel_requested('wf')  # claim held: the cancel check runs
+    cancel_check.assert_called_once_with('wf')
+    worker.claim_lost.set()
+    with pytest.raises(namespace['ClaimLost']):
+        tracker.raise_if_cancel_requested('wf')
+    cancel_check.assert_called_once()  # the stop came first
+
+
+def test_worker_that_lost_its_claim_does_not_fail_the_workflow(core):
+    namespace = processor_namespace()
+    worker = make_worker(namespace)
+    worker.fail_workflow = Mock()
+    worker.claim_lost.set()
+    worker.execute = Mock(side_effect=namespace['ClaimLost']('lost'))
+
+    worker.run()
+
+    worker.fail_workflow.assert_not_called()
+    worker.supervisor.remove_worker.assert_called_once()
+
+
+def test_worker_that_failed_normally_fails_its_workflow(core):
+    namespace = processor_namespace()
+    worker = make_worker(namespace)
+    worker.fail_workflow = Mock()
+    worker.execute = Mock(side_effect=RuntimeError('broke'))
+
+    worker.run()
+
+    worker.fail_workflow.assert_called_once_with('broke')
+
+
+def test_cancel_check_is_wired_into_the_inputs_the_pipeline_reads(core):
+    """execute() hands the pipeline a client whose check uses the tracker."""
+    namespace = processor_namespace()
+    worker = make_worker(namespace)
+    tracker = Mock()
+    launcher_task = SimpleNamespace(id=worker.launcher_task_id, params={'a': 1})
+    tracker.repository.get.side_effect = [launcher_task, SimpleNamespace(
+        user=1, group=2)]
+    original_check = tracker.raise_if_cancel_requested
+    slurm = SimpleNamespace(workflowTracker=tracker)
+    slurm_context = Mock(__enter__=Mock(return_value=slurm),
+                         __exit__=Mock(return_value=False))
+    modules = {
+        'biomero.eventsourcing': SimpleNamespace(
+            WorkflowCancelled=WorkflowCancelled,
+            is_launcher_task=lambda task: True),
+        'biomero.database': SimpleNamespace(EngineManager=Mock()),
+        'biomero.slurm_client': SimpleNamespace(
+            SlurmClient=SimpleNamespace(from_config=lambda: slurm_context))}
+    seen = []
+    worker.run_single = lambda script, slurm_client, client, conn, params: (
+        seen.append(client))
+    worker.user_connection = lambda workflow: contextlib.nullcontext('conn')
+    with patch.dict(sys.modules, modules), patch.dict(
+            namespace, load_biomero_scripts=Mock(
+                return_value=(Mock(), Mock()))):
+        worker.execute()
+
+    client = seen[0]
+    assert client.conn == 'conn'
+    client.raise_if_cancelled()
+    original_check.assert_called_once_with(worker.workflow_id)
+    worker.claim_lost.set()
+    with pytest.raises(namespace['ClaimLost']):
+        client.raise_if_cancelled()
+
+
+def test_cancelled_batched_parent_is_failed_when_its_children_ended(core):
+    parent_id, child_id, task_id = uuid4(), uuid4(), uuid4()
+    namespace = processor_namespace()
+    worker = namespace['WorkflowWorker'](
+        parent_id, uuid4(), True, Mock(shutdown_event=Event()))
+    tracker = Mock()
+    tracker.repository.get.return_value = SimpleNamespace(params={
+        'batch_index': 0, 'child_workflow_id': str(child_id)})
+    tracker.is_workflow_cancel_requested.return_value = True
+    worker.await_children = Mock(return_value=(1, {}))
+    workflow = SimpleNamespace(tasks=[task_id], name='wf', description='',
+                               user=1, group=2)
+
+    worker.run_batches(Mock(), Mock(), SimpleNamespace(workflowTracker=tracker),
+                       Mock(), Mock(), workflow, {'batches': [[1]]})
+
+    tracker.fail_workflow.assert_called_once()
+    assert tracker.fail_workflow.call_args.args[1].startswith('Cancelled')
+    tracker.complete_workflow.assert_not_called()
+
+
+def test_no_batch_child_is_created_for_a_cancelled_parent(core):
+    namespace = processor_namespace()
+    worker = namespace['WorkflowWorker'](
+        uuid4(), uuid4(), True, Mock(shutdown_event=Event()))
+    tracker = Mock()
+    tracker.raise_if_cancel_requested.side_effect = WorkflowCancelled('asked')
+    workflow = SimpleNamespace(tasks=[], name='wf', description='', user=1,
+                               group=2)
+
+    with pytest.raises(WorkflowCancelled):
+        worker.run_batches(Mock(), Mock(),
+                           SimpleNamespace(workflowTracker=tracker), Mock(),
+                           Mock(), workflow, {'batches': [[1], [2]]})
+
+    tracker.initiate_workflow.assert_not_called()
+
+
+def test_sub_script_survives_a_failing_cancel_check(core, caplog):
+    process = Mock()
+    process.poll.side_effect = [None, 0]
+    process.getResults.return_value = {}
+    namespace = processor_namespace()
+    namespace['start_script'].return_value = process
+    check = Mock(side_effect=RuntimeError('database down'))
+
+    with caplog.at_level(logging.WARNING, logger='biomero.detached.script'):
+        namespace['polling_script_runner'](runner_client(check), Mock(), 42, {})
+
+    process.cancel.assert_not_called()
+    assert any(r.levelno == logging.WARNING and 'database down' in r.getMessage()
+               for r in caplog.records)
+
+
+def test_sub_script_is_cancelled_when_the_claim_is_lost(core):
+    process = Mock()
+    process.poll.return_value = None
+    namespace = processor_namespace()
+    namespace['start_script'].return_value = process
+    check = Mock(side_effect=namespace['ClaimLost']('lost'))
+
+    with pytest.raises(namespace['ClaimLost']):
+        namespace['polling_script_runner'](runner_client(check), Mock(), 42, {})
+
+    process.cancel.assert_called_once_with()
+
+
+def test_supervisor_loop_releases_the_claims_on_the_way_out(core):
+    namespace = processor_namespace(
+        load_biomero_scripts=Mock(return_value=(SimpleNamespace(), Mock())),
+        SUPERVISOR_STARTUP_GRACE_SECONDS=0, SUPERVISOR_POLL_SECONDS=0,
+        IGNORE_CACHE_POLLS=90, polling_script_runner=Mock())
+    supervisor = namespace['WorkflowSupervisor']()
+    supervisor.prune_workers = Mock()
+    supervisor.spawn_maintenance = Mock()
+    supervisor.spawn_workers = Mock(
+        side_effect=lambda: supervisor.shutdown_event.set())
+    supervisor.release_claims = Mock()
+    modules = {'biomero': SimpleNamespace(WorkflowTracker=Mock()),
+               'biomero.database': SimpleNamespace(EngineManager=Mock())}
+
+    with patch.dict(sys.modules, modules):
+        supervisor.run()
+
+    supervisor.release_claims.assert_called_once()
+
+
+def test_ended_workers_are_forgotten_after_the_restart_delay(core):
+    clock = Mock(return_value=1000.0)
+    namespace = processor_namespace(
+        time=SimpleNamespace(monotonic=clock, sleep=Mock()))
+    supervisor = namespace['WorkflowSupervisor']()
+    supervisor.tracker = Mock()
+    supervisor.remove_worker(uuid4(), uuid4())
+    clock.return_value = 1061.0
+
+    supervisor.prune_workers()
+
+    assert supervisor.ended_at == {}

@@ -35,12 +35,14 @@ from omero_ext.path import path
 
 try:
     from biomero.constants import slurm_env as _slurm_env
+    from biomero.constants import LAUNCHER_CLAIM_LEASE_SECONDS
     _BIOMERO_ENV_VARS = [
         v for k, v in vars(_slurm_env).items()
         if not k.startswith("_") and isinstance(v, str)
     ]
 except ImportError:
     _slurm_env = None
+    LAUNCHER_CLAIM_LEASE_SECONDS = 300
     _BIOMERO_ENV_VARS = []
 
 sys = __import__("sys")
@@ -803,10 +805,10 @@ SCRIPT_POLL_SECONDS = 2
 SCRIPT_POLL_FAILURE_LIMIT = 5
 # How often a batched parent checks on its children.
 CHILD_POLL_SECONDS = 15
-# A claim on a launcher task is valid for a lease (the constant is core's);
-# the supervisor renews the claims of its running workflows this often, so that
-# a lease only runs out when this supervisor is gone.
-CLAIM_RENEW_SECONDS = 100
+# A claim on a launcher task is valid for a lease (core's constant); the
+# supervisor renews the claims of its running workflows three times per lease,
+# so a lease only runs out when this supervisor is gone.
+CLAIM_RENEW_SECONDS = LAUNCHER_CLAIM_LEASE_SECONDS // 3
 # After a worker ended without its workflow reaching a final state, the
 # supervisor waits this long before it runs that workflow again.
 WORKER_RESTART_DELAY_SECONDS = 60
@@ -922,6 +924,14 @@ class RecordedInputsClient(object):
         pass
 
 
+class ClaimLost(Exception):
+    """This supervisor no longer holds the claim on the workflow it runs.
+
+    Another supervisor owns the run now, so this worker stops without touching
+    the workflow's state.
+    """
+
+
 def polling_script_runner(client, svc, script_id, inputs,
                           slurmClient=None):
     """Run an OMERO sub-script and wait for it, without a script session.
@@ -978,11 +988,16 @@ def polling_script_runner(client, svc, script_id, inputs,
                 next_cancel_check = time.monotonic() + CANCEL_CHECK_SECONDS
                 try:
                     raise_if_cancelled()
-                except WorkflowCancelled:
-                    logger.info(f"Workflow cancelled; cancelling the OMERO "
-                                f"process of script {script_id}.")
+                except (WorkflowCancelled, ClaimLost) as stopped:
+                    logger.info(f"Stopping the OMERO process of script "
+                                f"{script_id}: {stopped}")
                     proc.cancel()
                     raise
+                except Exception as e:
+                    # A tracker hiccup must not kill a running sub-script;
+                    # the next check tries again.
+                    logger.warning(f"Could not check for a cancel request "
+                                   f"of script {script_id}: {e}")
             if conn is not None:
                 try:
                     conn.keepAlive()
@@ -1040,7 +1055,16 @@ class WorkflowWorker(Thread):
         # A batched parent only waits for its children, so it must not take up
         # an execution slot: that could starve the children it is waiting for.
         self.holds_slot = not batched
+        # Set when this supervisor lost the claim on the workflow: the worker
+        # then stops at its next check instead of running a second copy.
+        self.claim_lost = Event()
         self.logger = logging.getLogger(f"biomero.detached.{workflow_id}")
+
+    def raise_if_claim_lost(self):
+        """Stop this worker once its workflow's claim belongs to someone else."""
+        if self.claim_lost.is_set():
+            raise ClaimLost(f"The claim on workflow {self.workflow_id} was "
+                            f"lost to another supervisor")
 
     def run(self):
         from biomero.eventsourcing import WorkflowCancelled
@@ -1055,9 +1079,15 @@ class WorkflowWorker(Thread):
                              f"{cancelled}")
             self.fail_workflow(str(cancelled))
         except Exception as e:
-            self.logger.error(f"Workflow {self.workflow_id} failed: {e}",
-                              exc_info=True)
-            self.fail_workflow(str(e))
+            if self.claim_lost.is_set():
+                # Another supervisor runs this workflow now; failing it here
+                # would fail their run.
+                self.logger.error(f"Worker of workflow {self.workflow_id} "
+                                  f"stopped after losing its claim: {e}")
+            else:
+                self.logger.error(f"Workflow {self.workflow_id} failed: {e}",
+                                  exc_info=True)
+                self.fail_workflow(str(e))
         finally:
             self.supervisor.remove_worker(self.workflow_id,
                                           self.launcher_task_id)
@@ -1093,6 +1123,7 @@ class WorkflowWorker(Thread):
 
             workflow = tracker.repository.get(self.workflow_id)
             params = launcher.params or {}
+            self.stop_when_claim_lost(tracker)
             with self.user_connection(workflow) as conn:
                 client = RecordedInputsClient(
                     params, conn,
@@ -1105,6 +1136,20 @@ class WorkflowWorker(Thread):
                 else:
                     self.run_single(run_workflow_script, slurmClient, client,
                                     conn, params)
+
+    def stop_when_claim_lost(self, tracker):
+        """Make this worker's cancel checks also stop it when its claim is lost.
+
+        The pipeline calls ``raise_if_cancel_requested`` between its steps and
+        between polls, and the sub-script runner calls it while a sub-script
+        runs: this worker's tracker checks the claim flag first.
+        """
+        cancel_check = tracker.raise_if_cancel_requested
+
+        def check_claim_then_cancel(workflow_id):
+            self.raise_if_claim_lost()
+            cancel_check(workflow_id)
+        tracker.raise_if_cancel_requested = check_claim_then_cancel
 
     @contextlib.contextmanager
     def user_connection(self, workflow):
@@ -1194,6 +1239,8 @@ class WorkflowWorker(Thread):
         for index, batch in enumerate(batches):
             if index in children:
                 continue
+            # No new child for a workflow that was cancelled (or lost).
+            tracker.raise_if_cancel_requested(self.workflow_id)
             child_params = dict(base_inputs)
             child_params[constants.transfer.IDS] = batch
             if effective_type:
@@ -1399,6 +1446,7 @@ class WorkflowSupervisor(Thread):
         self.maintenance_cursor = 1
         self.ignored = set()      # workflows that are not ours to run
         self.ended_at = {}        # {workflow_id: monotonic time its worker ended}
+        self.restarts = {}        # {workflow_id: how often its worker ended}
         # Names this supervisor in the claims it holds, so that a replacement
         # process (which has a new name) recognizes a claim as not its own.
         self.owner = f"supervisor-{socket.gethostname()}-{uuid.uuid4()}"
@@ -1547,12 +1595,31 @@ class WorkflowSupervisor(Thread):
         with self.lock:
             workers = list(self.active_workers.values())
         for worker in workers:
-            if not self.tracker.claim_launcher_task(worker.launcher_task_id,
-                                                    self.owner):
-                self.logger.error(
-                    f"Lost the claim on workflow {worker.workflow_id} to "
-                    f"another supervisor: two supervisors may now be running "
-                    f"it. Check that only one is meant to.")
+            try:
+                self.renew_claim(worker)
+            except Exception as e:
+                # The claim is renewed again on the next renewal, well within
+                # its lease; one unreadable workflow must not skip the others.
+                self.logger.warning(f"Could not renew the claim on workflow "
+                                    f"{worker.workflow_id}; trying again: {e}")
+
+    def renew_claim(self, worker):
+        """Renew one claim; when it is lost, tell the worker to stop."""
+        if self.tracker.claim_launcher_task(worker.launcher_task_id,
+                                            self.owner):
+            return
+        launcher = self.tracker.repository.get(worker.launcher_task_id)
+        if launcher.claimed_by == self.owner:
+            # A concurrent write to the task made the renewal conflict; the
+            # claim is still ours and the next renewal retries.
+            self.logger.debug(f"Renewal of the claim on workflow "
+                              f"{worker.workflow_id} conflicted with another "
+                              f"write; still ours.")
+            return
+        self.logger.error(
+            f"Lost the claim on workflow {worker.workflow_id} to "
+            f"{launcher.claimed_by}; stopping this supervisor's worker.")
+        worker.claim_lost.set()
 
     def release_claims(self):
         """On a clean shutdown, hand the running workflows back at once."""
@@ -1572,6 +1639,11 @@ class WorkflowSupervisor(Thread):
             for wf_id, worker in list(self.active_workers.items()):
                 if not worker.is_alive():
                     self.active_workers.pop(wf_id)
+            # Only recent endings matter for the restart delay.
+            now = time.monotonic()
+            for wf_id, ended_at in list(self.ended_at.items()):
+                if now - ended_at > WORKER_RESTART_DELAY_SECONDS:
+                    self.ended_at.pop(wf_id)
 
     def spawn_maintenance(self):
         """One sweep at a time, independent of the analysis concurrency slots."""
@@ -1598,6 +1670,10 @@ class WorkflowSupervisor(Thread):
         with self.lock:
             self.active_workers.pop(wf_id, None)
             self.ended_at[wf_id] = time.monotonic()
+            self.restarts[wf_id] = self.restarts.get(wf_id, 0) + 1
+        self.logger.info(f"Worker of workflow {wf_id} ended (run "
+                         f"{self.restarts[wf_id]}); the workflow is run again "
+                         f"if it did not reach a final state.")
         if self.shutdown_event.is_set():
             try:
                 self.tracker.release_launcher_task(launcher_task_id, self.owner)
