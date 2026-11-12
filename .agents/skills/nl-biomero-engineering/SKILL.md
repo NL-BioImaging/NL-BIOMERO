@@ -39,6 +39,14 @@ is a requirement, not polish.
   A new module follows the package's established modules, not only its own
   file: the same docstring format, type hints, naming and quoting. Each
   component's `<repo>-dev` skill names its reference module.
+- Use one Python style across all NL-BIOMERO repositories, modelled on BIOMERO
+  core (`biomero/slurm_client.py`): Google-style docstrings (summary line,
+  `Args:` as `name (type): description`, `Returns:`, `Raises:`), type hints on
+  every signature, f-strings and double quotes. New components start in this
+  style; reviewers comment on deviations.
+- Start every source file with the licence header used by its repository
+  (the Apache-2.0 header of BIOMERO core, or the GPL header of a GPL
+  repository), matching the repository's `LICENSE`.
 - State behavior changes. A PR described as logging-only, refactoring or
   style must not change behavior; list any deliberate change in the
   description.
