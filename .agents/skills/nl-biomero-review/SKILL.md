@@ -64,7 +64,10 @@ the change fits. Check, in this order:
    with this one (`git merge-tree`) and check the result for duplicate
    definitions or changed signatures that merge without a conflict; agree
    which PR owns the shared code and the merge order.
-6. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
+6. **Dependencies:** a PR that uses a feature of another component must not
+   be ready for merge before that component's prerelease is published and the
+   minimum version is raised in the PR.
+7. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
    why it has none.
 
 Verify each finding against the code before reporting it; drop what you

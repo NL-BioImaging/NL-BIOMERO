@@ -167,6 +167,12 @@ submodules, including hotfixes and guidance changes.
   with a clear description of the final change and its validation. Do not hold
   work back in a draft PR or local branch; the independent review below runs
   on the ready PR.
+- A PR that needs a change in another component may only merge once that
+  change is published: components install each other from PyPI (or a
+  released container), not from another repository's default branch. Keep
+  such a PR in draft with an "On hold" note naming the dependency, and raise
+  the dependency's minimum version in the same PR when the prerelease exists.
+  Changes within one repository only need their predecessor merged.
 - Keep one PR per scope, where the scope is one piece of functionality in one
   repository. Logging, readability fixes, reuse refactors and tests for that
   functionality belong in the same PR, and one PR may close several issues
