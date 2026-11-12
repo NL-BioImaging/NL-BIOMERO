@@ -46,6 +46,10 @@ the change fits. Check, in this order:
    behavior and flag state (enabled, false, missing, empty) covered.
    Assertions check the exact outcome (for example the log level), not one of
    several acceptable outcomes.
+   The user does not review tests, so the reviewer judges them critically:
+   each test must fail if the behavior it names breaks. Flag tests that only
+   check that a parameter is passed through, restate the implementation,
+   assert on mocks they configured themselves, or pass whatever the code does.
 4. **Configuration and documentation:** feature-flag and settings rules,
    docs and guidance updated with the behavior.
 5. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
