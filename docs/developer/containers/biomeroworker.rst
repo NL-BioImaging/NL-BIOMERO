@@ -176,10 +176,12 @@ Each worker connects as the processor's own OMERO user and sudoes into the
 requesting user's account and group, so results are created and owned exactly
 as an inline run creates them.
 
-An interrupted run (worker crash, container restart) is picked up again on the
-next poll: the pipeline skips a transfer or conversion that already completed
-and resumes monitoring a Slurm job it already submitted, rather than
-submitting it twice.
+An interrupted run (worker crash, container restart) is picked up again once
+its supervisor's claim has run out (at once after a clean shutdown): the
+pipeline skips a transfer or conversion that already completed and resumes
+monitoring a Slurm job it already submitted, rather than submitting it twice.
+A job that failed or was cancelled is submitted anew, and a run that cannot
+read its task history fails instead of starting over.
 
 **Settings**:
 

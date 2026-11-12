@@ -35,15 +35,23 @@ from omero_ext.path import path
 
 try:
     from biomero.constants import slurm_env as _slurm_env
-    from biomero.constants import LAUNCHER_CLAIM_LEASE_SECONDS
     _BIOMERO_ENV_VARS = [
         v for k, v in vars(_slurm_env).items()
         if not k.startswith("_") and isinstance(v, str)
     ]
 except ImportError:
     _slurm_env = None
-    LAUNCHER_CLAIM_LEASE_SECONDS = 300
     _BIOMERO_ENV_VARS = []
+
+try:
+    from biomero.constants import LAUNCHER_CLAIM_LEASE_SECONDS
+except ImportError:  # a biomero without the detached claim: no supervisor runs
+    LAUNCHER_CLAIM_LEASE_SECONDS = 300
+
+try:
+    from biomero.eventsourcing import WorkflowInterrupted
+except ImportError:
+    WorkflowInterrupted = Exception
 
 sys = __import__("sys")
 
@@ -924,7 +932,7 @@ class RecordedInputsClient(object):
         pass
 
 
-class ClaimLost(Exception):
+class ClaimLost(WorkflowInterrupted):
     """This supervisor no longer holds the claim on the workflow it runs.
 
     Another supervisor owns the run now, so this worker stops without touching
@@ -952,7 +960,6 @@ def polling_script_runner(client, svc, script_id, inputs,
         tuple: (results, job) exactly as runOMEROScript() returns them.
     """
     logger = logging.getLogger("biomero.detached.script")
-    from biomero.eventsourcing import WorkflowCancelled
     proc = start_script(svc, script_id, inputs, logger)
     conn = getattr(client, "conn", None)
     raise_if_cancelled = getattr(client, "raise_if_cancelled", None)
@@ -988,7 +995,7 @@ def polling_script_runner(client, svc, script_id, inputs,
                 next_cancel_check = time.monotonic() + CANCEL_CHECK_SECONDS
                 try:
                     raise_if_cancelled()
-                except (WorkflowCancelled, ClaimLost) as stopped:
+                except WorkflowInterrupted as stopped:
                     logger.info(f"Stopping the OMERO process of script "
                                 f"{script_id}: {stopped}")
                     proc.cancel()
@@ -1123,12 +1130,10 @@ class WorkflowWorker(Thread):
 
             workflow = tracker.repository.get(self.workflow_id)
             params = launcher.params or {}
-            self.stop_when_claim_lost(tracker)
             with self.user_connection(workflow) as conn:
                 client = RecordedInputsClient(
                     params, conn,
-                    raise_if_cancelled=lambda: tracker.raise_if_cancel_requested(
-                        self.workflow_id))
+                    raise_if_cancelled=lambda: self.raise_if_stopped(tracker))
                 if self.batched:
                     self.run_batches(run_workflow_script, batched_script,
                                      slurmClient, client, conn, workflow,
@@ -1137,19 +1142,18 @@ class WorkflowWorker(Thread):
                     self.run_single(run_workflow_script, slurmClient, client,
                                     conn, params)
 
-    def stop_when_claim_lost(self, tracker):
-        """Make this worker's cancel checks also stop it when its claim is lost.
+    def raise_if_stopped(self, tracker):
+        """Stop between steps: when the claim is lost, or a cancel was asked.
 
-        The pipeline calls ``raise_if_cancel_requested`` between its steps and
-        between polls, and the sub-script runner calls it while a sub-script
-        runs: this worker's tracker checks the claim flag first.
+        Passed to the pipeline as its ``stop_check`` and used by the sub-script
+        runner while a sub-script runs.
+
+        Raises:
+            ClaimLost: When another supervisor owns this workflow now.
+            WorkflowCancelled: When a cancel was requested for it.
         """
-        cancel_check = tracker.raise_if_cancel_requested
-
-        def check_claim_then_cancel(workflow_id):
-            self.raise_if_claim_lost()
-            cancel_check(workflow_id)
-        tracker.raise_if_cancel_requested = check_claim_then_cancel
+        self.raise_if_claim_lost()
+        tracker.raise_if_cancel_requested(self.workflow_id)
 
     @contextlib.contextmanager
     def user_connection(self, workflow):
@@ -1198,7 +1202,7 @@ class WorkflowWorker(Thread):
                          f"for workflow {self.workflow_id}")
         messages = script.execute_workflow_pipeline(
             client, conn, slurmClient, self.workflow_id, resume=True,
-            **pipeline_kwargs)
+            stop_check=self.raise_if_claim_lost, **pipeline_kwargs)
         self.logger.info(f"Workflow {self.workflow_id}: {messages}")
 
     def run_batches(self, script, batched_script, slurmClient, client, conn,
@@ -1210,6 +1214,7 @@ class WorkflowWorker(Thread):
         spawns the children it does not have yet and then follows them.
         """
         from biomero import constants
+        from biomero.eventsourcing import WorkflowCancelled
 
         tracker = slurmClient.workflowTracker
         batches = [list(batch) for batch in (params.get("batches") or [])]
@@ -1239,8 +1244,13 @@ class WorkflowWorker(Thread):
         for index, batch in enumerate(batches):
             if index in children:
                 continue
-            # No new child for a workflow that was cancelled (or lost).
-            tracker.raise_if_cancel_requested(self.workflow_id)
+            # No new child for a workflow that was cancelled (or lost); the
+            # children already queued are told to cancel too.
+            try:
+                self.raise_if_stopped(tracker)
+            except WorkflowCancelled:
+                self.cancel_children(tracker, children.values())
+                raise
             child_params = dict(base_inputs)
             child_params[constants.transfer.IDS] = batch
             if effective_type:
@@ -1277,16 +1287,25 @@ class WorkflowWorker(Thread):
                              f"workflow {self.workflow_id}; they will be "
                              f"picked up again.")
             return
-        if tracker.is_workflow_cancel_requested(self.workflow_id):
+        # Not the owner any more: the new owner writes the outcome.
+        self.raise_if_claim_lost()
+        if failed:
+            cancelled = tracker.is_workflow_cancel_requested(self.workflow_id)
             tracker.fail_workflow(
                 self.workflow_id,
-                f"Cancelled: {failed} of {len(batches)} batches ended "
-                f"without completing")
-        elif failed:
-            tracker.fail_workflow(self.workflow_id,
-                                  f"{failed} of {len(batches)} batches failed")
+                f"{'Cancelled: ' if cancelled else ''}{failed} of "
+                f"{len(batches)} batches "
+                f"{'ended without completing' if cancelled else 'failed'}")
         else:
+            # A cancel that came too late (every batch completed) changes
+            # nothing: the workflow completed.
             tracker.complete_workflow(self.workflow_id)
+
+    def cancel_children(self, tracker, children):
+        """Pass a cancel on to child workflows: each cancels itself."""
+        for _, child_wf_id in children:
+            tracker.request_workflow_cancel(
+                child_wf_id, f"Parent {self.workflow_id} cancelled")
 
     def await_children(self, slurmClient, conn, batched_script, children,
                        batches, base_inputs, effective_type):
@@ -1304,6 +1323,8 @@ class WorkflowWorker(Thread):
         failed = 0
         cancel_passed_on = False
         while pending and not self.supervisor.shutdown_event.is_set():
+            # A parent that lost its claim must not write child or parent state.
+            self.raise_if_claim_lost()
             if (not cancel_passed_on
                     and tracker.is_workflow_cancel_requested(self.workflow_id)):
                 # Each child workflow cancels itself (its own jobs and
@@ -1311,9 +1332,7 @@ class WorkflowWorker(Thread):
                 self.logger.info(f"Workflow {self.workflow_id} was cancelled; "
                                  f"cancelling its {len(pending)} unfinished "
                                  f"batches.")
-                for _, child_wf_id in pending.values():
-                    tracker.request_workflow_cancel(
-                        child_wf_id, f"Parent {self.workflow_id} cancelled")
+                self.cancel_children(tracker, pending.values())
                 cancel_passed_on = True
             with EngineManager.get_session() as session:
                 statuses = {
@@ -1629,6 +1648,9 @@ class WorkflowSupervisor(Thread):
             try:
                 self.tracker.release_launcher_task(worker.launcher_task_id,
                                                    self.owner)
+                # The claim is given up: the worker must not run on as if it
+                # still held it.
+                worker.claim_lost.set()
             except Exception as e:
                 self.logger.warning(f"Could not release workflow "
                                     f"{worker.workflow_id}; its claim runs "

@@ -90,7 +90,10 @@ worker that ends without its workflow reaching a final state is run again after
 ``WORKER_RESTART_DELAY_SECONDS``.
 
 Launchers claimed by a 2.9 beta carry the status ``CLAIMED`` and no owner; they
-are free to claim.
+are free to claim. A worker that stops because it lost its claim, or because
+its supervisor released it, raises ``ClaimLost`` (a ``WorkflowInterrupted``):
+the pipeline's stage handlers let it pass without failing any task, and a
+batched parent also stops before it writes any child or parent state.
 
 When a renewal finds the claim in another supervisor's hands, the supervisor logs
 an error and the worker stops at its next check (between pipeline steps, or by
@@ -212,9 +215,10 @@ The detached implementation uses these logger names:
 Metadata requests use ``biomero.detached.maintenance.<request UUID>``.
 
 Use the event store and aggregate repository to distinguish durable workflow
-state from a projection or metadata problem. In particular, a launcher task at
-``CLAIMED`` means that the supervisor has handled it; the subsequent pipeline
-task events determine the analysis phase and outcome.
+state from a projection or metadata problem. In particular, a launcher task with
+a ``claimed_by`` owner and a recent ``claimed_at`` is held by that supervisor
+(``LauncherClaimed`` events show each renewal); the subsequent pipeline task
+events determine the analysis phase and outcome.
 
 See also
 --------

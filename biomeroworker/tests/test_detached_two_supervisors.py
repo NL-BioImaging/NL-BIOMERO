@@ -33,6 +33,9 @@ except ImportError:
     core_unavailable('biomero is not installed')
 if not hasattr(WorkflowTracker, 'claim_launcher_task'):
     core_unavailable('Installed biomero has no launcher claim')
+import biomero.eventsourcing as _core_events  # noqa: E402
+if not hasattr(_core_events, 'WorkflowInterrupted'):
+    core_unavailable('Installed biomero has no WorkflowInterrupted')
 
 
 @pytest.fixture
@@ -81,6 +84,7 @@ def test_only_one_of_two_supervisors_starts_a_worker(database):
 
 
 def test_a_crashed_supervisors_workflow_is_taken_over_after_its_lease(database):
+    from datetime import datetime, timedelta, timezone
     writer = WorkflowTracker()
     workflow_id = writer.initiate_workflow('wf', '', user=1, group=2)
     launcher = writer.add_launcher_task(
@@ -92,7 +96,46 @@ def test_a_crashed_supervisors_workflow_is_taken_over_after_its_lease(database):
     replacement.spawn_workers()
     factory.assert_not_called()  # the lease of the crashed one still runs
 
-    assert WorkflowTracker().claim_launcher_task(
-        launcher, 'replacement', lease_seconds=0)
+    after_lease = datetime.now(timezone.utc) + timedelta(
+        seconds=constants.LAUNCHER_CLAIM_LEASE_SECONDS + 1)
+    with patch('biomero.eventsourcing.datetime') as clock:
+        clock.now.return_value = after_lease
+        replacement.spawn_workers()
+    factory.assert_called_once()
     assert WorkflowTracker().repository.get(launcher).claimed_by == (
-        'replacement')
+        replacement.owner)
+
+
+def worker_namespace():
+    tree = ast.parse(SOURCE.read_text(encoding='utf-8'))
+    nodes = [n for n in tree.body if isinstance(n, ast.ClassDef)
+             and n.name in ('WorkflowWorker', 'ClaimLost')]
+    from biomero.eventsourcing import WorkflowInterrupted
+    namespace = dict(Thread=Thread, Event=Event, logging=logging,
+                     contextlib=__import__('contextlib'), os=os, uuid=uuid,
+                     WorkflowInterrupted=WorkflowInterrupted)
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), str(SOURCE), 'exec'),
+         namespace)
+    return namespace
+
+
+def test_worker_stop_check_on_a_real_tracker(database):
+    """A lost claim stops the worker before a cancel is even looked at, and a
+    cancel raises the real WorkflowCancelled, which is not a ClaimLost."""
+    from biomero.eventsourcing import WorkflowCancelled
+    tracker = WorkflowTracker()
+    workflow_id = tracker.initiate_workflow('wf', '', user=1, group=2)
+    namespace = worker_namespace()
+    worker = namespace['WorkflowWorker'](
+        workflow_id, uuid.uuid4(), False, Mock(shutdown_event=Event()))
+
+    worker.raise_if_stopped(tracker)  # nothing wrong
+
+    tracker.request_workflow_cancel(workflow_id, 'user asked')
+    with pytest.raises(WorkflowCancelled):
+        worker.raise_if_stopped(tracker)
+
+    worker.claim_lost.set()
+    with pytest.raises(namespace['ClaimLost']) as lost:
+        worker.raise_if_stopped(tracker)
+    assert not isinstance(lost.value, WorkflowCancelled)
