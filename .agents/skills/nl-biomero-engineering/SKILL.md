@@ -282,6 +282,9 @@ for a local deployment, below.
   the repositories, next to that checkout or in a temporary directory. Give
   virtual environments and scratch directories names of your own; never
   reuse or delete a directory another agent or the user created.
+- Give long runs (test suites, mutation checks, builds) a timeout, and stop
+  every process you started before you report; a hung test run otherwise
+  keeps loading the machine after you are done.
 - Once the work is pushed and its pull request is open, remove what you
   created: `git worktree remove <path>` then `git worktree prune`, delete the
   local branch, and delete temporary clones and scratch output. Review
