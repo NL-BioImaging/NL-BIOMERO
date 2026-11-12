@@ -41,6 +41,13 @@ Reviewers check every pull request against these principles.
   feature's prerequisites are missing (for example, Zarr result handling needs
   the importer together with BIOMERO core), leave the feature disabled and log
   why, instead of retrofitting it into those paths.
+- New features are off in code and on in the NL-BIOMERO demo. A missing,
+  empty or false flag leaves a feature disabled, because existing servers
+  upgrade components without adding new flags. The NL-BIOMERO `.env` and
+  `.env.shared` are the flagship demo for clean installs and the setup we test
+  on: they enable every feature, and everything must work there. Do not report
+  an enabled flag in the demo as a missing opt-in; check the code default
+  instead. See `omero-biomero-expert` for the flag rules.
 - Documentation is part of a feature. When a feature is disabled for a
   release, withdrawn or removed, hide or remove its documentation pages and
   navigation (Sphinx, MkDocs, READMEs, UI help) in the same change, so the docs
