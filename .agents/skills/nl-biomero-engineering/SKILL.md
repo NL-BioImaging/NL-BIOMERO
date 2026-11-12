@@ -42,6 +42,12 @@ is a requirement, not polish.
 - State behavior changes. A PR described as logging-only, refactoring or
   style must not change behavior; list any deliberate change in the
   description.
+- Treat persisted files, events, database rows, command-line output and
+  public function signatures as contracts between components. Before changing
+  one, find every reader in all repositories; a refactor keeps them
+  compatible, and a deliberate change keeps old callers working (for example
+  with a deprecated alias) or is called out in the release notes. Pin
+  persisted formats with a test.
 - Keep functions focused and readable. Split long functions with many exits
   or mixed responsibilities. A function should read as a short sequence of
   well-named steps and decisions, with each step extracted into a named
