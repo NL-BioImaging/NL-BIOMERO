@@ -39,7 +39,9 @@ the change fits. Check, in this order:
    named steps, no hardcoded values, comments where needed, and the
    component's reference style. Review the whole module the PR touches for
    these, not only the changed lines; fix small findings in the PR and file
-   an issue for larger ones.
+   an issue for larger ones. If the code is too hard to follow to judge its
+   approach, report that as blocking and ask for it to be restructured first;
+   do not approve what you cannot understand.
 3. **Tests:** regression tests at the lowest useful layer; every changed
    behavior and flag state (enabled, false, missing, empty) covered.
    Assertions check the exact outcome (for example the log level), not one of

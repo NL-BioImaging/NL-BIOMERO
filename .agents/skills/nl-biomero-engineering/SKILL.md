@@ -13,7 +13,11 @@ link to this file instead:
 
 ## Engineering principles
 
-Reviewers check every pull request against these principles.
+Reviewers check every pull request against these principles. Readable code
+is what makes review possible: when functions, variables and grouping say what
+the code does, a reviewer can see the approach and disagree with it. Code that
+has to be traced value by value hides its design from review, so readability
+is a requirement, not polish.
 
 - Keep it simple. Prefer the smallest change that solves the problem; do not
   add layers, frameworks, options or abstractions for hypothetical needs.
