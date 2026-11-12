@@ -85,6 +85,15 @@ is a requirement, not polish.
   feature's prerequisites are missing (for example, Zarr result handling needs
   the importer together with BIOMERO core), leave the feature disabled and log
   why, instead of retrofitting it into those paths.
+- Fixes to core functionality and resilience are not features. A fix (for
+  example, recovering from a dropped SSH connection) is on by default, applies
+  to every path that has the problem and keeps existing installs working;
+  give it one code path, not an on/off fork beside the old code. Settings
+  such as timeouts tune it, and zero turns retrying off within the same path.
+- Make external commands a fix or feature depends on configurable, with a
+  sensible default, in the same way as the zip command: a site can name an
+  equivalent tool. Check at setup that the configured command exists and log
+  what is missing.
 - New features are off in code and on in the NL-BIOMERO demo. A missing,
   empty or false flag leaves a feature disabled, because existing servers
   upgrade components without adding new flags. The NL-BIOMERO `.env` and
