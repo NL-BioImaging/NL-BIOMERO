@@ -16,12 +16,15 @@ source or suppressing result registration.
 
 ## Why BIOMERO shallows results
 
-Reusable workflows (for example Bilayers, BIAFLOWS or Fractal tasks) receive
-one input folder and write one output folder. To be valid on its own, their
-output OME-Zarr usually repeats the input pixels next to what the workflow
-produced, such as a new `labels/` group. BIOMERO prepares the input, collects
-the output and stores both, so it knows where the repeated pixels came from and
-can avoid storing them twice. For large Plates and repeated runs this saves most
+BIOMERO gives a workflow one input folder and collects its results only from
+one output folder: inputs are never read back as outputs. Reusable workflows
+such as Bilayers and BIAFLOWS work this way. Fractal tasks normally write into
+their input Zarr, so when they are packaged for BIOMERO (for example as
+Bilayers workflows) they are pointed at the output folder instead. With
+OME-Zarr this means the output usually repeats the input pixels next to what
+the workflow produced, such as a new `labels/` group, so that it is valid on
+its own. BIOMERO prepares the input, collects the output and stores both, so it
+knows where the repeated pixels came from and can avoid storing them twice. For large Plates and repeated runs this saves most
 of the result storage; see {ref}`the measurements <shallow-results-measured>`.
 
 - **Only BIOMERO's own copies are shallowed.** Shallowing applies to managed
