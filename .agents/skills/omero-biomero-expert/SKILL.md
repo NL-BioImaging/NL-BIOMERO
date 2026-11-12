@@ -143,8 +143,8 @@ means all artifacts are ready:
    PR. `master` must always work with the versions pinned in `.env`: any
    NL-BIOMERO PR that needs an unreleased component version (code, hooks,
    INIs or docs for a new setting) targets the release branch, never
-   `master`. In the release PR: advance the clean importer submodule to its released commit, pin the
-   prereleased component versions in `.env` and `.env.shared`, restore release
+   `master`. In the release PR: advance the clean importer submodule to its
+   released commit, pin the prereleased component versions in `.env` and `.env.shared`, restore release
    Dockerfile blocks, and align applicable Compose wiring, INIs and docs.
    Preserve deployment-specific paths/credentials and the enabled demo flags.
    Validate resolved build arguments, shared config mounts and feature settings.
