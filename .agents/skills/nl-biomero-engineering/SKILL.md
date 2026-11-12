@@ -291,6 +291,9 @@ for a local deployment, below.
 - Give long runs (test suites, mutation checks, builds) a timeout, and stop
   every process you started before you report; a hung test run otherwise
   keeps loading the machine after you are done.
+  Never stop, restart or shut down shared services you did not start (WSL
+  distributions, Docker Desktop, databases, the user's stacks): other work,
+  including the user's, depends on them.
 - Once the work is pushed and its pull request is open, remove what you
   created: `git worktree remove <path>` then `git worktree prune`, delete the
   local branch, and delete temporary clones and scratch output. Review
