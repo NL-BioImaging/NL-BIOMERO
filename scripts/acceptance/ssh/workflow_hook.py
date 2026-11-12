@@ -49,7 +49,9 @@ def install(directory):
         if not control.get('armed') or list(job_ids) != [control.get('job_id')]:
             return original(self, job_ids, *args, **kwargs)
         state = self.__dict__.get('_ssh_recovery_state')
-        if state is None or not state.heartbeats or state.deadline is not None:
+        outage_active = state is not None and any(
+            window.outage_deadline is not None for window in state.windows)
+        if state is None or not state.heartbeats or outage_active:
             return original(self, job_ids, *args, **kwargs)
         target = directory / (str(UUID(control['case_id'])) + '.json')
         report = {key: control[key] for key in ('case_id', 'mode', 'workflow_id', 'task_id', 'job_id',
@@ -82,7 +84,8 @@ def install(directory):
             return original(self, job_ids, *args, **kwargs)
 
         relay = proxy = timer = None
-        callbacks = dict(state.heartbeats)
+        traced_callbacks = []
+        callbacks = list(state.heartbeats)
         lock = threading.Lock()
         report.update(status='IN_PROGRESS', running_before_fault=True, biomero=version(),
                       recovery_window=state.timeout, registered_heartbeats=len(callbacks))
@@ -101,10 +104,12 @@ def install(directory):
             if private_baseline[0].get(control['job_id']) != 'RUNNING':
                 report['status'] = 'NOT_INJECTED_JOB_NO_LONGER_RUNNING'
                 return private_baseline
-            for marker, callback in callbacks.items():
+            traced_callbacks = []
+            for index, callback in enumerate(callbacks):
                 def traced(callback=callback):
                     return record_heartbeat(callback, report, lock, target)
-                state.heartbeats[marker] = traced
+                traced_callbacks.append((traced, callback))
+                state.heartbeats[index] = traced
             relay.pause.set()
             event('private_connection_paused')
 
@@ -128,9 +133,11 @@ def install(directory):
             if timer is not None:
                 timer.cancel()
                 timer.join()
-            for marker, callback in callbacks.items():
-                if marker in state.heartbeats:
-                    state.heartbeats[marker] = callback
+            # Put each original back where its tracer still is (by identity).
+            for traced, callback in traced_callbacks:
+                for index, current in enumerate(state.heartbeats):
+                    if current is traced:
+                        state.heartbeats[index] = callback
             if proxy is not None:
                 proxy.__dict__.pop('_ssh_recovery_state', None)
             report['cleanup_errors'] = close_owned(relay, proxy)
