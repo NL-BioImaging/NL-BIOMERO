@@ -140,7 +140,10 @@ means all artifacts are ready:
 4. Update OMERO.biomero to published core/importer dependencies (it comes late
    because it depends on both), merge and prerelease it. Verify its PyPI package contains no feature-branch dependencies.
 5. Prepare NL-BIOMERO last, on a `release/X.Y.Z-beta.N` branch with its own
-   PR: advance the clean importer submodule to its released commit, pin the
+   PR. `master` must always work with the versions pinned in `.env`: any
+   NL-BIOMERO PR that needs an unreleased component version (code, hooks,
+   INIs or docs for a new setting) targets the release branch, never
+   `master`. In the release PR: advance the clean importer submodule to its released commit, pin the
    prereleased component versions in `.env` and `.env.shared`, restore release
    Dockerfile blocks, and align applicable Compose wiring, INIs and docs.
    Preserve deployment-specific paths/credentials and the enabled demo flags.
