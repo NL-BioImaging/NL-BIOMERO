@@ -128,9 +128,12 @@ submodules, including hotfixes and guidance changes.
   with a clear description of the final change and its validation. Do not hold
   work back in a draft PR or local branch; the independent review below runs
   on the ready PR.
-- Keep one PR per scope. Add further changes with the same scope to the open
-  PR instead of opening a stacked or follow-up PR; split only for a separate
-  scope or a required merge order across repositories.
+- Keep one PR per scope, where the scope is one piece of functionality in one
+  repository. Logging, readability fixes, reuse refactors and tests for that
+  functionality belong in the same PR, and one PR may close several issues
+  about it. Add further changes with the same scope to the open PR instead of
+  opening a stacked or follow-up PR; split only for a separate functionality
+  or a required merge order across repositories.
 - During a review or other longer piece of work, collect guidance changes on
   one open guidance PR per repository and merge it when that work is done.
   Keep guidance PRs separate from PRs that change code or configuration.
