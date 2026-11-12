@@ -13,7 +13,7 @@ upgrading does not rewrite them. Shallow results reconstruct in their source
 format, including retained labels.
 
 The demo's Leica, Incucyte database and Incucyte archive preprocessing routes
-all create new stores with ``extra_params.outputformat=omezarr05``. Workflow
+all create new stores with ``extra_params.outputformat=omezarr04``. Workflow
 inputs default to ``0.4`` / v2. Administrators can enable **Zarr v3 input
 (OME-Zarr 0.5)** per native Zarr workflow in Settings; this saves the JSON list
 ``[UI] zarr_v3_workflows``. Descriptor style does not restrict this choice;

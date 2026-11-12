@@ -891,11 +891,12 @@ exports the selected OMERO pixels without reconstructing inherited labels.
 This applies to both Bilayers and BIAFLOWS descriptors; TIFF conversion always
 uses v2. Cross-format returned results also stay full.
 The NL-BIOMERO demo explicitly
-selects <code class="docutils literal notranslate"><span class="pre">omezarr05</span></code> for new Leica,
+selects <code class="docutils literal notranslate"><span class="pre">omezarr04</span></code> for new Leica,
 Incucyte database and Incucyte archive conversions in <code class="docutils literal notranslate"><span class="pre">web/biomero-config.json</span></code>.
-Each route passes the same <code class="docutils literal notranslate"><span class="pre">extra_params.outputformat</span></code> setting; Leica also
-passes the selected image UUID. This preprocessing setting is independent of
-the per-workflow input compatibility setting.</p>
+Each route passes the same <code class="docutils literal notranslate"><span class="pre">extra_params.outputformat</span></code> setting, so the
+converter’s own default does not apply; Leica also passes the selected image
+UUID. This preprocessing setting is independent of the per-workflow input
+compatibility setting.</p>
 <p>Workflow authors do <strong>not</strong> need to generate BIOMERO sidecars, ISCC identities,
 RFC 8 shallow copies, or BIOMERO provenance metadata. Produce the supported
 OME-Zarr structure and declare the appropriate inputs, outputs, formats, and
