@@ -62,9 +62,9 @@ The NL-BIOMERO demo explicitly
 selects `omezarr04` for new Leica,
 Incucyte database and Incucyte archive conversions in `web/biomero-config.json`.
 Each route passes the same `extra_params.outputformat` setting, so the
-converter's own default (OME-Zarr 0.5 since biomero-converter 0.2.5) does not
-apply; Leica also passes the selected image UUID. This preprocessing setting is independent of
-the per-workflow input compatibility setting.
+converter's own default does not apply; Leica also passes the selected image
+UUID. This preprocessing setting is independent of the per-workflow input
+compatibility setting.
 
 Workflow authors do **not** need to generate BIOMERO sidecars, ISCC identities,
 RFC 8 shallow copies, or BIOMERO provenance metadata. Produce the supported
