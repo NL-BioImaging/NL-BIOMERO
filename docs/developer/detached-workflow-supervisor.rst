@@ -92,7 +92,9 @@ worker that ends without its workflow reaching a final state is run again after
 Launchers claimed by a 2.9 beta carry the status ``CLAIMED`` and no owner; they
 are free to claim.
 
-The supervisor logs a lost claim as an error. Run a single detached supervisor
+When a renewal finds the claim in another supervisor's hands, the supervisor logs
+an error and the worker stops at its next check (between pipeline steps, or by
+cancelling the running sub-script) without failing the workflow. Run a single detached supervisor
 per BIOMERO tracking database anyway: the claim keeps two of them from running
 the same workflow, but metadata maintenance requests below are not claimed.
 
@@ -108,8 +110,10 @@ export) runs, ``polling_script_runner`` checks every ``CANCEL_CHECK_SECONDS`` an
 cancels the sub-script's OMERO process. A batched parent passes the request on
 to each unfinished child and fails once they ended. A cancelled workflow
 appears as ``FAILED`` in the workflow overview, with the reason as its message.
-Nothing in the stack sends the request yet: it is the entry point for a button
-or script that needs to cancel a detached run.
+The BIOMERO script **Cancel BIOMERO Workflow** (``admin/SLURM_Cancel_Workflow.py``)
+sends the request for a workflow ID; it is allowed for the workflow's owner and
+for administrators and logs who asked. An OMERO.biomero button can call the same
+tracker method later.
 
 Startup, shutdown, and failures
 -------------------------------
