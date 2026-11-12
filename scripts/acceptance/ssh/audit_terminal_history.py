@@ -14,6 +14,7 @@ from private_ssh import finish, validate_common
 
 def terminal_record(client, workflow_id):
     from biomero.database import EngineManager, WorkflowProgressView
+    from biomero.eventsourcing import is_launcher_task
     events = list(client.workflowTracker.events.get(workflow_id))
     workflow = client.workflowTracker.repository.get(workflow_id)
     tasks = [client.workflowTracker.repository.get(task) for task in workflow.tasks]
@@ -30,7 +31,7 @@ def terminal_record(client, workflow_id):
         'source_terminal_status': durable, 'terminal_consistent': consistent,
         'source_terminal_count': len(terminals),
         'source_history': [{'version': event.originator_version, 'type': type(event).__name__} for event in events],
-        'detached_launcher': any((task.params or {}).get('_biomero_detached_launcher') for task in tasks),
+        'detached_launcher': any(is_launcher_task(task) for task in tasks),
         'job_ids': sorted({int(job) for task in tasks for job in task.job_ids})}
 
 

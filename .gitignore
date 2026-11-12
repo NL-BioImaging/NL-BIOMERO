@@ -24,3 +24,4 @@ docs/_build_local/
 docs/venv/
 
 .analyzed
+__pycache__/

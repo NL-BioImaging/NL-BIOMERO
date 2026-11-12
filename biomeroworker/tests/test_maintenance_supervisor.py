@@ -7,6 +7,7 @@ import sys
 from threading import Event, Lock, Thread
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
+import uuid
 from uuid import uuid4
 
 import pytest
@@ -18,7 +19,8 @@ def processor_namespace():
     names = {'WorkflowSupervisor', 'MaintenanceWorker'}
     nodes = [n for n in tree.body if isinstance(n, ast.ClassDef) and n.name in names]
     namespace = dict(Thread=Thread, Event=Event, Lock=Lock, logging=logging,
-                     WorkflowWorker=Thread)
+                     WorkflowWorker=Thread, uuid=uuid,
+                     socket=SimpleNamespace(gethostname=lambda: 'host'))
     exec(compile(ast.Module(body=nodes, type_ignores=[]), str(source), 'exec'), namespace)
     return namespace
 
@@ -60,7 +62,9 @@ def test_worker_checks_admin_and_records_terminal_outcome(admin, fail, terminal)
     conn = Mock()
     conn.isAdmin.return_value = admin
     supervisor = Mock()
-    with patch.dict(sys.modules, biomero=core), \
+    constants = SimpleNamespace(metadata_refresh_status=SimpleNamespace(
+        QUEUED='QUEUED', RUNNING='RUNNING', ACTIVE=('QUEUED', 'RUNNING')))
+    with patch.dict(sys.modules, {'biomero': core, 'biomero.constants': constants}), \
             patch.dict(namespace, load_metadata_script=Mock(return_value=script)):
         worker = namespace['MaintenanceWorker'](uuid4(), supervisor)
         worker.user_connection = Mock(return_value=contextlib.nullcontext(conn))
@@ -78,3 +82,4 @@ def test_worker_checks_admin_and_records_terminal_outcome(admin, fail, terminal)
                                                      'discovered': 2}
         assert script.refresh_all_metadata.call_args.kwargs['dry_run'] is False
     supervisor.remove_maintenance_worker.assert_called_once()
+    tracker.release_database_connections.assert_called_once()
