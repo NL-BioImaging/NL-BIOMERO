@@ -21,6 +21,10 @@ is a requirement, not polish.
 
 - Keep it simple. Prefer the smallest change that solves the problem; do not
   add layers, frameworks, options or abstractions for hypothetical needs.
+- Size safeguards to the real threat. Do not add checks against actors who
+  already have equal or greater access (for example, whoever can submit
+  import orders can already import any data); state the trust assumption in
+  the docs instead.
 - Reuse before adding (DRY). Extend the component's existing modules, helpers
   and patterns instead of building a parallel implementation; add an optional
   parameter to an existing function rather than a second code path that must
