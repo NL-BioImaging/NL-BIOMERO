@@ -107,6 +107,10 @@ is a requirement, not polish.
   on: they enable every feature, and everything must work there. Do not report
   an enabled flag in the demo as a missing opt-in; check the code default
   instead. See `omero-biomero-expert` for the flag rules.
+- Release finished work. Code added since the last stable release must meet
+  these rules before that release ships; review findings on it are fixed
+  in the release, not deferred to a quick patch release. A stable release
+  should mean that its new features and support can be relied on.
 - Documentation is part of a feature. When a feature is disabled for a
   release, withdrawn or removed, hide or remove its documentation pages and
   navigation (Sphinx, MkDocs, READMEs, UI help) in the same change, so the docs
