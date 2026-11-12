@@ -145,6 +145,12 @@ means all artifacts are ready:
    Dockerfile blocks, and align applicable Compose wiring, INIs and docs.
    Preserve deployment-specific paths/credentials and the enabled demo flags.
    Validate resolved build arguments, shared config mounts and feature settings.
+   Keep the documentation front page complete: `docs/index.rst` shows every
+   released component with its version badge, repository link and licence,
+   and `docs/conf.py` reads each version from `.env`. When the release adds a
+   component (or a component whose version is pinned elsewhere, such as a
+   Python dependency), add its badge, link, licence and version source in this
+   PR, so readers can see which versions were released together.
 6. Test that exact setup locally before merging: build and run the stack from
    the release branch with `docker-compose.yml`, the release Dockerfile blocks
    and the `.env` pins (`docker-compose-dev.yml` is for live OMERO.biomero
