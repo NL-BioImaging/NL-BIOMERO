@@ -17,8 +17,13 @@ Reviewers check every pull request against these principles.
 
 - Keep it simple. Prefer the smallest change that solves the problem; do not
   add layers, frameworks, options or abstractions for hypothetical needs.
-- Reuse before adding. Extend the component's existing modules, helpers and
-  patterns instead of building a parallel implementation. Put behavior in the
+- Reuse before adding (DRY). Extend the component's existing modules, helpers
+  and patterns instead of building a parallel implementation; add an optional
+  parameter to an existing function rather than a second code path that must
+  be maintained separately. Generic operations (submitting a scheduler job,
+  running a remote command, looking up workflow tasks) live once, in the main
+  or helper classes, so every feature uses the same site configuration and
+  future features reuse them. Put behavior in the
   component that owns it (see each component's ownership section) and keep
   workflow decisions in the callers rather than in shared libraries.
 - Match the surrounding code: its naming, structure, error handling, logging
@@ -30,7 +35,26 @@ Reviewers check every pull request against these principles.
   style must not change behavior; list any deliberate change in the
   description.
 - Keep functions focused and readable. Split long functions with many exits
-  or mixed responsibilities.
+  or mixed responsibilities. A function should read as a short sequence of
+  well-named steps and decisions, with each step extracted into a named
+  sub-function.
+- Name things by what they are or do. Functions say what they do
+  (`sha256_of_json`, not `_canonical_digest`; not `run`, `_batch` or
+  `_check`), and the variable holding a result says what it means
+  (`canonical_digest = sha256_of_json(...)`). Name conditions and items that
+  drive decisions (`shallower_already_completed`, `existing_task`) instead of
+  reusing `matches[0]`; store a repeated expression once in a named variable.
+  Give non-trivial commands and queries a named variable before running them.
+- Do not hardcode values that may change, such as versions, contract numbers,
+  paths, names and limits. Define them as constants at the top of the module
+  or class (shared constants in the component's constants module) and expose
+  them as function parameters that default to those constants, so they can be
+  changed without editing function internals.
+- Comment what a reader cannot infer: why a branch exists, and what an
+  unfamiliar tool or system call does (for example `flock`) and whether its
+  availability is checked at setup.
+- Prefer f-strings for string formatting, including log messages; use other
+  forms only where an f-string does not work.
 - Log every decision. Each branch that chooses a path (enabled or disabled,
   reuse or fresh, keep or remove, retry or fail, local or remote) logs what it
   decided and why, at least at DEBUG; actions that change or delete data, or

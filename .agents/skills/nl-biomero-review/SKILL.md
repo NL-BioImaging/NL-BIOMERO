@@ -33,7 +33,13 @@ the change fits. Check, in this order:
 
 1. **Correctness:** wrong behavior, data loss, broken contracts between
    components, missing error handling, security problems.
-2. **Engineering principles** from the shared rules.
+2. **Engineering principles** from the shared rules. Developers focus on
+   functionality, so reviewers own readability and maintainability: reuse
+   instead of parallel code, descriptive names, small functions built from
+   named steps, no hardcoded values, comments where needed, and the
+   component's reference style. Review the whole module the PR touches for
+   these, not only the changed lines; fix small findings in the PR and file
+   an issue for larger ones.
 3. **Tests:** regression tests at the lowest useful layer; every changed
    behavior and flag state (enabled, false, missing, empty) covered.
    Assertions check the exact outcome (for example the log level), not one of
