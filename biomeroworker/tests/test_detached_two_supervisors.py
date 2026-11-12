@@ -113,7 +113,9 @@ def worker_namespace():
     from biomero.eventsourcing import WorkflowInterrupted
     namespace = dict(Thread=Thread, Event=Event, logging=logging,
                      contextlib=__import__('contextlib'), os=os, uuid=uuid,
-                     WorkflowInterrupted=WorkflowInterrupted)
+                     WorkflowInterrupted=WorkflowInterrupted,
+                     time=SimpleNamespace(sleep=lambda seconds: None),
+                     CHILD_POLL_SECONDS=1)
     exec(compile(ast.Module(body=nodes, type_ignores=[]), str(SOURCE), 'exec'),
          namespace)
     return namespace
@@ -139,3 +141,41 @@ def test_worker_stop_check_on_a_real_tracker(database):
     with pytest.raises(namespace['ClaimLost']) as lost:
         worker.raise_if_stopped(tracker)
     assert not isinstance(lost.value, WorkflowCancelled)
+
+
+def test_parent_that_loses_its_claim_while_annotating_writes_no_more(database):
+    """Real tracker: the claim flips inside the annotate stub of batch 1."""
+    from biomero.constants import workflow_status
+    tracker = WorkflowTracker()
+    parent_id = tracker.initiate_workflow('parent', '', user=1, group=2)
+    children = {}
+    for index in range(2):
+        child_wf = tracker.initiate_workflow(f'child {index}', '', 1, 2)
+        batch_task = tracker.add_task_to_workflow(
+            parent_id, constants.RUN_WF_SCRIPT, 'v1', [index],
+            {'batch_index': index, 'child_workflow_id': str(child_wf)})
+        tracker.start_task(batch_task)
+        children[index] = (batch_task, child_wf)
+    namespace = worker_namespace()
+    worker = namespace['WorkflowWorker'](
+        parent_id, uuid.uuid4(), True, Mock(shutdown_event=Event()))
+    batched_script = Mock()
+    batched_script.add_batch_supervisor_metadata_for_batch.side_effect = (
+        lambda *args: worker.claim_lost.set())
+    rows = [SimpleNamespace(workflow_id=child, status=workflow_status.DONE)
+            for _, child in children.values()]
+    session = Mock()
+    session.query.return_value.filter.return_value.all.return_value = rows
+    context = Mock(__enter__=Mock(return_value=session),
+                   __exit__=Mock(return_value=False))
+
+    with patch.object(EngineManager, 'get_session', return_value=context):
+        with pytest.raises(namespace['ClaimLost']):
+            worker.await_children(
+                SimpleNamespace(workflowTracker=tracker), Mock(),
+                batched_script, dict(children), [[0], [1]], {}, None)
+
+    completed = [tracker.repository.get(task).completed
+                 for task, _ in children.values()]
+    assert completed == [True, False]  # the second batch is not written
+    assert not tracker.is_workflow_finished(parent_id)

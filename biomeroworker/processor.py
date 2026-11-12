@@ -43,15 +43,10 @@ except ImportError:
     _slurm_env = None
     _BIOMERO_ENV_VARS = []
 
-try:
-    from biomero.constants import LAUNCHER_CLAIM_LEASE_SECONDS
-except ImportError:  # a biomero without the detached claim: no supervisor runs
-    LAUNCHER_CLAIM_LEASE_SECONDS = 300
-
-try:
-    from biomero.eventsourcing import WorkflowInterrupted
-except ImportError:
-    WorkflowInterrupted = Exception
+# The biomero pinned for this image provides both (the detached supervisor
+# needs the claim), so there is no fallback.
+from biomero.constants import LAUNCHER_CLAIM_LEASE_SECONDS
+from biomero.eventsourcing import WorkflowInterrupted
 
 sys = __import__("sys")
 
@@ -910,10 +905,10 @@ class RecordedInputsClient(object):
     that stops the sub-script when its workflow was cancelled.
     """
 
-    def __init__(self, params, conn=None, raise_if_cancelled=None):
+    def __init__(self, params, conn=None, raise_if_stopped=None):
         self.params = params or {}
         self.conn = conn
-        self.raise_if_cancelled = raise_if_cancelled
+        self.raise_if_stopped = raise_if_stopped
         self.outputs = {}
 
     def getInput(self, key):
@@ -962,7 +957,7 @@ def polling_script_runner(client, svc, script_id, inputs,
     logger = logging.getLogger("biomero.detached.script")
     proc = start_script(svc, script_id, inputs, logger)
     conn = getattr(client, "conn", None)
-    raise_if_cancelled = getattr(client, "raise_if_cancelled", None)
+    raise_if_stopped = getattr(client, "raise_if_stopped", None)
     next_cancel_check = time.monotonic()
     try:
         next_position = 0
@@ -991,10 +986,10 @@ def polling_script_runner(client, svc, script_id, inputs,
 
             if return_code is not None:
                 break
-            if raise_if_cancelled and time.monotonic() >= next_cancel_check:
+            if raise_if_stopped and time.monotonic() >= next_cancel_check:
                 next_cancel_check = time.monotonic() + CANCEL_CHECK_SECONDS
                 try:
-                    raise_if_cancelled()
+                    raise_if_stopped()
                 except WorkflowInterrupted as stopped:
                     logger.info(f"Stopping the OMERO process of script "
                                 f"{script_id}: {stopped}")
@@ -1087,8 +1082,9 @@ class WorkflowWorker(Thread):
             self.fail_workflow(str(cancelled))
         except Exception as e:
             if self.claim_lost.is_set():
-                # Another supervisor runs this workflow now; failing it here
-                # would fail their run.
+                # The claim is gone (taken over, or released at shutdown):
+                # whoever owns this workflow now writes its outcome, and
+                # failing it here would fail their run.
                 self.logger.error(f"Worker of workflow {self.workflow_id} "
                                   f"stopped after losing its claim: {e}")
             else:
@@ -1133,7 +1129,7 @@ class WorkflowWorker(Thread):
             with self.user_connection(workflow) as conn:
                 client = RecordedInputsClient(
                     params, conn,
-                    raise_if_cancelled=lambda: self.raise_if_stopped(tracker))
+                    raise_if_stopped=lambda: self.raise_if_stopped(tracker))
                 if self.batched:
                     self.run_batches(run_workflow_script, batched_script,
                                      slurmClient, client, conn, workflow,
@@ -1144,6 +1140,11 @@ class WorkflowWorker(Thread):
 
     def raise_if_stopped(self, tracker):
         """Stop between steps: when the claim is lost, or a cancel was asked.
+
+        The scripts' ``PipelineRun.raise_if_stopped`` does the same for the
+        pipeline (its ``stop_check`` is this worker's claim check, then it
+        checks the cancel itself); this one serves the sub-script runner and
+        the batched parent, which have no pipeline around them.
 
         Passed to the pipeline as its ``stop_check`` and used by the sub-script
         runner while a sub-script runs.
@@ -1244,13 +1245,18 @@ class WorkflowWorker(Thread):
         for index, batch in enumerate(batches):
             if index in children:
                 continue
-            # No new child for a workflow that was cancelled (or lost); the
-            # children already queued are told to cancel too.
+            # No new child for a workflow whose claim is lost (stop at once)
+            # or that was cancelled: then queuing stops, the children already
+            # queued are told to cancel, and the parent waits for them below.
+            self.raise_if_claim_lost()
             try:
-                self.raise_if_stopped(tracker)
+                tracker.raise_if_cancel_requested(self.workflow_id)
             except WorkflowCancelled:
+                self.logger.info(f"Workflow {self.workflow_id} was cancelled "
+                                 f"while queuing batches; {len(children)} "
+                                 f"queued.")
                 self.cancel_children(tracker, children.values())
-                raise
+                break
             child_params = dict(base_inputs)
             child_params[constants.transfer.IDS] = batch
             if effective_type:
@@ -1259,15 +1265,18 @@ class WorkflowWorker(Thread):
             child_params[constants.workflow.OUTPUT_DUPLICATES] = False
             child_params["selected_output"] = params.get("selected_output")
             child_params["group"] = params.get("group")
+            self.raise_if_claim_lost()
             child_wf_id = tracker.initiate_workflow(
                 f"{workflow.name} (batch {index + 1}/{len(batches)})",
                 "\n".join([workflow.description, script.VERSION]),
                 workflow.user,
                 workflow.group)
+            self.raise_if_claim_lost()
             script.register_detached_launcher(
                 RecordedInputsClient(child_params, conn), slurmClient,
                 child_wf_id, constants.RUN_WF_SCRIPT,
                 params.get("workflows") or [], {})
+            self.raise_if_claim_lost()
             task_id = tracker.add_task_to_workflow(
                 self.workflow_id, constants.RUN_WF_SCRIPT, script.VERSION,
                 batch, {"batch_index": index,
@@ -1289,12 +1298,13 @@ class WorkflowWorker(Thread):
             return
         # Not the owner any more: the new owner writes the outcome.
         self.raise_if_claim_lost()
-        if failed:
+        not_queued = len(batches) - len(children)
+        if failed or not_queued:
             cancelled = tracker.is_workflow_cancel_requested(self.workflow_id)
             tracker.fail_workflow(
                 self.workflow_id,
-                f"{'Cancelled: ' if cancelled else ''}{failed} of "
-                f"{len(batches)} batches "
+                f"{'Cancelled: ' if cancelled else ''}"
+                f"{failed + not_queued} of {len(batches)} batches "
                 f"{'ended without completing' if cancelled else 'failed'}")
         else:
             # A cancel that came too late (every batch completed) changes
@@ -1302,8 +1312,13 @@ class WorkflowWorker(Thread):
             tracker.complete_workflow(self.workflow_id)
 
     def cancel_children(self, tracker, children):
-        """Pass a cancel on to child workflows: each cancels itself."""
-        for _, child_wf_id in children:
+        """Pass a cancel on to the unfinished child workflows: each cancels
+        itself. A child whose batch task already completed or failed is left
+        alone."""
+        for batch_task_id, child_wf_id in children:
+            batch_task = tracker.repository.get(batch_task_id)
+            if batch_task.completed or batch_task.failed:
+                continue
             tracker.request_workflow_cancel(
                 child_wf_id, f"Parent {self.workflow_id} cancelled")
 
@@ -1342,6 +1357,8 @@ class WorkflowWorker(Thread):
                             [child_wf_id for _, child_wf_id
                              in pending.values()])).all()}
             for index, (task_id, child_wf_id) in list(pending.items()):
+                # Checked per child: annotating one batch can take a while.
+                self.raise_if_claim_lost()
                 status = statuses.get(child_wf_id)
                 if status == wfs.DONE:
                     tracker.complete_task(task_id, "Batch completed.")
@@ -1628,6 +1645,11 @@ class WorkflowSupervisor(Thread):
                                             self.owner):
             return
         launcher = self.tracker.repository.get(worker.launcher_task_id)
+        if launcher.claimed_by is None:
+            self.logger.info(f"The claim on workflow {worker.workflow_id} "
+                             f"was released; stopping its worker.")
+            worker.claim_lost.set()
+            return
         if launcher.claimed_by == self.owner:
             # A concurrent write to the task made the renewal conflict; the
             # claim is still ours and the next renewal retries.

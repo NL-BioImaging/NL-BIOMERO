@@ -321,8 +321,8 @@ def test_workflow_whose_worker_just_ended_waits_before_running_again(core):
 
 # ----------------------------- cancellation ----------------------------- #
 
-def runner_client(raise_if_cancelled):
-    return SimpleNamespace(conn=None, raise_if_cancelled=raise_if_cancelled)
+def runner_client(raise_if_stopped):
+    return SimpleNamespace(conn=None, raise_if_stopped=raise_if_stopped)
 
 
 def test_sub_script_is_cancelled_when_its_workflow_is_cancelled(core):
@@ -387,6 +387,8 @@ def children_session(statuses):
 def test_cancelled_batched_parent_cancels_its_unfinished_children(core):
     parent_id, child_a, child_b = uuid4(), uuid4(), uuid4()
     tracker = Mock()
+    tracker.repository.get.return_value = SimpleNamespace(
+        completed=False, failed=False)
     tracker.is_workflow_cancel_requested.return_value = True
     statuses = {child_a: 'RUNNING', child_b: 'RUNNING'}
     sessions = iter([children_session(statuses),
@@ -539,9 +541,9 @@ def test_pipeline_gets_the_stop_check_and_the_sub_scripts_the_same_check(core):
     client = pipeline_call.args[0]
     assert client.conn == 'conn'
     with pytest.raises(namespace['ClaimLost']):
-        client.raise_if_cancelled()  # sub-scripts stop on a lost claim too
+        client.raise_if_stopped()  # sub-scripts stop on a lost claim too
     worker.claim_lost.clear()
-    client.raise_if_cancelled()
+    client.raise_if_stopped()
     tracker.raise_if_cancel_requested.assert_called_with(worker.workflow_id)
 
 
@@ -627,28 +629,84 @@ def test_parent_that_loses_its_claim_while_waiting_touches_no_child(core):
     tracker.request_workflow_cancel.assert_not_called()
 
 
-def test_no_batch_child_is_created_for_a_cancelled_parent(core):
+def test_cancel_while_queuing_stops_queuing_and_waits_for_the_children(core):
     namespace = processor_namespace()
     worker = namespace['WorkflowWorker'](
         uuid4(), uuid4(), True, Mock(shutdown_event=Event()))
     tracker = Mock()
     tracker.raise_if_cancel_requested.side_effect = [
         None, WorkflowCancelled('asked')]
+    tracker.is_workflow_cancel_requested.return_value = True
+    tracker.repository.get.return_value = SimpleNamespace(
+        completed=False, failed=False)
     first_child = uuid4()
     tracker.initiate_workflow.return_value = first_child
+    worker.await_children = Mock(return_value=(0, {}))
     workflow = SimpleNamespace(tasks=[], name='wf', description='', user=1,
                                group=2)
-    script = Mock(VERSION='v')
 
-    with pytest.raises(WorkflowCancelled):
-        worker.run_batches(script, Mock(),
+    worker.run_batches(Mock(VERSION='v'), Mock(),
+                       SimpleNamespace(workflowTracker=tracker), Mock(),
+                       Mock(), workflow, {'batches': [[1], [2]]})
+
+    assert tracker.initiate_workflow.call_count == 1  # none for the 2nd batch
+    tracker.request_workflow_cancel.assert_called_once()
+    assert tracker.request_workflow_cancel.call_args.args[0] == first_child
+    worker.await_children.assert_called_once()  # waits for the queued child
+    # an unqueued batch means the parent did not complete
+    tracker.fail_workflow.assert_called_once()
+    assert tracker.fail_workflow.call_args.args[1].startswith('Cancelled')
+    tracker.complete_workflow.assert_not_called()
+
+
+def test_children_that_already_completed_are_not_told_to_cancel(core):
+    namespace = processor_namespace()
+    worker = namespace['WorkflowWorker'](
+        uuid4(), uuid4(), True, Mock(shutdown_event=Event()))
+    done_task, open_task, done_child, open_child = (uuid4() for _ in range(4))
+    tracker = Mock()
+    tracker.repository.get.side_effect = lambda task_id: SimpleNamespace(
+        completed=task_id == done_task, failed=False)
+
+    worker.cancel_children(tracker, [(done_task, done_child),
+                                     (open_task, open_child)])
+
+    tracker.request_workflow_cancel.assert_called_once()
+    assert tracker.request_workflow_cancel.call_args.args[0] == open_child
+
+
+def test_claim_is_checked_before_each_write_that_creates_a_child(core):
+    namespace = processor_namespace()
+    worker = namespace['WorkflowWorker'](
+        uuid4(), uuid4(), True, Mock(shutdown_event=Event()))
+    worker.claim_lost.set()
+    tracker = Mock()
+    workflow = SimpleNamespace(tasks=[], name='wf', description='', user=1,
+                               group=2)
+
+    with pytest.raises(namespace['ClaimLost']):
+        worker.run_batches(Mock(VERSION='v'), Mock(),
                            SimpleNamespace(workflowTracker=tracker), Mock(),
                            Mock(), workflow, {'batches': [[1], [2]]})
 
-    assert tracker.initiate_workflow.call_count == 1  # none for the 2nd batch
-    # the child queued before the cancel is told to cancel as well
-    tracker.request_workflow_cancel.assert_called_once()
-    assert tracker.request_workflow_cancel.call_args.args[0] == first_child
+    tracker.initiate_workflow.assert_not_called()
+    tracker.add_task_to_workflow.assert_not_called()
+
+
+def test_released_claim_is_logged_at_info_and_stops_the_worker(core, caplog):
+    tracker = Mock()
+    tracker.claim_launcher_task.return_value = False
+    tracker.repository.get.return_value = SimpleNamespace(claimed_by=None)
+    supervisor = supervisor_with(tracker, [])
+    worker = running_worker(supervisor)
+
+    with caplog.at_level(logging.INFO, logger='biomero.detached.supervisor'):
+        supervisor.renew_claims()
+
+    assert worker.claim_lost.is_set()
+    assert [r.levelno for r in caplog.records
+            if 'released' in r.getMessage()] == [logging.INFO]
+    assert not [r for r in caplog.records if r.levelno >= logging.ERROR]
 
 
 def test_sub_script_survives_a_failing_cancel_check(core, caplog):
