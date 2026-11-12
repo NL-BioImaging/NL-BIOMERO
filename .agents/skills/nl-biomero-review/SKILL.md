@@ -36,6 +36,8 @@ the change fits. Check, in this order:
 2. **Engineering principles** from the shared rules.
 3. **Tests:** regression tests at the lowest useful layer; every changed
    behavior and flag state (enabled, false, missing, empty) covered.
+   Assertions check the exact outcome (for example the log level), not one of
+   several acceptable outcomes.
 4. **Configuration and documentation:** feature-flag and settings rules,
    docs and guidance updated with the behavior.
 5. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
@@ -51,7 +53,11 @@ changes to the branch.
 ## Responding (author)
 
 Fix or reply to every blocking and should-fix finding; nits are optional.
+Verify each suggestion against the code before applying it, as reviewers can
+be wrong too.
 One review round is the default; request a second round only when fixing a
 blocking finding required non-trivial code changes. Then add a PR comment
 summarizing the review (reviewer, findings, how each was resolved, what remains
-open) and ask the user to review.
+open), wait until CI passes, and ask the user to review. When a finding or
+the user's review exposes a general standard, add it to the shared or
+component skill on the open guidance PR.

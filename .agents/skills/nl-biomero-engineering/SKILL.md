@@ -23,6 +23,12 @@ Reviewers check every pull request against these principles.
   workflow decisions in the callers rather than in shared libraries.
 - Match the surrounding code: its naming, structure, error handling, logging
   and test style. New code should look like it was written by the same team.
+  A new module follows the package's established modules, not only its own
+  file: the same docstring format, type hints, naming and quoting. Each
+  component's `<repo>-dev` skill names its reference module.
+- State behavior changes. A PR described as logging-only, refactoring or
+  style must not change behavior; list any deliberate change in the
+  description.
 - Keep functions focused and readable. Split long functions with many exits
   or mixed responsibilities.
 - Log every decision. Each branch that chooses a path (enabled or disabled,
@@ -106,7 +112,9 @@ submodules, including hotfixes and guidance changes.
   Keep guidance PRs separate from PRs that change code or configuration.
 - Make focused, coherent commits and push them as you go. Run cheap, relevant
   checks before pushing and let the required CI checks be the full-suite gate.
-  If CI fails, inspect it and push a follow-up fix. Use proportionate local
+  If CI fails, inspect it and push a follow-up fix. Local runs can skip
+  platform-specific tests, so a PR is ready for the user only when CI passes
+  on every platform it runs. Use proportionate local
   verification before a release, a direct default-branch push or a change
   without suitable CI coverage.
 - Preserve unrelated working-tree changes and never use destructive Git
@@ -193,7 +201,9 @@ for a local deployment, below.
   of the primary checkout or a separate clone, in a temporary or clearly
   agent-owned location, named `<repo>-<topic>`. Record where you created it.
 - Put scratch output (logs, fixtures, measurements, generated files) outside
-  the repositories, next to that checkout or in a temporary directory.
+  the repositories, next to that checkout or in a temporary directory. Give
+  virtual environments and scratch directories names of your own; never
+  reuse or delete a directory another agent or the user created.
 - Once the work is pushed and its pull request is open, remove what you
   created: `git worktree remove <path>` then `git worktree prune`, delete the
   local branch, and delete temporary clones and scratch output. Review
