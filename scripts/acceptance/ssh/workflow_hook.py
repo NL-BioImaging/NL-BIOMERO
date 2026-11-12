@@ -84,6 +84,7 @@ def install(directory):
             return original(self, job_ids, *args, **kwargs)
 
         relay = proxy = timer = None
+        traced_callbacks = []
         callbacks = list(state.heartbeats)
         lock = threading.Lock()
         report.update(status='IN_PROGRESS', running_before_fault=True, biomero=version(),
@@ -103,9 +104,11 @@ def install(directory):
             if private_baseline[0].get(control['job_id']) != 'RUNNING':
                 report['status'] = 'NOT_INJECTED_JOB_NO_LONGER_RUNNING'
                 return private_baseline
+            traced_callbacks = []
             for index, callback in enumerate(callbacks):
                 def traced(callback=callback):
                     return record_heartbeat(callback, report, lock, target)
+                traced_callbacks.append((traced, callback))
                 state.heartbeats[index] = traced
             relay.pause.set()
             event('private_connection_paused')
@@ -130,9 +133,11 @@ def install(directory):
             if timer is not None:
                 timer.cancel()
                 timer.join()
-            for index, callback in enumerate(callbacks):
-                if index < len(state.heartbeats):
-                    state.heartbeats[index] = callback
+            # Put each original back where its tracer still is (by identity).
+            for traced, callback in traced_callbacks:
+                for index, current in enumerate(state.heartbeats):
+                    if current is traced:
+                        state.heartbeats[index] = callback
             if proxy is not None:
                 proxy.__dict__.pop('_ssh_recovery_state', None)
             report['cleanup_errors'] = close_owned(relay, proxy)

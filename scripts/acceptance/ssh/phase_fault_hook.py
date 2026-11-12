@@ -77,10 +77,14 @@ def install(directory):
                                  job_name=job_name, **options)
 
         c = control()
-        job_prefix = 'biomero-'
-        if c is None or 'submit' not in c['phases'] or not job_name.startswith(job_prefix):
+        try:
+            # Only analysis tasks are named biomero-<task uuid>; helper jobs
+            # such as biomero-shallower-<uuid> are never faulted.
+            task_id = UUID(job_name.removeprefix('biomero-'))
+        except ValueError:
             return native()
-        task_id = UUID(job_name[len(job_prefix):])
+        if c is None or 'submit' not in c['phases']:
+            return native()
         task = client.workflowTracker.repository.get(task_id)
         if str(task.workflow_id) != c['workflow_id'] or task.task_name != c['task_name']:
             return native()
