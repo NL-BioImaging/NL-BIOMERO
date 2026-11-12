@@ -212,7 +212,8 @@ submitting it twice.
    also read by the *script* subprocess and is forwarded there by this
    processor. Detached mode needs a ``biomero`` that ships
    ``biomero.detached``; without it the scripts run inline as before, and the
-   supervisor does not start.
+   supervisor does not start. The switch is read through
+   ``biomero.detached.detached_mode_enabled()`` everywhere.
 
 .. seealso::
    :doc:`../../sysadmin/detached-workflows` for the complete enablement,
@@ -471,7 +472,8 @@ Common Issues
 * Verify grid role assignment in docker-compose
 * Check OMERO.grid node status: ``omero admin diagnostics``
 * Ensure only one detached supervisor is active for each BIOMERO tracking
-  database
+  database (launcher claims keep two from running the same workflow, but
+  metadata maintenance requests are not claimed)
 
 **BIOMERO Script Failures**:
 

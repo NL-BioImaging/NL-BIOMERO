@@ -14,16 +14,20 @@ Components and responsibilities
 
 The workflow scripts remain responsible for validating a request and creating
 the event-sourced workflow aggregate. With detached mode enabled, a script also
-creates a *launcher task*. Its parameters contain the validated script inputs,
-derived pipeline values, and the ``_biomero_detached_launcher`` marker. The
-script then returns instead of executing the pipeline itself.
+creates a *launcher task* (``WorkflowTracker.add_launcher_task``). Its
+parameters contain the validated script inputs, derived pipeline values, and the
+``_biomero_detached_launcher`` marker. The script then returns instead of
+executing the pipeline itself. The scripts also decide how an interrupted run
+resumes; core only provides the mechanisms (marker, claim, cancel request).
 
 The custom ``processor.py`` starts a ``WorkflowSupervisor`` alongside the
 normal OMERO script processor. The supervisor:
 
 1. reads unfinished workflows from ``WorkflowProgressView``;
-2. identifies detached requests by loading their launcher task;
-3. starts one ``WorkflowWorker`` thread per eligible workflow; and
+2. identifies detached requests by loading their launcher task
+   (``WorkflowTracker.find_launcher_task``);
+3. claims the launcher task and starts one ``WorkflowWorker`` thread per
+   claimed workflow; and
 4. calls the same ``execute_workflow_pipeline(..., resume=True)`` entry point
    that is used for inline execution.
 
@@ -67,24 +71,45 @@ does not exclude a workflow until the next container restart.
 Claim and recovery semantics
 ----------------------------
 
-Before executing a workflow, the worker updates the launcher task to
-``CLAIMED``. This is internal supervisor bookkeeping. It records that a
-processor started handling the request and allows a replacement process to
-recognize an interrupted run. It is not an analysis phase and must not be
-presented as workflow progress.
+Before it starts a worker, the supervisor claims the launcher task with
+``WorkflowTracker.claim_launcher_task``. The claim is an event on the launcher
+task that records the supervisor's name and the time. It is a compare-and-set
+in the event store: when two supervisors try to claim the same launcher, one
+wins and the other does not run the workflow. A claim does not change the task
+status, so it is not an analysis phase and does not appear as workflow progress.
 
-``CLAIMED`` is intentionally resumable: after a worker or container restart,
-the new supervisor may claim the same launcher again and reconstruct the
-pipeline from the event-sourced workflow and task aggregates. With
-``resume=True``, completed transfer and conversion stages are skipped and an
-existing Slurm job is adopted instead of submitted again.
+A claim is valid for a lease (``LAUNCHER_CLAIM_LEASE_SECONDS``, five minutes).
+The supervisor renews the claim of each running workflow every
+``CLAIM_RENEW_SECONDS``, and gives the claims up on a clean shutdown. After a
+crash or restart the lease runs out and the new supervisor claims the launcher
+and resumes the run: with ``resume=True``, completed transfer and conversion
+stages are skipped and an existing Slurm job is adopted instead of submitted
+again, while a job that FAILED, was CANCELLED or timed out is submitted anew.
+A resume that cannot read the task history fails instead of starting over. A
+worker that ends without its workflow reaching a final state is run again after
+``WORKER_RESTART_DELAY_SECONDS``.
 
-The in-memory ``active_workers`` map prevents duplicate workers within one
-processor process. The claim does **not** currently contain an owner, lease, or
-atomic cross-process lock. Consequently, the supported topology is exactly one
-active detached supervisor for each BIOMERO tracking database. Do not run
-multiple ``biomeroworker`` replicas or assign additional ``Processor-N`` nodes
-with detached mode enabled against the same tracking database.
+Launchers claimed by a 2.9 beta carry the status ``CLAIMED`` and no owner; they
+are free to claim.
+
+The supervisor logs a lost claim as an error. Run a single detached supervisor
+per BIOMERO tracking database anyway: the claim keeps two of them from running
+the same workflow, but metadata maintenance requests below are not claimed.
+
+Cancellation
+------------
+
+``WorkflowTracker.request_workflow_cancel(workflow_id, reason)`` records that a
+workflow must stop. The worker needs no signal: the workflow pipeline checks the
+request between its steps and between Slurm polls, cancels the Slurm jobs it
+submitted (``SlurmClient.cancel_slurm_jobs``), closes their tasks and marks the
+workflow failed with the reason. While an OMERO sub-script (such as the data
+export) runs, ``polling_script_runner`` checks every ``CANCEL_CHECK_SECONDS`` and
+cancels the sub-script's OMERO process. A batched parent passes the request on
+to each unfinished child and fails once they ended. A cancelled workflow
+appears as ``FAILED`` in the workflow overview, with the reason as its message.
+Nothing in the stack sends the request yet: it is the entry point for a button
+or script that needs to cancel a detached run.
 
 Startup, shutdown, and failures
 -------------------------------
