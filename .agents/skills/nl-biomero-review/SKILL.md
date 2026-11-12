@@ -33,9 +33,25 @@ the change fits. Check, in this order:
 
 1. **Correctness:** wrong behavior, data loss, broken contracts between
    components, missing error handling, security problems.
-2. **Engineering principles** from the shared rules.
+2. **Engineering principles** from the shared rules. Developers focus on
+   functionality, so reviewers own readability and maintainability: reuse
+   instead of parallel code, descriptive names, small functions built from
+   named steps, no hardcoded values, comments where needed, and the
+   component's reference style. Review the whole module the PR touches for
+   these, not only the changed lines; fix small findings in the PR and file
+   an issue for larger ones. If the code is too hard to follow to judge its
+   approach, report that as blocking and ask for it to be restructured first;
+   do not approve what you cannot understand.
 3. **Tests:** regression tests at the lowest useful layer; every changed
    behavior and flag state (enabled, false, missing, empty) covered.
+   Assertions check the exact outcome (for example the log level), not one of
+   several acceptable outcomes.
+   The user does not review tests, so the reviewer judges them critically:
+   each test must fail if the behavior it names breaks. Flag tests that only
+   check that a parameter is passed through, restate the implementation,
+   assert on mocks they configured themselves, or pass whatever the code does.
+   Check the important cases by breaking the code in a scratch copy (change a
+   constant, invert a condition, drop a call) and confirming a test fails.
 4. **Configuration and documentation:** feature-flag and settings rules,
    docs and guidance updated with the behavior.
 5. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
@@ -51,7 +67,11 @@ changes to the branch.
 ## Responding (author)
 
 Fix or reply to every blocking and should-fix finding; nits are optional.
+Verify each suggestion against the code before applying it, as reviewers can
+be wrong too.
 One review round is the default; request a second round only when fixing a
 blocking finding required non-trivial code changes. Then add a PR comment
 summarizing the review (reviewer, findings, how each was resolved, what remains
-open) and ask the user to review.
+open), wait until CI passes, and ask the user to review. When a finding or
+the user's review exposes a general standard, add it to the shared or
+component skill on the open guidance PR.

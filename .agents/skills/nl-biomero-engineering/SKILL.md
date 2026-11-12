@@ -13,23 +13,108 @@ link to this file instead:
 
 ## Engineering principles
 
-Reviewers check every pull request against these principles.
+Reviewers check every pull request against these principles. Readable code
+is what makes review possible: when functions, variables and grouping say what
+the code does, a reviewer can see the approach and disagree with it. Code that
+has to be traced value by value hides its design from review, so readability
+is a requirement, not polish.
 
 - Keep it simple. Prefer the smallest change that solves the problem; do not
   add layers, frameworks, options or abstractions for hypothetical needs.
-- Reuse before adding. Extend the component's existing modules, helpers and
-  patterns instead of building a parallel implementation.
+- Size safeguards to the real threat. Do not add checks against actors who
+  already have equal or greater access (for example, whoever can submit
+  import orders can already import any data); state the trust assumption in
+  the docs instead.
+- Reuse before adding (DRY). Extend the component's existing modules, helpers
+  and patterns instead of building a parallel implementation; add an optional
+  parameter to an existing function rather than a second code path that must
+  be maintained separately. Generic operations (submitting a scheduler job,
+  running a remote command, looking up workflow tasks) live once, in the main
+  or helper classes, so every feature uses the same site configuration and
+  future features reuse them. Put behavior in the
+  component that owns it (see each component's ownership section) and keep
+  workflow decisions in the callers rather than in shared libraries.
 - Match the surrounding code: its naming, structure, error handling, logging
   and test style. New code should look like it was written by the same team.
+  A new module follows the package's established modules, not only its own
+  file: the same docstring format, type hints, naming and quoting. Each
+  component's `<repo>-dev` skill names its reference module.
+- State behavior changes. A PR described as logging-only, refactoring or
+  style must not change behavior; list any deliberate change in the
+  description.
+- Treat persisted files, events, database rows, command-line output and
+  public function signatures as contracts between components. Before changing
+  one, find every reader in all repositories; a refactor keeps them
+  compatible, and a deliberate change keeps old callers working (for example
+  with a deprecated alias) or is called out in the release notes. Pin
+  persisted formats with a test.
 - Keep functions focused and readable. Split long functions with many exits
-  or mixed responsibilities.
+  or mixed responsibilities. A function should read as a short sequence of
+  well-named steps and decisions, with each step extracted into a named
+  sub-function.
+- Name things by what they are or do. Functions say what they do
+  (`sha256_of_json`, not `_canonical_digest`; not `run`, `_batch` or
+  `_check`), and the variable holding a result says what it means
+  (`canonical_digest = sha256_of_json(...)`). Name conditions and items that
+  drive decisions (`shallower_already_completed`, `existing_task`) instead of
+  reusing `matches[0]`; store a repeated expression once in a named variable.
+  Give non-trivial commands and queries a named variable before running them.
+- Do not hardcode values that may change, such as versions, contract numbers,
+  paths, names and limits. Define them as constants at the top of the module
+  or class (shared constants in the component's constants module) and expose
+  them as function parameters that default to those constants, so they can be
+  changed without editing function internals. Add such a parameter only where
+  it is passed down from the public entry point; a parameter no caller can
+  reach is dead code.
+- Comment what a reader cannot infer: why a branch exists, and what an
+  unfamiliar tool or system call does (for example `flock`) and whether its
+  availability is checked at setup.
+- Prefer f-strings for string formatting, including log messages; use other
+  forms only where an f-string does not work.
 - Log every decision. Each branch that chooses a path (enabled or disabled,
   reuse or fresh, keep or remove, retry or fail, local or remote) logs what it
   decided and why, at least at DEBUG; actions that change or delete data, or
   run remote work, log at INFO. Errors are logged with context, never silently
   swallowed. Someone reading the logs must be able to tell what happened.
+  A feature that is simply switched off is the normal path: log that skip at
+  DEBUG, and use WARNING when a feature is enabled but cannot run, so results
+  silently fall back. Either log an error or raise it with its context, not
+  both; the code that handles the exception logs it once, with its traceback.
 - Prefer typed structures over free-form dicts and string keys for state
   that crosses functions or components.
+- Give every setting one source, one reader and one parser. Other code and
+  components receive the parsed value instead of reading the environment or
+  INI again; values that must match across components come from that single
+  source.
+- Backward compatibility means supported deployments keep working; it does
+  not mean every new feature must support older execution paths. Where a
+  feature's prerequisites are missing (for example, Zarr result handling needs
+  the importer together with BIOMERO core), leave the feature disabled and log
+  why, instead of retrofitting it into those paths.
+- Fixes to core functionality and resilience are not features. A fix (for
+  example, recovering from a dropped SSH connection) is on by default, applies
+  to every path that has the problem and keeps existing installs working;
+  give it one code path, not an on/off fork beside the old code. Settings
+  such as timeouts tune it, and zero turns retrying off within the same path.
+- Make external commands a fix or feature depends on configurable, with a
+  sensible default, in the same way as the zip command: a site can name an
+  equivalent tool. Check at setup that the configured command exists and log
+  what is missing.
+- New features are off in code and on in the NL-BIOMERO demo. A missing,
+  empty or false flag leaves a feature disabled, because existing servers
+  upgrade components without adding new flags. The NL-BIOMERO `.env` and
+  `.env.shared` are the flagship demo for clean installs and the setup we test
+  on: they enable every feature, and everything must work there. Do not report
+  an enabled flag in the demo as a missing opt-in; check the code default
+  instead. See `omero-biomero-expert` for the flag rules.
+- Release finished work. Code added since the last stable release must meet
+  these rules before that release ships; review findings on it are fixed
+  in the release, not deferred to a quick patch release. A stable release
+  should mean that its new features and support can be relied on.
+- Documentation is part of a feature. When a feature is disabled for a
+  release, withdrawn or removed, hide or remove its documentation pages and
+  navigation (Sphinx, MkDocs, READMEs, UI help) in the same change, so the docs
+  describe only what users can use.
 
 ## Issues and the project board
 
@@ -40,6 +125,8 @@ public audience and keep non-public details out of them.
 
 - Start work from an issue, in the repository whose code changes. If agreed
   work has no issue yet, create one, add it to the board and tell the user.
+  Keep issues at the same granularity as PRs: one issue per functionality per
+  repository, listing its parts, rather than one issue per sub-change.
   For work across repositories, create a parent issue in NL-BIOMERO with one
   sub-issue per repository, and close the parent when its last sub-issue
   closes. NL-BIOMERO issues and sub-issues are added to the board
@@ -72,12 +159,20 @@ submodules, including hotfixes and guidance changes.
   with a clear description of the final change and its validation. Do not hold
   work back in a draft PR or local branch; the independent review below runs
   on the ready PR.
-- Keep one PR per scope. Add further changes with the same scope to the open
-  PR instead of opening a stacked or follow-up PR; split only for a separate
-  scope or a required merge order across repositories.
+- Keep one PR per scope, where the scope is one piece of functionality in one
+  repository. Logging, readability fixes, reuse refactors and tests for that
+  functionality belong in the same PR, and one PR may close several issues
+  about it. Add further changes with the same scope to the open PR instead of
+  opening a stacked or follow-up PR; split only for a separate functionality
+  or a required merge order across repositories.
+- During a review or other longer piece of work, collect guidance changes on
+  one open guidance PR per repository and merge it when that work is done.
+  Keep guidance PRs separate from PRs that change code or configuration.
 - Make focused, coherent commits and push them as you go. Run cheap, relevant
   checks before pushing and let the required CI checks be the full-suite gate.
-  If CI fails, inspect it and push a follow-up fix. Use proportionate local
+  If CI fails, inspect it and push a follow-up fix. Local runs can skip
+  platform-specific tests, so a PR is ready for the user only when CI passes
+  on every platform it runs. Use proportionate local
   verification before a release, a direct default-branch push or a change
   without suitable CI coverage.
 - Preserve unrelated working-tree changes and never use destructive Git
@@ -164,7 +259,9 @@ for a local deployment, below.
   of the primary checkout or a separate clone, in a temporary or clearly
   agent-owned location, named `<repo>-<topic>`. Record where you created it.
 - Put scratch output (logs, fixtures, measurements, generated files) outside
-  the repositories, next to that checkout or in a temporary directory.
+  the repositories, next to that checkout or in a temporary directory. Give
+  virtual environments and scratch directories names of your own; never
+  reuse or delete a directory another agent or the user created.
 - Once the work is pushed and its pull request is open, remove what you
   created: `git worktree remove <path>` then `git worktree prune`, delete the
   local branch, and delete temporary clones and scratch output. Review
