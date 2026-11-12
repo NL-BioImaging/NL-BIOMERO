@@ -53,7 +53,9 @@ is a requirement, not polish.
   paths, names and limits. Define them as constants at the top of the module
   or class (shared constants in the component's constants module) and expose
   them as function parameters that default to those constants, so they can be
-  changed without editing function internals.
+  changed without editing function internals. Add such a parameter only where
+  it is passed down from the public entry point; a parameter no caller can
+  reach is dead code.
 - Comment what a reader cannot infer: why a branch exists, and what an
   unfamiliar tool or system call does (for example `flock`) and whether its
   availability is checked at setup.

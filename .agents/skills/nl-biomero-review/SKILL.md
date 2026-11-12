@@ -50,6 +50,8 @@ the change fits. Check, in this order:
    each test must fail if the behavior it names breaks. Flag tests that only
    check that a parameter is passed through, restate the implementation,
    assert on mocks they configured themselves, or pass whatever the code does.
+   Check the important cases by breaking the code in a scratch copy (change a
+   constant, invert a condition, drop a call) and confirming a test fails.
 4. **Configuration and documentation:** feature-flag and settings rules,
    docs and guidance updated with the behavior.
 5. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
