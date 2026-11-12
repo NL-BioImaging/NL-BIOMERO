@@ -219,6 +219,15 @@ Guidance must work for any agent or tool, from any provider.
     Do not use symlinks; Windows checkouts turn them into plain files.
   - Tool metadata such as `agents/openai.yaml` may describe a skill but must
     not add rules.
+- Skills hold rules and routing for agents; the documentation holds the
+  design, behaviour and rationale for people. Do not describe a design in a
+  skill: write or update the documentation and link to it from the skill.
+  Repeat a fact in a skill only when an agent must not get it wrong, and link
+  to its source in the docs so the two do not drift.
+- Read the documentation for the area you change (Sphinx, MkDocs, README and
+  developer pages, in this repository and in NL-BIOMERO) before designing,
+  implementing or reviewing, together with the skills. If code and docs
+  disagree, report it and fix the one that is wrong in the same change.
 - Write rules as imperatives with a one-line reason. Do not name a specific
   agent, model or tool in a rule; say "run the tests", not which tool runs them.
 - Keep durable rules separate from status. Do not put version pins, release

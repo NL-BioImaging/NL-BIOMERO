@@ -28,7 +28,7 @@ follow-up guidance PR.
 ## Reviewing (reviewer)
 
 Read the shared engineering rules and the component's `<repo>-dev` skill from
-the default branch, then the diff and enough surrounding code to judge whether
+the default branch, the documentation for the area the PR changes, then the diff and enough surrounding code to judge whether
 the change fits. Check, in this order:
 
 1. **Correctness:** wrong behavior, data loss, broken contracts between
