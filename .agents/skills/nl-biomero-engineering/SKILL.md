@@ -100,6 +100,8 @@ public audience and keep non-public details out of them.
 
 - Start work from an issue, in the repository whose code changes. If agreed
   work has no issue yet, create one, add it to the board and tell the user.
+  Keep issues at the same granularity as PRs: one issue per functionality per
+  repository, listing its parts, rather than one issue per sub-change.
   For work across repositories, create a parent issue in NL-BIOMERO with one
   sub-issue per repository, and close the parent when its last sub-issue
   closes. NL-BIOMERO issues and sub-issues are added to the board
