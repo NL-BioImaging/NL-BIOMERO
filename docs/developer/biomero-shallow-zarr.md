@@ -48,6 +48,13 @@ of the result storage; see {ref}`the measurements <shallow-results-measured>`.
 - **The format is interim.** It is a BIOMERO-private representation, not
   OME-NGFF RFC-8 (collections); it is expected to change when RFC-8 is
   available.
+- **A shallow result is deliberately not a valid OME-Zarr until it is
+  reconstructed.** Its duplicate image arrays and their `multiscales` metadata
+  are removed, so a generic reader fails on it instead of showing pixels.
+  Keeping the array metadata and dropping only the chunk files would pass
+  OME-NGFF validators, but readers would then silently return blank images,
+  and BIOMERO could mistake such a result for a canonical input. That variant
+  is deferred to the RFC-8 work.
 
 ## On disk: shallow off versus on
 
