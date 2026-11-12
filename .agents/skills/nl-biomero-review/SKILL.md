@@ -55,7 +55,9 @@ the change fits. Check, in this order:
    Fakes of external tools (Slurm commands, unzip, SSH) must reproduce the
    behaviour the code relies on, such as restored modification times or
    accounting lag; otherwise the test cannot tell a correct check from a
-   broken one.
+   broken one. A broken change must make a test fail, not hang (give polling
+   stubs a call budget), and tests that need a dependency must fail rather
+   than skip in CI when it is missing.
 4. **Configuration and documentation:** feature-flag and settings rules,
    docs and guidance updated with the behavior.
 5. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says

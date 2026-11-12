@@ -168,6 +168,9 @@ submodules, including hotfixes and guidance changes.
 - During a review or other longer piece of work, collect guidance changes on
   one open guidance PR per repository and merge it when that work is done.
   Keep guidance PRs separate from PRs that change code or configuration.
+- Commit only source: check `git status` before committing and never add
+  build or runtime artefacts (`__pycache__`, `*.pyc`, coverage files, local
+  venvs); extend `.gitignore` when one is missing.
 - Make focused, coherent commits and push them as you go. Run cheap, relevant
   checks before pushing and let the required CI checks be the full-suite gate.
   If CI fails, inspect it and push a follow-up fix. Local runs can skip
