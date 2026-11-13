@@ -157,7 +157,11 @@ means all artifacts are ready:
    and every component PR or review that finds behaviour needing a test in a
    real stack adds it there, with its source PR. Step 6 runs every item
    locally; mark which items the ACC smoke tests cover and ask for the rest to
-   be added to ACC. `master` must always work with the versions pinned in `.env`: any
+   be added to ACC. Set the **Release** field on the BIOMERO Roadmap board for
+   every issue and PR that goes into the release, in any repository (add PRs
+   to the board), and `Later` for deferred stories. The release PR links the
+   filtered board (`?filterQuery=release:"X.Y.Z-beta.N"`); before tagging,
+   check that list against what is merged, and move released items to Done. `master` must always work with the versions pinned in `.env`: any
    NL-BIOMERO PR that needs an unreleased component version (code, hooks,
    INIs or docs for a new setting) targets the release branch, never
    `master`. In the release PR: advance the clean importer submodule to its

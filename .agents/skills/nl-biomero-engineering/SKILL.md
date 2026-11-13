@@ -89,6 +89,10 @@ is a requirement, not polish.
   drive decisions (`shallower_already_completed`, `existing_task`) instead of
   reusing `matches[0]`; store a repeated expression once in a named variable.
   Give non-trivial commands and queries a named variable before running them.
+- Define a value that more than one script or component uses (script output
+  names, file names, namespaces) once, in a shared constants module: core
+  `biomero.constants` for the scripts, biomero-schema for cross-component
+  contracts. Copies kept in step by a test still drift.
 - Do not hardcode values that may change, such as versions, contract numbers,
   paths, names and limits. Define them as constants at the top of the module
   or class (shared constants in the component's constants module) and expose
