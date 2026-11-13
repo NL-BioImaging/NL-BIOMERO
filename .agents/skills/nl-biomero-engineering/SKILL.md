@@ -55,7 +55,9 @@ is a requirement, not polish.
   one, find every reader in all repositories; a refactor keeps them
   compatible, and a deliberate change keeps old callers working (for example
   with a deprecated alias) or is called out in the release notes. Pin
-  persisted formats with a test.
+  persisted formats with a test. Before calling a name "prerelease-only" or
+  unused, check the stable release tags of every repository, not only the
+  current branches: a stable release keeps calling it until users upgrade.
 - Pin dependency versions for reproducible builds, but do not let pins go
   stale: a PR that adds or changes a pin uses the latest compatible release,
   and each release moves pins to the latest patch and compatible minor
