@@ -263,8 +263,10 @@ After upgrading an installation that already contains older shallow-storage
 data, run ``BIOMERO Migrate Shallow Storage (Admin Only)``. Run its dry mode
 first, then apply the migration after reviewing the count and estimated space
 recovery. The migration updates manifests and OMERO references, consolidates
-canonical registrations, and creates recovery files without copying image
-pixels.
+canonical registrations, and keeps a backup of the files it changes
+(``.<store>.biomero-schema1-backup``) without copying image pixels. See the
+:doc:`BIOMERO file reference <../developer/biomero-files>` for what these files
+are.
 
 Equivalent ``[SLURM]`` options are ``remote_shallow_zarr``,
 ``remote_shallower_image``, ``remote_shallower_version``,
@@ -337,8 +339,9 @@ Results and journals remain available for recovery. ``keep-full`` is the only
 failure policy.
 
 Inspect the shallower task in workflow provenance, its Slurm job IDs, the
-``.biomero-shallower/<task-id>/canonical.json.<job-id>.log`` files beside the
-workflow data, and the ``.biomero-shallow-report.json`` inside shallow stores.
+``.biomero-shallower/<task-id>/canonical.json.<job-id>.log`` files in the
+workflow data folder on the cluster, and the ``.biomero-shallow-report.json``
+inside the stores the helper processed.
 Image-pull status remains under ``<slurm_script_path>/image-pulls``. Helper task
 events do not replace the main analysis progress.
 
@@ -346,6 +349,9 @@ After a detached restart BIOMERO adopts submitted jobs or completed reports.
 For an unresolved submission intent, reconcile the unique
 ``biomero-shallower-<task-id>`` job in Slurm accounting and retry retrieval.
 Do not remove prune journals; they can contain arrays needed for rollback.
+The :doc:`BIOMERO file reference <../developer/biomero-files>` lists every
+``.biomero*`` file, which component writes it, and what happens if it is
+deleted.
 Keep the original image configured until outstanding recovery is complete.
 
 The helper uses the trusted BIOMERO Slurm account, image, event store, and

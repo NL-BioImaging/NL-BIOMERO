@@ -8,7 +8,7 @@ flowchart TB
         HASHBOTH["<b>ISCC-BIO: read OMERO + export</b><br/>Compare Instance-Code + semantic guards"]
         EXIST --> LOCATE
         FRESH --> HASHBOTH
-        LOCATE -->|"Index in place"| REGISTER["<b>Register canonical generation</b><br/>Marker + OMERO source annotations<br/>Path + generation + available fingerprints"]
+        LOCATE -->|"Index in place"| REGISTER["<b>Register canonical generation</b><br/>Canonical marker file + OMERO source annotations<br/>Path + generation + available fingerprints"]
         HASHBOTH -->|"Match: commit to stable storage"| REGISTER
         LOCATE -. "No supported source binding" .-> FALLBACK["Full input without deduplication"]
         HASHBOTH -. "No match / verification unavailable" .-> FALLBACK

@@ -29,8 +29,12 @@ reference/provenance metadata.
 **The blue folders disappear from the result:** full-resolution image
 chunks and their pyramid arrays. The original source retains those pixels.
 **Green is added by the workflow, not by the shallower:** those label files
-remain in both result formats. Two small JSON files are added; `.zattrs` loses
-`multiscales` and gains a `biomero` pointer to the shallow manifest.
+remain in both result formats. A shallow result gains the manifest
+`.biomero-shallow.json` and a record `.biomero-import-storage.json`, and, when
+the helper shallowed it on HPC, the operation report
+`.biomero-shallow-report.json`. `.zattrs` loses `multiscales` and gains a
+`biomero` pointer to the shallow manifest. Every `.biomero*` file is described
+in the [BIOMERO file reference](biomero-files.md).
 These edits affect the returned image metadata; the source is unchanged by
 shallowing. Other output files, such as CSV measurements, remain.
 
@@ -57,17 +61,20 @@ source path already registered by the importer. Label-backed mask Images and
 the optional Plate preview similarly register their retained label paths.
 {ref}`Preview controls <plate-mask-preview>`.
 
-The two JSON files have separate jobs:
-
-| File | Purpose |
-| --- | --- |
-| `.biomero-shallow.json` | Image/label nodes, omitted arrays, source storage bindings and decision basis; measured identities when comparison was used |
-| `.biomero-shallow-report.json` | Decision, input snapshot and tool provenance; remote receipts bind this report to the expected helper run |
+The manifest `.biomero-shallow.json` records the image and label nodes, the
+omitted arrays, the source storage bindings and the decision basis, and the
+measured identities when comparison was used. The operation report
+(`.biomero-shallow-report.json`, remote shallowing only) records the decision,
+input snapshot and tool provenance, and remote receipts bind it to the expected
+helper run. The [file reference](biomero-files.md) lists which component writes
+and reads each file, its schema, and whether it can be deleted.
 
 Source indexing is separate: canonical-source annotations
 (`biomero.zarr.source` / `biomero.zarr.plate-source`) record the reusable input.
-Indexing can also add a `.biomero-canonical.json` marker to the source store;
-this is metadata, not another pixel copy.
+Their detailed identities are kept in a canonical marker file: inside a
+canonical Zarr that BIOMERO promoted, or in a
+{ref}`sidecar <canonical-sidecar>` for a Zarr indexed in place.
+This is metadata, not another pixel copy.
 **Keep the source, retained labels and their references together in retention
 and backup policy.** The shallow folder alone is incomplete.
 
