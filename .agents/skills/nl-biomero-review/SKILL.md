@@ -89,7 +89,9 @@ the change fits. Check, in this order:
 Verify each finding against the code before reporting it; drop what you
 cannot substantiate. Report findings ranked as **blocking**, **should fix** or
 **nit**, each with `file:line`, what is wrong, why it matters and a suggested
-fix. Say explicitly when you found nothing in a category. Return the findings to
+fix. Say explicitly when you found nothing in a category. List behaviour that only
+a real stack can confirm (UI calls, cluster commands, upgrades of existing
+data) separately, so it can be added to the release test checklist. Return the findings to
 whoever dispatched you; post PR comments only when asked to. Do not push
 changes to the branch.
 

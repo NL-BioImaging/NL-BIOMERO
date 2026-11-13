@@ -152,7 +152,12 @@ means all artifacts are ready:
 4. Update OMERO.biomero to published core/importer dependencies (it comes late
    because it depends on both), merge and prerelease it. Verify its PyPI package contains no feature-branch dependencies.
 5. Prepare NL-BIOMERO last, on a `release/X.Y.Z-beta.N` branch with its own
-   PR. `master` must always work with the versions pinned in `.env`: any
+   PR. Open that PR as a draft as soon as work on the next prerelease starts:
+   its plan (`plans/releases/X.Y.Z-beta.N.md`) keeps a release test checklist,
+   and every component PR or review that finds behaviour needing a test in a
+   real stack adds it there, with its source PR. Step 6 runs every item
+   locally; mark which items the ACC smoke tests cover and ask for the rest to
+   be added to ACC. `master` must always work with the versions pinned in `.env`: any
    NL-BIOMERO PR that needs an unreleased component version (code, hooks,
    INIs or docs for a new setting) targets the release branch, never
    `master`. In the release PR: advance the clean importer submodule to its
