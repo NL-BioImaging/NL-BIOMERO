@@ -67,7 +67,15 @@ the change fits. Check, in this order:
 6. **Dependencies:** a PR that uses a feature of another component must not
    be ready for merge before that component's prerelease is published and the
    minimum version is raised in the PR.
-7. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
+7. **Planned work:** check the open stories on the project board
+   (`gh project item-list 2 --owner NL-BioImaging`) and the issues of the
+   touched repositories for planned work in the same area. Report a change
+   that clashes with a story (for example one that removes a hook or fixes a
+   format the story needs). When a tiny tweak now (a parameter, a named step,
+   an extension point in an existing function) would make the story easier
+   later, suggest it, but do not build the story itself or add code nothing
+   uses yet; mention larger preparations in the story instead.
+8. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
    why it has none.
 
 Verify each finding against the code before reporting it; drop what you
