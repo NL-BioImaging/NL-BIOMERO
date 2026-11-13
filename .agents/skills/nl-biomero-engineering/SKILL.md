@@ -56,6 +56,11 @@ is a requirement, not polish.
   compatible, and a deliberate change keeps old callers working (for example
   with a deprecated alias) or is called out in the release notes. Pin
   persisted formats with a test.
+- Write files only into BIOMERO's own folders (`.processed`, `.analyzed`).
+  Users agree not to touch those folders, and BIOMERO in turn never writes
+  into user folders, not even hidden metadata next to an input that is used
+  in place: users may move or delete their own data at any time. Keep such
+  metadata under a BIOMERO folder, keyed by the input's location, or in OMERO.
 - Keep functions focused and readable. Split long functions with many exits
   or mixed responsibilities. A function should read as a short sequence of
   well-named steps and decisions, with each step extracted into a named
