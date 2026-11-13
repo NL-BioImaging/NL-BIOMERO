@@ -27,6 +27,8 @@ jobs:
           context: .
           file: ./web/Dockerfile
           push: false
+          load: true
+          tags: nl-biomero-web:ci
           build-args: |
             BIOMERO_VERSION=${{ env.BIOMERO_VERSION }}
             OMERO_BIOMERO_VERSION=${{ env.OMERO_BIOMERO_VERSION }}
@@ -38,6 +40,32 @@ jobs:
           context: .
           file: ./biomeroworker/Dockerfile
           push: false
+          load: true
+          tags: nl-biomero-processor:ci
           build-args: |
             BIOMERO_VERSION=${{ env.BIOMERO_VERSION }}
             BIOMERO_IMPORTER_VERSION=${{ env.BIOMERO_IMPORTER_VERSION }}
+      - name: Verify pip and certifi in the built images
+        if: github.event_name == 'pull_request' && startsWith(github.base_ref, 'release/')
+        # The OME base images were rebuilt with pip 26.2.2 and certifi 2026.10.x
+        # (ome/omero-web-docker#87, ome/omero-server-docker#107). Fail if building
+        # BIOMERO on top of them leaves an older pip or certifi in the venv.
+        run: |
+          check_venv='
+          import sys
+          from importlib.metadata import version
+          from pip._vendor.packaging.version import Version
+          print("python", sys.version.split()[0])
+          print("pip", version("pip"))
+          print("certifi", version("certifi"))
+          assert Version(version("pip")) >= Version("26.2.2"), "pip is older than 26.2.2"
+          assert Version(version("certifi")) >= Version("2026.10.19"), "certifi is older than 2026.10.19"
+          '
+          echo "== OMERO.web venv (nl-biomero-web)"
+          docker run --rm --entrypoint /opt/omero/web/venv3/bin/python nl-biomero-web:ci -c "$check_venv"
+          docker run --rm --entrypoint /opt/omero/web/venv3/bin/pip nl-biomero-web:ci --version
+          docker run --rm --entrypoint /opt/omero/web/venv3/bin/pip nl-biomero-web:ci show certifi
+          echo "== OMERO.server venv (nl-biomero-processor, built from omero-server)"
+          docker run --rm --entrypoint /opt/omero/server/venv3/bin/python nl-biomero-processor:ci -c "$check_venv"
+          docker run --rm --entrypoint /opt/omero/server/venv3/bin/pip nl-biomero-processor:ci --version
+          docker run --rm --entrypoint /opt/omero/server/venv3/bin/pip nl-biomero-processor:ci show certifi
