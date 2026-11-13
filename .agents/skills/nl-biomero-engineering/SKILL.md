@@ -213,9 +213,11 @@ submodules, including hotfixes and guidance changes.
   about it. Add further changes with the same scope to the open PR instead of
   opening a stacked or follow-up PR; split only for a separate functionality
   or a required merge order across repositories.
-- During a review or other longer piece of work, collect guidance changes on
-  one open guidance PR per repository and merge it when that work is done.
-  Keep guidance PRs separate from PRs that change code or configuration.
+- Guidance changes (agent skills and their references, no code or
+  configuration): show the user the exact diff; on their approval, commit it
+  directly to the default branch with a message that says what changed and
+  why. Open a PR only when the user asks or the change is large. Keep guidance
+  commits separate from code and configuration changes.
 - Commit only source: check `git status` before committing and never add
   build or runtime artefacts (`__pycache__`, `*.pyc`, coverage files, local
   venvs); extend `.gitignore` when one is missing.
