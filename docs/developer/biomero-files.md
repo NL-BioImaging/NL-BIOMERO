@@ -1,3 +1,7 @@
+---
+tocdepth: 1
+---
+
 # BIOMERO file reference
 
 Look up a `.biomero*` file you found on disk: what it is, which component
@@ -7,10 +11,15 @@ delete or move it. Design and recovery procedures are in
 [Remote shallower configuration](../sysadmin/remote-shallower.rst).
 
 **Where the files are.** Results returned from HPC are stored under
-`<group base>/.analyzed/<workflow-id>/<timestamp>/`. Canonical Zarr stores and
-canonical sidecars are stored under `<storage root>/.processed/`. BIOMERO writes
-only into these folders (for the sidecar, from the importer version described
-in its entry). Do not edit or move files in them by hand.
+`<group base>/.analyzed/<workflow-id>/<timestamp>/`. Canonical Zarr stores are
+stored under `<source folder>/.processed/`, and the canonical sidecar of an
+in-place Zarr under a `.processed` folder as well (see its entry). `.processed`
+is the default name of a configurable folder (`PROCESSED_DATA_FOLDER`). On local
+group storage BIOMERO writes only into these two folders; do not edit or move
+files in them by hand. The exceptions are the files on the HPC cluster, the
+temporary export folder of a workflow input, and, for importer versions before
+the one described in the [canonical sidecar](#canonical-sidecar) entry, the
+sidecar next to the input.
 
 **Reading the entries.** "Delete" answers whether you can remove the file, and
 what happens if you do. Every answer assumes that no BIOMERO process is working
@@ -19,6 +28,32 @@ interrupted atomic write and can be deleted. Schema links go to the
 [biomero-schema](https://nl-bioimaging.github.io/biomero-schema/) documentation
 (its [versioning rules](https://nl-bioimaging.github.io/biomero-schema/versioning/)
 apply to all models there).
+
+## All files at a glance
+
+| File | Safe to delete? | Details |
+| --- | --- | --- |
+| `.biomero-canonical.json` | No | [entry](#biomero-canonical-json) |
+| `.biomero-finalize-<id>.lock` | Yes, when no import is running | [entry](#biomero-finalize-lock) |
+| `.biomero-import-storage.json` | Yes after the import; provenance is then lost | [entry](#biomero-import-storage-json) |
+| `.biomero-input.json` | Yes | [entry](#biomero-input-json) |
+| `.biomero-recovery-probe-<hex>.json` | Yes | [entry](#biomero-recovery-probe) |
+| `.biomero-recovery/`, `<name>.biomero-ready` and other receipts (HPC) | Not while a workflow uses the data | [entry](#biomero-recovery-dir) |
+| `.biomero-remote-attempt.json` | Yes | [entry](#biomero-remote-attempt-json) |
+| `.biomero-result-import.json` | No | [entry](#biomero-result-import-json) |
+| `.biomero-result-import.lock` | Yes, when no import is running | [entry](#biomero-result-import-lock) |
+| `.biomero-results-retrieved.json` | Yes | [entry](#biomero-results-retrieved-json) |
+| `.biomero-shallow-batch.json` | Yes, after the import | [entry](#biomero-shallow-batch-json) |
+| `.biomero-shallow-report.json` | Not before the import | [entry](#biomero-shallow-report-json) |
+| `.biomero-shallow.json` | No | [entry](#biomero-shallow-json) |
+| `.biomero-shallower/<task-id>/` (HPC) | Not before the task is reconciled | [entry](#biomero-shallower-dir) |
+| `biomero` key in `.zattrs` / `zarr.json` | No | [entry](#biomero-pointer) |
+| `<name>.canonical.json` (canonical sidecar) | Cache; for a Plate it is the only detailed inventory | [entry](#canonical-sidecar) |
+| `<name>.ome.zarr.lock` | Only if no importer is creating the store | [entry](#ome-zarr-lock) |
+| `.<store>.biomero-lock` | Yes, when no process is running | [entry](#biomero-lock) |
+| `.<store>.biomero-materialize-<hex>/` | Yes | [entry](#biomero-materialize) |
+| `.<store>.biomero-prune-<token>/` | No, unless its `journal.json` says `committed: true` | [entry](#biomero-prune) |
+| `.<store>.biomero-schema1-backup/` | Yes, once the migration is validated | [entry](#biomero-schema1-backup) |
 
 ## Which files appear
 
@@ -30,6 +65,10 @@ apply to all models there).
 | Shallowed on HPC (remote) | manifest, pointer, [operation report](#biomero-shallow-report-json), import-storage record |
 | Remote helper kept the full result | operation report, import-storage record |
 | Remote helper left a report but no receipt and did not shallow | [remote-attempt record](#biomero-remote-attempt-json) replaces the operation report, then the importer handles the store as in the local rows |
+| Local shallowing failed and the importer kept the full result (from the importer version containing BIOMERO.importer#55) | import-storage record (`location: importer`, with the reason) |
+| Zarr promoted to a canonical store in `.processed` | [canonical marker](#biomero-canonical-json) inside the store |
+| Zarr indexed in place | [canonical sidecar](#canonical-sidecar), outside the Zarr |
+| Temporary Zarr exported for a workflow input (shallow storage on, shallow result reconstructed) | [input marker](#biomero-input-json) inside the export |
 
 Beside each store (not inside it) you can also find the
 [lock](#biomero-lock) and, after an interruption, a [prune folder](#biomero-prune).
@@ -72,7 +111,8 @@ versioned; see [biomero-schema](https://nl-bioimaging.github.io/biomero-schema/)
 - **Read by:** BIOMERO.shallower (checks that each image node links to the
   manifest, migration).
 - **Schema:** none of its own; the manifest it points to carries the version.
-  There is no biomero-schema model for it yet.
+  Model: `ShallowNodePointer` ([model](https://nl-bioimaging.github.io/biomero-schema/persisted-files/#shallow-node-pointer), from the
+  biomero-schema version containing #14).
 - **Delete:** do not edit it. Without the pointer the node no longer links to
   its manifest and the shallow store fails validation.
 
@@ -133,8 +173,10 @@ versioned; see [biomero-schema](https://nl-bioimaging.github.io/biomero-schema/)
   `storage` (`shallow-zarr` or `full-zarr`), `location` (`remote` or
   `importer`), and then, depending on the kind of record, `tool_version`,
   `decision_basis`, `reason`, `container`, `task_id`, `job_id`,
-  `report_sha256`. Defined in BIOMERO.importer; there is no biomero-schema
-  model for it yet.
+  `report_sha256`. Model: `ImportStorageRecordUnion`
+  ([model](https://nl-bioimaging.github.io/biomero-schema/persisted-files/#import-storage-record), from the biomero-schema version
+  containing #14). The outcome "local shallowing failed, full result kept" is
+  recorded from the importer version containing BIOMERO.importer#55.
 - **Delete:** safe once the result is imported and its provenance is recorded.
   Without it, scripts record the storage location of a shallow result as
   `unknown`, and the evidence of a full result is lost.
@@ -155,12 +197,14 @@ versioned; see [biomero-schema](https://nl-bioimaging.github.io/biomero-schema/)
 ### `.biomero-canonical.json`
 
 - **Appears:** root of a canonical Zarr store,
-  `<source folder>/.processed/<Image|Plate>-<id>.ome.zarr/`. A temporary
+  `<source folder>/.processed/<Image|Plate>-<id>.ome.zarr/` (`.processed` is
+  the default name of a configurable folder). A temporary
   `.biomero-canonical.json.tmp` exists while the store is promoted.
 - **What:** the canonical marker: proof that the store was promoted completely,
   and the identity of the source it was made from (locator, generation, pixel
   identity, labels).
-- **Written by:** BIOMERO.importer when it promotes a store; it also rewrites the
+- **Written by:** BIOMERO.importer code, called by biomero-scripts (transfer
+  and Migrate Shallow Storage), when a store is promoted; it also rewrites the
   file in place when it refreshes cached comparison metadata.
 - **Read by:** BIOMERO.importer (adopts an existing store only when the marker
   matches), biomero-scripts (reuse of canonical inputs). Reconstruction skips
@@ -169,35 +213,37 @@ versioned; see [biomero-schema](https://nl-bioimaging.github.io/biomero-schema/)
   where `source` is a `CanonicalZarrSource` (Image) or `CanonicalPlateSource`
   (Plate), each `schema: 1`
   ([models](https://nl-bioimaging.github.io/biomero-schema/zarr-contracts/#models)).
-  The wrapper has no biomero-schema model yet.
+  The wrapper is modelled as `CanonicalMarker`
+  ([model](https://nl-bioimaging.github.io/biomero-schema/persisted-files/#canonical-marker), from the biomero-schema version containing
+  #14).
 - **Delete:** no. The importer refuses a canonical store that has no committed
   marker (`InvalidCanonicalStore`) and the cached pixel identity is lost.
 
 (canonical-sidecar)=
 ### `<name>.canonical.json` in `.processed/.biomero` (canonical sidecar)
 
-<!-- Location below applies from the BIOMERO.importer version that contains
-BIOMERO.importer#59 (closes #56). Before that version, see "Earlier betas". -->
+<!-- TODO(BIOMERO.importer#59): final wording and importer version of the new
+location go here; keep the "Earlier betas" fallback. Update the intro too. -->
 
-- **Appears:** for a user Zarr that BIOMERO indexes in place:
-  `<storage root>/.processed/.biomero/<storage id>/<relative path>.canonical.json`,
-  for example
-  `/data/groupA/.processed/.biomero/group-5-data/project/cells.ome.zarr.canonical.json`.
-  The storage root is the most specific managed root that contains the Zarr
-  (the group's data folder, otherwise `IMPORT_MOUNT_PATH`). The storage id and
-  relative path match the `biomero.zarr.source` annotation. Nothing is written
-  next to the input. Zarrs that BIOMERO created keep an internal
-  [`.biomero-canonical.json`](#biomero-canonical-json) instead.
+- **Appears:** for a user Zarr that BIOMERO indexes in place, from the importer
+  version that contains BIOMERO.importer#59:
+  `<Zarr parent>/<processed folder>/.biomero/<Zarr name>.canonical.json`, where
+  the processed folder is `.processed` by default. Nothing is written next to
+  the input outside that folder. If `.processed` cannot be written, indexing is
+  skipped with a warning and the workflow continues. Zarrs that BIOMERO created
+  keep an internal [`.biomero-canonical.json`](#biomero-canonical-json)
+  instead.
 - **Earlier betas:** older importer versions wrote the sidecar to
   `<input parent>/.biomero/<name>.canonical.json`, next to the input. The
   importer still reads that file. The next time it writes the sidecar, it
-  writes it to the BIOMERO folder and removes only its own old file, and the
-  old `.biomero` folder only if it is empty.
+  writes it to the new location and removes only its own old file, and the old
+  `.biomero` folder only if it is empty.
 - **What:** the same canonical marker as above, for a Zarr that BIOMERO indexed
   in place instead of promoting. For a Plate it holds the detailed per-image
   inventory behind the compact `biomero.zarr.plate-source` annotation in OMERO.
-- **Written by:** BIOMERO.importer, when biomero-scripts index an existing
-  backing Zarr in place and when comparison metadata is refreshed.
+- **Written by:** BIOMERO.importer code, called by biomero-scripts (transfer
+  and Migrate Shallow Storage), when it indexes an existing backing Zarr in
+  place and when comparison metadata is refreshed.
 - **Read by:** BIOMERO.importer and biomero-scripts, which look for the internal
   marker first, then the sidecar, then the old location.
 - **Schema:** the same wrapper as the canonical marker (`markerSchema: 1`).
@@ -206,14 +252,19 @@ BIOMERO.importer#59 (closes #56). Before that version, see "Earlier betas". -->
   the sidecar is the only detailed inventory: without it BIOMERO finds no
   canonical record for the Plate (logged as "No BIOMERO canonical Zarr record
   found"), so the Plate is not reused as a canonical input until it is indexed
-  again. Back up `.processed/.biomero` together with the data. The sidecar is
-  keyed by the Zarr's location: if you move the Zarr, the sidecar is not found.
+  again. Back up the `.processed` folders together with the data. The sidecar
+  is keyed by the Zarr's location: if you move the Zarr, the sidecar is not
+  found.
 
 (biomero-input-json)=
 ### `.biomero-input.json`
 
+<!-- TODO(biomero-scripts#96): the run script will remove this marker after
+the import; update the entry then. -->
+
 - **Appears:** root of a temporary Zarr that biomero-scripts export into a
-  workflow input folder. It travels to HPC and back with the result.
+  workflow input folder, only when shallow storage is on and a shallow Zarr is
+  reconstructed for the input. It travels to HPC and back with the result.
 - **What:** the transfer input marker: which canonical input (source and
   generation) the exported Zarr was made from, so a renamed result can be
   matched to its input.
@@ -247,12 +298,16 @@ of the component that writes them.
 - **Written by:** BIOMERO.shallower. **Read by:** BIOMERO.shallower recovery,
   which the importer and the remote helper's recovery job run before they
   continue.
+- **Reading `committed`:** open `journal.json`. `committed: false` means the
+  prune was not finished and the folder can hold the only copy of the omitted
+  arrays. `committed: true` means the prune completed and the store is valid;
+  only the cleanup of duplicate arrays remains.
 - **Delete:** no. While `committed` is `false` the folder can hold the only
   copy of the omitted arrays. BIOMERO finishes or undoes the prune itself the
   next time the importer or helper handles the store. Remove a folder by hand
   only when its `journal.json` says `committed: true`: only the cleanup of
   duplicate arrays remains. See
-  [Failure and observability](../sysadmin/remote-shallower.rst).
+  {ref}`Failure and observability <remote-shallower-failure>`.
 
 (biomero-lock)=
 #### `.<store>.biomero-lock`
@@ -275,8 +330,13 @@ of the component that writes them.
 (biomero-schema1-backup)=
 #### `.<store>.biomero-schema1-backup/`
 
-- **Appears:** beside a store migrated by **BIOMERO Migrate Shallow Storage**
-  (or the `migrate-v1` command).
+- **Appears:** beside a store migrated with the BIOMERO.shallower `migrate-v1`
+  command, unless the caller chose another backup path. The **BIOMERO Migrate
+  Shallow Storage** script chooses one: it keeps the backup in
+  `<Backup Directory>/store-<n>-files`, where the Backup Directory is the
+  administrator's input, or by default
+  `/data/biomero-shallow-migrations/shallow-storage-<uuid>/` inside the worker
+  container. The script also keeps its other snapshots there.
 - **What:** a copy of the schema-1 manifest, operation report (if there was
   one) and the changed `.zattrs` files, from before the migration.
 - **Written by:** BIOMERO.shallower. Used by an operator only; the migration
@@ -311,26 +371,22 @@ These files sit in the results folder `<group base>/.analyzed/<workflow-id>/<tim
 (biomero-result-import-json)=
 #### `.biomero-result-import.json`
 
-- **What:** the saved import plan of these results (`schema: 1`, `phase` is
-  `orders-ready` or `registered`, the request, the import orders, the rename
-  map and the destination). It lets a rerun poll the existing orders instead of
-  submitting new ones.
-- **Delete:** no. BIOMERO keeps it after the import. Without it, a rerun of the
-  same results submits new import orders, which can create duplicate images.
+- **What:** the saved import plan of these results (`schema: 1`, `phase`, the
+  request, the import orders, the rename map and the destination). `phase` is
+  `preparing` (written first, before any order exists), then `orders-ready` and
+  `registered`. A file that still says `preparing` means the earlier attempt
+  stopped before its orders were saved; BIOMERO then refuses to continue and
+  asks for a review. The file is written only when the storage supports
+  recovery (locks and durable writes); otherwise the legacy path runs without
+  it.
+- **Delete:** no, keep it. It lets a rerun poll the existing orders instead of
+  submitting new ones. If the results already have importer orders but no
+  record, a rerun is refused ("already have importer orders but no recovery
+  record") until an administrator has reviewed the existing registrations.
 
 (biomero-result-import-lock)=
 (biomero-finalize-lock)=
 (biomero-recovery-probe)=
-#### `metadata.csv`
-
-- **What:** workflow and job metadata that biomero-scripts write into each
-  results folder that contains images, so the importer attaches it to the
-  imported images. It is not a `.biomero*` name; it is listed because BIOMERO
-  writes it.
-- **Written by:** biomero-scripts. **Read by:** BIOMERO.importer.
-- **Delete:** after the import has finished: yes. Before: the imported images
-  lose that metadata.
-
 #### `.biomero-result-import.lock`, `.biomero-finalize-<id>.lock`, `.biomero-recovery-probe-<hex>.json`
 
 - **What:** locks that serialize the import of one workflow's results, and a
@@ -348,12 +404,13 @@ These files sit in the results folder `<group base>/.analyzed/<workflow-id>/<tim
   canonical input manifest, `CanonicalInputManifest` `schema: 1`) with its
   `.lock`, the helper's Slurm output `canonical.json.<slurm-job-id>.log`, and
   the submission receipts `shallow.*` and `recovery.*` (suffixes `.lock`,
-  `.digest`, `.intent`, `.job`, `.failed`, `.stdout`, `.stderr`) that let BIOMERO
-  resume after a lost connection.
+  `.digest`, `.intent`, `.job`, `.job.tmp`, `.failed`, `.stdout`, `.stderr`)
+  that let BIOMERO resume after a lost connection. BIOMERO removes the
+  `recovery.*` receipts after the recovery job.
 - **Written and read by:** BIOMERO core.
 - **Delete:** not before the task is reconciled; keep it for recovery and
   diagnosis. See
-  [Failure and observability](../sysadmin/remote-shallower.rst).
+  {ref}`Failure and observability <remote-shallower-failure>`.
 
 (biomero-recovery-dir)=
 #### Other receipts next to HPC data

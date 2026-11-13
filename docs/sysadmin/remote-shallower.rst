@@ -3,7 +3,7 @@ Shallow OME-Zarr Storage
 
 Shallow storage avoids keeping another copy of original image pixels in
 eligible OME-Zarr workflow results. BIOMERO retains derived images, labels and
-sidecars, and references the known input already in managed storage. It selects
+workflow output sidecar files, and references the known input already in managed storage. It selects
 this route from usable output declarations, an administrator's workflow policy
 or a compatible pixel comparison. Original source data remains unchanged.
 
@@ -130,7 +130,7 @@ resolution. This reduces comparison reads but is not proof of full-resolution
 image equality; see the :doc:`../developer/biomero-shallow-zarr` explanation.
 
 The supported source-linked output contains an enclosing image and its label
-datasets. Additional derived stores and sidecars are preserved. Bare labels-only
+datasets. Additional derived stores and workflow output sidecar files are preserved. Bare labels-only
 outputs are not automatically materialized; workflows requiring full stored
 results must return a complete image/label collection. Neither declarations nor
 workflow policies override disabled shallow storage, which performs no
@@ -297,6 +297,8 @@ export, copy or reimport the source, and there is one current comparison cache.
 The HPC helper does not reindex a post-analysis input copy: that copy may have
 been changed by the workflow. A cache refresh therefore happens locally when
 the remote helper cannot use a current fingerprint.
+
+.. _remote-shallower-failure:
 
 Failure and observability
 -------------------------

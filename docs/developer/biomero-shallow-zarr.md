@@ -144,7 +144,7 @@ does not identify which image arrays are derived. Cheap format, layout and
 semantic guards still apply; missing or ambiguous evidence falls through to
 the setting or comparison. The supported result includes the enclosing image
 and label datasets; bare labels-only materialization is not implemented.
-Additional derived stores and sidecars are retained.
+Additional derived stores and workflow output sidecar files are retained.
 
 The original RO-Crate is retained. If its graph explicitly inventories an array
 or label subtree that shallowing would remove, the artifact stays full rather
