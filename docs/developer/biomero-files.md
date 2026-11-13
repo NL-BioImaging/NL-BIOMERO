@@ -49,7 +49,7 @@ apply to all models there).
 | `.biomero-shallower/<task-id>/` (HPC) | Not before the task is reconciled | [entry](#biomero-shallower-dir) |
 | `biomero` key in `.zattrs` / `zarr.json` | No | [entry](#biomero-pointer) |
 | `<name>.canonical.json` (canonical sidecar) | Cache; for a Plate it is the only detailed inventory | [entry](#canonical-sidecar) |
-| `<name>.ome.zarr.lock` | Only if no importer is creating the store | [entry](#ome-zarr-lock) |
+| `.<name>.ome.zarr.biomero-lock` (legacy: `<name>.ome.zarr.lock`) | Yes, when nothing is creating the store | [entry](#ome-zarr-lock) |
 | `.<store>.biomero-lock` | Yes, when no process is running | [entry](#biomero-lock) |
 | `.<store>.biomero-materialize-<hex>/` | Yes | [entry](#biomero-materialize) |
 | `.<store>.biomero-prune-<token>/` | No, unless its `journal.json` says `committed: true` | [entry](#biomero-prune) |
@@ -348,14 +348,25 @@ of the component that writes them.
   back to schema 1.
 
 (ome-zarr-lock)=
-#### `<name>.ome.zarr.lock`
+#### `.<name>.ome.zarr.biomero-lock` and the legacy `<name>.ome.zarr.lock`
 
-- **Appears:** beside a canonical store in `.processed` while it is created.
-- **What:** creation lock; its content is the process ID.
-- **Written and read by:** BIOMERO.importer; removed when the creation ends.
-- **Delete:** only when no importer is creating that store. After a crash the
-  lock stays and blocks creating the store (`CanonicalCreationLocked`) until
-  you remove it.
+<!-- Update when BIOMERO.importer#61 is released: add the importer version. -->
+
+- **Appears:** beside a canonical store in `.processed`, from the importer
+  version containing BIOMERO.importer#61: `.processed/.<name>.ome.zarr.biomero-lock`.
+  It is created when the store is created.
+- **What:** the creation lock, a kernel lock taken through BIOMERO.shallower's
+  `locked()`. The operating system releases it when the process ends, also
+  after a crash. The empty file stays behind and never blocks a later creation.
+- **Written and read by:** BIOMERO.importer code, called by biomero-scripts'
+  canonical promotion in the OMERO script worker.
+- **Delete:** yes, when nothing is creating that store.
+- **Legacy `<name>.ome.zarr.lock`:** older importer versions created this file
+  with the process ID as content and removed it when the creation ended. From
+  the importer version containing #61 it is no longer written, and a leftover
+  file is ignored and can be deleted. With the older versions, a leftover file
+  after a crash blocks creating the store (`CanonicalCreationLocked`) until you
+  remove it, and you may delete it only when no importer is creating that store.
 
 ### biomero-scripts: result retrieval and import
 
