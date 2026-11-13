@@ -222,15 +222,16 @@ versioned; see [biomero-schema](https://nl-bioimaging.github.io/biomero-schema/)
 (canonical-sidecar)=
 ### `<name>.canonical.json` in `.processed/.biomero` (canonical sidecar)
 
-<!-- TODO(BIOMERO.importer#59): final wording and importer version of the new
-location go here; keep the "Earlier betas" fallback. Update the intro too. -->
+<!-- Update when BIOMERO.importer#59 is released: add the importer version. -->
 
 - **Appears:** for a user Zarr that BIOMERO indexes in place, from the importer
   version that contains BIOMERO.importer#59:
   `<Zarr parent>/<processed folder>/.biomero/<Zarr name>.canonical.json`, where
-  the processed folder is `.processed` by default. Nothing is written next to
-  the input outside that folder. If `.processed` cannot be written, indexing is
-  skipped with a warning and the workflow continues. Zarrs that BIOMERO created
+  the processed folder is `.processed` by default (if the Zarr already sits
+  directly in a processed folder, that folder is used and no second one is
+  created). Nothing is written next to the input outside that folder. If the
+  folder cannot be written, the importer logs a warning, skips the sidecar and
+  the workflow continues; an old sidecar stays in place. Zarrs that BIOMERO created
   keep an internal [`.biomero-canonical.json`](#biomero-canonical-json)
   instead.
 - **Earlier betas:** older importer versions wrote the sidecar to
@@ -259,9 +260,6 @@ location go here; keep the "Earlier betas" fallback. Update the intro too. -->
 (biomero-input-json)=
 ### `.biomero-input.json`
 
-<!-- TODO(biomero-scripts#96): the run script will remove this marker after
-the import; update the entry then. -->
-
 - **Appears:** root of a temporary Zarr that biomero-scripts export into a
   workflow input folder, only when shallow storage is on and a shallow Zarr is
   reconstructed for the input. It travels to HPC and back with the result.
@@ -269,10 +267,15 @@ the import; update the entry then. -->
   generation) the exported Zarr was made from, so a renamed result can be
   matched to its input.
 - **Written by:** biomero-scripts, atomically (through a `.tmp` file).
-- **Read by:** BIOMERO.shallower (evaluation of the returned store).
-  BIOMERO.importer deletes it when it evaluates the result locally or when the
-  helper kept the full result. It can remain in a store that the helper
-  shallowed on HPC.
+- **Read by:** BIOMERO.shallower (evaluation of the returned store) and
+  BIOMERO.importer. The importer deletes it when it consumes it: on local
+  evaluation, or when the helper kept the full result.
+- **Removed by:** `SLURM_Run_Workflow.py`, from the imported result folder
+  (`.analyzed/<workflow>/<timestamp>` only), once the import has succeeded. From
+  the biomero-scripts version containing biomero-scripts#97 it therefore no
+  longer remains in a store that the helper shallowed on HPC. Before that
+  version it can remain there. A result whose import failed keeps it until the
+  retry succeeds.
 - **Schema:** `CanonicalInput`, `schema: 1`
   ([model](https://nl-bioimaging.github.io/biomero-schema/zarr-contracts/#models)).
   The event store snapshot stays authoritative.
