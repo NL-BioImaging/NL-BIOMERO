@@ -101,6 +101,10 @@ be wrong too.
 One review round is the default; request a second round only when fixing a
 blocking finding required non-trivial code changes. Then add a PR comment
 summarizing the review (reviewer, findings, how each was resolved, what remains
-open), wait until CI passes, and ask the user to review. When a finding or
+open), wait until CI passes, and ask the user to review. Test-only PRs (for
+example into the biomero-scripts `test-suite` branch) are the exception: the
+user does not review them, so a passing independent review is their approval
+and the coordinating agent merges them once the paired production change
+allows it. When a finding or
 the user's review exposes a general standard, add it to the shared or
 component skill on the open guidance PR.
