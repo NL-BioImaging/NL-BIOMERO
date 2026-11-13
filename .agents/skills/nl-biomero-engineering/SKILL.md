@@ -89,6 +89,10 @@ is a requirement, not polish.
   drive decisions (`shallower_already_completed`, `existing_task`) instead of
   reusing `matches[0]`; store a repeated expression once in a named variable.
   Give non-trivial commands and queries a named variable before running them.
+- Define a value that more than one script or component uses (script output
+  names, file names, namespaces) once, in a shared constants module: core
+  `biomero.constants` for the scripts, biomero-schema for cross-component
+  contracts. Copies kept in step by a test still drift.
 - Do not hardcode values that may change, such as versions, contract numbers,
   paths, names and limits. Define them as constants at the top of the module
   or class (shared constants in the component's constants module) and expose
@@ -317,7 +321,10 @@ for a local deployment, below.
 - Put scratch output (logs, fixtures, measurements, generated files) outside
   the repositories, next to that checkout or in a temporary directory. Give
   virtual environments and scratch directories names of your own; never
-  reuse or delete a directory another agent or the user created.
+  reuse or delete a directory another agent or the user created. Clean up
+  by exact path, one directory you created at a time; never delete a shared
+  parent folder or use a wildcard, because other agents may be working next
+  to you.
 - Give long runs (test suites, mutation checks, builds) a timeout, and stop
   every process you started before you report; a hung test run otherwise
   keeps loading the machine after you are done.

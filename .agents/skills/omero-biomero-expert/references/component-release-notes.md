@@ -14,6 +14,11 @@ Notes** paragraph only when action or compatibility matters, and **Full Changelo
 Group related PRs in one bullet. Omit empty sections and link detailed documentation
 instead of copying setup instructions, test logs or a README into the notes.
 
+Patch and security releases are shorter still: mirror the previous patch release
+(for example v1.7.3) line for line. Say what it is and what it is based on, what
+changed with one link to the advisory or announcement, that everything else is
+unchanged, and the changes/compare line. Keep verification details in the PR.
+
 For BIOMERO core, and any release that pins a new core version, the **Upgrade
 Notes** always say whether `init_slurm` must run, and whether stored data
 changed: new or changed events, upcasters, or view tables that need a rebuild
