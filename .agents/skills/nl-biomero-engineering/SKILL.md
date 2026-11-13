@@ -128,6 +128,14 @@ is a requirement, not polish.
   release, withdrawn or removed, hide or remove its documentation pages and
   navigation (Sphinx, MkDocs, READMEs, UI help) in the same change, so the docs
   describe only what users can use.
+- Keep the documentation factual, including diagrams and file trees. A change
+  to a design, file, contract or behaviour updates the affected text and
+  diagrams in the same change, because the docs are versioned with the
+  release and readers rely on them to match that version.
+- Document every file BIOMERO writes (sidecars, manifests, markers,
+  journals) in the file reference, so someone who finds such a file can look
+  up what it is, who writes and reads it, and whether it is safe to remove.
+  Adding, moving or removing a file updates that reference in the same change.
 
 ## Issues and the project board
 
