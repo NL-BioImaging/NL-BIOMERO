@@ -14,6 +14,48 @@ managed input**. The result remains a distinct OMERO Image or Plate with its
 own provenance. Storage is saved on the shared filesystem, without deleting the
 source or suppressing result registration.
 
+## Why BIOMERO shallows results
+
+BIOMERO gives a workflow one input folder and collects its results only from
+one output folder: inputs are never read back as outputs. Reusable workflows
+such as Bilayers and BIAFLOWS work this way. Fractal tasks normally write into
+their input Zarr, so when they are packaged for BIOMERO (for example as
+Bilayers workflows) they are pointed at the output folder instead. With
+OME-Zarr this means the output usually repeats the input pixels next to what
+the workflow produced, such as a new `labels/` group, so that it is valid on
+its own. BIOMERO prepares the input, collects the output and stores both, so it
+knows where the repeated pixels came from and can avoid storing them twice. For large Plates and repeated runs this saves most
+of the result storage; see {ref}`the measurements <shallow-results-measured>`.
+
+- **Only BIOMERO's own copies are shallowed.** Shallowing applies to managed
+  storage written by BIOMERO (the importer's and analyzer's processed and
+  analyzed data), never to original acquisition data. Workflows are not
+  expected to clean up their own output.
+- **A shallow result stays usable.** OMERO reads the source pixels through the
+  registered path, the viewer reconstructs labels from the result reference,
+  and a result can be {ref}`reconstructed <shallow-reconstruct-standalone>` as a
+  full Zarr for a new workflow or for export outside BIOMERO.
+- **The comparison is a deliberate trade-off.** Comparing full-resolution
+  pixels while the user waits for the result more than doubled the analysis
+  time in acceptance tests. BIOMERO therefore compares the smallest compatible
+  stored pyramid level. This is acceptable because only BIOMERO-produced copies
+  are pruned and workflows should not change their input pixels; exact checks
+  belong in background work, not in the result path.
+- **Workflows can declare what they did.** A run-bound RO-Crate output
+  declaration, or the administrator's per-workflow setting, states that the
+  outputs are linked to their source, so BIOMERO can skip the pixel comparison
+  (see {ref}`Output handling and comparison <shallow-output-handling>`).
+- **The format is interim.** It is a BIOMERO-private representation, not
+  OME-NGFF RFC-8 (collections); it is expected to change when RFC-8 is
+  available.
+- **A shallow result is deliberately not a valid OME-Zarr until it is
+  reconstructed.** Its duplicate image arrays and their `multiscales` metadata
+  are removed, so a generic reader fails on it instead of showing pixels.
+  Keeping the array metadata and dropping only the chunk files would pass
+  OME-NGFF validators, but readers would then silently return blank images,
+  and BIOMERO could mistake such a result for a canonical input. That variant
+  is deferred to the RFC-8 work.
+
 ## On disk: shallow off versus on
 
 **Example: one 2D v2 Image, unchanged intensities, one new `cells` label.**
@@ -113,6 +155,7 @@ the authoritative managed store. Missing/stale fingerprints keep the remote
 result full so the importer can compare and cache from the actual source.
 Post-analysis HPC input copies are not authoritative comparison sources.
 
+(shallow-output-handling)=
 ## Output handling and comparison
 
 The decision order is:
@@ -190,6 +233,7 @@ Pruning uses same-filesystem moves and a rollback journal before committing the
 manifest. Source pixels remain untouched. See [configuration and recovery](../sysadmin/remote-shallower.rst).
 
 (reconstruct-shallow-zarr-on-disk)=
+(shallow-reconstruct-standalone)=
 ## Reconstructing a standalone result
 
 The [reconstruction recipe](https://github.com/NL-BioImaging/BIOMERO.shallower#reconstruct-a-full-zarr)
@@ -198,6 +242,7 @@ referenced source and retained labels. It preserves v2/v3 format and leaves
 OMERO registrations unchanged. Keep all referenced stores available and allow
 enough disk space for the full copy.
 
+(shallow-results-measured)=
 ## Results: measured benefits and costs
 
 These measurements used the earlier full-resolution comparison path. They
