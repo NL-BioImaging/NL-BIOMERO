@@ -67,7 +67,14 @@ the change fits. Check, in this order:
 6. **Dependencies:** a PR that uses a feature of another component must not
    be ready for merge before that component's prerelease is published and the
    minimum version is raised in the PR.
-7. **Planned work:** check the open stories on the project board
+7. **Stored data:** review every change to event classes, aggregate
+   attributes, event handlers, constructors and database tables against the
+   history already stored in installs. Check that event names (topics) and
+   attributes are unchanged, new attributes are initialised so old histories
+   replay, new parameters have defaults, a test replays a history from the
+   previous release, and the PR says whether a downgrade still works. Ask
+   whether the change is needed at all; prefer designs without one.
+8. **Planned work:** check the open stories on the project board
    (`gh project item-list 2 --owner NL-BioImaging`) and the issues of the
    touched repositories for planned work in the same area. Report a change
    that clashes with a story (for example one that removes a hook or fixes a
@@ -75,7 +82,7 @@ the change fits. Check, in this order:
    an extension point in an existing function) would make the story easier
    later, suggest it, but do not build the story itself or add code nothing
    uses yet; mention larger preparations in the story instead.
-8. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
+9. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
    why it has none.
 
 Verify each finding against the code before reporting it; drop what you

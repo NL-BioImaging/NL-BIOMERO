@@ -56,6 +56,17 @@ is a requirement, not polish.
   compatible, and a deliberate change keeps old callers working (for example
   with a deprecated alias) or is called out in the release notes. Pin
   persisted formats with a test.
+- Avoid changing stored data (the event store, database tables), even when
+  the change could be automated: every stored-data change is a migration risk
+  for every install and can make a downgrade impossible. Prefer a design that
+  needs none. When one is unavoidable, add new events instead of changing
+  existing ones; never rename or remove event classes, their attributes or
+  aggregate classes; give new constructor parameters defaults; initialise new
+  aggregate attributes so old histories replay; use upcasters (see the
+  biomero event-sourcing docs) only as a last resort; and plan any view-table
+  change as a rebuild. Test that a history written by the previous release
+  still replays, and state in the PR and release notes what changed and
+  whether a downgrade still works.
 - Write files only into BIOMERO's own folders (`.processed`, `.analyzed`).
   Users agree not to touch those folders, and BIOMERO in turn never writes
   into user folders, not even hidden metadata next to an input that is used
