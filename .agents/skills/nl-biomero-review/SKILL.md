@@ -66,7 +66,8 @@ the change fits. Check, in this order:
    which PR owns the shared code and the merge order.
 6. **Dependencies:** a PR that uses a feature of another component must not
    be ready for merge before that component's prerelease is published and the
-   minimum version is raised in the PR.
+   minimum version is raised in the PR. A pin the PR adds or changes uses
+   the latest compatible release of that dependency.
 7. **Stored data:** review every change to event classes, aggregate
    attributes, event handlers, constructors and database tables against the
    history already stored in installs. Check that event names (topics) and

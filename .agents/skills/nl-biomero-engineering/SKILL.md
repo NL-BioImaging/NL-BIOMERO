@@ -56,6 +56,10 @@ is a requirement, not polish.
   compatible, and a deliberate change keeps old callers working (for example
   with a deprecated alias) or is called out in the release notes. Pin
   persisted formats with a test.
+- Pin dependency versions for reproducible builds, but do not let pins go
+  stale: a PR that adds or changes a pin uses the latest compatible release,
+  and each release moves pins to the latest patch and compatible minor
+  versions, so security fixes are not missed.
 - Avoid changing stored data (the event store, database tables), even when
   the change could be automated: every stored-data change is a migration risk
   for every install and can make a downgrade impossible. Prefer a design that

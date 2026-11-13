@@ -124,6 +124,16 @@ creating tags or GitHub releases (including prereleases), rebuilding/restarting
 the stack and deploying to ACC require explicit user authorization. A request
 to check readiness or update release references does not authorize publication.
 
+Before preparing a release, the release coordinator checks every component's
+third-party dependencies (Python packages, container base images, front-end
+packages) for newer versions and security advisories (for example
+`pip list --outdated` and `pip-audit` in a fresh environment, and the
+repository's security alerts). Take patch releases; take minor releases when
+their changelog shows no breaking change and the tests pass; file a story on
+the board for each major release, because it usually needs code changes. Raise
+the pins in the components' own PRs before step 1, and mention notable
+upgrades, especially security fixes, in the release notes.
+
 Follow dependency availability, rather than assuming a release announcement
 means all artifacts are ready:
 
