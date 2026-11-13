@@ -904,6 +904,7 @@ window.addEventListener("load", load);
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Working with shallow OME-Zarr results</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#why-biomero-shallows-results">Why BIOMERO shallows results</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#on-disk-shallow-off-versus-on">On disk: shallow off versus on</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#in-omero-two-different-references">In OMERO: two different references</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#workflow-input-reuse-reconstruct-or-export">Workflow input: reuse, reconstruct or export</a><ul>
@@ -1197,6 +1198,49 @@ window.addEventListener("load", load);
 managed input</strong>. The result remains a distinct OMERO Image or Plate with its
 own provenance. Storage is saved on the shared filesystem, without deleting the
 source or suppressing result registration.</p>
+<section id="why-biomero-shallows-results">
+<h2>Why BIOMERO shallows results<a class="headerlink" href="#why-biomero-shallows-results" title="Permalink to this heading"></a></h2>
+<p>BIOMERO gives a workflow one input folder and collects its results only from
+one output folder: inputs are never read back as outputs. Reusable workflows
+such as Bilayers and BIAFLOWS work this way. Fractal tasks normally write into
+their input Zarr, so when they are packaged for BIOMERO (for example as
+Bilayers workflows) they are pointed at the output folder instead. With
+OME-Zarr this means the output usually repeats the input pixels next to what
+the workflow produced, such as a new <code class="docutils literal notranslate"><span class="pre">labels/</span></code> group, so that it is valid on
+its own. BIOMERO prepares the input, collects the output and stores both, so it
+knows where the repeated pixels came from and can avoid storing them twice. For large Plates and repeated runs this saves most
+of the result storage; see <a class="reference internal" href="#shallow-results-measured"><span class="std std-ref">the measurements</span></a>.</p>
+<ul class="simple">
+<li><p><strong>Only BIOMERO’s own copies are shallowed.</strong> Shallowing applies to managed
+storage written by BIOMERO (the importer’s and analyzer’s processed and
+analyzed data), never to original acquisition data. Workflows are not
+expected to clean up their own output.</p></li>
+<li><p><strong>A shallow result stays usable.</strong> OMERO reads the source pixels through the
+registered path, the viewer reconstructs labels from the result reference,
+and a result can be <a class="reference internal" href="#shallow-reconstruct-standalone"><span class="std std-ref">reconstructed</span></a> as a
+full Zarr for a new workflow or for export outside BIOMERO.</p></li>
+<li><p><strong>The comparison is a deliberate trade-off.</strong> Comparing full-resolution
+pixels while the user waits for the result more than doubled the analysis
+time in acceptance tests. BIOMERO therefore compares the smallest compatible
+stored pyramid level. This is acceptable because only BIOMERO-produced copies
+are pruned and workflows should not change their input pixels; exact checks
+belong in background work, not in the result path.</p></li>
+<li><p><strong>Workflows can declare what they did.</strong> A run-bound RO-Crate output
+declaration, or the administrator’s per-workflow setting, states that the
+outputs are linked to their source, so BIOMERO can skip the pixel comparison
+(see <a class="reference internal" href="#shallow-output-handling"><span class="std std-ref">Output handling and comparison</span></a>).</p></li>
+<li><p><strong>The format is interim.</strong> It is a BIOMERO-private representation, not
+OME-NGFF RFC-8 (collections); it is expected to change when RFC-8 is
+available.</p></li>
+<li><p><strong>A shallow result is deliberately not a valid OME-Zarr until it is
+reconstructed.</strong> Its duplicate image arrays and their <code class="docutils literal notranslate"><span class="pre">multiscales</span></code> metadata
+are removed, so a generic reader fails on it instead of showing pixels.
+Keeping the array metadata and dropping only the chunk files would pass
+OME-NGFF validators, but readers would then silently return blank images,
+and BIOMERO could mistake such a result for a canonical input. That variant
+is deferred to the RFC-8 work.</p></li>
+</ul>
+</section>
 <section id="on-disk-shallow-off-versus-on">
 <h2>On disk: shallow off versus on<a class="headerlink" href="#on-disk-shallow-off-versus-on" title="Permalink to this heading"></a></h2>
 <p><strong>Example: one 2D v2 Image, unchanged intensities, one new <code class="docutils literal notranslate"><span class="pre">cells</span></code> label.</strong>
@@ -1480,7 +1524,7 @@ Post-analysis HPC input copies are not authoritative comparison sources.</p>
 </section>
 </section>
 <section id="output-handling-and-comparison">
-<h2>Output handling and comparison<a class="headerlink" href="#output-handling-and-comparison" title="Permalink to this heading"></a></h2>
+<span id="shallow-output-handling"></span><h2>Output handling and comparison<a class="headerlink" href="#output-handling-and-comparison" title="Permalink to this heading"></a></h2>
 <p>The decision order is:</p>
 <table class="docutils align-default">
 <thead>
@@ -1607,7 +1651,7 @@ scope; it is the canonical algorithm reference.</p>
 manifest. Source pixels remain untouched. See <a class="reference internal" href="../sysadmin/remote-shallower.html"><span class="std std-doc">configuration and recovery</span></a>.</p>
 </section>
 <section id="reconstructing-a-standalone-result">
-<span id="reconstruct-shallow-zarr-on-disk"></span><h2>Reconstructing a standalone result<a class="headerlink" href="#reconstructing-a-standalone-result" title="Permalink to this heading"></a></h2>
+<span id="shallow-reconstruct-standalone"></span><span id="reconstruct-shallow-zarr-on-disk"></span><h2>Reconstructing a standalone result<a class="headerlink" href="#reconstructing-a-standalone-result" title="Permalink to this heading"></a></h2>
 <p>The <a class="reference external" href="https://github.com/NL-BioImaging/BIOMERO.shallower#reconstruct-a-full-zarr">reconstruction recipe</a>
 creates a self-contained Image or Plate at a <strong>new destination</strong>, using its
 referenced source and retained labels. It preserves v2/v3 format and leaves
@@ -1615,7 +1659,7 @@ OMERO registrations unchanged. Keep all referenced stores available and allow
 enough disk space for the full copy.</p>
 </section>
 <section id="results-measured-benefits-and-costs">
-<h2>Results: measured benefits and costs<a class="headerlink" href="#results-measured-benefits-and-costs" title="Permalink to this heading"></a></h2>
+<span id="shallow-results-measured"></span><h2>Results: measured benefits and costs<a class="headerlink" href="#results-measured-benefits-and-costs" title="Permalink to this heading"></a></h2>
 <p>These measurements used the earlier full-resolution comparison path. They
 describe the recorded storage and execution costs, not the speed of the
 selected-resolution comparison or declaration shortcuts above.</p>
