@@ -127,8 +127,10 @@ to check readiness or update release references does not authorize publication.
 Before preparing a release, the release coordinator checks every component's
 third-party dependencies (Python packages, container base images, front-end
 packages) for newer versions and security advisories (for example
-`pip list --outdated` and `pip-audit` in a fresh environment, and the
-repository's security alerts). Take patch releases; take minor releases when
+`pip list --outdated` and `pip-audit` in a fresh environment, and each
+repository's open Dependabot alerts:
+`gh api "repos/NL-BioImaging/<repo>/dependabot/alerts?state=open"`). Every
+component repository has Dependabot alerts enabled; report one that does not. Take patch releases; take minor releases when
 their changelog shows no breaking change and the tests pass; file a story on
 the board for each major release, because it usually needs code changes. Raise
 the pins in the components' own PRs before step 1, and mention notable
