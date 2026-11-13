@@ -52,9 +52,38 @@ the change fits. Check, in this order:
    assert on mocks they configured themselves, or pass whatever the code does.
    Check the important cases by breaking the code in a scratch copy (change a
    constant, invert a condition, drop a call) and confirming a test fails.
+   Fakes of external tools (Slurm commands, unzip, SSH) must reproduce the
+   behaviour the code relies on, such as restored modification times or
+   accounting lag; otherwise the test cannot tell a correct check from a
+   broken one. A broken change must make a test fail, not hang (give polling
+   stubs a call budget), and tests that need a dependency must fail rather
+   than skip in CI when it is missing.
 4. **Configuration and documentation:** feature-flag and settings rules,
    docs and guidance updated with the behavior.
-5. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
+5. **Parallel PRs:** when other open PRs change the same files, merge them
+   with this one (`git merge-tree`) and check the result for duplicate
+   definitions or changed signatures that merge without a conflict; agree
+   which PR owns the shared code and the merge order.
+6. **Dependencies:** a PR that uses a feature of another component must not
+   be ready for merge before that component's prerelease is published and the
+   minimum version is raised in the PR. A pin the PR adds or changes uses
+   the latest compatible release of that dependency.
+7. **Stored data:** review every change to event classes, aggregate
+   attributes, event handlers, constructors and database tables against the
+   history already stored in installs. Check that event names (topics) and
+   attributes are unchanged, new attributes are initialised so old histories
+   replay, new parameters have defaults, a test replays a history from the
+   previous release, and the PR says whether a downgrade still works. Ask
+   whether the change is needed at all; prefer designs without one.
+8. **Planned work:** check the open stories on the project board
+   (`gh project item-list 2 --owner NL-BioImaging`) and the issues of the
+   touched repositories for planned work in the same area. Report a change
+   that clashes with a story (for example one that removes a hook or fixes a
+   format the story needs). When a tiny tweak now (a parameter, a named step,
+   an extension point in an existing function) would make the story easier
+   later, suggest it, but do not build the story itself or add code nothing
+   uses yet; mention larger preparations in the story instead.
+9. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
    why it has none.
 
 Verify each finding against the code before reporting it; drop what you

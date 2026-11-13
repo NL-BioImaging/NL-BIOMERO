@@ -14,6 +14,14 @@ Notes** paragraph only when action or compatibility matters, and **Full Changelo
 Group related PRs in one bullet. Omit empty sections and link detailed documentation
 instead of copying setup instructions, test logs or a README into the notes.
 
+For BIOMERO core, and any release that pins a new core version, the **Upgrade
+Notes** always say whether `init_slurm` must run, and whether stored data
+changed: new or changed events, upcasters, or view tables that need a rebuild
+by replaying events. A full replay can take a long time on installs with many
+old events, so say whether a partial rebuild is enough
+(`BIOMERO_ANALYTICS_REBUILD_START_TIME` / `BIOMERO_ANALYTICS_REBUILD_DAYS_AGO`)
+or skipping the replay is safe, and whether a downgrade still works afterwards.
+
 ## Select the changes
 
 - For a stable release, compare with the previous stable release and summarize

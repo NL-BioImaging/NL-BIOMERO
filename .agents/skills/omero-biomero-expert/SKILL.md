@@ -124,6 +124,18 @@ creating tags or GitHub releases (including prereleases), rebuilding/restarting
 the stack and deploying to ACC require explicit user authorization. A request
 to check readiness or update release references does not authorize publication.
 
+Before preparing a release, the release coordinator checks every component's
+third-party dependencies (Python packages, container base images, front-end
+packages) for newer versions and security advisories (for example
+`pip list --outdated` and `pip-audit` in a fresh environment, and each
+repository's open Dependabot alerts:
+`gh api "repos/NL-BioImaging/<repo>/dependabot/alerts?state=open"`). Every
+component repository has Dependabot alerts enabled; report one that does not. Take patch releases; take minor releases when
+their changelog shows no breaking change and the tests pass; file a story on
+the board for each major release, because it usually needs code changes. Raise
+the pins in the components' own PRs before step 1, and mention notable
+upgrades, especially security fixes, in the release notes.
+
 Follow dependency availability, rather than assuming a release announcement
 means all artifacts are ready:
 
@@ -140,11 +152,20 @@ means all artifacts are ready:
 4. Update OMERO.biomero to published core/importer dependencies (it comes late
    because it depends on both), merge and prerelease it. Verify its PyPI package contains no feature-branch dependencies.
 5. Prepare NL-BIOMERO last, on a `release/X.Y.Z-beta.N` branch with its own
-   PR: advance the clean importer submodule to its released commit, pin the
-   prereleased component versions in `.env` and `.env.shared`, restore release
+   PR. `master` must always work with the versions pinned in `.env`: any
+   NL-BIOMERO PR that needs an unreleased component version (code, hooks,
+   INIs or docs for a new setting) targets the release branch, never
+   `master`. In the release PR: advance the clean importer submodule to its
+   released commit, pin the prereleased component versions in `.env` and `.env.shared`, restore release
    Dockerfile blocks, and align applicable Compose wiring, INIs and docs.
    Preserve deployment-specific paths/credentials and the enabled demo flags.
    Validate resolved build arguments, shared config mounts and feature settings.
+   Keep the documentation front page complete: `docs/index.rst` shows every
+   released component with its version badge, repository link and licence,
+   and `docs/conf.py` reads each version from `.env`. When the release adds a
+   component (or a component whose version is pinned elsewhere, such as a
+   Python dependency), add its badge, link, licence and version source in this
+   PR, so readers can see which versions were released together.
 6. Test that exact setup locally before merging: build and run the stack from
    the release branch with `docker-compose.yml`, the release Dockerfile blocks
    and the `.env` pins (`docker-compose-dev.yml` is for live OMERO.biomero

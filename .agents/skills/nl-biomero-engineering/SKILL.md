@@ -39,6 +39,14 @@ is a requirement, not polish.
   A new module follows the package's established modules, not only its own
   file: the same docstring format, type hints, naming and quoting. Each
   component's `<repo>-dev` skill names its reference module.
+- Use one Python style across all NL-BIOMERO repositories, modelled on BIOMERO
+  core (`biomero/slurm_client.py`): Google-style docstrings (summary line,
+  `Args:` as `name (type): description`, `Returns:`, `Raises:`), type hints on
+  every signature, f-strings and double quotes. New components start in this
+  style; reviewers comment on deviations.
+- Start every source file with the licence header used by its repository
+  (the Apache-2.0 header of BIOMERO core, or the GPL header of a GPL
+  repository), matching the repository's `LICENSE`.
 - State behavior changes. A PR described as logging-only, refactoring or
   style must not change behavior; list any deliberate change in the
   description.
@@ -48,6 +56,26 @@ is a requirement, not polish.
   compatible, and a deliberate change keeps old callers working (for example
   with a deprecated alias) or is called out in the release notes. Pin
   persisted formats with a test.
+- Pin dependency versions for reproducible builds, but do not let pins go
+  stale: a PR that adds or changes a pin uses the latest compatible release,
+  and each release moves pins to the latest patch and compatible minor
+  versions, so security fixes are not missed.
+- Avoid changing stored data (the event store, database tables), even when
+  the change could be automated: every stored-data change is a migration risk
+  for every install and can make a downgrade impossible. Prefer a design that
+  needs none. When one is unavoidable, add new events instead of changing
+  existing ones; never rename or remove event classes, their attributes or
+  aggregate classes; give new constructor parameters defaults; initialise new
+  aggregate attributes so old histories replay; use upcasters (see the
+  biomero event-sourcing docs) only as a last resort; and plan any view-table
+  change as a rebuild. Test that a history written by the previous release
+  still replays, and state in the PR and release notes what changed and
+  whether a downgrade still works.
+- Write files only into BIOMERO's own folders (`.processed`, `.analyzed`).
+  Users agree not to touch those folders, and BIOMERO in turn never writes
+  into user folders, not even hidden metadata next to an input that is used
+  in place: users may move or delete their own data at any time. Keep such
+  metadata under a BIOMERO folder, keyed by the input's location, or in OMERO.
 - Keep functions focused and readable. Split long functions with many exits
   or mixed responsibilities. A function should read as a short sequence of
   well-named steps and decisions, with each step extracted into a named
@@ -115,6 +143,14 @@ is a requirement, not polish.
   release, withdrawn or removed, hide or remove its documentation pages and
   navigation (Sphinx, MkDocs, READMEs, UI help) in the same change, so the docs
   describe only what users can use.
+- Keep the documentation factual, including diagrams and file trees. A change
+  to a design, file, contract or behaviour updates the affected text and
+  diagrams in the same change, because the docs are versioned with the
+  release and readers rely on them to match that version.
+- Document every file BIOMERO writes (sidecars, manifests, markers,
+  journals) in the file reference, so someone who finds such a file can look
+  up what it is, who writes and reads it, and whether it is safe to remove.
+  Adding, moving or removing a file updates that reference in the same change.
 
 ## Issues and the project board
 
@@ -159,6 +195,12 @@ submodules, including hotfixes and guidance changes.
   with a clear description of the final change and its validation. Do not hold
   work back in a draft PR or local branch; the independent review below runs
   on the ready PR.
+- A PR that needs a change in another component may only merge once that
+  change is published: components install each other from PyPI (or a
+  released container), not from another repository's default branch. Keep
+  such a PR in draft with an "On hold" note naming the dependency, and raise
+  the dependency's minimum version in the same PR when the prerelease exists.
+  Changes within one repository only need their predecessor merged.
 - Keep one PR per scope, where the scope is one piece of functionality in one
   repository. Logging, readability fixes, reuse refactors and tests for that
   functionality belong in the same PR, and one PR may close several issues
@@ -168,6 +210,9 @@ submodules, including hotfixes and guidance changes.
 - During a review or other longer piece of work, collect guidance changes on
   one open guidance PR per repository and merge it when that work is done.
   Keep guidance PRs separate from PRs that change code or configuration.
+- Commit only source: check `git status` before committing and never add
+  build or runtime artefacts (`__pycache__`, `*.pyc`, coverage files, local
+  venvs); extend `.gitignore` when one is missing.
 - Make focused, coherent commits and push them as you go. Run cheap, relevant
   checks before pushing and let the required CI checks be the full-suite gate.
   If CI fails, inspect it and push a follow-up fix. Local runs can skip
@@ -271,6 +316,12 @@ for a local deployment, below.
   the repositories, next to that checkout or in a temporary directory. Give
   virtual environments and scratch directories names of your own; never
   reuse or delete a directory another agent or the user created.
+- Give long runs (test suites, mutation checks, builds) a timeout, and stop
+  every process you started before you report; a hung test run otherwise
+  keeps loading the machine after you are done.
+  Never stop, restart or shut down shared services you did not start (WSL
+  distributions, Docker Desktop, databases, the user's stacks): other work,
+  including the user's, depends on them.
 - Once the work is pushed and its pull request is open, remove what you
   created: `git worktree remove <path>` then `git worktree prune`, delete the
   local branch, and delete temporary clones and scratch output. Review
