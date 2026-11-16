@@ -127,8 +127,10 @@ The three containers below must all mount the same storage at the **same contain
    leaving it unset preserves the default. See
    :doc:`../developer/containers/biomero-importer` for details. This does not
    change the separate results folder, which is set by ``ANALYZED_DATA_FOLDER``
-   (default ``.analyzed``) on ``biomeroworker``. Changing it affects new runs only;
-   existing results stay where they are.
+   (default ``.analyzed``) on ``biomeroworker``. The value must be one folder name; anything
+   else (a path, an empty value) falls back to ``.analyzed``. Changing it affects
+   new runs only: existing results stay where they are, and an unfinished import
+   retried after the change retrieves the result again.
 
    For a custom folder with ``BIOMERO_SHALLOW_ZARR=true``, also set the same value
    on ``biomeroworker`` so generated canonical Zarrs use that folder. No worker

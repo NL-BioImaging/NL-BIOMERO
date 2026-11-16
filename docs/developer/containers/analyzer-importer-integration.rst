@@ -70,7 +70,8 @@ Results are written to the shared drive under the group's subfolder:
 
 The result folder distinguishes archived analysis results from raw incoming data. Its name is the
 ``ANALYZED_DATA_FOLDER`` environment variable on ``biomeroworker`` (default ``.analyzed``); changing it
-affects new runs only, existing results stay where they are.
+affects new runs only: existing results stay where they are, and an unfinished
+import retried after the change retrieves the result again.
 Each workflow run gets its own ``<workflow-uuid>/<timestamp>`` directory, making multiple imports from
 the same workflow safe.
 

@@ -13,7 +13,9 @@ delete or move it. Design and recovery procedures are in
 **Where the files are.** Results returned from HPC are stored under
 `<group base>/<result folder>/<workflow-id>/<timestamp>/`. The result folder is
 `ANALYZED_DATA_FOLDER` (default `.analyzed`), set on `biomeroworker`; changing it
-affects new runs only, existing results stay where they are. Canonical Zarr stores are
+affects new runs only: existing results stay where they are, and an unfinished
+import retried after the change does not find its staged results under the old
+name and retrieves the result again. Canonical Zarr stores are
 stored under `<source folder>/.processed/`, and the canonical sidecar of an
 in-place Zarr under a `.processed` folder as well (see its entry). `.processed`
 is the default name of a configurable folder (`PROCESSED_DATA_FOLDER`). On local
