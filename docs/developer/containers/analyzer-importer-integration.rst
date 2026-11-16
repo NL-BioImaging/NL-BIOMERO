@@ -61,12 +61,11 @@ Results are written to the shared drive under the group's subfolder:
    └── .analyzed/                    # the result folder (default name)
        └── <workflow-uuid>/
            └── <YYYYMMDD_HHMMSS>/
-               ├── <job_id>_out.zip          # original results archive
-               ├── <job_id>_out/             # extracted result images + CSVs
-               │   ├── data/out/
-               │   │   ├── result_image.tiff
-               │   │   └── measurements.csv
-               │   └── metadata.csv          # workflow provenance metadata
+               ├── result_image.zarr/        # result images (or .tiff) and other outputs,
+               ├── measurements.csv          #   as the workflow wrote them to data/out
+               ├── metadata.csv              # workflow provenance, beside the images
+               ├── <job_id>_out.zip          # results archive; removed after the import
+               │                             #   unless it was attached to OMERO
                └── omero-<job_id>.log        # SLURM job log
 
 The result folder distinguishes archived analysis results from raw incoming data. Its name is the

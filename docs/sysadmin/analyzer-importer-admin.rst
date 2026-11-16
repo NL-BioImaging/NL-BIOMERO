@@ -145,11 +145,11 @@ Results are placed under the OMERO group's subfolder on the shared drive:
    └── .analyzed/                    # default name of the result folder
        └── <workflow-uuid>/
            └── <YYYYMMDD_HHMMSS>/
-               ├── <job_id>_out.zip          # results archive
-               ├── <job_id>_out/             # extracted images + CSVs
-               │   ├── data/out/
-               │   │   └── result.tiff
-               │   └── metadata.csv          # workflow provenance
+               ├── result_image.zarr/        # result images (or .tiff) and other outputs,
+               ├── measurements.csv          #   as the workflow wrote them to data/out
+               ├── metadata.csv              # workflow provenance, beside the images
+               ├── <job_id>_out.zip          # results archive; removed after the import
+               │                             #   unless it was attached to OMERO
                └── omero-<job_id>.log        # SLURM job log
 
 Group path resolution
