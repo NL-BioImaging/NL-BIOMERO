@@ -271,11 +271,12 @@ versioned; see [biomero-schema](https://nl-bioimaging.github.io/biomero-schema/)
   BIOMERO.importer. The importer deletes it when it consumes it: on local
   evaluation, or when the helper kept the full result.
 - **Removed by:** `SLURM_Run_Workflow.py`, from the imported result folder
-  (`.analyzed/<workflow>/<timestamp>` only), once the import has succeeded. From
-  the biomero-scripts version containing biomero-scripts#97 it therefore no
-  longer remains in a store that the helper shallowed on HPC. Before that
-  version it can remain there. A result whose import failed keeps it until the
-  retry succeeds.
+  (`.analyzed/<workflow>/<timestamp>` only), once the import has succeeded. It
+  therefore no longer remains in a store that the helper shallowed on HPC. Older
+  scripts releases left it there. A result whose import failed keeps it until
+  the retry succeeds. Two limits: a detached resume after the import task has
+  completed does not sweep, and only stores directly in the result folder are
+  swept, not stores nested in its subfolders.
 - **Schema:** `CanonicalInput`, `schema: 1`
   ([model](https://nl-bioimaging.github.io/biomero-schema/zarr-contracts/#models)).
   The event store snapshot stays authoritative.
