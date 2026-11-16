@@ -21,7 +21,7 @@ With the Analyzer → Importer integration the result files are instead:
 1. Written to the **shared remote storage** that BIOMERO.importer already monitors.
 2. Imported **in-place** by BIOMERO.importer — the same way manual data imports work — so they end up
    in the importer's storage, not on the OMERO server volume.
-3. **Permanently archived** in a dedicated ``<result folder>/<workflow-uuid>/<timestamp>/`` folder (default ``.analyzed``), alongside
+3. **Permanently archived** in a dedicated ``.analyzed/<workflow-uuid>/<timestamp>/`` folder, alongside
    the original zip, metadata CSV, and SLURM log file, for full traceability.
 
 This makes analysis results a first-class citizen of the same storage and permission model as incoming
@@ -58,7 +58,7 @@ Results are written to the shared drive under the group's subfolder:
 .. code-block:: text
 
    <group_base_path>/
-   └── .analyzed/                    # the result folder (default name)
+   └── .analyzed/
        └── <workflow-uuid>/
            └── <YYYYMMDD_HHMMSS>/
                ├── result_image.zarr/        # result images (or .tiff) and other outputs,
@@ -68,10 +68,7 @@ Results are written to the shared drive under the group's subfolder:
                │                             #   unless it was attached to OMERO
                └── omero-<job_id>.log        # SLURM job log
 
-The result folder distinguishes archived analysis results from raw incoming data. Its name is the
-``ANALYZED_DATA_FOLDER`` environment variable on ``biomeroworker`` (default ``.analyzed``); changing it
-affects new runs only: existing results stay where they are, and an unfinished
-import retried after the change retrieves the result again.
+The ``.analyzed`` hidden directory distinguishes archived analysis results from raw incoming data.
 Each workflow run gets its own ``<workflow-uuid>/<timestamp>`` directory, making multiple imports from
 the same workflow safe.
 
@@ -110,7 +107,7 @@ Upload order and in-place import
 After copying result files to permanent storage, ``SLURM_Import_Results.py``:
 
 1. Creates an **upload order** in the BIOMERO.importer tracking database
-   (``INGEST_TRACKING_DB_URL``), pointing to the image files in the result folder.
+   (``INGEST_TRACKING_DB_URL``), pointing to the image files in ``.analyzed/…``.
 2. Polls the database until the order reaches ``STAGE_IMPORTED`` or ``STAGE_INGEST_FAILED``.
 3. Adds workflow metadata (key-value map annotations) to the imported images in OMERO once the
    import is confirmed.
@@ -146,7 +143,7 @@ the **same remote storage volume at the same path**:
      - Purpose
      - Mount
    * - ``biomeroworker``
-     - Write analysis results to the result folder (default ``.analyzed/``)
+     - Write analysis results to ``.analyzed/``
      - ``./web/L-Drive:/data``
    * - ``biomero-importer``
      - Read files, perform in-place import
@@ -296,8 +293,8 @@ Files not found at expected path
 * Check that the group-folder mapping in ``biomero-config.json`` points to a path that exists under
   the mounted storage root.
 
-PermissionError writing to the result folder
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+PermissionError writing to ``.analyzed`` folder
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * Verify the worker process UID has write access to the group base path on the host storage.
 * For new groups (first workflow run), the worker also needs permission to **create** the group

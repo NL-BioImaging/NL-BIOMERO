@@ -11,11 +11,7 @@ delete or move it. Design and recovery procedures are in
 [Remote shallower configuration](../sysadmin/remote-shallower.rst).
 
 **Where the files are.** Results returned from HPC are stored under
-`<group base>/<result folder>/<workflow-id>/<timestamp>/`. The result folder is
-`ANALYZED_DATA_FOLDER` (default `.analyzed`), set on `biomeroworker`; changing it
-affects new runs only: existing results stay where they are, and an unfinished
-import retried after the change does not find its staged results under the old
-name and retrieves the result again. Canonical Zarr stores are
+`<group base>/.analyzed/<workflow-id>/<timestamp>/`. Canonical Zarr stores are
 stored under `<source folder>/.processed/`, and the canonical sidecar of an
 in-place Zarr under a `.processed` folder as well (see its entry). `.processed`
 is the default name of a configurable folder (`PROCESSED_DATA_FOLDER`). On local
@@ -144,18 +140,18 @@ versioned; see [biomero-schema](https://nl-bioimaging.github.io/biomero-schema/)
 ### `.biomero-shallow-batch.json`
 
 - **Appears:** on HPC in `<workflow data>/data/out/`; the result archive
-  carries it to the root of `<group base>/<result folder>/<workflow-id>/<timestamp>/`.
+  carries it to the root of `<group base>/.analyzed/<workflow-id>/<timestamp>/`.
 - **What:** the batch report of one helper run over the results folder. It
   lists the receipts for the stores the helper handled.
 - **Written by:** the remote helper.
 - **Read by:** BIOMERO core, over SSH on HPC (also to adopt a finished helper
   job after a restart). Core stores its content in the workflow event store.
-  Nothing reads the copy in the result folder.
+  Nothing reads the copy in `.analyzed`.
 - **Schema:** `ShallowBatchReport`, `schema: 1`
   ([model](https://nl-bioimaging.github.io/biomero-schema/remote-shallower-contracts/)).
   The receipts it holds (`RemoteShallowReceipt`, `schema: 1`) exist only as
   entries of this file and in the import order.
-- **Delete:** the copy in the result folder: yes. On HPC: yes once the workflow
+- **Delete:** the copy in `.analyzed`: yes. On HPC: yes once the workflow
   results were imported; deleting it while a detached workflow is still
   running stops BIOMERO from adopting the finished report, so it polls the
   recorded helper job instead.
@@ -275,7 +271,7 @@ versioned; see [biomero-schema](https://nl-bioimaging.github.io/biomero-schema/)
   BIOMERO.importer. The importer deletes it when it consumes it: on local
   evaluation, or when the helper kept the full result.
 - **Removed by:** `SLURM_Run_Workflow.py`, from the imported result folder
-  (`<result folder>/<workflow>/<timestamp>` only), once the import has succeeded. From
+  (`.analyzed/<workflow>/<timestamp>` only), once the import has succeeded. From
   the biomero-scripts version containing biomero-scripts#97 it therefore no
   longer remains in a store that the helper shallowed on HPC. Before that
   version it can remain there. A result whose import failed keeps it until the
@@ -319,7 +315,7 @@ of the component that writes them.
 (biomero-lock)=
 #### `.<store>.biomero-lock`
 
-- **Appears:** beside a result store (on HPC and in the result folder).
+- **Appears:** beside a result store (on HPC and in `.analyzed`).
 - **What:** the lock file of the store; the lock is held by the process, not by
   the file (empty on Linux, released when the process ends). Lock files created
   on HPC are not part of the result archive.
@@ -374,8 +370,8 @@ of the component that writes them.
 
 ### biomero-scripts: result retrieval and import
 
-These files sit in the results folder `<group base>/<result folder>/<workflow-id>/<timestamp>/`
-(the lock `.biomero-finalize-<id>.lock` in `<result folder>/<workflow-id>/`).
+These files sit in the results folder `<group base>/.analyzed/<workflow-id>/<timestamp>/`
+(the lock `.biomero-finalize-<id>.lock` in `.analyzed/<workflow-id>/`).
 
 (biomero-results-retrieved-json)=
 #### `.biomero-results-retrieved.json`

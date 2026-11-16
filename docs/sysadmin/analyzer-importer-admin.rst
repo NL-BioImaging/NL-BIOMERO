@@ -32,7 +32,7 @@ transferred back to OMERO via the standard OMERO API and end up on the OMERO ser
 With this integration enabled:
 
 1. The biomeroworker copies results to the **shared remote storage** in a dedicated
-   ``<result folder>/<workflow-uuid>/<timestamp>/`` folder (default ``.analyzed``).
+   ``.analyzed/<workflow-uuid>/<timestamp>/`` folder.
 2. It creates an **upload order** in the BIOMERO.importer tracking database.
 3. BIOMERO.importer picks up the order and performs an **in-place import** — the same pipeline
    used for incoming research data.
@@ -111,7 +111,7 @@ The three containers below must all mount the same storage at the **same contain
      - Purpose
      - Mount
    * - ``biomeroworker``
-     - Writes the result folder (default ``.analyzed/``) directory tree
+     - Writes ``.analyzed/`` directory tree
      - ``./web/L-Drive:/data``
    * - ``biomero-importer``
      - Reads files for in-place import and writes ``.processed/`` directory
@@ -126,11 +126,7 @@ The three containers below must all mount the same storage at the **same contain
    ``PROCESSED_DATA_FOLDER`` environment variable in the importer container;
    leaving it unset preserves the default. See
    :doc:`../developer/containers/biomero-importer` for details. This does not
-   change the separate results folder, which is set by ``ANALYZED_DATA_FOLDER``
-   (default ``.analyzed``) on ``biomeroworker``. The value must be one folder name; anything
-   else (a path, an empty value) falls back to ``.analyzed``. Changing it affects
-   new runs only: existing results stay where they are, and an unfinished import
-   retried after the change retrieves the result again.
+   change the separate ``.analyzed`` results folder.
 
    For a custom folder with ``BIOMERO_SHALLOW_ZARR=true``, also set the same value
    on ``biomeroworker`` so generated canonical Zarrs use that folder. No worker
@@ -144,7 +140,7 @@ Results are placed under the OMERO group's subfolder on the shared drive:
 .. code-block:: text
 
    <group_base_path>/
-   └── .analyzed/                    # default name of the result folder
+   └── .analyzed/
        └── <workflow-uuid>/
            └── <YYYYMMDD_HHMMSS>/
                ├── result_image.zarr/        # result images (or .tiff) and other outputs,
@@ -230,7 +226,7 @@ After rebuilding and restarting the biomeroworker container, verify the library 
 
 Run a test analysis workflow. Afterwards check:
 
-* A ``<result folder>/<uuid>/<timestamp>/`` directory (default ``.analyzed``) appears on the shared drive.
+* A ``.analyzed/<uuid>/<timestamp>/`` directory appears on the shared drive.
 * The upload order appears in the importer tracking database:
 
   .. code-block:: sql
@@ -280,7 +276,7 @@ Results still appear on OMERO server storage
   Confirm ``IMPORTER_ENABLED=true`` is set on the **biomeroworker** (not just omeroweb or
   biomero-importer).
 
-``PermissionError`` writing to the result folder
+``PermissionError`` writing to ``.analyzed``
   The ``omero-server`` user (UID 1000) lacks write access.  See `Permissions`_ above.
 
 OMERO images not created after import succeeds
