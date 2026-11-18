@@ -63,6 +63,14 @@ jobs:
           '
           echo "== OMERO.web venv (nl-biomero-web)"
           docker run --rm --entrypoint /opt/omero/web/venv3/bin/python nl-biomero-web:ci -c "$check_venv"
+          # OMERO.web 5.33.4 fixes GHSA-9j9g-chjq-fwjv. Fail if a plugin install
+          # leaves an older omero-web in the venv.
+          docker run --rm --entrypoint /opt/omero/web/venv3/bin/python nl-biomero-web:ci -c '
+          from importlib.metadata import version
+          from pip._vendor.packaging.version import Version
+          print("omero-web", version("omero-web"))
+          assert Version(version("omero-web")) >= Version("5.33.4"), "omero-web is older than 5.33.4"
+          '
           docker run --rm --entrypoint /opt/omero/web/venv3/bin/pip nl-biomero-web:ci --version
           docker run --rm --entrypoint /opt/omero/web/venv3/bin/pip nl-biomero-web:ci show certifi
           echo "== OMERO.server venv (nl-biomero-processor, built from omero-server)"
