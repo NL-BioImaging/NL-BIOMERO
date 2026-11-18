@@ -24,6 +24,7 @@ import uuid
 from uuid import uuid4
 
 import pytest
+from biomero import constants as biomero_constants
 
 SOURCE = Path(__file__).parents[1] / "processor.py"
 CLASSES = {"WorkflowSupervisor", "WorkflowWorker", "ClaimLost",
@@ -81,10 +82,7 @@ SHIPPED_CONSTANTS = {
     "CLAIM_RENEW_SECONDS", "WORKER_RESTART_DELAY_SECONDS",
     "CANCEL_CHECK_SECONDS", "IGNORE_MIN_AGE_SECONDS", "SCRIPT_POLL_SECONDS",
     "SCRIPT_POLL_FAILURE_LIMIT", "CHILD_POLL_SECONDS",
-    "WORKFLOW_TRACKER_APPLICATION", "SUPERVISOR_STOP_TIMEOUT_SECONDS",
-    "PARAM_WORKFLOWS", "PARAM_SELECTED_OUTPUT",
-    "PARAM_GROUP", "PARAM_BATCHES", "PARAM_BASE_INPUTS",
-    "PARAM_EFFECTIVE_TYPE"}
+    "WORKFLOW_TRACKER_APPLICATION", "SUPERVISOR_STOP_TIMEOUT_SECONDS"}
 
 
 def processor_namespace(**overrides: Any) -> Dict[str, Any]:
@@ -119,7 +117,7 @@ def processor_namespace(**overrides: Any) -> Dict[str, Any]:
         remoted=lambda function: function, perf=lambda function: function,
         WorkflowInterrupted=WorkflowInterrupted,
         LAUNCHER_CLAIM_LEASE_SECONDS=CORE_LEASE_SECONDS,
-        MAX_ACTIVE_WORKFLOWS=4,
+        MAX_ACTIVE_WORKFLOWS=4, constants=biomero_constants,
         contextlib=contextlib, os=os, uuid=uuid,
         socket=SimpleNamespace(gethostname=lambda: HOST_NAME),
         time=SimpleNamespace(
@@ -178,7 +176,8 @@ def core() -> Iterator[None]:
         RUN_WF_BATCHED_SCRIPT=BATCHED_LAUNCHER_TASK_NAME,
         RUN_WF_SCRIPT=LAUNCHER_TASK_NAME,
         transfer=SimpleNamespace(IDS="IDs", DATA_TYPE="Data_Type"),
-        workflow=SimpleNamespace(OUTPUT_DUPLICATES="dup"))
+        workflow=SimpleNamespace(OUTPUT_DUPLICATES="dup"),
+        launcher_params=biomero_constants.launcher_params)
     with patch.dict(sys.modules, {
             "biomero": SimpleNamespace(constants=constants),
             "biomero.constants": constants,

@@ -47,6 +47,7 @@ except ImportError:
 
 # The biomero pinned for this image provides both (the detached supervisor
 # needs the claim), so there is no fallback.
+from biomero import constants
 from biomero.constants import LAUNCHER_CLAIM_LEASE_SECONDS
 from biomero.eventsourcing import WorkflowInterrupted
 
@@ -831,15 +832,6 @@ WORKFLOW_TRACKER_APPLICATION = "WorkflowTracker"
 # For each batch index of a batched parent: the ID of its bookkeeping task and
 # the ID of its child workflow.
 ChildrenByBatch = Dict[int, Tuple[uuid.UUID, uuid.UUID]]
-# The keys of a launcher task's recorded inputs. They are written by
-# ``register_detached_launcher`` of the biomero workflow scripts and read here;
-# neither biomero core nor the scripts define them as constants yet.
-PARAM_WORKFLOWS = "workflows"
-PARAM_SELECTED_OUTPUT = "selected_output"
-PARAM_GROUP = "group"
-PARAM_BATCHES = "batches"
-PARAM_BASE_INPUTS = "base_inputs"
-PARAM_EFFECTIVE_TYPE = "effective_type"
 # Workflows found not to be ours are remembered so we do not keep inspecting
 # them, but the memory is dropped periodically so that a transient database
 # error cannot sideline a workflow until the next restart.
@@ -1445,12 +1437,14 @@ class WorkflowWorker(Thread):
             ClaimLost: When another supervisor owns the parent now.
         """
         tracker = slurm_client.workflowTracker
-        batches = [list(batch) for batch in (params.get(PARAM_BATCHES) or [])]
+        launcher_params = constants.launcher_params
+        batches = [list(batch)
+                   for batch in (params.get(launcher_params.BATCHES) or [])]
         if not batches:
             raise ValueError(f"Batched workflow {self.workflow_id} has no "
                              f"batches recorded")
-        base_inputs = params.get(PARAM_BASE_INPUTS) or {}
-        effective_type = params.get(PARAM_EFFECTIVE_TYPE)
+        base_inputs = params.get(launcher_params.BASE_INPUTS) or {}
+        effective_type = params.get(launcher_params.EFFECTIVE_TYPE)
         self.logger.info(f"Batched workflow {self.workflow_id}: "
                          f"{len(batches)} batches")
 
@@ -1559,7 +1553,7 @@ class WorkflowWorker(Thread):
             script.register_detached_launcher(
                 RecordedInputsClient(child_params, conn), slurm_client,
                 child_wf_id, constants.RUN_WF_SCRIPT,
-                params.get(PARAM_WORKFLOWS) or [], {})
+                params.get(constants.launcher_params.WORKFLOWS) or [], {})
             self.raise_if_claim_lost()
             task_id = tracker.add_task_to_workflow(
                 self.workflow_id, constants.RUN_WF_SCRIPT, script.VERSION,
@@ -1584,15 +1578,16 @@ class WorkflowWorker(Thread):
         """
         from biomero import constants
 
-        child_params = dict(params.get(PARAM_BASE_INPUTS) or {})
+        launcher_params = constants.launcher_params
+        child_params = dict(params.get(launcher_params.BASE_INPUTS) or {})
         child_params[constants.transfer.IDS] = batch
-        effective_type = params.get(PARAM_EFFECTIVE_TYPE)
+        effective_type = params.get(launcher_params.EFFECTIVE_TYPE)
         if effective_type:
             child_params[constants.transfer.DATA_TYPE] = effective_type
         # All batches share one output dataset or screen.
         child_params[constants.workflow.OUTPUT_DUPLICATES] = False
-        child_params[PARAM_SELECTED_OUTPUT] = params.get(PARAM_SELECTED_OUTPUT)
-        child_params[PARAM_GROUP] = params.get(PARAM_GROUP)
+        for name in (launcher_params.SELECTED_OUTPUT, launcher_params.GROUP):
+            child_params[name] = params.get(name)
         return child_params
 
     def record_parent_outcome(self, tracker: "WorkflowTracker",
