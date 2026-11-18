@@ -161,10 +161,16 @@ means all artifacts are ready:
    every issue and PR that goes into the release, in any repository (add PRs
    to the board), and `Later` for deferred stories. The release PR links the
    filtered board (`?filterQuery=release:"X.Y.Z-beta.N"`); before tagging,
-   check that list against what is merged, and move released items to Done. `master` must always work with the versions pinned in `.env`: any
-   NL-BIOMERO PR that needs an unreleased component version (code, hooks,
-   INIs or docs for a new setting) targets the release branch, never
-   `master`. In the release PR: advance the clean importer submodule to its
+   check that list against what is merged, and move released items to Done.
+   `master` must always work with the versions pinned in `.env`. Every
+   NL-BIOMERO PR targets `master`; one that needs an unreleased component
+   version (code, hooks, INIs or docs for a new setting) stays a draft marked
+   "On hold" until that version is published and its pin on `master` is
+   bumped (a small PR right after each component prerelease). Cut the release
+   branch from `master` when the release is prepared; it carries only the
+   release work (version, badges, notes, test checklist). Merge `master` into
+   it when `master` moves on, never the release branch into `master` except
+   through the release PR. In the release PR: advance the clean importer submodule to its
    released commit, pin the prereleased component versions in `.env` and `.env.shared`, restore release
    Dockerfile blocks, and align applicable Compose wiring, INIs and docs.
    Preserve deployment-specific paths/credentials and the enabled demo flags.
