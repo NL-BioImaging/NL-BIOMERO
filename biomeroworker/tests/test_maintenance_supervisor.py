@@ -51,8 +51,9 @@ def test_maintenance_uses_its_own_bounded_lane_not_analysis_slots():
     worker = Mock()
     worker.is_alive.return_value = True
     factory = Mock(return_value=worker)
-    with patch.dict(sys.modules, biomero=SimpleNamespace(maintenance=maintenance)), \
-            patch.dict(namespace, MaintenanceWorker=factory):
+    modules = {"biomero": SimpleNamespace(maintenance=maintenance)}
+    with patch.dict(sys.modules, modules), patch.dict(
+            namespace, MaintenanceWorker=factory):
         supervisor.spawn_maintenance()
         supervisor.spawn_maintenance()
     assert factory.call_count == 1
@@ -95,9 +96,9 @@ def test_worker_checks_admin_and_records_terminal_outcome(
     supervisor = Mock()
     constants = SimpleNamespace(metadata_refresh_status=SimpleNamespace(
         QUEUED="QUEUED", RUNNING="RUNNING", ACTIVE=("QUEUED", "RUNNING")))
-    with patch.dict(sys.modules, {"biomero": core,
-                                  "biomero.constants": constants}),             patch.dict(namespace,
-                       load_metadata_script=Mock(return_value=script)):
+    modules = {"biomero": core, "biomero.constants": constants}
+    with patch.dict(sys.modules, modules), patch.dict(
+            namespace, load_metadata_script=Mock(return_value=script)):
         worker = namespace["MaintenanceWorker"](uuid4(), supervisor)
         worker.user_connection = Mock(
             return_value=contextlib.nullcontext(conn))

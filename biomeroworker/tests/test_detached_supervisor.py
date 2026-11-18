@@ -16,8 +16,8 @@ from pathlib import Path
 import sys
 from threading import Event, Lock, Thread
 from types import SimpleNamespace
-from typing import Any, Dict, Iterator, List, Optional, Tuple
-import typing
+from typing import (TYPE_CHECKING, Any, Callable, Dict, Iterable, Iterator,
+                    List, Optional, Set, Tuple)
 from unittest.mock import Mock, patch
 import uuid
 from uuid import uuid4
@@ -37,6 +37,7 @@ CLOCK_START = 1000.0
 OLD_AGE_SECONDS = 10 ** 6
 YOUNG_AGE_SECONDS = 5
 SCRIPT_ID = 42
+RESTART_DELAY_SECONDS = 60
 
 
 try:
@@ -62,7 +63,9 @@ SHIPPED_CONSTANTS = {
     "CLAIM_RENEW_SECONDS", "WORKER_RESTART_DELAY_SECONDS",
     "CANCEL_CHECK_SECONDS", "IGNORE_MIN_AGE_SECONDS", "SCRIPT_POLL_SECONDS",
     "SCRIPT_POLL_FAILURE_LIMIT", "CHILD_POLL_SECONDS",
-    "WORKFLOW_TRACKER_APPLICATION"}
+    "WORKFLOW_TRACKER_APPLICATION", "PARAM_WORKFLOWS", "PARAM_SELECTED_OUTPUT",
+    "PARAM_GROUP", "PARAM_BATCHES", "PARAM_BASE_INPUTS",
+    "PARAM_EFFECTIVE_TYPE"}
 
 
 def processor_namespace(**overrides: Any) -> Dict[str, Any]:
@@ -84,7 +87,10 @@ def processor_namespace(**overrides: Any) -> Dict[str, Any]:
                  if isinstance(node, ast.Assign)
                  and isinstance(node.targets[0], ast.Name)
                  and node.targets[0].id in SHIPPED_CONSTANTS]
-    namespace = {name: getattr(typing, name) for name in typing.__all__}
+    namespace = dict(
+        TYPE_CHECKING=TYPE_CHECKING, Any=Any, Callable=Callable, Dict=Dict,
+        Iterable=Iterable, Iterator=Iterator, List=List, Optional=Optional,
+        Set=Set, Tuple=Tuple)
     namespace.update(
         Thread=Thread, Event=Event, Lock=Lock, logging=logging,
         WorkflowInterrupted=WorkflowInterrupted,
@@ -405,6 +411,9 @@ def test_clean_shutdown_releases_the_claims(core: None) -> None:
     assert released == {
         (first.launcher_task_id, supervisor.owner),
         (second.launcher_task_id, supervisor.owner)}
+    # Released: the workers must stop instead of running on without the claim.
+    assert first.claim_lost.is_set()
+    assert second.claim_lost.is_set()
 
 
 def test_worker_that_ends_during_shutdown_hands_its_workflow_back(
@@ -422,8 +431,36 @@ def test_worker_that_ends_during_shutdown_hands_its_workflow_back(
     supervisor.remove_worker(worker.workflow_id, worker.launcher_task_id)
 
     assert supervisor.active_workers == {}
+    # The worker thread does not touch the tracker, which belongs to the
+    # supervisor thread; that releases the claim.
+    tracker.release_launcher_task.assert_not_called()
+    supervisor.release_claims()
     tracker.release_launcher_task.assert_called_once_with(
         worker.launcher_task_id, supervisor.owner)
+    supervisor.release_claims()
+    tracker.release_launcher_task.assert_called_once()
+
+
+def test_release_is_logged_at_info_and_reports_whether_it_happened(
+        core: None, caplog: pytest.LogCaptureFixture) -> None:
+    """A released claim is logged at INFO; one that was not ours is not.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+        caplog (pytest.LogCaptureFixture): Captures the log records.
+    """
+    tracker = Mock()
+    supervisor = supervisor_with(tracker, [])
+    workflow_id, launcher_task_id = uuid4(), uuid4()
+
+    with caplog.at_level(logging.DEBUG, logger="biomero.detached.supervisor"):
+        tracker.release_launcher_task.return_value = True
+        assert supervisor.release_claim(workflow_id, launcher_task_id)
+        tracker.release_launcher_task.return_value = False
+        assert not supervisor.release_claim(workflow_id, launcher_task_id)
+
+    assert [r.levelno for r in caplog.records] == [
+        logging.INFO, logging.DEBUG]
 
 
 def test_worker_that_ends_normally_keeps_its_claim(core: None) -> None:
@@ -438,10 +475,20 @@ def test_worker_that_ends_normally_keeps_its_claim(core: None) -> None:
 
     supervisor.remove_worker(worker.workflow_id, worker.launcher_task_id)
 
+    supervisor.release_claims()
     tracker.release_launcher_task.assert_not_called()
 
 
 # --------------------------- restart pacing --------------------------- #
+
+def test_restart_delay_is_a_minute(core: None) -> None:
+    """The restart delay is the documented minute, not zero.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+    """
+    assert processor_namespace()["WORKER_RESTART_DELAY_SECONDS"] == 60
+
 
 def test_workflow_whose_worker_just_ended_waits_before_running_again(
         core: None) -> None:
@@ -465,7 +512,7 @@ def test_workflow_whose_worker_just_ended_waits_before_running_again(
         return_value=[(workflow_id, OLD_AGE_SECONDS)])
     supervisor.remove_worker(workflow_id, uuid4())
 
-    delay = namespace["WORKER_RESTART_DELAY_SECONDS"]
+    delay = RESTART_DELAY_SECONDS
     clock.return_value = CLOCK_START + delay - 1
     supervisor.spawn_workers()
     factory.assert_not_called()
@@ -738,6 +785,34 @@ def test_worker_that_lost_its_claim_does_not_fail_the_workflow(
     worker.supervisor.remove_worker.assert_called_once()
 
 
+def test_worker_stopped_by_the_shutdown_is_not_an_error(
+        core: None, caplog: pytest.LogCaptureFixture) -> None:
+    """A worker stopped because its claim was released at shutdown logs INFO.
+
+    A takeover by another supervisor is a WARNING here (the renewal logs the
+    ERROR); a normal shutdown is neither.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+        caplog (pytest.LogCaptureFixture): Captures the log records.
+    """
+    namespace = processor_namespace()
+    worker = make_worker(namespace)
+    worker.fail_workflow = Mock()
+    worker.claim_lost.set()
+    claim_lost = namespace["ClaimLost"]("released")
+
+    with caplog.at_level(logging.INFO, logger=worker.logger.name):
+        worker.supervisor.shutdown_event.set()
+        worker.handle_failure(claim_lost)
+        worker.supervisor.shutdown_event.clear()
+        worker.handle_failure(claim_lost)
+
+    assert [r.levelno for r in caplog.records] == [
+        logging.INFO, logging.WARNING]
+    worker.fail_workflow.assert_not_called()
+
+
 def test_worker_that_failed_normally_fails_its_workflow(core: None) -> None:
     """A worker that failed while it held the claim fails the workflow.
 
@@ -823,7 +898,7 @@ def test_cancelled_batched_parent_is_failed_when_its_children_ended(
 
     worker.run_batches(
         Mock(), Mock(), SimpleNamespace(workflowTracker=tracker), Mock(),
-        Mock(), workflow, {"batches": [[1]]})
+        workflow, {"batches": [[1]]})
 
     tracker.fail_workflow.assert_called_once()
     assert tracker.fail_workflow.call_args.args[1].startswith("Cancelled")
@@ -867,7 +942,7 @@ def test_late_cancel_does_not_fail_a_parent_whose_children_all_completed(
 
     worker.run_batches(
         Mock(), Mock(), SimpleNamespace(workflowTracker=tracker), Mock(),
-        Mock(), workflow, {"batches": [[1]]})
+        workflow, {"batches": [[1]]})
 
     tracker.complete_workflow.assert_called_once()
     tracker.fail_workflow.assert_not_called()
@@ -886,7 +961,7 @@ def test_parent_that_lost_its_claim_writes_no_outcome(core: None) -> None:
     with pytest.raises(namespace["ClaimLost"]):
         worker.run_batches(
             Mock(), Mock(), SimpleNamespace(workflowTracker=tracker), Mock(),
-            Mock(), workflow, {"batches": [[1]]})
+            workflow, {"batches": [[1]]})
 
     tracker.complete_workflow.assert_not_called()
     tracker.fail_workflow.assert_not_called()
@@ -946,7 +1021,7 @@ def test_cancel_while_queuing_stops_queuing_and_waits_for_the_children(
 
     worker.run_batches(Mock(VERSION="v"), Mock(),
                        SimpleNamespace(workflowTracker=tracker), Mock(),
-                       Mock(), workflow, {"batches": [[1], [2]]})
+                       workflow, {"batches": [[1], [2]]})
 
     assert tracker.initiate_workflow.call_count == 1  # none for the 2nd batch
     tracker.request_workflow_cancel.assert_called_once()
@@ -998,7 +1073,7 @@ def test_claim_is_checked_before_each_write_that_creates_a_child(
     with pytest.raises(namespace["ClaimLost"]):
         worker.run_batches(Mock(VERSION="v"), Mock(),
                            SimpleNamespace(workflowTracker=tracker), Mock(),
-                           Mock(), workflow, {"batches": [[1], [2]]})
+                           workflow, {"batches": [[1], [2]]})
 
     tracker.initiate_workflow.assert_not_called()
     tracker.add_task_to_workflow.assert_not_called()
@@ -1110,8 +1185,7 @@ def test_ended_workers_are_forgotten_after_the_restart_delay(
     supervisor = namespace["WorkflowSupervisor"]()
     supervisor.tracker = Mock()
     supervisor.remove_worker(uuid4(), uuid4())
-    restart_delay = namespace["WORKER_RESTART_DELAY_SECONDS"]
-    clock.return_value = CLOCK_START + restart_delay + 1
+    clock.return_value = CLOCK_START + RESTART_DELAY_SECONDS + 1
 
     supervisor.prune_workers()
 

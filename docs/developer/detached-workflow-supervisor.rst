@@ -95,11 +95,14 @@ its supervisor released it, raises ``ClaimLost`` (a ``WorkflowInterrupted``):
 the pipeline's stage handlers let it pass without failing any task, and a
 batched parent also stops before it writes any child or parent state.
 
-When a renewal finds the claim in another supervisor's hands, the supervisor logs
-an error and the worker stops at its next check (between pipeline steps, or by
-cancelling the running sub-script) without failing the workflow. Run a single detached supervisor
-per BIOMERO tracking database anyway: the claim keeps two of them from running
-the same workflow, but metadata maintenance requests below are not claimed.
+When a renewal finds the claim in another supervisor's hands, the supervisor
+logs an error and the worker stops at its next check (between pipeline steps,
+or by cancelling the running sub-script) without failing the workflow. A clean
+shutdown stops its workers the same way, logged at INFO; the supervisor thread
+releases the claims, because the tracker belongs to that thread. Run a single
+detached supervisor per BIOMERO tracking database anyway: the claim keeps two
+of them from running the same workflow, but metadata maintenance requests
+below are not claimed.
 
 Cancellation
 ------------
