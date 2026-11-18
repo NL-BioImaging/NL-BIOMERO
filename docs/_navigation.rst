@@ -39,6 +39,7 @@
    developer/bilayers-workflows
    developer/zarr-workflow-development
    developer/biomero-shallow-zarr
+   developer/biomero-files
    developer/containers/index
 
 .. toctree::

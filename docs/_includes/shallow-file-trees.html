@@ -14,6 +14,7 @@
 .tree-added { background:#fff3d6; font-weight:700; }
 .tree-modified { background:#ede9fe; color:#4c1d95; font-weight:700; }
 .tree-gap { color:#a5afb9; }
+.tree-note { margin:0; padding:12px 18px; border-top:2px solid #7c3aed; background:#f5f3ff; color:#17354a; font:13px/1.5 Arial,sans-serif; }
 @media(max-width:760px) { .shallow-file-comparison { grid-template-columns:1fr; } }
 </style>
 <div class="shallow-file-comparison" role="group" aria-label="Directory contents with shallow storage off and on">
@@ -47,9 +48,9 @@
 ├── 📄 .zgroup
 <span class="tree-modified">├── 📄 .zattrs  ✎ modified</span>
 </span><span class="tree-section"><span class="tree-added">├── 📄 .biomero-shallow.json
-├── 📄 .biomero-shallow-report.json</span>
+├── 📄 .biomero-shallow-report.json  †
+├── 📄 .biomero-import-storage.json</span>
 <span class="tree-gap">│
-│
 │
 │
 │
@@ -64,5 +65,6 @@
             ├── 📄 .zarray
             ├── 📄 0.0
             └── …</span></pre>
+    <p class="tree-note">† Only when the remote helper shallowed the result on HPC; local shallowing writes no report. A <code>.biomero-remote-attempt.json</code> can replace it if the helper did not shallow the store. Beside the store, not inside it: <code>.result.ome.zarr.biomero-lock</code>, and <code>.result.ome.zarr.biomero-prune-&lt;token&gt;/</code> after an interrupted prune. In a Zarr v3 store the <code>biomero</code> pointer is in <code>zarr.json</code>. See the <a href="biomero-files.html">BIOMERO file reference</a>.</p>
   </section>
 </div>
