@@ -101,7 +101,12 @@ Fix or reply to every blocking and should-fix finding; nits are optional.
 Verify each suggestion against the code before applying it, as reviewers can
 be wrong too.
 One review round is the default; request a second round only when fixing a
-blocking finding required non-trivial code changes. Then add a PR comment
+blocking finding required non-trivial code changes.
+When a rule was added or changed after a PR's last full review, the next
+review checks the whole PR against the current rules, not only the delta.
+When a rule changes, coordinators recheck every open PR reviewed under the
+old rules before it goes to the maintainer.
+Then add a PR comment
 summarizing the review (reviewer, findings, how each was resolved, what remains
 open), wait until CI passes, and ask the user to review. Test-only PRs (for
 example into the biomero-scripts `test-suite` branch) are the exception: the
