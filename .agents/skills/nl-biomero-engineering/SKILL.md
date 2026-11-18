@@ -34,6 +34,9 @@ is a requirement, not polish.
   future features reuse them. Put behavior in the
   component that owns it (see each component's ownership section) and keep
   workflow decisions in the callers rather than in shared libraries.
+  Do not add a module for one function or one setting: put it in the existing
+  module that owns the concept (its constants, its feature module). A new
+  module needs a reason in the PR description, and reviewers check it.
 - Match the surrounding code: its naming, structure, error handling, logging
   and test style. New code should look like it was written by the same team.
   A new module follows the package's established modules, not only its own
@@ -281,6 +284,9 @@ Guidance must work for any agent or tool, from any provider.
   developer pages, in this repository and in NL-BIOMERO) before designing,
   implementing or reviewing, together with the skills. If code and docs
   disagree, report it and fix the one that is wrong in the same change.
+- Coordinators check a design against the component skills before proposing it
+  or putting it in a brief. A brief that fixes an API or mechanism must state
+  which rules it was checked against.
 - Write rules as imperatives with a one-line reason. Do not name a specific
   agent, model or tool in a rule; say "run the tests", not which tool runs them.
 - Keep durable rules separate from status. Do not put version pins, release

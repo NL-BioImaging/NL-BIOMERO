@@ -42,6 +42,10 @@ the change fits. Check, in this order:
    an issue for larger ones. If the code is too hard to follow to judge its
    approach, report that as blocking and ask for it to be restructured first;
    do not approve what you cannot understand.
+   A brief, an agreed API or an earlier decision never exempts a change from
+   the rules. When a change follows a design that conflicts with a rule,
+   report the conflict as a blocking finding for the user to decide; never
+   waive the rule because the change was designed that way.
 3. **Tests:** regression tests at the lowest useful layer; every changed
    behavior and flag state (enabled, false, missing, empty) covered.
    Assertions check the exact outcome (for example the log level), not one of
@@ -100,6 +104,11 @@ changes to the branch.
 Fix or reply to every blocking and should-fix finding; nits are optional.
 Verify each suggestion against the code before applying it, as reviewers can
 be wrong too.
+Resolve a review comment's intent, not only the line it is attached to: apply
+it everywhere in the change where the same point holds, and say in the reply
+which places changed. GitHub moves a comment to a nearby line when its line
+disappears, so a narrow fix can leave the comment pointing at code it also
+meant.
 One review round is the default; request a second round only when fixing a
 blocking finding required non-trivial code changes.
 When a rule was added or changed after a PR's last full review, the next
