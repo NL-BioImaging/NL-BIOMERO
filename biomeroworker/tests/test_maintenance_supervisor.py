@@ -4,7 +4,7 @@ import contextlib
 import logging
 from pathlib import Path
 import sys
-from threading import Event, Lock, Thread
+from threading import Event, Lock, Thread, current_thread
 from types import SimpleNamespace
 import typing
 from typing import Any, Dict
@@ -31,7 +31,8 @@ def processor_namespace() -> Dict[str, Any]:
     namespace = {name: getattr(typing, name) for name in typing.__all__}
     namespace.update(
         Thread=Thread, Event=Event, Lock=Lock, logging=logging,
-        WorkflowWorker=Thread, uuid=uuid,
+        WorkflowWorker=Thread, uuid=uuid, SUPERVISOR_STOP_TIMEOUT_SECONDS=30,
+        current_thread=current_thread,
         socket=SimpleNamespace(gethostname=lambda: HOST_NAME))
     exec(compile(ast.Module(body=nodes, type_ignores=[]), str(source),
                  "exec"), namespace)

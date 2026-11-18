@@ -80,7 +80,8 @@ status, so it is not an analysis phase and does not appear as workflow progress.
 
 A claim is valid for a lease (``LAUNCHER_CLAIM_LEASE_SECONDS``, five minutes).
 The supervisor renews the claim of each running workflow every
-``CLAIM_RENEW_SECONDS``, and gives the claims up on a clean shutdown. After a
+``CLAIM_RENEW_SECONDS``, and gives the claims up on a clean shutdown (see
+below). After a
 crash or restart the lease runs out and the new supervisor claims the launcher
 and resumes the run: with ``resume=True``, completed transfer and conversion
 stages are skipped and an existing Slurm job is adopted instead of submitted
@@ -99,7 +100,13 @@ When a renewal finds the claim in another supervisor's hands, the supervisor
 logs an error and the worker stops at its next check (between pipeline steps,
 or by cancelling the running sub-script) without failing the workflow. A clean
 shutdown stops its workers the same way, logged at INFO; the supervisor thread
-releases the claims, because the tracker belongs to that thread. Run a single
+releases the claims, because the tracker belongs to that thread. The shutdown
+starts in ``omero.util.Server.run``: when the node stops (SIGTERM, for example
+on ``docker stop``), its ``finally`` block calls the servant's ``cleanup()``,
+which ``ProcessorI.cleanup`` overrides to stop the supervisor and wait for it
+up to ``SUPERVISOR_STOP_TIMEOUT_SECONDS``. A process that is killed, or that
+is not given that time (mind the container stop grace period), does not
+release anything: its claims run out after the lease. Run a single
 detached supervisor per BIOMERO tracking database anyway: the claim keeps two
 of them from running the same workflow, but metadata maintenance requests
 below are not claimed.

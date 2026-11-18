@@ -784,7 +784,7 @@ class UseSessionHolder(object):
 #
 # The supervisor only starts when BIOMERO_DETACHED_WORKFLOWS is enabled for
 # this processor, so a stock deployment is unaffected.
-from threading import Thread, Lock, Event
+from threading import Thread, Lock, Event, current_thread
 
 # How many workflows to drive at once. Batched parents do not count: they only
 # wait for their children, and counting them could starve those children.
@@ -822,6 +822,8 @@ CLAIM_RENEW_SECONDS = LAUNCHER_CLAIM_LEASE_SECONDS // 3
 # After a worker ended without its workflow reaching a final state, the
 # supervisor waits this long before it runs that workflow again.
 WORKER_RESTART_DELAY_SECONDS = 60
+# How long a node shutdown waits for the supervisor to hand its claims back.
+SUPERVISOR_STOP_TIMEOUT_SECONDS = 30
 # How often a sub-script run looks for a cancel request of its workflow.
 CANCEL_CHECK_SECONDS = 10
 # The application whose recording carries the workflow progress events.
@@ -1222,6 +1224,9 @@ class WorkflowWorker(Thread):
         # Set when this supervisor lost the claim on the workflow: the worker
         # then stops at its next check instead of running a second copy.
         self.claim_lost = Event()
+        # Set with ``claim_lost`` when another supervisor took the claim, as
+        # opposed to this supervisor releasing it.
+        self.taken_over = False
         self.logger = logging.getLogger(f"biomero.detached.{workflow_id}")
 
     def raise_if_claim_lost(self) -> None:
@@ -1263,7 +1268,8 @@ class WorkflowWorker(Thread):
             # The claim is gone (taken over, or released at shutdown):
             # whoever owns this workflow now writes its outcome, and
             # failing it here would fail their run.
-            if self.supervisor.shutdown_event.is_set():
+            if (self.supervisor.shutdown_event.is_set()
+                    and not self.taken_over):
                 self.logger.info(f"Worker of workflow {self.workflow_id} "
                                  f"stopped for the shutdown; its claim was "
                                  f"handed back.")
@@ -2180,6 +2186,7 @@ class WorkflowSupervisor(Thread):
         self.logger.error(
             f"Lost the claim on workflow {worker.workflow_id} to "
             f"{launcher.claimed_by}; stopping this supervisor's worker.")
+        worker.taken_over = True
         worker.claim_lost.set()
 
     def release_claims(self) -> None:
@@ -2194,12 +2201,16 @@ class WorkflowSupervisor(Thread):
             ended = dict(self.pending_release)
             self.pending_release.clear()
         for worker in running:
-            self.release_claim(worker.workflow_id, worker.launcher_task_id)
-            # The claim is given up, or runs out on its own: either way the
-            # worker must not run on as if it still held it.
+            # Stop the worker first: once the claim is released another
+            # supervisor may take the workflow over, and this worker must not
+            # write to it any more. It stops whether or not the release works
+            # (a claim that is not released runs out on its own).
             worker.claim_lost.set()
+            self.release_claim(worker.workflow_id, worker.launcher_task_id)
+        running_ids = {worker.workflow_id for worker in running}
         for wf_id, launcher_task_id in ended.items():
-            self.release_claim(wf_id, launcher_task_id)
+            if wf_id not in running_ids:
+                self.release_claim(wf_id, launcher_task_id)
 
     def release_claim(self, wf_id: uuid.UUID,
                       launcher_task_id: uuid.UUID) -> bool:
@@ -2224,8 +2235,9 @@ class WorkflowSupervisor(Thread):
         if released:
             self.logger.info(f"Released the claim on workflow {wf_id}.")
         else:
-            self.logger.debug(f"The claim on workflow {wf_id} was not ours "
-                              f"to release.")
+            self.logger.debug(f"The claim on workflow {wf_id} is not held "
+                              f"by this supervisor, or changed meanwhile; "
+                              f"nothing released.")
         return released
 
     def prune_workers(self) -> None:
@@ -2302,9 +2314,23 @@ class WorkflowSupervisor(Thread):
         with self.lock:
             self.ignored.add(wf_id)
 
-    def stop(self) -> None:
-        """Ask the supervisor to stop; it then releases its claims."""
+    def stop(self, timeout: float = SUPERVISOR_STOP_TIMEOUT_SECONDS) -> None:
+        """Stop the supervisor, and wait for it to release its claims.
+
+        Args:
+            timeout (float): How long to wait for the supervisor thread, in
+                seconds; claims it did not release run out on their own.
+        """
         self.shutdown_event.set()
+        if not self.is_alive() or self is current_thread():
+            return
+        self.join(timeout)
+        if self.is_alive():
+            self.logger.warning(f"The supervisor did not stop within "
+                                f"{timeout}s; unreleased claims run out on "
+                                f"their own.")
+        else:
+            self.logger.info("The supervisor stopped.")
 
 
 class ProcessorI(omero.grid.Processor, omero.util.Servant):
@@ -2362,6 +2388,21 @@ class ProcessorI(omero.grid.Processor, omero.util.Servant):
 
         # Keep this session alive until the processor is finished
         self.resources.add(UseSessionHolder(use_session))
+
+    def cleanup(self) -> None:
+        """Stop the workflow supervisor, then clean up the servant.
+
+        ``omero.util.Server.run`` calls this when the node stops (after
+        SIGTERM or a shutdown request), and the servant's ``__del__`` calls it
+        again, so it is safe to repeat. The supervisor hands its claims back
+        before it stops, so another supervisor takes over at once instead of
+        after the lease.
+        """
+        supervisor = getattr(self, "supervisor", None)
+        if supervisor is not None:
+            self.supervisor = None
+            supervisor.stop()
+        omero.util.Servant.cleanup(self)
 
     def setProxy(self, prx):
         """

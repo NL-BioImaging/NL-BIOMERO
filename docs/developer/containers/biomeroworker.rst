@@ -177,7 +177,8 @@ requesting user's account and group, so results are created and owned exactly
 as an inline run creates them.
 
 An interrupted run (worker crash, container restart) is picked up again once
-its supervisor's claim has run out (at once after a clean shutdown): the
+its supervisor's claim has run out (at once after a clean shutdown, when the
+node stop reaches ``ProcessorI.cleanup`` in time; after a kill, the lease): the
 pipeline skips a transfer or conversion that already completed and resumes
 monitoring a Slurm job it already submitted, rather than submitting it twice.
 A job that failed or was cancelled is submitted anew, and a run that cannot

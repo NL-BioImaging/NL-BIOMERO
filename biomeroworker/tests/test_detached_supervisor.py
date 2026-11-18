@@ -14,7 +14,8 @@ import logging
 import os
 from pathlib import Path
 import sys
-from threading import Event, Lock, Thread
+import time
+from threading import Event, Lock, Thread, current_thread
 from types import SimpleNamespace
 from typing import (TYPE_CHECKING, Any, Callable, Dict, Iterable, Iterator,
                     List, Optional, Set, Tuple)
@@ -26,7 +27,7 @@ import pytest
 
 SOURCE = Path(__file__).parents[1] / "processor.py"
 CLASSES = {"WorkflowSupervisor", "WorkflowWorker", "ClaimLost",
-           "RecordedInputsClient"}
+           "RecordedInputsClient", "ProcessorI"}
 FUNCTIONS = {"polling_script_runner", "latest_progress_position",
              "pump_progress_listener", "cancel_process_if_stopped"}
 LAUNCHER_TASK_NAME = "SLURM_Run_Workflow.py"
@@ -37,6 +38,7 @@ CLOCK_START = 1000.0
 OLD_AGE_SECONDS = 10 ** 6
 YOUNG_AGE_SECONDS = 5
 SCRIPT_ID = 42
+RELEASE_SECONDS = 0.5
 RESTART_DELAY_SECONDS = 60
 
 
@@ -48,6 +50,22 @@ except ImportError:  # isolated run without biomero: same class relationship
 
     class WorkflowCancelled(WorkflowInterrupted):
         """Stand-in for biomero.eventsourcing.WorkflowCancelled."""
+
+
+class StubProcessor:
+    """Stand-in for omero.grid.Processor."""
+
+
+class StubServant:
+    """Stand-in for omero.util.Servant: records its cleanups."""
+
+    def __init__(self) -> None:
+        """Start without any cleanup."""
+        self.cleanups = 0
+
+    def cleanup(self) -> None:
+        """Record that the servant was cleaned up."""
+        self.cleanups += 1
 
 
 class LocalException(Exception):
@@ -63,7 +81,8 @@ SHIPPED_CONSTANTS = {
     "CLAIM_RENEW_SECONDS", "WORKER_RESTART_DELAY_SECONDS",
     "CANCEL_CHECK_SECONDS", "IGNORE_MIN_AGE_SECONDS", "SCRIPT_POLL_SECONDS",
     "SCRIPT_POLL_FAILURE_LIMIT", "CHILD_POLL_SECONDS",
-    "WORKFLOW_TRACKER_APPLICATION", "PARAM_WORKFLOWS", "PARAM_SELECTED_OUTPUT",
+    "WORKFLOW_TRACKER_APPLICATION", "SUPERVISOR_STOP_TIMEOUT_SECONDS",
+    "PARAM_WORKFLOWS", "PARAM_SELECTED_OUTPUT",
     "PARAM_GROUP", "PARAM_BATCHES", "PARAM_BASE_INPUTS",
     "PARAM_EFFECTIVE_TYPE"}
 
@@ -92,7 +111,12 @@ def processor_namespace(**overrides: Any) -> Dict[str, Any]:
         Iterable=Iterable, Iterator=Iterator, List=List, Optional=Optional,
         Set=Set, Tuple=Tuple)
     namespace.update(
-        Thread=Thread, Event=Event, Lock=Lock, logging=logging,
+        Thread=Thread, Event=Event, Lock=Lock, current_thread=current_thread,
+        logging=logging,
+        omero=SimpleNamespace(grid=SimpleNamespace(Processor=StubProcessor),
+                              util=SimpleNamespace(Servant=StubServant)),
+        path=SimpleNamespace(getcwd=lambda: "."),
+        remoted=lambda function: function, perf=lambda function: function,
         WorkflowInterrupted=WorkflowInterrupted,
         LAUNCHER_CLAIM_LEASE_SECONDS=CORE_LEASE_SECONDS,
         MAX_ACTIVE_WORKFLOWS=4,
@@ -392,6 +416,7 @@ def test_lost_claim_is_an_error(
                and "Lost the claim" in record.getMessage()
                for record in caplog.records)
     assert worker.claim_lost.is_set()
+    assert worker.taken_over
 
 
 def test_clean_shutdown_releases_the_claims(core: None) -> None:
@@ -414,6 +439,116 @@ def test_clean_shutdown_releases_the_claims(core: None) -> None:
     # Released: the workers must stop instead of running on without the claim.
     assert first.claim_lost.is_set()
     assert second.claim_lost.is_set()
+
+
+def test_workers_stop_even_when_a_release_fails_or_is_refused(
+        core: None, caplog: pytest.LogCaptureFixture) -> None:
+    """Every running worker is stopped, whatever the release returned.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+        caplog (pytest.LogCaptureFixture): Captures the log records.
+    """
+    tracker = Mock()
+    tracker.release_launcher_task.side_effect = [
+        True, False, RuntimeError("database down")]
+    supervisor = supervisor_with(tracker, [])
+    workers = [running_worker(supervisor) for _ in range(3)]
+
+    with caplog.at_level(logging.WARNING,
+                         logger="biomero.detached.supervisor"):
+        supervisor.release_claims()
+
+    assert tracker.release_launcher_task.call_count == 3
+    assert all(worker.claim_lost.is_set() for worker in workers)
+    assert [r.levelno for r in caplog.records] == [logging.WARNING]
+
+
+def test_worker_is_stopped_before_its_claim_is_released(core: None) -> None:
+    """The worker stops writing before another supervisor can take over.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+    """
+    tracker = Mock()
+    supervisor = supervisor_with(tracker, [])
+    worker = running_worker(supervisor)
+    flag_at_release = []
+    tracker.release_launcher_task.side_effect = (
+        lambda *args: flag_at_release.append(worker.claim_lost.is_set()))
+
+    supervisor.release_claims()
+
+    assert flag_at_release == [True]
+
+
+def test_workflow_released_as_running_is_not_released_again(
+        core: None) -> None:
+    """A worker that ended during the shutdown is released only once.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+    """
+    tracker = Mock()
+    supervisor = supervisor_with(tracker, [])
+    worker = running_worker(supervisor)
+    supervisor.pending_release[worker.workflow_id] = worker.launcher_task_id
+
+    supervisor.release_claims()
+
+    tracker.release_launcher_task.assert_called_once()
+
+
+def test_node_shutdown_stops_the_supervisor(core: None) -> None:
+    """The cleanup the OMERO server calls on shutdown stops the supervisor.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+    """
+    processor = object.__new__(processor_namespace()["ProcessorI"])
+    StubServant.__init__(processor)
+    processor.supervisor = Mock()
+    supervisor = processor.supervisor
+
+    processor.cleanup()
+    processor.cleanup()  # the servant's __del__ calls it again
+
+    supervisor.stop.assert_called_once_with()
+    assert processor.cleanups == 2
+    assert processor.supervisor is None
+
+
+def test_stopping_the_supervisor_waits_for_its_claims_to_be_released(
+        core: None) -> None:
+    """stop() ends the supervisor thread, which releases its claims first.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+    """
+    tracker = Mock()
+    tracker.release_launcher_task.side_effect = (
+        lambda *args: time.sleep(RELEASE_SECONDS))
+    namespace = processor_namespace(
+        load_biomero_scripts=Mock(return_value=(SimpleNamespace(), Mock())),
+        SUPERVISOR_STARTUP_GRACE_SECONDS=0, SUPERVISOR_POLL_SECONDS=1,
+        polling_script_runner=Mock())
+    supervisor = namespace["WorkflowSupervisor"]()
+    supervisor.prune_workers = Mock()
+    supervisor.spawn_workers = Mock()
+    supervisor.spawn_maintenance = Mock()
+    worker = running_worker(supervisor)
+    modules = {
+        "biomero": SimpleNamespace(
+            WorkflowTracker=Mock(return_value=tracker)),
+        "biomero.database": SimpleNamespace(EngineManager=Mock())}
+
+    with patch.dict(sys.modules, modules):
+        supervisor.start()
+        supervisor.stop(timeout=10)
+
+    assert not supervisor.is_alive()
+    tracker.release_launcher_task.assert_called_once_with(
+        worker.launcher_task_id, supervisor.owner)
 
 
 def test_worker_that_ends_during_shutdown_hands_its_workflow_back(
@@ -458,9 +593,11 @@ def test_release_is_logged_at_info_and_reports_whether_it_happened(
         assert supervisor.release_claim(workflow_id, launcher_task_id)
         tracker.release_launcher_task.return_value = False
         assert not supervisor.release_claim(workflow_id, launcher_task_id)
+        tracker.release_launcher_task.side_effect = RuntimeError("down")
+        assert not supervisor.release_claim(workflow_id, launcher_task_id)
 
     assert [r.levelno for r in caplog.records] == [
-        logging.INFO, logging.DEBUG]
+        logging.INFO, logging.DEBUG, logging.WARNING]
 
 
 def test_worker_that_ends_normally_keeps_its_claim(core: None) -> None:
@@ -811,6 +948,14 @@ def test_worker_stopped_by_the_shutdown_is_not_an_error(
     assert [r.levelno for r in caplog.records] == [
         logging.INFO, logging.WARNING]
     worker.fail_workflow.assert_not_called()
+
+    # A takeover before the shutdown is not hidden behind the shutdown INFO.
+    caplog.clear()
+    worker.taken_over = True
+    worker.supervisor.shutdown_event.set()
+    with caplog.at_level(logging.INFO, logger=worker.logger.name):
+        worker.handle_failure(claim_lost)
+    assert [r.levelno for r in caplog.records] == [logging.WARNING]
 
 
 def test_worker_that_failed_normally_fails_its_workflow(core: None) -> None:

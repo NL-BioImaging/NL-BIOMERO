@@ -29,7 +29,8 @@ MAX_ACTIVE_WORKFLOWS = 4
 # The values the processor ships, executed from its source.
 SHIPPED_CONSTANTS = {
     "CLAIM_RENEW_SECONDS", "WORKER_RESTART_DELAY_SECONDS",
-    "IGNORE_MIN_AGE_SECONDS", "CHILD_POLL_SECONDS"}
+    "IGNORE_MIN_AGE_SECONDS", "CHILD_POLL_SECONDS",
+    "SUPERVISOR_STOP_TIMEOUT_SECONDS"}
 
 
 def core_unavailable(reason: str) -> NoReturn:
