@@ -47,9 +47,13 @@ is a requirement, not polish.
   `Args:` as `name (type): description`, `Returns:`, `Raises:`), type hints on
   every signature, f-strings and double quotes. New components start in this
   style; reviewers comment on deviations.
-- Start every source file with the licence header used by its repository
-  (the Apache-2.0 header of BIOMERO core, or the GPL header of a GPL
-  repository), matching the repository's `LICENSE`.
+- Start every source file with the licence header used by its repository,
+  naming the licence in `LICENSE`: Apache-2.0 (BIOMERO core), GNU GPL
+  version 2 (biomero-scripts) or BSD 2-Clause (NL-BIOMERO). A new file
+  carries the year it was written and points to the existing `LICENSE` file.
+- READMEs and user documentation do not state component versions (no `>=`
+  floors, never prereleases): they are for users, and the release pins define
+  which versions work together. Say what is needed, not which version has it.
 - State behavior changes. A PR described as logging-only, refactoring or
   style must not change behavior; list any deliberate change in the
   description.
