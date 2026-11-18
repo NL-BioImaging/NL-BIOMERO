@@ -64,6 +64,10 @@ the change fits. Check, in this order:
    than skip in CI when it is missing.
 4. **Configuration and documentation:** feature-flag and settings rules,
    docs and guidance updated with the behavior.
+   When the PR adds, moves, renames or removes a file that BIOMERO writes,
+   check that the file reference (NL-BIOMERO `docs/developer/biomero-files.md`)
+   changes with it; a PR in another repository names the NL-BIOMERO docs PR
+   that does.
 5. **Parallel PRs:** when other open PRs change the same files, merge them
    with this one (`git merge-tree`) and check the result for duplicate
    definitions or changed signatures that merge without a conflict; agree

@@ -165,9 +165,11 @@ is a requirement, not polish.
   diagrams in the same change, because the docs are versioned with the
   release and readers rely on them to match that version.
 - Document every file BIOMERO writes (sidecars, manifests, markers,
-  journals) in the file reference, so someone who finds such a file can look
-  up what it is, who writes and reads it, and whether it is safe to remove.
-  Adding, moving or removing a file updates that reference in the same change.
+  journals) in the file reference (NL-BIOMERO
+  `docs/developer/biomero-files.md`), so someone who finds such a file can
+  look up what it is, who writes and reads it, and whether it is safe to
+  remove. Adding, moving or removing a file updates that reference in the
+  same change.
 
 ## Issues and the project board
 
