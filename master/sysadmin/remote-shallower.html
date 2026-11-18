@@ -916,6 +916,7 @@ window.addEventListener("load", load);
 <li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#results-measured-benefits-and-costs">Results: measured benefits and costs</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../developer/biomero-files.html">BIOMERO file reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../developer/containers/index.html">Container Development</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../developer/containers/omeroserver.html">OMERO Server Container</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../developer/containers/omeroserver.html#overview">Overview</a></li>
@@ -1191,7 +1192,7 @@ window.addEventListener("load", load);
 <h1>Shallow OME-Zarr Storage<a class="headerlink" href="#shallow-ome-zarr-storage" title="Permalink to this heading"></a></h1>
 <p>Shallow storage avoids keeping another copy of original image pixels in
 eligible OME-Zarr workflow results. BIOMERO retains derived images, labels and
-sidecars, and references the known input already in managed storage. It selects
+workflow output sidecar files, and references the known input already in managed storage. It selects
 this route from usable output declarations, an administrator’s workflow policy
 or a compatible pixel comparison. Original source data remains unchanged.</p>
 <p>The matched component releases support OME-Zarr 0.4 / Zarr v2 and OME-Zarr
@@ -1318,7 +1319,7 @@ channels, Z slices and timepoints. Labels remain independently compared at full
 resolution. This reduces comparison reads but is not proof of full-resolution
 image equality; see the <a class="reference internal" href="../developer/biomero-shallow-zarr.html"><span class="doc">Working with shallow OME-Zarr results</span></a> explanation.</p>
 <p>The supported source-linked output contains an enclosing image and its label
-datasets. Additional derived stores and sidecars are preserved. Bare labels-only
+datasets. Additional derived stores and workflow output sidecar files are preserved. Bare labels-only
 outputs are not automatically materialized; workflows requiring full stored
 results must return a complete image/label collection. Neither declarations nor
 workflow policies override disabled shallow storage, which performs no
@@ -1450,8 +1451,10 @@ initialize and verify the selected image before retrying.</p>
 data, run <code class="docutils literal notranslate"><span class="pre">BIOMERO</span> <span class="pre">Migrate</span> <span class="pre">Shallow</span> <span class="pre">Storage</span> <span class="pre">(Admin</span> <span class="pre">Only)</span></code>. Run its dry mode
 first, then apply the migration after reviewing the count and estimated space
 recovery. The migration updates manifests and OMERO references, consolidates
-canonical registrations, and creates recovery files without copying image
-pixels.</p>
+canonical registrations, and keeps a backup of the files it changes
+(<code class="docutils literal notranslate"><span class="pre">.&lt;store&gt;.biomero-schema1-backup</span></code>) without copying image pixels. See the
+<a class="reference internal" href="../developer/biomero-files.html"><span class="doc">BIOMERO file reference</span></a> for what these files
+are.</p>
 <p>Equivalent <code class="docutils literal notranslate"><span class="pre">[SLURM]</span></code> options are <code class="docutils literal notranslate"><span class="pre">remote_shallow_zarr</span></code>,
 <code class="docutils literal notranslate"><span class="pre">remote_shallower_image</span></code>, <code class="docutils literal notranslate"><span class="pre">remote_shallower_version</span></code>,
 <code class="docutils literal notranslate"><span class="pre">remote_shallower_workers</span></code>, and <code class="docutils literal notranslate"><span class="pre">remote_shallower_partition</span></code>. Environment
@@ -1480,7 +1483,7 @@ been changed by the workflow. A cache refresh therefore happens locally when
 the remote helper cannot use a current fingerprint.</p>
 </section>
 <section id="failure-and-observability">
-<h2>Failure and observability<a class="headerlink" href="#failure-and-observability" title="Permalink to this heading"></a></h2>
+<span id="remote-shallower-failure"></span><h2>Failure and observability<a class="headerlink" href="#failure-and-observability" title="Permalink to this heading"></a></h2>
 <p>Result-import recovery is automatic on compatible storage, with no additional
 feature flag. Before preparing an import, the scripts check filesystem locking,
 atomic replacement and file/directory synchronization using disposable metadata.
@@ -1513,14 +1516,18 @@ Retrieval pauses if submission state or rollback cannot be resolved safely.
 Results and journals remain available for recovery. <code class="docutils literal notranslate"><span class="pre">keep-full</span></code> is the only
 failure policy.</p>
 <p>Inspect the shallower task in workflow provenance, its Slurm job IDs, the
-<code class="docutils literal notranslate"><span class="pre">.biomero-shallower/&lt;task-id&gt;/canonical.json.&lt;job-id&gt;.log</span></code> files beside the
-workflow data, and the <code class="docutils literal notranslate"><span class="pre">.biomero-shallow-report.json</span></code> inside shallow stores.
+<code class="docutils literal notranslate"><span class="pre">.biomero-shallower/&lt;task-id&gt;/canonical.json.&lt;job-id&gt;.log</span></code> files in the
+workflow data folder on the cluster, and the <code class="docutils literal notranslate"><span class="pre">.biomero-shallow-report.json</span></code>
+inside the stores the helper processed.
 Image-pull status remains under <code class="docutils literal notranslate"><span class="pre">&lt;slurm_script_path&gt;/image-pulls</span></code>. Helper task
 events do not replace the main analysis progress.</p>
 <p>After a detached restart BIOMERO adopts submitted jobs or completed reports.
 For an unresolved submission intent, reconcile the unique
 <code class="docutils literal notranslate"><span class="pre">biomero-shallower-&lt;task-id&gt;</span></code> job in Slurm accounting and retry retrieval.
 Do not remove prune journals; they can contain arrays needed for rollback.
+The <a class="reference internal" href="../developer/biomero-files.html"><span class="doc">BIOMERO file reference</span></a> lists every
+<code class="docutils literal notranslate"><span class="pre">.biomero*</span></code> file, which component writes it, and what happens if it is
+deleted.
 Keep the original image configured until outstanding recovery is complete.</p>
 <p>The helper uses the trusted BIOMERO Slurm account, image, event store, and
 import-order writers. Canonical managed identifiers are resolved through the

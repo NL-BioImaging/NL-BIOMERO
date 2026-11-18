@@ -551,6 +551,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../developer/biomero-shallow-zarr.html#results-measured-benefits-and-costs">Results: measured benefits and costs</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../developer/biomero-files.html">BIOMERO file reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../developer/containers/index.html">Container Development</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../developer/containers/omeroserver.html">OMERO Server Container</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../developer/containers/omeroserver.html#overview">Overview</a></li>
@@ -957,11 +958,11 @@ setting is needed when shallow-Zarr is disabled.</p>
 └── .analyzed/
     └── &lt;workflow-uuid&gt;/
         └── &lt;YYYYMMDD_HHMMSS&gt;/
-            ├── &lt;job_id&gt;_out.zip          # results archive
-            ├── &lt;job_id&gt;_out/             # extracted images + CSVs
-            │   ├── data/out/
-            │   │   └── result.tiff
-            │   └── metadata.csv          # workflow provenance
+            ├── result_image.zarr/        # result images (or .tiff) and other outputs,
+            ├── measurements.csv          #   as the workflow wrote them to data/out
+            ├── metadata.csv              # workflow provenance, beside the images
+            ├── &lt;job_id&gt;_out.zip          # results archive; removed after the import
+            │                             #   unless it was attached to OMERO
             └── omero-&lt;job_id&gt;.log        # SLURM job log
 </pre></div>
 </div>

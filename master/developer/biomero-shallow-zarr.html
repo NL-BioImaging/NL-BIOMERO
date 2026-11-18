@@ -383,7 +383,7 @@ window.addEventListener("load", load);
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Container Development" href="containers/index.html" />
+    <link rel="next" title="BIOMERO file reference" href="biomero-files.html" />
     <link rel="prev" title="Developing OME-Zarr workflows" href="zarr-workflow-development.html" /> 
 </head>
 
@@ -916,6 +916,7 @@ window.addEventListener("load", load);
 <li class="toctree-l2"><a class="reference internal" href="#results-measured-benefits-and-costs">Results: measured benefits and costs</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="biomero-files.html">BIOMERO file reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="containers/index.html">Container Development</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="containers/omeroserver.html">OMERO Server Container</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="containers/omeroserver.html#overview">Overview</a></li>
@@ -1264,6 +1265,7 @@ reference/provenance metadata.</p>
 .tree-added { background:#fff3d6; font-weight:700; }
 .tree-modified { background:#ede9fe; color:#4c1d95; font-weight:700; }
 .tree-gap { color:#a5afb9; }
+.tree-note { margin:0; padding:12px 18px; border-top:2px solid #7c3aed; background:#f5f3ff; color:#17354a; font:13px/1.5 Arial,sans-serif; }
 @media(max-width:760px) { .shallow-file-comparison { grid-template-columns:1fr; } }
 </style>
 <div class="shallow-file-comparison" role="group" aria-label="Directory contents with shallow storage off and on">
@@ -1297,9 +1299,9 @@ reference/provenance metadata.</p>
 ├── 📄 .zgroup
 <span class="tree-modified">├── 📄 .zattrs  ✎ modified</span>
 </span><span class="tree-section"><span class="tree-added">├── 📄 .biomero-shallow.json
-├── 📄 .biomero-shallow-report.json</span>
+├── 📄 .biomero-shallow-report.json  †
+├── 📄 .biomero-import-storage.json</span>
 <span class="tree-gap">│
-│
 │
 │
 │
@@ -1314,13 +1316,18 @@ reference/provenance metadata.</p>
             ├── 📄 .zarray
             ├── 📄 0.0
             └── …</span></pre>
+    <p class="tree-note">† Only when the remote helper shallowed the result on HPC; local shallowing writes no report. A <code>.biomero-remote-attempt.json</code> can replace it if the helper did not shallow the store. Beside the store, not inside it: <code>.result.ome.zarr.biomero-lock</code>, and <code>.result.ome.zarr.biomero-prune-&lt;token&gt;/</code> after an interrupted prune. In a Zarr v3 store the <code>biomero</code> pointer is in <code>zarr.json</code>. See the <a href="biomero-files.html">BIOMERO file reference</a>.</p>
   </section>
 </div>
 <p><strong>The blue folders disappear from the result:</strong> full-resolution image
 chunks and their pyramid arrays. The original source retains those pixels.
 <strong>Green is added by the workflow, not by the shallower:</strong> those label files
-remain in both result formats. Two small JSON files are added; <code class="docutils literal notranslate"><span class="pre">.zattrs</span></code> loses
-<code class="docutils literal notranslate"><span class="pre">multiscales</span></code> and gains a <code class="docutils literal notranslate"><span class="pre">biomero</span></code> pointer to the shallow manifest.
+remain in both result formats. A shallow result gains the manifest
+<code class="docutils literal notranslate"><span class="pre">.biomero-shallow.json</span></code> and a record <code class="docutils literal notranslate"><span class="pre">.biomero-import-storage.json</span></code>, and, when
+the helper shallowed it on HPC, the operation report
+<code class="docutils literal notranslate"><span class="pre">.biomero-shallow-report.json</span></code>. <code class="docutils literal notranslate"><span class="pre">.zattrs</span></code> loses <code class="docutils literal notranslate"><span class="pre">multiscales</span></code> and gains a
+<code class="docutils literal notranslate"><span class="pre">biomero</span></code> pointer to the shallow manifest. Every <code class="docutils literal notranslate"><span class="pre">.biomero*</span></code> file is described
+in the <a class="reference internal" href="biomero-files.html"><span class="std std-doc">BIOMERO file reference</span></a>.
 These edits affect the returned image metadata; the source is unchanged by
 shallowing. Other output files, such as CSV measurements, remain.</p>
 <p>The file <code class="docutils literal notranslate"><span class="pre">0.0</span></code> is an example pixel chunk; <code class="docutils literal notranslate"><span class="pre">…</span></code> stands for further chunk files.
@@ -1369,26 +1376,19 @@ find labels and reconstruct the collection.</p>
 source path already registered by the importer. Label-backed mask Images and
 the optional Plate preview similarly register their retained label paths.
 <a class="reference internal" href="../sysadmin/omero-biomero-admin.html#plate-mask-preview"><span class="std std-ref">Preview controls</span></a>.</p>
-<p>The two JSON files have separate jobs:</p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>File</p></th>
-<th class="head"><p>Purpose</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">.biomero-shallow.json</span></code></p></td>
-<td><p>Image/label nodes, omitted arrays, source storage bindings and decision basis; measured identities when comparison was used</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">.biomero-shallow-report.json</span></code></p></td>
-<td><p>Decision, input snapshot and tool provenance; remote receipts bind this report to the expected helper run</p></td>
-</tr>
-</tbody>
-</table>
+<p>The manifest <code class="docutils literal notranslate"><span class="pre">.biomero-shallow.json</span></code> records the image and label nodes, the
+omitted arrays, the source storage bindings and the decision basis, and the
+measured identities when comparison was used. The operation report
+(<code class="docutils literal notranslate"><span class="pre">.biomero-shallow-report.json</span></code>, remote shallowing only) records the decision,
+input snapshot and tool provenance, and remote receipts bind it to the expected
+helper run. The <a class="reference internal" href="biomero-files.html"><span class="std std-doc">file reference</span></a> lists which component writes
+and reads each file, its schema, and whether it can be deleted.</p>
 <p>Source indexing is separate: canonical-source annotations
 (<code class="docutils literal notranslate"><span class="pre">biomero.zarr.source</span></code> / <code class="docutils literal notranslate"><span class="pre">biomero.zarr.plate-source</span></code>) record the reusable input.
-Indexing can also add a <code class="docutils literal notranslate"><span class="pre">.biomero-canonical.json</span></code> marker to the source store;
-this is metadata, not another pixel copy.
+Their detailed identities are kept in a canonical marker file: inside a
+canonical Zarr that BIOMERO promoted, or in a
+<a class="reference internal" href="biomero-files.html#canonical-sidecar"><span class="std std-ref">sidecar</span></a> for a Zarr indexed in place.
+This is metadata, not another pixel copy.
 <strong>Keep the source, retained labels and their references together in retention
 and backup policy.</strong> The shallow folder alone is incomplete.</p>
 </section>
@@ -1444,7 +1444,7 @@ flowchart TB
         HASHBOTH[&quot;&lt;b&gt;ISCC-BIO: read OMERO + export&lt;/b&gt;&lt;br/&gt;Compare Instance-Code + semantic guards&quot;]
         EXIST --&gt; LOCATE
         FRESH --&gt; HASHBOTH
-        LOCATE --&gt;|&quot;Index in place&quot;| REGISTER[&quot;&lt;b&gt;Register canonical generation&lt;/b&gt;&lt;br/&gt;Marker + OMERO source annotations&lt;br/&gt;Path + generation + available fingerprints&quot;]
+        LOCATE --&gt;|&quot;Index in place&quot;| REGISTER[&quot;&lt;b&gt;Register canonical generation&lt;/b&gt;&lt;br/&gt;Canonical marker file + OMERO source annotations&lt;br/&gt;Path + generation + available fingerprints&quot;]
         HASHBOTH --&gt;|&quot;Match: commit to stable storage&quot;| REGISTER
         LOCATE -. &quot;No supported source binding&quot; .-&gt; FALLBACK[&quot;Full input without deduplication&quot;]
         HASHBOTH -. &quot;No match / verification unavailable&quot; .-&gt; FALLBACK
@@ -1559,7 +1559,7 @@ does not identify which image arrays are derived. Cheap format, layout and
 semantic guards still apply; missing or ambiguous evidence falls through to
 the setting or comparison. The supported result includes the enclosing image
 and label datasets; bare labels-only materialization is not implemented.
-Additional derived stores and sidecars are retained.</p>
+Additional derived stores and workflow output sidecar files are retained.</p>
 <p>The original RO-Crate is retained. If its graph explicitly inventories an array
 or label subtree that shallowing would remove, the artifact stays full rather
 than leaving stale file claims or rewriting an arbitrary graph. For supported
@@ -1696,7 +1696,7 @@ stage took <strong>81.0 to 11.1 s</strong>. That comparison uses a different sto
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="zarr-workflow-development.html" class="btn btn-neutral float-left" title="Developing OME-Zarr workflows" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="containers/index.html" class="btn btn-neutral float-right" title="Container Development" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="biomero-files.html" class="btn btn-neutral float-right" title="BIOMERO file reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
