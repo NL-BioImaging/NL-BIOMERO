@@ -92,7 +92,7 @@ def main():
             wait_for(proxy, 'COMPLETED', args.job_seconds + 30)
             completed = True
             with tempfile.TemporaryDirectory() as local:
-                downloaded = ssh_recovery.download(proxy, remote, local)
+                downloaded = ssh_recovery.atomic_get(proxy, remote, local)
                 assert Path(downloaded.local).read_text() == run_id
             report['original_result_verified'] = True
             since = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
