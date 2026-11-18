@@ -72,6 +72,8 @@ Choose your path forward:
    
    </div>
 
+**Found a** ``.biomero*`` **file on disk?** The :doc:`BIOMERO file reference <developer/biomero-files>` says what it is, which component writes and reads it, and whether it is safe to delete or move.
+
 Core Platform Components
 =========================
 

@@ -13,23 +13,163 @@ link to this file instead:
 
 ## Engineering principles
 
-Reviewers check every pull request against these principles.
+Reviewers check every pull request against these principles. Readable code
+is what makes review possible: when functions, variables and grouping say what
+the code does, a reviewer can see the approach and disagree with it. Code that
+has to be traced value by value hides its design from review, so readability
+is a requirement, not polish.
 
 - Keep it simple. Prefer the smallest change that solves the problem; do not
   add layers, frameworks, options or abstractions for hypothetical needs.
-- Reuse before adding. Extend the component's existing modules, helpers and
-  patterns instead of building a parallel implementation.
+- Size safeguards to the real threat. Do not add checks against actors who
+  already have equal or greater access (for example, whoever can submit
+  import orders can already import any data); state the trust assumption in
+  the docs instead.
+- Reuse before adding (DRY). Extend the component's existing modules, helpers
+  and patterns instead of building a parallel implementation; add an optional
+  parameter to an existing function rather than a second code path that must
+  be maintained separately. Generic operations (submitting a scheduler job,
+  running a remote command, looking up workflow tasks) live once, in the main
+  or helper classes, so every feature uses the same site configuration and
+  future features reuse them. Put behavior in the
+  component that owns it (see each component's ownership section) and keep
+  workflow decisions in the callers rather than in shared libraries.
+  Do not add a module for one function or one setting: put it in the existing
+  module that owns the concept (its constants, its feature module). A new
+  module needs a reason in the PR description, and reviewers check it.
 - Match the surrounding code: its naming, structure, error handling, logging
   and test style. New code should look like it was written by the same team.
+  A new module follows the package's established modules, not only its own
+  file: the same docstring format, type hints, naming and quoting. Each
+  component's `<repo>-dev` skill names its reference module.
+- Use one Python style across all NL-BIOMERO repositories, modelled on BIOMERO
+  core (`biomero/slurm_client.py`): Google-style docstrings (summary line,
+  `Args:` as `name (type): description`, `Returns:`, `Raises:`), type hints on
+  every signature, f-strings and double quotes. New components start in this
+  style; reviewers comment on deviations.
+- Start every source file with the licence header used by its repository,
+  naming the licence in `LICENSE`: Apache-2.0 (BIOMERO core), GNU GPL
+  version 2 (biomero-scripts) or BSD 2-Clause (NL-BIOMERO). A new file
+  carries the year it was written and points to the existing `LICENSE` file.
+- READMEs and user documentation do not state component versions (no `>=`
+  floors, never prereleases): they are for users, and the release pins define
+  which versions work together. Say what is needed, not which version has it.
+- State behavior changes. A PR described as logging-only, refactoring or
+  style must not change behavior; list any deliberate change in the
+  description.
+- Treat persisted files, events, database rows, command-line output and
+  public function signatures as contracts between components. Before changing
+  one, find every reader in all repositories; a refactor keeps them
+  compatible, and a deliberate change keeps old callers working (for example
+  with a deprecated alias) or is called out in the release notes. Pin
+  persisted formats with a test. Before calling a name "prerelease-only" or
+  unused, check the stable release tags of every repository, not only the
+  current branches: a stable release keeps calling it until users upgrade.
+- Pin dependency versions for reproducible builds, but do not let pins go
+  stale: a PR that adds or changes a pin uses the latest compatible release,
+  and each release moves pins to the latest patch and compatible minor
+  versions, so security fixes are not missed.
+- Avoid changing stored data (the event store, database tables), even when
+  the change could be automated: every stored-data change is a migration risk
+  for every install and can make a downgrade impossible. Prefer a design that
+  needs none. When one is unavoidable, add new events instead of changing
+  existing ones; never rename or remove event classes, their attributes or
+  aggregate classes; give new constructor parameters defaults; initialise new
+  aggregate attributes so old histories replay; use upcasters (see the
+  biomero event-sourcing docs) only as a last resort; and plan any view-table
+  change as a rebuild. Test that a history written by the previous release
+  still replays, and state in the PR and release notes what changed and
+  whether a downgrade still works.
+- Write files only into BIOMERO's own folders (`.processed`, `.analyzed`).
+  Users agree not to touch those folders, and BIOMERO in turn never writes
+  into user folders, not even hidden metadata next to an input that is used
+  in place: users may move or delete their own data at any time. Keep such
+  metadata under a BIOMERO folder, keyed by the input's location, or in OMERO.
 - Keep functions focused and readable. Split long functions with many exits
-  or mixed responsibilities.
+  or mixed responsibilities. A function should read as a short sequence of
+  well-named steps and decisions, with each step extracted into a named
+  sub-function.
+- Name things by what they are or do. Functions say what they do
+  (`sha256_of_json`, not `_canonical_digest`; not `run`, `_batch` or
+  `_check`), and the variable holding a result says what it means
+  (`canonical_digest = sha256_of_json(...)`). Name conditions and items that
+  drive decisions (`shallower_already_completed`, `existing_task`) instead of
+  reusing `matches[0]`; store a repeated expression once in a named variable.
+  Give non-trivial commands and queries a named variable before running them.
+- Define every name that scripts and components call each other by once, in
+  core `biomero.constants`: script parameter and output names, launcher
+  parameters, file names, namespaces. Scripts, the NL-BIOMERO processor and
+  OMERO.biomero address each other's parameters by these string names, and
+  `biomero.constants` exists to give them one place to reference. Never repeat
+  such a name as a string literal; reviewers flag every literal that names
+  another script's or component's parameter, output or key. biomero-schema
+  holds cross-component data models. Copies kept in step by a test still drift.
+- Do not hardcode values that may change, such as versions, contract numbers,
+  paths, names and limits. Define them as constants at the top of the module
+  or class (shared constants in the component's constants module) and expose
+  them as function parameters that default to those constants, so they can be
+  changed without editing function internals. Add such a parameter only where
+  it is passed down from the public entry point; a parameter no caller can
+  reach is dead code.
+- Comment what a reader cannot infer: why a branch exists, and what an
+  unfamiliar tool or system call does (for example `flock`) and whether its
+  availability is checked at setup.
+- Prefer f-strings for string formatting, including log messages; use other
+  forms only where an f-string does not work.
 - Log every decision. Each branch that chooses a path (enabled or disabled,
   reuse or fresh, keep or remove, retry or fail, local or remote) logs what it
   decided and why, at least at DEBUG; actions that change or delete data, or
   run remote work, log at INFO. Errors are logged with context, never silently
   swallowed. Someone reading the logs must be able to tell what happened.
+  A feature that is simply switched off is the normal path: log that skip at
+  DEBUG, and use WARNING when a feature is enabled but cannot run, so results
+  silently fall back. Either log an error or raise it with its context, not
+  both; the code that handles the exception logs it once, with its traceback.
 - Prefer typed structures over free-form dicts and string keys for state
   that crosses functions or components.
+- Give every setting one source, one reader and one parser. Other code and
+  components receive the parsed value instead of reading the environment or
+  INI again; values that must match across components come from that single
+  source.
+- Backward compatibility means supported deployments keep working; it does
+  not mean every new feature must support older execution paths. Where a
+  feature's prerequisites are missing (for example, Zarr result handling needs
+  the importer together with BIOMERO core), leave the feature disabled and log
+  why, instead of retrofitting it into those paths.
+- Fixes to core functionality and resilience are not features. A fix (for
+  example, recovering from a dropped SSH connection) is on by default, applies
+  to every path that has the problem and keeps existing installs working;
+  give it one code path, not an on/off fork beside the old code. Settings
+  such as timeouts tune it, and zero turns retrying off within the same path.
+- Make external commands a fix or feature depends on configurable, with a
+  sensible default, in the same way as the zip command: a site can name an
+  equivalent tool. Check at setup that the configured command exists and log
+  what is missing.
+- New features are off in code and on in the NL-BIOMERO demo. A missing,
+  empty or false flag leaves a feature disabled, because existing servers
+  upgrade components without adding new flags. The NL-BIOMERO `.env` and
+  `.env.shared` are the flagship demo for clean installs and the setup we test
+  on: they enable every feature, and everything must work there. Do not report
+  an enabled flag in the demo as a missing opt-in; check the code default
+  instead. See `omero-biomero-expert` for the flag rules.
+- Release finished work. Code added since the last stable release must meet
+  these rules before that release ships; review findings on it are fixed
+  in the release, not deferred to a quick patch release. A stable release
+  should mean that its new features and support can be relied on.
+- Documentation is part of a feature. When a feature is disabled for a
+  release, withdrawn or removed, hide or remove its documentation pages and
+  navigation (Sphinx, MkDocs, READMEs, UI help) in the same change, so the docs
+  describe only what users can use.
+- Keep the documentation factual, including diagrams and file trees. A change
+  to a design, file, contract or behaviour updates the affected text and
+  diagrams in the same change, because the docs are versioned with the
+  release and readers rely on them to match that version.
+- Document every file BIOMERO writes (sidecars, manifests, markers,
+  journals) in the file reference (NL-BIOMERO
+  `docs/developer/biomero-files.md`), so someone who finds such a file can
+  look up what it is, who writes and reads it, and whether it is safe to
+  remove. Adding, moving or removing a file updates that reference in the
+  same change.
 
 ## Issues and the project board
 
@@ -40,6 +180,8 @@ public audience and keep non-public details out of them.
 
 - Start work from an issue, in the repository whose code changes. If agreed
   work has no issue yet, create one, add it to the board and tell the user.
+  Keep issues at the same granularity as PRs: one issue per functionality per
+  repository, listing its parts, rather than one issue per sub-change.
   For work across repositories, create a parent issue in NL-BIOMERO with one
   sub-issue per repository, and close the parent when its last sub-issue
   closes. NL-BIOMERO issues and sub-issues are added to the board
@@ -72,12 +214,31 @@ submodules, including hotfixes and guidance changes.
   with a clear description of the final change and its validation. Do not hold
   work back in a draft PR or local branch; the independent review below runs
   on the ready PR.
-- Keep one PR per scope. Add further changes with the same scope to the open
-  PR instead of opening a stacked or follow-up PR; split only for a separate
-  scope or a required merge order across repositories.
+- A PR that needs a change in another component may only merge once that
+  change is published: components install each other from PyPI (or a
+  released container), not from another repository's default branch. Keep
+  such a PR in draft with an "On hold" note naming the dependency, and raise
+  the dependency's minimum version in the same PR when the prerelease exists.
+  Changes within one repository only need their predecessor merged.
+- Keep one PR per scope, where the scope is one piece of functionality in one
+  repository. Logging, readability fixes, reuse refactors and tests for that
+  functionality belong in the same PR, and one PR may close several issues
+  about it. Add further changes with the same scope to the open PR instead of
+  opening a stacked or follow-up PR; split only for a separate functionality
+  or a required merge order across repositories.
+- Guidance changes (agent skills and their references, no code or
+  configuration): show the user the exact diff; on their approval, commit it
+  directly to the default branch with a message that says what changed and
+  why. Open a PR only when the user asks or the change is large. Keep guidance
+  commits separate from code and configuration changes.
+- Commit only source: check `git status` before committing and never add
+  build or runtime artefacts (`__pycache__`, `*.pyc`, coverage files, local
+  venvs); extend `.gitignore` when one is missing.
 - Make focused, coherent commits and push them as you go. Run cheap, relevant
   checks before pushing and let the required CI checks be the full-suite gate.
-  If CI fails, inspect it and push a follow-up fix. Use proportionate local
+  If CI fails, inspect it and push a follow-up fix. Local runs can skip
+  platform-specific tests, so a PR is ready for the user only when CI passes
+  on every platform it runs. Use proportionate local
   verification before a release, a direct default-branch push or a change
   without suitable CI coverage.
 - Preserve unrelated working-tree changes and never use destructive Git
@@ -124,6 +285,18 @@ Guidance must work for any agent or tool, from any provider.
     Do not use symlinks; Windows checkouts turn them into plain files.
   - Tool metadata such as `agents/openai.yaml` may describe a skill but must
     not add rules.
+- Skills hold rules and routing for agents; the documentation holds the
+  design, behaviour and rationale for people. Do not describe a design in a
+  skill: write or update the documentation and link to it from the skill.
+  Repeat a fact in a skill only when an agent must not get it wrong, and link
+  to its source in the docs so the two do not drift.
+- Read the documentation for the area you change (Sphinx, MkDocs, README and
+  developer pages, in this repository and in NL-BIOMERO) before designing,
+  implementing or reviewing, together with the skills. If code and docs
+  disagree, report it and fix the one that is wrong in the same change.
+- Coordinators check a design against the component skills before proposing it
+  or putting it in a brief. A brief that fixes an API or mechanism must state
+  which rules it was checked against.
 - Write rules as imperatives with a one-line reason. Do not name a specific
   agent, model or tool in a rule; say "run the tests", not which tool runs them.
 - Keep durable rules separate from status. Do not put version pins, release
@@ -164,7 +337,18 @@ for a local deployment, below.
   of the primary checkout or a separate clone, in a temporary or clearly
   agent-owned location, named `<repo>-<topic>`. Record where you created it.
 - Put scratch output (logs, fixtures, measurements, generated files) outside
-  the repositories, next to that checkout or in a temporary directory.
+  the repositories, next to that checkout or in a temporary directory. Give
+  virtual environments and scratch directories names of your own; never
+  reuse or delete a directory another agent or the user created. Clean up
+  by exact path, one directory you created at a time; never delete a shared
+  parent folder or use a wildcard, because other agents may be working next
+  to you.
+- Give long runs (test suites, mutation checks, builds) a timeout, and stop
+  every process you started before you report; a hung test run otherwise
+  keeps loading the machine after you are done.
+  Never stop, restart or shut down shared services you did not start (WSL
+  distributions, Docker Desktop, databases, the user's stacks): other work,
+  including the user's, depends on them.
 - Once the work is pushed and its pull request is open, remove what you
   created: `git worktree remove <path>` then `git worktree prune`, delete the
   local branch, and delete temporary clones and scratch output. Review

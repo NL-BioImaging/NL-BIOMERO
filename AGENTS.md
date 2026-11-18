@@ -13,6 +13,8 @@ the project's Docker Hub images. Not a site's production deployment.
 3. Stack, deployment, documentation and release runbook:
    [`.agents/skills/omero-biomero-expert/SKILL.md`](.agents/skills/omero-biomero-expert/SKILL.md)
    and the `references/` it routes to.
+4. The documentation in `docs/` for the area you change: it describes the
+   design and its rationale, which the skills link to rather than repeat.
 
 ## Layout
 
