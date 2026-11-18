@@ -54,31 +54,24 @@ class PhaseOfflineTests(unittest.TestCase):
         client = types.SimpleNamespace(workflowTracker=types.SimpleNamespace(repository=repository),
             run_commands=native_run, client=types.SimpleNamespace(get_transport=lambda: transport))
 
-        def native_submit(client, sbatch_command, state_prefix, *, job_name, **options):
+        def native_submit(client, command, env, task_id):
             try:
-                return client.run_commands([sbatch_command])
+                return client.run_commands([command])
             except EOFError:
-                return client.run_commands([sbatch_command])
+                return client.run_commands([command])
 
-        from biomero.slurm_client import SlurmClient
-        recovery = types.SimpleNamespace(atomic_get=Mock(), download=Mock())
+        recovery = types.SimpleNamespace(submit=native_submit, download=Mock())
         with tempfile.TemporaryDirectory() as name:
             directory = Path(name)
             control = {'armed': True, 'case_id': str(UUID(int=4)), 'workflow_id': str(workflow_id),
                        'task_name': 'fixture', 'phases': ['submit'], 'mode': 'inline', 'remote_parent': '/private-fixture'}
             write_report(directory / 'control.json', control)
-            def submit(client, task):
-                return SlurmClient.submit_job_once(
-                    client, 'sbatch --job-name=biomero-' + str(task), '/state/' + str(task),
-                    job_name='biomero-' + str(task))
-
-            with patch.object(SlurmClient, 'submit_job_once', native_submit), \
-                    patch.dict(sys.modules, {'biomero': types.SimpleNamespace(ssh_recovery=recovery)}), \
+            with patch.dict(sys.modules, {'biomero': types.SimpleNamespace(ssh_recovery=recovery)}), \
                     patch('importlib.metadata.version', return_value='test'):
                 phase_fault_hook.install(directory)
-                submit(client, other_id)
+                recovery.submit(client, 'sbatch --job-name=biomero-' + str(other_id), {}, other_id)
                 transport.close.assert_not_called()
-                submit(client, task_id)
+                recovery.submit(client, 'sbatch --job-name=biomero-' + str(task_id), {}, task_id)
                 transport.close.assert_called_once()
                 self.assertIs(client.run_commands, native_run)
                 report = json.loads((directory / (control['case_id'] + '-submit.json')).read_text())
@@ -86,79 +79,8 @@ class PhaseOfflineTests(unittest.TestCase):
                 self.assertEqual(report['faults'], 1)
                 self.assertEqual(report['attempts'], 2)
                 self.assertEqual(set(report['accepted_job_ids']), {42})
-                submit(client, task_id)
+                recovery.submit(client, 'sbatch --job-name=biomero-' + str(task_id), {}, task_id)
                 transport.close.assert_called_once()
-
-    def test_helper_job_names_are_never_faulted(self):
-        """biomero-shallower-<uuid> is not an analysis task: pass through."""
-        from biomero.slurm_client import SlurmClient
-        calls = []
-
-        def native_submit(client, sbatch_command, state_prefix, *, job_name, **options):
-            calls.append(job_name)
-            return 'native'
-
-        transport = types.SimpleNamespace(close=Mock())
-        client = types.SimpleNamespace(client=types.SimpleNamespace(get_transport=lambda: transport))
-        recovery = types.SimpleNamespace(atomic_get=Mock(), download=Mock())
-        with tempfile.TemporaryDirectory() as name:
-            directory = Path(name)
-            control = {'armed': True, 'case_id': str(UUID(int=4)), 'workflow_id': str(UUID(int=1)),
-                       'task_name': 'fixture', 'phases': ['submit'], 'mode': 'inline', 'remote_parent': '/private-fixture'}
-            write_report(directory / 'control.json', control)
-            with patch.object(SlurmClient, 'submit_job_once', native_submit), \
-                    patch.dict(sys.modules, {'biomero': types.SimpleNamespace(ssh_recovery=recovery)}):
-                phase_fault_hook.install(directory)
-                for job_name in ('biomero-shallower-' + str(UUID(int=2)), 'biomero-recovery-' + str(UUID(int=2)),
-                                 'conversion', 'biomero-not-a-uuid'):
-                    self.assertEqual(SlurmClient.submit_job_once(
-                        client, 'sbatch x', '/state', job_name=job_name), 'native')
-            self.assertEqual(len(calls), 4)
-            transport.close.assert_not_called()
-            self.assertFalse(list(directory.glob('*.claimed')))
-
-    def test_hook_over_the_real_submit_job_once_recovers_with_one_job(self):
-        """Real submit_job_once and recovery; only the cluster answers are fake."""
-        from fabric import Result
-        from biomero import ssh_recovery
-        from biomero.slurm_client import SlurmClient
-        workflow_id, task_id = UUID(int=1), UUID(int=2)
-        task = types.SimpleNamespace(id=task_id, workflow_id=workflow_id, task_name='fixture', job_ids=[])
-        workflow = types.SimpleNamespace(tasks=[task_id])
-        repository = types.SimpleNamespace(get=lambda value: {workflow_id: workflow, task_id: task}[value])
-        transport = types.SimpleNamespace(close=Mock())
-        client = SlurmClient(config_only=True, ssh_recovery_timeout=5, slurm_data_path='/data')
-        client.workflowTracker = types.SimpleNamespace(repository=repository)
-        client.client = types.SimpleNamespace(get_transport=lambda: transport)
-        client.close = Mock()
-        answers = []
-
-        def cluster(commands, **kwargs):
-            answers.append(commands)
-            return Result(connection=None, exited=0, stdout='Submitted batch job 42\n')
-
-        client.run_commands = cluster
-        original_submit = SlurmClient.submit_job_once
-        with tempfile.TemporaryDirectory() as name:
-            directory = Path(name)
-            control = {'armed': True, 'case_id': str(UUID(int=4)), 'workflow_id': str(workflow_id),
-                       'task_name': 'fixture', 'phases': ['submit'], 'mode': 'inline', 'remote_parent': '/private-fixture'}
-            write_report(directory / 'control.json', control)
-            with patch.object(SlurmClient, 'submit_job_once', original_submit), \
-                    patch.dict(sys.modules, {'biomero': types.SimpleNamespace(ssh_recovery=ssh_recovery)}), \
-                    patch.object(ssh_recovery.time, 'sleep'), \
-                    patch('importlib.metadata.version', return_value='test'):
-                phase_fault_hook.install(directory)
-                job_name = SlurmClient.get_submission_job_name(task_id)
-                result = SlurmClient.submit_job_once(
-                    client, 'sbatch --job-name=' + job_name + ' j.sh',
-                    client.get_submission_state_prefix(task_id), job_name=job_name)
-            self.assertEqual(client.extract_job_id(result), 42)
-            transport.close.assert_called_once()
-            report = json.loads((directory / (control['case_id'] + '-submit.json')).read_text())
-            self.assertEqual(report['status'], 'RECOVERED')
-            self.assertEqual(report['attempts'], 2)
-            self.assertEqual(len(answers), 2)
 
     def test_zip_wrong_workflow_and_small_fixture_never_fault(self):
         workflow_id, task_id = UUID(int=1), UUID(int=2)
@@ -166,7 +88,7 @@ class PhaseOfflineTests(unittest.TestCase):
         workflow = types.SimpleNamespace(tasks=[task_id])
         repository = types.SimpleNamespace(get=lambda value: {workflow_id: workflow, task_id: task}[value])
         native_download = Mock(return_value='untouched')
-        recovery = types.SimpleNamespace(atomic_get=native_download, download=native_download)
+        recovery = types.SimpleNamespace(submit=lambda *a, **kw: None, download=native_download)
         client = types.SimpleNamespace(workflowTracker=types.SimpleNamespace(repository=repository),
                                        run_read_only=Mock(return_value=types.SimpleNamespace(stdout='4096')))
         with tempfile.TemporaryDirectory() as name:
@@ -229,9 +151,7 @@ class PhaseOfflineTests(unittest.TestCase):
                        'task_name': 'fixture', 'phases': ['zip'], 'mode': 'inline', 'remote_parent': '/private-fixture'}
             write_report(directory / 'control.json', control)
             # Restore the real module functions after instrumentation, including on failure.
-            from biomero.slurm_client import SlurmClient
-            with patch.object(SlurmClient, 'submit_job_once', SlurmClient.submit_job_once), \
-                    patch.object(ssh_recovery, 'atomic_get', ssh_recovery.atomic_get), \
+            with patch.object(ssh_recovery, 'submit', ssh_recovery.submit), \
                     patch.object(ssh_recovery, 'download', ssh_recovery.download):
                 phase_fault_hook.install(directory)
                 result = ssh_recovery.download(client,

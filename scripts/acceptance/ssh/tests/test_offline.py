@@ -121,7 +121,7 @@ class OfflineTests(unittest.TestCase):
             with patch.dict(sys.modules, {'biomero': types.SimpleNamespace(SlurmClient=Client)}):
                 workflow_hook.install(directory)
             client = Client()
-            client._ssh_recovery_state = types.SimpleNamespace(heartbeats=[lambda: None], windows=[], timeout=10)
+            client._ssh_recovery_state = types.SimpleNamespace(heartbeats={1: lambda: None}, deadline=None, timeout=10)
             client.workflowTracker = types.SimpleNamespace(repository=types.SimpleNamespace(
                 get=lambda value: types.SimpleNamespace(tasks=[UUID(int=2)], job_ids=[1])))
             with patch.object(workflow_hook, 'proxy_client', side_effect=AssertionError('must not fault')):

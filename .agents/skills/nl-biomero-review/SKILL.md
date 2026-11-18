@@ -42,6 +42,10 @@ the change fits. Check, in this order:
    an issue for larger ones. If the code is too hard to follow to judge its
    approach, report that as blocking and ask for it to be restructured first;
    do not approve what you cannot understand.
+   A brief, an agreed API or an earlier decision never exempts a change from
+   the rules. When a change follows a design that conflicts with a rule,
+   report the conflict as a blocking finding for the user to decide; never
+   waive the rule because the change was designed that way.
 3. **Tests:** regression tests at the lowest useful layer; every changed
    behavior and flag state (enabled, false, missing, empty) covered.
    Assertions check the exact outcome (for example the log level), not one of
@@ -52,15 +56,46 @@ the change fits. Check, in this order:
    assert on mocks they configured themselves, or pass whatever the code does.
    Check the important cases by breaking the code in a scratch copy (change a
    constant, invert a condition, drop a call) and confirming a test fails.
+   Fakes of external tools (Slurm commands, unzip, SSH) must reproduce the
+   behaviour the code relies on, such as restored modification times or
+   accounting lag; otherwise the test cannot tell a correct check from a
+   broken one. A broken change must make a test fail, not hang (give polling
+   stubs a call budget), and tests that need a dependency must fail rather
+   than skip in CI when it is missing.
 4. **Configuration and documentation:** feature-flag and settings rules,
    docs and guidance updated with the behavior.
-5. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
+5. **Parallel PRs:** when other open PRs change the same files, merge them
+   with this one (`git merge-tree`) and check the result for duplicate
+   definitions or changed signatures that merge without a conflict; agree
+   which PR owns the shared code and the merge order.
+6. **Dependencies:** a PR that uses a feature of another component must not
+   be ready for merge before that component's prerelease is published and the
+   minimum version is raised in the PR. A pin the PR adds or changes uses
+   the latest compatible release of that dependency.
+7. **Stored data:** review every change to event classes, aggregate
+   attributes, event handlers, constructors and database tables against the
+   history already stored in installs. Check that event names (topics) and
+   attributes are unchanged, new attributes are initialised so old histories
+   replay, new parameters have defaults, a test replays a history from the
+   previous release, and the PR says whether a downgrade still works. Ask
+   whether the change is needed at all; prefer designs without one.
+8. **Planned work:** check the open stories on the project board
+   (`gh project item-list 2 --owner NL-BioImaging`) and the issues of the
+   touched repositories for planned work in the same area. Report a change
+   that clashes with a story (for example one that removes a hook or fixes a
+   format the story needs). When a tiny tweak now (a parameter, a named step,
+   an extension point in an existing function) would make the story easier
+   later, suggest it, but do not build the story itself or add code nothing
+   uses yet; mention larger preparations in the story instead.
+9. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
    why it has none.
 
 Verify each finding against the code before reporting it; drop what you
 cannot substantiate. Report findings ranked as **blocking**, **should fix** or
 **nit**, each with `file:line`, what is wrong, why it matters and a suggested
-fix. Say explicitly when you found nothing in a category. Return the findings to
+fix. Say explicitly when you found nothing in a category. List behaviour that only
+a real stack can confirm (UI calls, cluster commands, upgrades of existing
+data) separately, so it can be added to the release test checklist. Return the findings to
 whoever dispatched you; post PR comments only when asked to. Do not push
 changes to the branch.
 
@@ -69,9 +104,23 @@ changes to the branch.
 Fix or reply to every blocking and should-fix finding; nits are optional.
 Verify each suggestion against the code before applying it, as reviewers can
 be wrong too.
+Resolve a review comment's intent, not only the line it is attached to: apply
+it everywhere in the change where the same point holds, and say in the reply
+which places changed. GitHub moves a comment to a nearby line when its line
+disappears, so a narrow fix can leave the comment pointing at code it also
+meant.
 One review round is the default; request a second round only when fixing a
-blocking finding required non-trivial code changes. Then add a PR comment
+blocking finding required non-trivial code changes.
+When a rule was added or changed after a PR's last full review, the next
+review checks the whole PR against the current rules, not only the delta.
+When a rule changes, coordinators recheck every open PR reviewed under the
+old rules before it goes to the maintainer.
+Then add a PR comment
 summarizing the review (reviewer, findings, how each was resolved, what remains
-open), wait until CI passes, and ask the user to review. When a finding or
+open), wait until CI passes, and ask the user to review. Test-only PRs (for
+example into the biomero-scripts `test-suite` branch) are the exception: the
+user does not review them, so a passing independent review is their approval
+and the coordinating agent merges them once the paired production change
+allows it. When a finding or
 the user's review exposes a general standard, add it to the shared or
 component skill on the open guidance PR.

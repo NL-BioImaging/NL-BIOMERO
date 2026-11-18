@@ -20,13 +20,9 @@ def install(directory):
     if not __debug__:
         raise RuntimeError('Acceptance fault hooks require normal Python assertion checks')
     from biomero import ssh_recovery
-    from biomero.slurm_client import SlurmClient
     import importlib.metadata
     directory = Path(directory)
-    # Core submits through SlurmClient.submit_job_once and downloads through
-    # ssh_recovery.atomic_get (also reachable as ssh_recovery.download).
-    native_submit = SlurmClient.submit_job_once
-    native_download = ssh_recovery.atomic_get
+    native_submit, native_download = ssh_recovery.submit, ssh_recovery.download
     if getattr(native_submit, '_acceptance_phase_hook', False):
         return
 
@@ -71,26 +67,16 @@ def install(directory):
         assert matches == [task_id], 'Require one exact analysis task in the armed workflow'
         return task
 
-    def submit(client, sbatch_command, state_prefix, *, job_name, **options):
-        def native():
-            return native_submit(client, sbatch_command, state_prefix,
-                                 job_name=job_name, **options)
-
+    def submit(client, command, env, task_id):
         c = control()
-        try:
-            # Only analysis tasks are named biomero-<task uuid>; helper jobs
-            # such as biomero-shallower-<uuid> are never faulted.
-            task_id = UUID(job_name.removeprefix('biomero-'))
-        except ValueError:
-            return native()
         if c is None or 'submit' not in c['phases']:
-            return native()
+            return native_submit(client, command, env, task_id)
         task = client.workflowTracker.repository.get(task_id)
         if str(task.workflow_id) != c['workflow_id'] or task.task_name != c['task_name']:
-            return native()
+            return native_submit(client, command, env, task_id)
         identity(client, c, task_id)
         if not claim(c, 'submit'):
-            return native()
+            return native_submit(client, command, env, task_id)
         original_run = client.run_commands
         report = {'phase':'submit','workflow_id':c['workflow_id'],'task_id':str(task_id),
                   'mode':c['mode'],'core':importlib.metadata.version('biomero'),
@@ -114,7 +100,7 @@ def install(directory):
 
         client.run_commands = interrupted
         try:
-            result = native()
+            result = native_submit(client, command, env, task_id)
             assert report['faults'] == 1 and report['attempts'] >= 2
             assert len(set(report['accepted_job_ids'])) == 1
             report.update(status='RECOVERED', finished_monotonic=time.monotonic())
@@ -204,5 +190,4 @@ def install(directory):
             save(c,'zip',report)
 
     submit._acceptance_phase_hook = True
-    SlurmClient.submit_job_once = submit
-    ssh_recovery.atomic_get = ssh_recovery.download = download
+    ssh_recovery.submit, ssh_recovery.download = submit, download
