@@ -196,7 +196,8 @@ SSH recovery window
 ``[SLURM] ssh_recovery_timeout``. Temporary HPC connection failures are retried
 for up to 900 seconds (15 minutes) by default, in both inline and detached
 workflows. Missing or empty settings use this default. Enter a positive whole
-number to change the window, or ``0`` to disable recovery. Saving applies to new
+number to change the window, or ``0`` for no retries: an operation that fails
+because the connection is lost fails immediately. Saving applies to new
 runs; Slurm Init is not required. A nonempty ``BIOMERO_SSH_RECOVERY_TIMEOUT``
 environment override takes precedence over the saved value.
 
@@ -330,6 +331,26 @@ ZIP Command
 auto-detects ``7z`` or ``7za``. Set ``zip`` to use Info-ZIP; the matching ``unzip``
 executable must also be available. This controls archive handling, not
 compression inside Zarr arrays.
+
+.. _slurm-lock-command:
+
+Slurm Lock Command
+""""""""""""""""""
+
+**Slurm Lock Command** is a Runtime setting stored as ``[SLURM] slurm_lock_cmd``.
+BIOMERO runs it on the HPC in front of scripts that must not run twice at once:
+job submission, input extraction and result archive creation. It is a template
+in which ``{lock_file}`` and ``{busy_exit_code}`` are required and
+``{wait_seconds}`` is optional; BIOMERO fills them in and appends the script.
+The command must exit with ``{busy_exit_code}`` when the lock is not obtained in
+time, so that BIOMERO asks again instead of failing. Blank uses the default::
+
+   flock -w {wait_seconds} -E {busy_exit_code} {lock_file}
+
+Change it only when the HPC has no ``flock``. **Slurm Init** and **Slurm Check
+Setup** warn when the lock command or ``sacct`` is missing on the cluster. A
+nonempty ``BIOMERO_SLURM_LOCK_CMD`` environment override takes precedence over
+the saved value.
 
 Global Sbatch Parameters
 """"""""""""""""""""""""""""""""
