@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2022 Torec Luik, Amsterdam UMC. All rights reserved.
+# Copyright (c) 2026 Torec Luik, Amsterdam UMC. All rights reserved.
 # Use is subject to the BSD 2-Clause License in the LICENSE file at the root
 # of this repository.
 """Two supervisors on one tracking database run a workflow once.

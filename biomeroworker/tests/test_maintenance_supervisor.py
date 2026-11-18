@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) 2022 Torec Luik, Amsterdam UMC. All rights reserved.
-# Use is subject to the BSD 2-Clause License in the LICENSE file at the root
-# of this repository.
 """Isolated processor tests: no running OMERO server or cluster required."""
 import ast
 import contextlib
