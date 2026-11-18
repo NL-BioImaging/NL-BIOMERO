@@ -17,6 +17,8 @@ import socket
 import time
 import signal
 import uuid
+from typing import (TYPE_CHECKING, Any, Callable, Dict, Iterable, List,
+                    Optional, Set, Tuple)
 from omero_ext import killableprocess as subprocess
 
 
@@ -47,6 +49,11 @@ except ImportError:
 # needs the claim), so there is no fallback.
 from biomero.constants import LAUNCHER_CLAIM_LEASE_SECONDS
 from biomero.eventsourcing import WorkflowInterrupted
+
+if TYPE_CHECKING:  # only for the type hints
+    from biomero import WorkflowTracker
+    from biomero.slurm_client import SlurmClient
+    from omero.gateway import BlitzGateway
 
 sys = __import__("sys")
 
@@ -817,6 +824,11 @@ CLAIM_RENEW_SECONDS = LAUNCHER_CLAIM_LEASE_SECONDS // 3
 WORKER_RESTART_DELAY_SECONDS = 60
 # How often a sub-script run looks for a cancel request of its workflow.
 CANCEL_CHECK_SECONDS = 10
+# The application whose recording carries the workflow progress events.
+WORKFLOW_TRACKER_APPLICATION = "WorkflowTracker"
+# For each batch index of a batched parent: the ID of its bookkeeping task and
+# the ID of its child workflow.
+ChildrenByBatch = Dict[int, Tuple[uuid.UUID, uuid.UUID]]
 # Workflows found not to be ours are remembered so we do not keep inspecting
 # them, but the memory is dropped periodically so that a transient database
 # error cannot sideline a workflow until the next restart.
@@ -905,7 +917,21 @@ class RecordedInputsClient(object):
     that stops the sub-script when its workflow was cancelled.
     """
 
-    def __init__(self, params, conn=None, raise_if_stopped=None):
+    def __init__(self, params: Optional[Dict[str, Any]],
+                 conn: Optional["BlitzGateway"] = None,
+                 raise_if_stopped: Optional[Callable[[], None]] = None
+                 ) -> None:
+        """Serve the inputs recorded for a detached run.
+
+        Args:
+            params (Optional[Dict[str, Any]]): The inputs recorded at launch
+                time; None serves no inputs.
+            conn (Optional[BlitzGateway]): The user's live OMERO connection,
+                which sub-script launches keep alive while they run.
+            raise_if_stopped (Optional[Callable[[], None]]): Check that raises
+                when the workflow was cancelled or this supervisor lost its
+                claim, so that a running sub-script is stopped.
+        """
         self.params = params or {}
         self.conn = conn
         self.raise_if_stopped = raise_if_stopped
@@ -935,24 +961,37 @@ class ClaimLost(WorkflowInterrupted):
     """
 
 
-def polling_script_runner(client, svc, script_id, inputs,
-                          slurmClient=None):
+def polling_script_runner(client: RecordedInputsClient, svc: Any,
+                          script_id: int, inputs: Dict[str, Any],
+                          slurmClient: Optional["SlurmClient"] = None
+                          ) -> Tuple[Dict[str, Any], Any]:
     """Run an OMERO sub-script and wait for it, without a script session.
 
     omero.scripts.ProcessCallbackI needs a script session to receive the
     process callback on, which a detached run does not have. Poll the process
     instead, keeping the user's connection alive and pumping the workflow
     progress listener so that the UI keeps moving while the sub-script runs.
+    While it runs, the workflow's stop check is made at a fixed interval, and
+    the sub-script is cancelled when the check says to stop.
 
     Args:
-        client: The stand-in client for this run (carries the connection).
-        svc: OMERO script service.
-        script_id: ID of the sub-script to run.
-        inputs: Sub-script inputs.
-        slurmClient: Active SLURM client, for its progress listener.
+        client (RecordedInputsClient): The stand-in client for this run
+            (carries the connection and the stop check).
+        svc (Any): OMERO script service.
+        script_id (int): ID of the sub-script to run.
+        inputs (Dict[str, Any]): Sub-script inputs.
+        slurmClient (Optional[SlurmClient]): Active SLURM client, for its
+            progress listener.
 
     Returns:
-        tuple: (results, job) exactly as runOMEROScript() returns them.
+        Tuple[Dict[str, Any], Any]: (results, job) exactly as
+            runOMEROScript() returns them.
+
+    Raises:
+        Ice.LocalException: When polling the process failed
+            SCRIPT_POLL_FAILURE_LIMIT times in a row.
+        WorkflowInterrupted: When the stop check asked to stop; the
+            sub-script's process is cancelled first.
     """
     logger = logging.getLogger("biomero.detached.script")
     proc = start_script(svc, script_id, inputs, logger)
@@ -960,13 +999,7 @@ def polling_script_runner(client, svc, script_id, inputs,
     raise_if_stopped = getattr(client, "raise_if_stopped", None)
     next_cancel_check = time.monotonic()
     try:
-        next_position = 0
-        if slurmClient is not None and slurmClient.wfProgress is not None:
-            try:
-                next_position = slurmClient.wfProgress.recorder.max_tracking_id(
-                    application_name='WorkflowTracker') or 0
-            except Exception:
-                next_position = 0
+        next_position = latest_progress_position(slurmClient, default=0)
         poll_failures = 0
         while True:
             try:
@@ -988,40 +1021,93 @@ def polling_script_runner(client, svc, script_id, inputs,
                 break
             if raise_if_stopped and time.monotonic() >= next_cancel_check:
                 next_cancel_check = time.monotonic() + CANCEL_CHECK_SECONDS
-                try:
-                    raise_if_stopped()
-                except WorkflowInterrupted as stopped:
-                    logger.info(f"Stopping the OMERO process of script "
-                                f"{script_id}: {stopped}")
-                    proc.cancel()
-                    raise
-                except Exception as e:
-                    # A tracker hiccup must not kill a running sub-script;
-                    # the next check tries again.
-                    logger.warning(f"Could not check for a cancel request "
-                                   f"of script {script_id}: {e}")
+                cancel_process_if_stopped(proc, script_id, raise_if_stopped,
+                                          logger)
             if conn is not None:
                 try:
                     conn.keepAlive()
                 except Exception as e:
                     logger.debug(f"Could not keep the connection alive: {e}")
-            if slurmClient is not None and slurmClient.wfProgress is not None:
-                try:
-                    slurmClient.bring_listener_uptodate(
-                        slurmClient.wfProgress, start=next_position)
-                except Exception as e:
-                    logger.debug(f"Progress poll skipped: {e}")
-                finally:
-                    try:
-                        next_position = (
-                            slurmClient.wfProgress.recorder.max_tracking_id(
-                                application_name='WorkflowTracker') or 0)
-                    except Exception:
-                        pass
+            next_position = pump_progress_listener(slurmClient, next_position,
+                                                   logger)
             time.sleep(SCRIPT_POLL_SECONDS)
         return proc.getResults(0), proc.getJob()
     finally:
         proc.close(False)
+
+
+def latest_progress_position(slurmClient: Optional["SlurmClient"],
+                             default: int) -> int:
+    """Find the newest position in the workflow progress recording.
+
+    Args:
+        slurmClient (Optional[SlurmClient]): Active SLURM client; without a
+            progress listener there is nothing to follow.
+        default (int): The position to return when it cannot be read.
+
+    Returns:
+        int: The newest tracking ID, or ``default``.
+    """
+    if slurmClient is None or slurmClient.wfProgress is None:
+        return default
+    try:
+        return slurmClient.wfProgress.recorder.max_tracking_id(
+            application_name=WORKFLOW_TRACKER_APPLICATION) or 0
+    except Exception:
+        return default
+
+
+def pump_progress_listener(slurmClient: Optional["SlurmClient"],
+                           next_position: int, logger: logging.Logger) -> int:
+    """Let the workflow progress listener catch up with what was recorded.
+
+    Args:
+        slurmClient (Optional[SlurmClient]): Active SLURM client; without a
+            progress listener nothing is pumped.
+        next_position (int): The position the listener continues from.
+        logger (logging.Logger): Where a skipped poll is logged.
+
+    Returns:
+        int: The position to continue from at the next pump.
+    """
+    if slurmClient is None or slurmClient.wfProgress is None:
+        return next_position
+    try:
+        slurmClient.bring_listener_uptodate(
+            slurmClient.wfProgress, start=next_position)
+    except Exception as e:
+        logger.debug(f"Progress poll skipped: {e}")
+    return latest_progress_position(slurmClient, default=next_position)
+
+
+def cancel_process_if_stopped(proc: Any, script_id: int,
+                              raise_if_stopped: Callable[[], None],
+                              logger: logging.Logger) -> None:
+    """Cancel a sub-script's process when its workflow must stop.
+
+    A failing check is only logged: a tracker hiccup must not kill a running
+    sub-script, and the next check tries again.
+
+    Args:
+        proc (Any): The OMERO process of the sub-script.
+        script_id (int): ID of the sub-script, for the logs.
+        raise_if_stopped (Callable[[], None]): The workflow's stop check.
+        logger (logging.Logger): Where the decision is logged.
+
+    Raises:
+        WorkflowInterrupted: When the check asked to stop (the process is
+            cancelled before this is raised).
+    """
+    try:
+        raise_if_stopped()
+    except WorkflowInterrupted as stopped:
+        logger.info(f"Stopping the OMERO process of script "
+                    f"{script_id}: {stopped}")
+        proc.cancel()
+        raise
+    except Exception as e:
+        logger.warning(f"Could not check for a cancel request "
+                       f"of script {script_id}: {e}")
 
 
 def start_script(svc, script_id, inputs, logger):
@@ -1045,8 +1131,23 @@ def start_script(svc, script_id, inputs, logger):
 class WorkflowWorker(Thread):
     """Runs one queued workflow to completion, in the background."""
 
-    def __init__(self, workflow_id, launcher_task_id, batched, supervisor):
-        """Run the workflow whose launcher task the supervisor has claimed."""
+    # Parameters of the bookkeeping task that a batched parent keeps per batch.
+    BATCH_INDEX_KEY = "batch_index"
+    CHILD_WORKFLOW_ID_KEY = "child_workflow_id"
+
+    def __init__(self, workflow_id: uuid.UUID, launcher_task_id: uuid.UUID,
+                 batched: bool, supervisor: "WorkflowSupervisor") -> None:
+        """Prepare a worker for a workflow whose launcher task is claimed.
+
+        Args:
+            workflow_id (uuid.UUID): The workflow to run.
+            launcher_task_id (uuid.UUID): The launcher task holding the
+                claim and the recorded inputs.
+            batched (bool): Whether the workflow is a batched parent, which
+                only waits for its child workflows.
+            supervisor (WorkflowSupervisor): The supervisor that owns this
+                worker and its claim.
+        """
         super(WorkflowWorker, self).__init__(
             name=f"WorkflowWorker-{workflow_id}")
         self.daemon = True
@@ -1062,13 +1163,18 @@ class WorkflowWorker(Thread):
         self.claim_lost = Event()
         self.logger = logging.getLogger(f"biomero.detached.{workflow_id}")
 
-    def raise_if_claim_lost(self):
-        """Stop this worker once its workflow's claim belongs to someone else."""
+    def raise_if_claim_lost(self) -> None:
+        """Stop this worker once its workflow's claim belongs to someone else.
+
+        Raises:
+            ClaimLost: When this supervisor no longer holds the claim.
+        """
         if self.claim_lost.is_set():
             raise ClaimLost(f"The claim on workflow {self.workflow_id} was "
                             f"lost to another supervisor")
 
-    def run(self):
+    def run(self) -> None:
+        """Run the workflow and record how it ended, then free the slot."""
         from biomero.eventsourcing import WorkflowCancelled
         self.logger.info(f"Executing queued workflow {self.workflow_id}")
         try:
@@ -1081,19 +1187,27 @@ class WorkflowWorker(Thread):
                              f"{cancelled}")
             self.fail_workflow(str(cancelled))
         except Exception as e:
-            if self.claim_lost.is_set():
-                # The claim is gone (taken over, or released at shutdown):
-                # whoever owns this workflow now writes its outcome, and
-                # failing it here would fail their run.
-                self.logger.error(f"Worker of workflow {self.workflow_id} "
-                                  f"stopped after losing its claim: {e}")
-            else:
-                self.logger.error(f"Workflow {self.workflow_id} failed: {e}",
-                                  exc_info=True)
-                self.fail_workflow(str(e))
+            self.handle_failure(e)
         finally:
             self.supervisor.remove_worker(self.workflow_id,
                                           self.launcher_task_id)
+
+    def handle_failure(self, error: Exception) -> None:
+        """Fail the workflow, unless another supervisor owns it now.
+
+        Args:
+            error (Exception): What stopped the run.
+        """
+        if self.claim_lost.is_set():
+            # The claim is gone (taken over, or released at shutdown):
+            # whoever owns this workflow now writes its outcome, and
+            # failing it here would fail their run.
+            self.logger.error(f"Worker of workflow {self.workflow_id} "
+                              f"stopped after losing its claim: {error}")
+            return
+        self.logger.error(f"Workflow {self.workflow_id} failed: {error}",
+                          exc_info=True)
+        self.fail_workflow(str(error))
 
     def fail_workflow(self, error):
         """Record the failure, so the workflow does not sit unfinished."""
@@ -1108,8 +1222,12 @@ class WorkflowWorker(Thread):
             self.logger.error(f"Could not record the failure of workflow "
                               f"{self.workflow_id}: {e}")
 
-    def execute(self):
-        """Run what this workflow's launcher task asks for."""
+    def execute(self) -> None:
+        """Run what this workflow's launcher task asks for.
+
+        Raises:
+            ValueError: When the task is not a launcher for this workflow.
+        """
         from biomero.eventsourcing import is_launcher_task
         from biomero.database import EngineManager
         from biomero.slurm_client import SlurmClient
@@ -1117,8 +1235,8 @@ class WorkflowWorker(Thread):
         run_workflow_script, batched_script = load_biomero_scripts()
         EngineManager.create_scoped_session()
 
-        with SlurmClient.from_config() as slurmClient:
-            tracker = slurmClient.workflowTracker
+        with SlurmClient.from_config() as slurm_client:
+            tracker = slurm_client.workflowTracker
             launcher = tracker.repository.get(self.launcher_task_id)
             if not is_launcher_task(launcher):
                 raise ValueError(f"Task {self.launcher_task_id} is not a "
@@ -1132,22 +1250,23 @@ class WorkflowWorker(Thread):
                     raise_if_stopped=lambda: self.raise_if_stopped(tracker))
                 if self.batched:
                     self.run_batches(run_workflow_script, batched_script,
-                                     slurmClient, client, conn, workflow,
+                                     slurm_client, client, conn, workflow,
                                      params)
                 else:
-                    self.run_single(run_workflow_script, slurmClient, client,
+                    self.run_single(run_workflow_script, slurm_client, client,
                                     conn, params)
 
-    def raise_if_stopped(self, tracker):
+    def raise_if_stopped(self, tracker: "WorkflowTracker") -> None:
         """Stop between steps: when the claim is lost, or a cancel was asked.
 
         The scripts' ``PipelineRun.raise_if_stopped`` does the same for the
         pipeline (its ``stop_check`` is this worker's claim check, then it
-        checks the cancel itself); this one serves the sub-script runner and
+        checks the cancel itself). This one serves the sub-script runner and
         the batched parent, which have no pipeline around them.
 
-        Passed to the pipeline as its ``stop_check`` and used by the sub-script
-        runner while a sub-script runs.
+        Args:
+            tracker (WorkflowTracker): Tracker to ask whether the workflow's
+                cancel was requested.
 
         Raises:
             ClaimLost: When another supervisor owns this workflow now.
@@ -1195,29 +1314,51 @@ class WorkflowWorker(Thread):
         finally:
             admin_conn.close()
 
-    def run_single(self, script, slurmClient, client, conn, params):
-        """Drive the workflow pipeline, the same one an inline run drives."""
+    def run_single(self, script: Any, slurm_client: "SlurmClient",
+                   client: RecordedInputsClient, conn: "BlitzGateway",
+                   params: Dict[str, Any]) -> None:
+        """Drive the workflow pipeline, the same one an inline run drives.
+
+        Args:
+            script (Any): The SLURM_Run_Workflow module.
+            slurm_client (SlurmClient): Active SLURM client.
+            client (RecordedInputsClient): Serves the recorded inputs.
+            conn (BlitzGateway): The user's OMERO connection.
+            params (Dict[str, Any]): The inputs recorded in the launcher task.
+        """
         pipeline_kwargs = script.resolve_pipeline_inputs(
-            client, conn, slurmClient, params)
+            client, conn, slurm_client, params)
         self.logger.info(f"Running workflows {pipeline_kwargs['workflows']} "
                          f"for workflow {self.workflow_id}")
         messages = script.execute_workflow_pipeline(
-            client, conn, slurmClient, self.workflow_id, resume=True,
+            client, conn, slurm_client, self.workflow_id, resume=True,
             stop_check=self.raise_if_claim_lost, **pipeline_kwargs)
         self.logger.info(f"Workflow {self.workflow_id}: {messages}")
 
-    def run_batches(self, script, batched_script, slurmClient, client, conn,
-                    workflow, params):
+    def run_batches(self, script: Any, batched_script: Any,
+                    slurm_client: "SlurmClient", client: RecordedInputsClient,
+                    conn: "BlitzGateway", workflow: Any,
+                    params: Dict[str, Any]) -> None:
         """Run a batched request as one child workflow per batch.
 
         Each child is queued exactly as a single run is, so it is executed by
         the same pipeline and reports its own progress. This parent only
         spawns the children it does not have yet and then follows them.
-        """
-        from biomero import constants
-        from biomero.eventsourcing import WorkflowCancelled
 
-        tracker = slurmClient.workflowTracker
+        Args:
+            script (Any): The SLURM_Run_Workflow module.
+            batched_script (Any): The SLURM_Run_Workflow_Batched module.
+            slurm_client (SlurmClient): Active SLURM client.
+            client (RecordedInputsClient): Serves the recorded inputs.
+            conn (BlitzGateway): The user's OMERO connection.
+            workflow (Any): The parent workflow aggregate.
+            params (Dict[str, Any]): The inputs recorded in the launcher task.
+
+        Raises:
+            ValueError: When no batches were recorded.
+            ClaimLost: When another supervisor owns the parent now.
+        """
+        tracker = slurm_client.workflowTracker
         batches = [list(batch) for batch in (params.get("batches") or [])]
         if not batches:
             raise ValueError(f"Batched workflow {self.workflow_id} has no "
@@ -1227,68 +1368,13 @@ class WorkflowWorker(Thread):
         self.logger.info(f"Batched workflow {self.workflow_id}: "
                          f"{len(batches)} batches")
 
-        # One bookkeeping task per batch on this workflow, holding the child's
-        # ID. Re-running this parent therefore adopts the children it already
-        # has instead of starting the work again.
-        children = {}
-        for task_id in getattr(workflow, "tasks", []):
-            try:
-                task = tracker.repository.get(task_id)
-            except Exception as e:
-                self.logger.warning(f"Could not read task {task_id}: {e}")
-                continue
-            task_params = task.params or {}
-            if "batch_index" in task_params and "child_workflow_id" in task_params:
-                children[task_params["batch_index"]] = (
-                    task_id, uuid.UUID(str(task_params["child_workflow_id"])))
-
-        for index, batch in enumerate(batches):
-            if index in children:
-                continue
-            # No new child for a workflow whose claim is lost (stop at once)
-            # or that was cancelled: then queuing stops, the children already
-            # queued are told to cancel, and the parent waits for them below.
-            self.raise_if_claim_lost()
-            try:
-                tracker.raise_if_cancel_requested(self.workflow_id)
-            except WorkflowCancelled:
-                self.logger.info(f"Workflow {self.workflow_id} was cancelled "
-                                 f"while queuing batches; {len(children)} "
-                                 f"queued.")
-                self.cancel_children(tracker, children.values())
-                break
-            child_params = dict(base_inputs)
-            child_params[constants.transfer.IDS] = batch
-            if effective_type:
-                child_params[constants.transfer.DATA_TYPE] = effective_type
-            # All batches share one output dataset or screen.
-            child_params[constants.workflow.OUTPUT_DUPLICATES] = False
-            child_params["selected_output"] = params.get("selected_output")
-            child_params["group"] = params.get("group")
-            self.raise_if_claim_lost()
-            child_wf_id = tracker.initiate_workflow(
-                f"{workflow.name} (batch {index + 1}/{len(batches)})",
-                "\n".join([workflow.description, script.VERSION]),
-                workflow.user,
-                workflow.group)
-            self.raise_if_claim_lost()
-            script.register_detached_launcher(
-                RecordedInputsClient(child_params, conn), slurmClient,
-                child_wf_id, constants.RUN_WF_SCRIPT,
-                params.get("workflows") or [], {})
-            self.raise_if_claim_lost()
-            task_id = tracker.add_task_to_workflow(
-                self.workflow_id, constants.RUN_WF_SCRIPT, script.VERSION,
-                batch, {"batch_index": index,
-                        "child_workflow_id": str(child_wf_id)})
-            tracker.start_task(task_id)
-            children[index] = (task_id, child_wf_id)
-            self.logger.info(f"Queued batch {index + 1}/{len(batches)} as "
-                             f"workflow {child_wf_id}")
+        children = self.find_existing_children(tracker, workflow)
+        self.queue_missing_children(script, slurm_client, conn, workflow,
+                                    params, batches, children)
 
         failed, pending = self.await_children(
-            slurmClient, conn, batched_script, children, batches, base_inputs,
-            effective_type)
+            slurm_client, conn, batched_script, children, batches,
+            base_inputs, effective_type)
         if pending:
             # Shutting down: leave the workflow unfinished so that the next
             # processor adopts the children it already has.
@@ -1298,23 +1384,165 @@ class WorkflowWorker(Thread):
             return
         # Not the owner any more: the new owner writes the outcome.
         self.raise_if_claim_lost()
-        not_queued = len(batches) - len(children)
-        if failed or not_queued:
+        self.record_parent_outcome(tracker, len(batches), len(children),
+                                   failed)
+
+    def find_existing_children(self, tracker: "WorkflowTracker",
+                               workflow: Any) -> "ChildrenByBatch":
+        """Find the child workflows this parent has already queued.
+
+        There is one bookkeeping task per batch on the parent workflow,
+        holding the child's ID. Re-running this parent therefore adopts the
+        children it already has instead of starting the work again.
+
+        Args:
+            tracker (WorkflowTracker): Tracker to read the tasks with.
+            workflow (Any): The parent workflow aggregate.
+
+        Returns:
+            ChildrenByBatch: For each batch index, the bookkeeping task ID
+                and the child workflow ID.
+        """
+        children = {}
+        for task_id in getattr(workflow, "tasks", []):
+            try:
+                task = tracker.repository.get(task_id)
+            except Exception as e:
+                self.logger.warning(f"Could not read task {task_id}: {e}")
+                continue
+            task_params = task.params or {}
+            if (self.BATCH_INDEX_KEY in task_params
+                    and self.CHILD_WORKFLOW_ID_KEY in task_params):
+                children[task_params[self.BATCH_INDEX_KEY]] = (
+                    task_id,
+                    uuid.UUID(str(task_params[self.CHILD_WORKFLOW_ID_KEY])))
+        return children
+
+    def queue_missing_children(self, script: Any, slurm_client: "SlurmClient",
+                               conn: "BlitzGateway", workflow: Any,
+                               params: Dict[str, Any],
+                               batches: List[List[Any]],
+                               children: "ChildrenByBatch") -> None:
+        """Queue a child workflow for each batch that has none yet.
+
+        No new child is queued for a workflow whose claim is lost (stop at
+        once) or that was cancelled: then queuing stops, the children already
+        queued are told to cancel, and the parent waits for them afterwards.
+
+        Args:
+            script (Any): The SLURM_Run_Workflow module.
+            slurm_client (SlurmClient): Active SLURM client.
+            conn (BlitzGateway): The user's OMERO connection.
+            workflow (Any): The parent workflow aggregate.
+            params (Dict[str, Any]): The inputs recorded in the launcher task.
+            batches (List[List[Any]]): The IDs of each batch.
+            children (ChildrenByBatch): The children queued so far; extended
+                in place.
+
+        Raises:
+            ClaimLost: When another supervisor owns the parent now.
+        """
+        from biomero import constants
+        from biomero.eventsourcing import WorkflowCancelled
+
+        tracker = slurm_client.workflowTracker
+        for index, batch in enumerate(batches):
+            if index in children:
+                continue
+            self.raise_if_claim_lost()
+            try:
+                tracker.raise_if_cancel_requested(self.workflow_id)
+            except WorkflowCancelled:
+                self.logger.info(f"Workflow {self.workflow_id} was cancelled "
+                                 f"while queuing batches; {len(children)} "
+                                 f"queued.")
+                self.cancel_children(tracker, children.values())
+                break
+            child_params = self.child_inputs(params, batch)
+            self.raise_if_claim_lost()
+            child_wf_id = tracker.initiate_workflow(
+                f"{workflow.name} (batch {index + 1}/{len(batches)})",
+                "\n".join([workflow.description, script.VERSION]),
+                workflow.user,
+                workflow.group)
+            self.raise_if_claim_lost()
+            script.register_detached_launcher(
+                RecordedInputsClient(child_params, conn), slurm_client,
+                child_wf_id, constants.RUN_WF_SCRIPT,
+                params.get("workflows") or [], {})
+            self.raise_if_claim_lost()
+            task_id = tracker.add_task_to_workflow(
+                self.workflow_id, constants.RUN_WF_SCRIPT, script.VERSION,
+                batch, {self.BATCH_INDEX_KEY: index,
+                        self.CHILD_WORKFLOW_ID_KEY: str(child_wf_id)})
+            tracker.start_task(task_id)
+            children[index] = (task_id, child_wf_id)
+            self.logger.info(f"Queued batch {index + 1}/{len(batches)} as "
+                             f"workflow {child_wf_id}")
+
+    @staticmethod
+    def child_inputs(params: Dict[str, Any], batch: List[Any]
+                     ) -> Dict[str, Any]:
+        """Build the recorded inputs of one batch's child workflow.
+
+        Args:
+            params (Dict[str, Any]): The inputs recorded for the parent.
+            batch (List[Any]): The IDs of the batch.
+
+        Returns:
+            Dict[str, Any]: The parent's base inputs, with this batch's IDs.
+        """
+        from biomero import constants
+
+        child_params = dict(params.get("base_inputs") or {})
+        child_params[constants.transfer.IDS] = batch
+        effective_type = params.get("effective_type")
+        if effective_type:
+            child_params[constants.transfer.DATA_TYPE] = effective_type
+        # All batches share one output dataset or screen.
+        child_params[constants.workflow.OUTPUT_DUPLICATES] = False
+        child_params["selected_output"] = params.get("selected_output")
+        child_params["group"] = params.get("group")
+        return child_params
+
+    def record_parent_outcome(self, tracker: "WorkflowTracker",
+                              batch_count: int, queued_count: int,
+                              failed_count: int) -> None:
+        """Complete or fail the parent, once its children have ended.
+
+        Args:
+            tracker (WorkflowTracker): Tracker to write the outcome with.
+            batch_count (int): How many batches the request has.
+            queued_count (int): How many of them were queued as children.
+            failed_count (int): How many children failed.
+        """
+        not_queued = batch_count - queued_count
+        if failed_count or not_queued:
             cancelled = tracker.is_workflow_cancel_requested(self.workflow_id)
+            prefix = "Cancelled: " if cancelled else ""
+            outcome = "ended without completing" if cancelled else "failed"
             tracker.fail_workflow(
                 self.workflow_id,
-                f"{'Cancelled: ' if cancelled else ''}"
-                f"{failed + not_queued} of {len(batches)} batches "
-                f"{'ended without completing' if cancelled else 'failed'}")
+                f"{prefix}{failed_count + not_queued} of {batch_count} "
+                f"batches {outcome}")
         else:
             # A cancel that came too late (every batch completed) changes
             # nothing: the workflow completed.
             tracker.complete_workflow(self.workflow_id)
 
-    def cancel_children(self, tracker, children):
-        """Pass a cancel on to the unfinished child workflows: each cancels
-        itself. A child whose batch task already completed or failed is left
-        alone."""
+    def cancel_children(self, tracker: "WorkflowTracker",
+                        children: Iterable[Tuple[uuid.UUID, uuid.UUID]]
+                        ) -> None:
+        """Pass a cancel on to the unfinished child workflows.
+
+        Each child cancels itself. A child whose batch task already completed
+        or failed is left alone.
+
+        Args:
+            tracker (WorkflowTracker): Tracker to request the cancels with.
+            children (Iterable[Tuple[uuid.UUID, uuid.UUID]]): The batch task
+                ID and child workflow ID of each child.
+        """
         for batch_task_id, child_wf_id in children:
             batch_task = tracker.repository.get(batch_task_id)
             if batch_task.completed or batch_task.failed:
@@ -1322,26 +1550,43 @@ class WorkflowWorker(Thread):
             tracker.request_workflow_cancel(
                 child_wf_id, f"Parent {self.workflow_id} cancelled")
 
-    def await_children(self, slurmClient, conn, batched_script, children,
-                       batches, base_inputs, effective_type):
+    def await_children(self, slurm_client: "SlurmClient",
+                       conn: "BlitzGateway", batched_script: Any,
+                       children: "ChildrenByBatch", batches: List[List[Any]],
+                       base_inputs: Dict[str, Any],
+                       effective_type: Optional[str]
+                       ) -> Tuple[int, "ChildrenByBatch"]:
         """Follow the child workflows, annotating each batch as it lands.
 
+        Args:
+            slurm_client (SlurmClient): Active SLURM client.
+            conn (BlitzGateway): The user's OMERO connection.
+            batched_script (Any): The SLURM_Run_Workflow_Batched module.
+            children (ChildrenByBatch): The children to follow.
+            batches (List[List[Any]]): The IDs of each batch.
+            base_inputs (Dict[str, Any]): The parent's base inputs.
+            effective_type (Optional[str]): The data type of the batches.
+
         Returns:
-            tuple: How many batches failed, and the batches still unfinished
-                (non-empty only when we stopped following them early).
+            Tuple[int, ChildrenByBatch]: How many batches failed, and the
+                batches still unfinished (non-empty only when we stopped
+                following them early).
+
+        Raises:
+            ClaimLost: When another supervisor owns the parent now.
         """
         from biomero.constants import workflow_status as wfs
-        from biomero.database import EngineManager, WorkflowProgressView
 
-        tracker = slurmClient.workflowTracker
+        tracker = slurm_client.workflowTracker
         pending = dict(children)
         failed = 0
         cancel_passed_on = False
         while pending and not self.supervisor.shutdown_event.is_set():
-            # A parent that lost its claim must not write child or parent state.
+            # A parent that lost its claim must not write child or parent
+            # state.
             self.raise_if_claim_lost()
-            if (not cancel_passed_on
-                    and tracker.is_workflow_cancel_requested(self.workflow_id)):
+            if not cancel_passed_on and tracker.is_workflow_cancel_requested(
+                    self.workflow_id):
                 # Each child workflow cancels itself (its own jobs and
                 # sub-scripts); this parent then waits for them to end.
                 self.logger.info(f"Workflow {self.workflow_id} was cancelled; "
@@ -1349,13 +1594,8 @@ class WorkflowWorker(Thread):
                                  f"batches.")
                 self.cancel_children(tracker, pending.values())
                 cancel_passed_on = True
-            with EngineManager.get_session() as session:
-                statuses = {
-                    row.workflow_id: row.status
-                    for row in session.query(WorkflowProgressView).filter(
-                        WorkflowProgressView.workflow_id.in_(
-                            [child_wf_id for _, child_wf_id
-                             in pending.values()])).all()}
+            statuses = self.read_child_statuses(
+                [child_wf_id for _, child_wf_id in pending.values()])
             for index, (task_id, child_wf_id) in list(pending.items()):
                 # Checked per child: annotating one batch can take a while.
                 self.raise_if_claim_lost()
@@ -1363,14 +1603,9 @@ class WorkflowWorker(Thread):
                 if status == wfs.DONE:
                     tracker.complete_task(task_id, "Batch completed.")
                     del pending[index]
-                    try:
-                        batched_script.add_batch_supervisor_metadata_for_batch(
-                            conn, slurmClient, self.workflow_id, index,
-                            batches[index], len(batches), base_inputs,
-                            effective_type)
-                    except Exception as e:
-                        self.logger.warning(
-                            f"Could not annotate batch {index + 1}: {e}")
+                    self.annotate_batch(
+                        slurm_client, conn, batched_script, index, batches,
+                        base_inputs, effective_type)
                 elif status == wfs.FAILED:
                     tracker.fail_task(task_id, "Batch failed.")
                     failed += 1
@@ -1386,9 +1621,58 @@ class WorkflowWorker(Thread):
                 time.sleep(CHILD_POLL_SECONDS)
         return failed, pending
 
+    @staticmethod
+    def read_child_statuses(child_workflow_ids: List[uuid.UUID]
+                            ) -> Dict[uuid.UUID, str]:
+        """Read the projected status of child workflows.
+
+        Args:
+            child_workflow_ids (List[uuid.UUID]): The children to look up.
+
+        Returns:
+            Dict[uuid.UUID, str]: The status of each child that has a
+                projection yet.
+        """
+        from biomero.database import EngineManager, WorkflowProgressView
+
+        with EngineManager.get_session() as session:
+            rows = session.query(WorkflowProgressView).filter(
+                WorkflowProgressView.workflow_id.in_(
+                    child_workflow_ids)).all()
+            return {row.workflow_id: row.status for row in rows}
+
+    def annotate_batch(self, slurm_client: "SlurmClient",
+                       conn: "BlitzGateway", batched_script: Any, index: int,
+                       batches: List[List[Any]], base_inputs: Dict[str, Any],
+                       effective_type: Optional[str]) -> None:
+        """Annotate a completed batch; a failure is logged, not raised.
+
+        Args:
+            slurm_client (SlurmClient): Active SLURM client.
+            conn (BlitzGateway): The user's OMERO connection.
+            batched_script (Any): The SLURM_Run_Workflow_Batched module.
+            index (int): Index of the batch that completed.
+            batches (List[List[Any]]): The IDs of each batch.
+            base_inputs (Dict[str, Any]): The parent's base inputs.
+            effective_type (Optional[str]): The data type of the batches.
+        """
+        try:
+            batched_script.add_batch_supervisor_metadata_for_batch(
+                conn, slurm_client, self.workflow_id, index,
+                batches[index], len(batches), base_inputs, effective_type)
+        except Exception as e:
+            self.logger.warning(f"Could not annotate batch {index + 1}: {e}")
+
 
 class MaintenanceWorker(WorkflowWorker):
     """Execute a durable admin request using an independently owned session."""
+
+    # The refresh request is read from a tracker whose tables already exist.
+    TRACKER_ENV = {"CREATE_TABLE": "no", "WORKFLOWTRACKER_CREATE_TABLE": "no"}
+    DEFAULT_WORKERS = 4
+    DEFAULT_VIEW_VERSION = "v0"
+    # What a finished request keeps of the sweep report.
+    REPORT_KEYS = ("discovered", "counts", "backup_directory")
 
     def __init__(self, request_id, supervisor):
         Thread.__init__(self, name=f"MetadataRefresh-{request_id}")
@@ -1398,91 +1682,152 @@ class MaintenanceWorker(WorkflowWorker):
         self.supervisor = supervisor
         self.logger = logging.getLogger(f"biomero.detached.maintenance.{request_id}")
 
-    def run(self):
+    def run(self) -> None:
+        """Run the metadata refresh request, then free the maintenance lane."""
         try:
             from biomero import WorkflowTracker
-            from biomero.constants import metadata_refresh_status as refresh_status
-            with WorkflowTracker(env={'CREATE_TABLE': 'no',
-                                      'WORKFLOWTRACKER_CREATE_TABLE': 'no'}) as tracker:
-                request = None
-                try:
-                    request = tracker.repository.get(self.workflow_id)
-                    if request.status not in refresh_status.ACTIVE:
-                        return
-                    resuming = request.status == refresh_status.RUNNING
-                    script = load_metadata_script()
-                    with self.user_connection(request) as conn:
-                        if not conn.isAdmin():
-                            raise ValueError('Metadata refresh requires an administrator')
-                        self.logger.info(
-                            f"Metadata refresh request {self.workflow_id}: "
-                            f"{'resuming interrupted sweep' if resuming else 'starting'}")
-                        request.started()
-                        tracker.save(request)
-                        options = request.options
-                        backup_directory = options.get('backup_directory')
-                        if resuming and backup_directory and options.get('backup_enabled'):
-                            # Previous files must never be overwritten on recovery.
-                            from uuid import uuid4
-                            backup_directory = f'{backup_directory}-resume-{uuid4()}'
-
-                        def progress(report):
-                            request.progressed(report)
-                            tracker.save(request)
-                            self.logger.info(
-                                f"Metadata refresh request {self.workflow_id}: "
-                                f"{report['processed']}/{report['discovered']}; "
-                                f"{', '.join(f'{key}={value}' for key, value in report['counts'].items())}")
-
-                        workers = options.get('workers', 4)
-                        factory = None
-                        if workers > 1:
-                            from functools import partial
-                            factory = partial(script.metadata_refresh_worker, conn, tracker,
-                                              conn.c.getSessionId())
-                        report = script.refresh_all_metadata(
-                            conn, tracker, view_version=options.get('view_version', 'v0'),
-                            dry_run=False, backup_directory=backup_directory,
-                            backup_enabled=options.get('backup_enabled', False),
-                            workflow_ids=options.get('workflow_ids'), workers=workers,
-                            worker_factory=factory, progress_callback=progress)
-                        compact = {key: report[key] for key in
-                                   ('discovered', 'counts', 'backup_directory') if key in report}
-                        request.finished(compact)
-                        tracker.save(request)
-                        self.logger.info(
-                            f"Metadata refresh request {self.workflow_id}: "
-                            f"{request.status}; pairs={report.get('discovered', 0)}; "
-                            f"{', '.join(f'{key}={value}' for key, value in report['counts'].items())}; "
-                            f"backups={report.get('backup_directory') or 'not requested'}")
-                except Exception as error:
-                    self.logger.exception(f"Metadata refresh request {self.workflow_id} failed")
-                    if request is not None and request.status in refresh_status.ACTIVE:
-                        request.finished(request.report, str(error) or type(error).__name__)
-                        tracker.save(request)
-                finally:
-                    tracker.release_database_connections()
+            with WorkflowTracker(env=self.TRACKER_ENV) as tracker:
+                self.run_request(tracker)
         except Exception:
             # A persistence outage leaves QUEUED/RUNNING recoverable, not lost.
-            self.logger.exception(f"Cannot persist metadata request {self.workflow_id} outcome")
+            self.logger.exception(f"Cannot persist metadata request "
+                                  f"{self.workflow_id} outcome")
         finally:
             self.supervisor.remove_maintenance_worker(self.workflow_id)
+
+    def run_request(self, tracker: "WorkflowTracker") -> None:
+        """Run the request if it is still active, and record its outcome.
+
+        A request that is no longer QUEUED or RUNNING is left alone. A failure
+        finishes the request with the error, so the request does not stay
+        active forever.
+
+        Args:
+            tracker (WorkflowTracker): Tracker holding the request.
+        """
+        from biomero.constants import metadata_refresh_status as refresh_status
+
+        request = None
+        try:
+            request = tracker.repository.get(self.workflow_id)
+            if request.status not in refresh_status.ACTIVE:
+                return
+            self.refresh_metadata(tracker, request)
+        except Exception as error:
+            self.logger.exception(f"Metadata refresh request "
+                                  f"{self.workflow_id} failed")
+            if (request is not None
+                    and request.status in refresh_status.ACTIVE):
+                request.finished(request.report,
+                                 str(error) or type(error).__name__)
+                tracker.save(request)
+        finally:
+            tracker.release_database_connections()
+
+    def refresh_metadata(self, tracker: "WorkflowTracker",
+                         request: Any) -> None:
+        """Sweep the metadata of all workflows, as the request asks.
+
+        Args:
+            tracker (WorkflowTracker): Tracker holding the request.
+            request (Any): The metadata refresh request aggregate.
+
+        Raises:
+            ValueError: When the request's user is not an administrator.
+        """
+        from functools import partial
+        from biomero.constants import metadata_refresh_status as refresh_status
+
+        resuming = request.status == refresh_status.RUNNING
+        script = load_metadata_script()
+        with self.user_connection(request) as conn:
+            if not conn.isAdmin():
+                raise ValueError("Metadata refresh requires an administrator")
+            self.logger.info(
+                f"Metadata refresh request {self.workflow_id}: "
+                f"{'resuming interrupted sweep' if resuming else 'starting'}")
+            request.started()
+            tracker.save(request)
+            options = request.options
+            backup_directory = options.get("backup_directory")
+            if (resuming and backup_directory
+                    and options.get("backup_enabled")):
+                # Previous files must never be overwritten on recovery.
+                backup_directory = f"{backup_directory}-resume-{uuid.uuid4()}"
+
+            workers = options.get("workers", self.DEFAULT_WORKERS)
+            worker_factory = None
+            if workers > 1:
+                worker_factory = partial(script.metadata_refresh_worker, conn,
+                                         tracker, conn.c.getSessionId())
+            report = script.refresh_all_metadata(
+                conn, tracker,
+                view_version=options.get("view_version",
+                                         self.DEFAULT_VIEW_VERSION),
+                dry_run=False, backup_directory=backup_directory,
+                backup_enabled=options.get("backup_enabled", False),
+                workflow_ids=options.get("workflow_ids"), workers=workers,
+                worker_factory=worker_factory,
+                progress_callback=partial(self.record_progress, tracker,
+                                          request))
+            compact = {key: report[key] for key in self.REPORT_KEYS
+                       if key in report}
+            request.finished(compact)
+            tracker.save(request)
+            backups = report.get("backup_directory") or "not requested"
+            self.logger.info(
+                f"Metadata refresh request {self.workflow_id}: "
+                f"{request.status}; pairs={report.get('discovered', 0)}; "
+                f"{self.counts_summary(report)}; backups={backups}")
+
+    def record_progress(self, tracker: "WorkflowTracker", request: Any,
+                        report: Dict[str, Any]) -> None:
+        """Save and log the progress of the sweep.
+
+        Args:
+            tracker (WorkflowTracker): Tracker holding the request.
+            request (Any): The metadata refresh request aggregate.
+            report (Dict[str, Any]): The sweep's progress report.
+        """
+        request.progressed(report)
+        tracker.save(request)
+        self.logger.info(
+            f"Metadata refresh request {self.workflow_id}: "
+            f"{report['processed']}/{report['discovered']}; "
+            f"{self.counts_summary(report)}")
+
+    @staticmethod
+    def counts_summary(report: Dict[str, Any]) -> str:
+        """Summarize the counts of a sweep report for the logs.
+
+        Args:
+            report (Dict[str, Any]): A sweep report with a ``counts`` mapping.
+
+        Returns:
+            str: The counts as ``key=value`` pairs, separated by commas.
+        """
+        return ", ".join(f"{key}={value}"
+                         for key, value in report["counts"].items())
 
 
 class WorkflowSupervisor(Thread):
     """Finds queued workflows and runs each of them in a worker thread."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Prepare a supervisor; it supervises once its thread is started."""
         super(WorkflowSupervisor, self).__init__(name="WorkflowSupervisor")
         self.daemon = True
         self.shutdown_event = Event()
-        self.active_workers = {}  # {workflow_id: worker}
+        self.active_workers: Dict[uuid.UUID, WorkflowWorker] = {}
         self.maintenance_workers = {}
         self.maintenance_pending = set()
         self.maintenance_cursor = 1
-        self.ignored = set()      # workflows that are not ours to run
-        self.ended_at = {}        # {workflow_id: monotonic time its worker ended}
-        self.restarts = {}        # {workflow_id: how often its worker ended}
+        # Workflows that are not ours to run.
+        self.ignored: Set[uuid.UUID] = set()
+        # Monotonic time at which the worker of a workflow last ended, and how
+        # often a worker of it ended.
+        self.ended_at: Dict[uuid.UUID, float] = {}
+        self.restarts: Dict[uuid.UUID, int] = {}
         # Names this supervisor in the claims it holds, so that a replacement
         # process (which has a new name) recognizes a claim as not its own.
         self.owner = f"supervisor-{socket.gethostname()}-{uuid.uuid4()}"
@@ -1491,7 +1836,8 @@ class WorkflowSupervisor(Thread):
         self.lock = Lock()
         self.logger = logging.getLogger("biomero.detached.supervisor")
 
-    def run(self):
+    def run(self) -> None:
+        """Supervise queued workflows until stopped, then release claims."""
         self.logger.info(f"Starting the BIOMERO workflow supervisor "
                          f"{self.owner}")
         try:
@@ -1504,7 +1850,8 @@ class WorkflowSupervisor(Thread):
             # the workflow scripts use our polling runner instead.
             run_workflow_script.SCRIPT_RUNNER = polling_script_runner
         except Exception as e:
-            self.logger.error(f"Cannot supervise workflows: {e}", exc_info=True)
+            self.logger.error(f"Cannot supervise workflows: {e}",
+                              exc_info=True)
             return
 
         if SUPERVISOR_STARTUP_GRACE_SECONDS:
@@ -1514,20 +1861,28 @@ class WorkflowSupervisor(Thread):
 
         polls = 0
         while not self.shutdown_event.is_set():
-            try:
-                self.prune_workers()
-                if polls % IGNORE_CACHE_POLLS == 0:
-                    with self.lock:
-                        self.ignored.clear()
-                self.renew_claims()
-                self.spawn_workers()
-                self.spawn_maintenance()
-            except Exception as e:
-                self.logger.error(f"Supervisor poll failed: {e}", exc_info=True)
+            self.poll(polls)
             polls += 1
             self.shutdown_event.wait(SUPERVISOR_POLL_SECONDS)
         self.release_claims()
         self.logger.info("Workflow supervisor shutting down")
+
+    def poll(self, polls: int) -> None:
+        """Look once for work; a failure is logged and the next poll retries.
+
+        Args:
+            polls (int): How many polls were made before this one.
+        """
+        try:
+            self.prune_workers()
+            if polls % IGNORE_CACHE_POLLS == 0:
+                with self.lock:
+                    self.ignored.clear()
+            self.renew_claims()
+            self.spawn_workers()
+            self.spawn_maintenance()
+        except Exception as e:
+            self.logger.error(f"Supervisor poll failed: {e}", exc_info=True)
 
     def unfinished_workflows(self):
         """Every workflow that has not reached a final state, with its age.
@@ -1560,58 +1915,123 @@ class WorkflowSupervisor(Thread):
             workflows.append((workflow_id, age))
         return workflows
 
-    def spawn_workers(self):
+    def spawn_workers(self) -> None:
         """Claim each queued workflow that has no worker yet, and start one."""
-        from biomero import constants
-
         for wf_id, age in self.unfinished_workflows():
             with self.lock:
                 if wf_id in self.active_workers or wf_id in self.ignored:
                     continue
-                busy = sum(1 for worker in self.active_workers.values()
-                           if worker.holds_slot)
+                busy = self.slots_in_use()
             if busy >= MAX_ACTIVE_WORKFLOWS:
                 self.logger.debug(
                     f"Running {busy} workflows already; {wf_id} waits.")
                 return
             if self.recently_ended(wf_id):
                 continue
-            try:
-                launcher = self.tracker.find_launcher_task(wf_id)
-            except Exception as e:
-                # An unreadable workflow is not one that is not ours: look
-                # again on the next poll instead of ignoring it.
-                self.logger.warning(f"Could not read workflow {wf_id}; "
-                                    f"trying again next poll: {e}")
-                continue
+            launcher = self.find_launcher(wf_id, age)
             if launcher is None:
-                if age < IGNORE_MIN_AGE_SECONDS:
-                    # Possibly still being set up by the script that started
-                    # it; look again next time.
-                    continue
-                # Started by a script that runs its own pipeline, so it is not
-                # ours to run. Remembered until the cache is next dropped.
-                self.logger.debug(f"Workflow {wf_id} was not queued for us; "
-                                  f"leaving it alone.")
-                self.ignore(wf_id)
                 continue
-            if not self.tracker.claim_launcher_task(launcher.id, self.owner):
-                self.logger.debug(f"Workflow {wf_id} is claimed by another "
-                                  f"supervisor; leaving it to them.")
+            if not self.claim_workflow(wf_id, launcher):
                 continue
-            self.logger.info(f"Claimed workflow {wf_id}; starting its worker.")
-            batched = launcher.task_name == constants.RUN_WF_BATCHED_SCRIPT
-            with self.lock:
-                worker = WorkflowWorker(wf_id, launcher.id, batched, self)
-                self.active_workers[wf_id] = worker
-            worker.start()
+            self.start_worker(wf_id, launcher)
 
-    def recently_ended(self, wf_id):
-        """Whether a worker for this workflow ended too recently to run again.
+    def slots_in_use(self) -> int:
+        """Count the running workers that take up an execution slot.
+
+        The caller holds ``self.lock``.
+
+        Returns:
+            int: The number of workers holding a slot.
+        """
+        return sum(1 for worker in self.active_workers.values()
+                   if worker.holds_slot)
+
+    def find_launcher(self, wf_id: uuid.UUID, age: float) -> Optional[Any]:
+        """Find the launcher task that queued a workflow for this processor.
+
+        Args:
+            wf_id (uuid.UUID): The workflow to look at.
+            age (float): Seconds since the workflow started.
+
+        Returns:
+            Optional[Any]: The launcher task, or None when the workflow is not
+                (yet) one that this supervisor runs.
+        """
+        try:
+            launcher = self.tracker.find_launcher_task(wf_id)
+        except Exception as e:
+            # An unreadable workflow is not one that is not ours: look
+            # again on the next poll instead of ignoring it.
+            self.logger.warning(f"Could not read workflow {wf_id}; "
+                                f"trying again next poll: {e}")
+            return None
+        if launcher is not None:
+            return launcher
+        if age < IGNORE_MIN_AGE_SECONDS:
+            # Possibly still being set up by the script that started
+            # it; look again next time.
+            return None
+        # Started by a script that runs its own pipeline, so it is not
+        # ours to run. Remembered until the cache is next dropped.
+        self.logger.debug(f"Workflow {wf_id} was not queued for us; "
+                          f"leaving it alone.")
+        self.ignore(wf_id)
+        return None
+
+    def claim_workflow(self, wf_id: uuid.UUID, launcher: Any) -> bool:
+        """Claim a workflow's launcher task for this supervisor.
+
+        Args:
+            wf_id (uuid.UUID): The workflow to claim.
+            launcher (Any): Its launcher task.
+
+        Returns:
+            bool: Whether the claim is held by this supervisor now.
+        """
+        if not self.tracker.claim_launcher_task(launcher.id, self.owner):
+            self.logger.debug(f"Workflow {wf_id} is claimed by another "
+                              f"supervisor; leaving it to them.")
+            return False
+        self.logger.info(f"Claimed workflow {wf_id}; starting its worker.")
+        return True
+
+    def start_worker(self, wf_id: uuid.UUID, launcher: Any) -> None:
+        """Start the worker that runs a claimed workflow.
+
+        Args:
+            wf_id (uuid.UUID): The workflow to run.
+            launcher (Any): Its launcher task, which says whether the
+                workflow is a batched parent.
+        """
+        from biomero import constants
+
+        batched = launcher.task_name == constants.RUN_WF_BATCHED_SCRIPT
+        with self.lock:
+            worker = WorkflowWorker(wf_id, launcher.id, batched, self)
+            self.active_workers[wf_id] = worker
+        worker.start()
+
+    def running_workers(self) -> List["WorkflowWorker"]:
+        """Take a snapshot of the running workers.
+
+        Returns:
+            List[WorkflowWorker]: The workers of the claimed workflows.
+        """
+        with self.lock:
+            return list(self.active_workers.values())
+
+    def recently_ended(self, wf_id: uuid.UUID) -> bool:
+        """Tell whether a workflow's worker ended too recently to run again.
 
         A worker that ends without its workflow reaching a final state is not
         started again at once, so a persistent problem is retried at a calm
         pace instead of on every poll.
+
+        Args:
+            wf_id (uuid.UUID): The workflow to check.
+
+        Returns:
+            bool: True while the workflow's restart delay runs.
         """
         ended_at = self.ended_at.get(wf_id)
         if ended_at is None:
@@ -1623,14 +2043,13 @@ class WorkflowSupervisor(Thread):
                           f"running it again in {waiting:.0f}s.")
         return True
 
-    def renew_claims(self):
+    def renew_claims(self) -> None:
         """Keep the claims on the launchers of running workflows alive."""
-        if time.monotonic() < self.next_claim_renewal:
+        now = time.monotonic()
+        if now < self.next_claim_renewal:
             return
-        self.next_claim_renewal = time.monotonic() + CLAIM_RENEW_SECONDS
-        with self.lock:
-            workers = list(self.active_workers.values())
-        for worker in workers:
+        self.next_claim_renewal = now + CLAIM_RENEW_SECONDS
+        for worker in self.running_workers():
             try:
                 self.renew_claim(worker)
             except Exception as e:
@@ -1639,8 +2058,13 @@ class WorkflowSupervisor(Thread):
                 self.logger.warning(f"Could not renew the claim on workflow "
                                     f"{worker.workflow_id}; trying again: {e}")
 
-    def renew_claim(self, worker):
-        """Renew one claim; when it is lost, tell the worker to stop."""
+    def renew_claim(self, worker: "WorkflowWorker") -> None:
+        """Renew one claim; when it is lost, tell the worker to stop.
+
+        Args:
+            worker (WorkflowWorker): The worker whose launcher task claim to
+                renew.
+        """
         if self.tracker.claim_launcher_task(worker.launcher_task_id,
                                             self.owner):
             return
@@ -1662,23 +2086,37 @@ class WorkflowSupervisor(Thread):
             f"{launcher.claimed_by}; stopping this supervisor's worker.")
         worker.claim_lost.set()
 
-    def release_claims(self):
+    def release_claims(self) -> None:
         """On a clean shutdown, hand the running workflows back at once."""
-        with self.lock:
-            workers = list(self.active_workers.values())
-        for worker in workers:
-            try:
-                self.tracker.release_launcher_task(worker.launcher_task_id,
-                                                   self.owner)
+        for worker in self.running_workers():
+            if self.release_claim(worker.workflow_id,
+                                  worker.launcher_task_id):
                 # The claim is given up: the worker must not run on as if it
                 # still held it.
                 worker.claim_lost.set()
-            except Exception as e:
-                self.logger.warning(f"Could not release workflow "
-                                    f"{worker.workflow_id}; its claim runs "
-                                    f"out on its own: {e}")
 
-    def prune_workers(self):
+    def release_claim(self, wf_id: uuid.UUID,
+                      launcher_task_id: uuid.UUID) -> bool:
+        """Give up this supervisor's claim on a workflow's launcher task.
+
+        Args:
+            wf_id (uuid.UUID): The workflow, for the logs.
+            launcher_task_id (uuid.UUID): The launcher task holding the claim.
+
+        Returns:
+            bool: Whether the claim was released; when it was not, it runs
+                out on its own.
+        """
+        try:
+            self.tracker.release_launcher_task(launcher_task_id, self.owner)
+        except Exception as e:
+            self.logger.warning(f"Could not release workflow {wf_id}; "
+                                f"its claim runs out on its own: {e}")
+            return False
+        return True
+
+    def prune_workers(self) -> None:
+        """Forget the workers that ended, and restart delays that ran out."""
         with self.lock:
             for wf_id, worker in list(self.active_workers.items()):
                 if not worker.is_alive():
@@ -1709,21 +2147,25 @@ class WorkflowSupervisor(Thread):
         with self.lock:
             self.maintenance_workers.pop(request_id, None)
 
-    def remove_worker(self, wf_id, launcher_task_id):
-        """A worker ended: forget it, and hand its workflow back if it is shut down."""
+    def remove_worker(self, wf_id: uuid.UUID,
+                      launcher_task_id: uuid.UUID) -> None:
+        """Forget a worker that ended, and hand its workflow back on shutdown.
+
+        Args:
+            wf_id (uuid.UUID): The workflow the worker ran.
+            launcher_task_id (uuid.UUID): Its launcher task, whose claim is
+                released when this supervisor is shutting down.
+        """
         with self.lock:
             self.active_workers.pop(wf_id, None)
             self.ended_at[wf_id] = time.monotonic()
-            self.restarts[wf_id] = self.restarts.get(wf_id, 0) + 1
-        self.logger.info(f"Worker of workflow {wf_id} ended (run "
-                         f"{self.restarts[wf_id]}); the workflow is run again "
-                         f"if it did not reach a final state.")
+            runs = self.restarts.get(wf_id, 0) + 1
+            self.restarts[wf_id] = runs
+        self.logger.info(f"Worker of workflow {wf_id} ended (run {runs}); "
+                         f"the workflow is run again if it did not reach a "
+                         f"final state.")
         if self.shutdown_event.is_set():
-            try:
-                self.tracker.release_launcher_task(launcher_task_id, self.owner)
-            except Exception as e:
-                self.logger.warning(f"Could not release workflow {wf_id}; "
-                                    f"its claim runs out on its own: {e}")
+            self.release_claim(wf_id, launcher_task_id)
 
     def ignore(self, wf_id):
         """Stop inspecting a workflow that is not ours to run."""

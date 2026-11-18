@@ -3,33 +3,48 @@ import ast
 import logging
 from pathlib import Path
 from types import SimpleNamespace
+import typing
+from typing import Any, Dict
 from unittest.mock import Mock
 
 import pytest
+
+RUNNER_FUNCTIONS = {
+    "polling_script_runner", "latest_progress_position",
+    "pump_progress_listener", "cancel_process_if_stopped"}
 
 
 class LocalException(Exception):
     """Stand-in for Ice.LocalException without requiring an OMERO install."""
 
 
-def runner_namespace():
-    source = Path(__file__).parents[1] / 'processor.py'
-    tree = ast.parse(source.read_text(encoding='utf-8'))
+def runner_namespace() -> Dict[str, Any]:
+    """Execute the processor's sub-script runner from source.
+
+    Returns:
+        Dict[str, Any]: The namespace holding the executed runner and the
+            helpers it calls.
+    """
+    source = Path(__file__).parents[1] / "processor.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"))
     nodes = [
         node for node in tree.body
-        if isinstance(node, ast.FunctionDef)
-        and node.name == 'polling_script_runner'
+        if (isinstance(node, ast.FunctionDef)
+            and node.name in RUNNER_FUNCTIONS)
+        or (isinstance(node, ast.ClassDef)
+            and node.name == "RecordedInputsClient")
     ]
-    namespace = {
-        'Ice': SimpleNamespace(LocalException=LocalException),
-        'SCRIPT_POLL_FAILURE_LIMIT': 5,
-        'SCRIPT_POLL_SECONDS': 2,
-        'logging': logging,
-        'start_script': Mock(),
-        'time': Mock(),
-    }
+    namespace = {name: getattr(typing, name) for name in typing.__all__}
+    namespace.update({
+        "Ice": SimpleNamespace(LocalException=LocalException),
+        "SCRIPT_POLL_FAILURE_LIMIT": 5,
+        "SCRIPT_POLL_SECONDS": 2,
+        "logging": logging,
+        "start_script": Mock(),
+        "time": Mock(),
+    })
     exec(
-        compile(ast.Module(body=nodes, type_ignores=[]), str(source), 'exec'),
+        compile(ast.Module(body=nodes, type_ignores=[]), str(source), "exec"),
         namespace,
     )
     return namespace
