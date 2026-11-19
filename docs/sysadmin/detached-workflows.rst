@@ -148,6 +148,11 @@ shutdown) and continues monitoring jobs that have already been submitted to
 Slurm. A Slurm job that failed or was cancelled is submitted again, not
 resumed.
 
+``biomeroworker`` can be started while the tracking database is down. It
+logs ``Cannot supervise workflows yet; retrying`` as a warning, retries with
+waits of up to 60 seconds, and starts supervising by itself once the database
+is back; no restart is needed.
+
 Do not disable detached mode while workflows are queued or running. They remain
 recorded but cannot progress until the background worker is available again.
 

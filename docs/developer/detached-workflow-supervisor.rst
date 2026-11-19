@@ -137,6 +137,13 @@ allows ``Processor-0`` to register with OMERO.grid before recovered pipelines
 start OMERO sub-scripts. A sub-script that receives
 ``NoProcessorAvailable`` during startup is retried for up to three minutes.
 
+If the tracking database is not reachable when the processor starts, the
+supervisor logs ``Cannot supervise workflows yet; retrying in Ns (attempt n)``
+at ``WARNING`` and tries again, waiting ``BIOMERO_SUPERVISOR_POLL_SECONDS``
+seconds at first and doubling up to 60 seconds. Once the database is back it
+logs the recovery at ``INFO`` and supervises as usual. A processor shutdown
+ends the wait at once.
+
 Supervisor and workflow workers are daemon threads. If the processor process
 ends, unfinished state remains in the event store; the next supervisor resumes
 it after its startup grace period. Pipeline failures are recorded through the
