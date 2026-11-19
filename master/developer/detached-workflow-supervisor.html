@@ -893,8 +893,8 @@ wins and the other does not run the workflow. A claim does not change the task
 status, so it is not an analysis phase and does not appear as workflow progress.</p>
 <p>A claim is valid for a lease (<code class="docutils literal notranslate"><span class="pre">LAUNCHER_CLAIM_LEASE_SECONDS</span></code>, five minutes).
 The supervisor renews the claim of each running workflow every
-<code class="docutils literal notranslate"><span class="pre">CLAIM_RENEW_SECONDS</span></code>, and gives the claims up on a clean shutdown (see
-below). After a
+<code class="docutils literal notranslate"><span class="pre">CLAIM_RENEW_SECONDS</span></code>, and gives the claims up when IceGrid stops the
+Processor cleanly (see below). After a
 crash or restart the lease runs out and the new supervisor claims the launcher
 and resumes the run: with <code class="docutils literal notranslate"><span class="pre">resume=True</span></code>, completed transfer and conversion
 stages are skipped and an existing Slurm job is adopted instead of submitted
@@ -912,12 +912,16 @@ logs an error and the worker stops at its next check (between pipeline steps,
 or by cancelling the running sub-script) without failing the workflow. A clean
 shutdown stops its workers the same way, logged at INFO; the supervisor thread
 releases the claims, because the tracker belongs to that thread. The shutdown
-starts in <code class="docutils literal notranslate"><span class="pre">omero.util.Server.run</span></code>: when the node stops (SIGTERM, for example
-on <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">stop</span></code>), its <code class="docutils literal notranslate"><span class="pre">finally</span></code> block calls the servant’s <code class="docutils literal notranslate"><span class="pre">cleanup()</span></code>,
-which <code class="docutils literal notranslate"><span class="pre">ProcessorI.cleanup</span></code> overrides to stop the supervisor and wait for it
-up to <code class="docutils literal notranslate"><span class="pre">SUPERVISOR_STOP_TIMEOUT_SECONDS</span></code>. A process that is killed, or that
-is not given that time (mind the container stop grace period), does not
-release anything: its claims run out after the lease. Run a single
+starts in <code class="docutils literal notranslate"><span class="pre">omero.util.Server.run</span></code>: when IceGrid stops the Processor, its
+<code class="docutils literal notranslate"><span class="pre">finally</span></code> block calls the servant’s <code class="docutils literal notranslate"><span class="pre">cleanup()</span></code>, which
+<code class="docutils literal notranslate"><span class="pre">ProcessorI.cleanup</span></code> overrides to stop the supervisor and wait for it up to
+<code class="docutils literal notranslate"><span class="pre">SUPERVISOR_STOP_TIMEOUT_SECONDS</span></code>. Only that path releases the claims. A
+container stop (Docker, Podman) does not reach it: <code class="docutils literal notranslate"><span class="pre">omero</span> <span class="pre">node</span> <span class="pre">start</span>
+<span class="pre">--foreground</span></code> does not forward SIGTERM to <code class="docutils literal notranslate"><span class="pre">icegridnode</span></code>, so the processes
+end before <code class="docutils literal notranslate"><span class="pre">cleanup()</span></code> runs. Any process that ends without <code class="docutils literal notranslate"><span class="pre">cleanup()</span></code>
+releases nothing: its claims run out after the lease, and the workflows then
+resume at most about five minutes after the stop. Nothing runs twice and no
+Slurm job is submitted again. Run a single
 detached supervisor per BIOMERO tracking database anyway: the claim keeps two
 of them from running the same workflow, but metadata maintenance requests
 below are not claimed.</p>
@@ -945,6 +949,14 @@ tracker method later.</p>
 allows <code class="docutils literal notranslate"><span class="pre">Processor-0</span></code> to register with OMERO.grid before recovered pipelines
 start OMERO sub-scripts. A sub-script that receives
 <code class="docutils literal notranslate"><span class="pre">NoProcessorAvailable</span></code> during startup is retried for up to three minutes.</p>
+<p>If the tracking database is not reachable when the processor starts, the
+supervisor logs <code class="docutils literal notranslate"><span class="pre">Cannot</span> <span class="pre">supervise</span> <span class="pre">workflows</span> <span class="pre">yet:</span> <span class="pre">cannot</span> <span class="pre">reach</span> <span class="pre">the</span> <span class="pre">database,</span>
+<span class="pre">retrying</span> <span class="pre">in</span> <span class="pre">Ns</span> <span class="pre">(attempt</span> <span class="pre">n)</span></code> at <code class="docutils literal notranslate"><span class="pre">WARNING</span></code> and tries again, waiting
+<code class="docutils literal notranslate"><span class="pre">BIOMERO_SUPERVISOR_POLL_SECONDS</span></code> seconds (at least one) at first and
+doubling up to 60 seconds. Any other set-up error is logged at <code class="docutils literal notranslate"><span class="pre">ERROR</span></code> with
+its traceback and ends the supervisor, as before. Once the database is back it
+logs the recovery at <code class="docutils literal notranslate"><span class="pre">INFO</span></code> and supervises as usual. A processor shutdown
+ends the wait at once.</p>
 <p>Supervisor and workflow workers are daemon threads. If the processor process
 ends, unfinished state remains in the event store; the next supervisor resumes
 it after its startup grace period. Pipeline failures are recorded through the

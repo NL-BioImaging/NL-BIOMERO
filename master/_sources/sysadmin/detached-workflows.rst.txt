@@ -143,10 +143,20 @@ session.
 
 Workflow state is stored in the BIOMERO tracking database. If
 ``biomeroworker`` restarts, it resumes unfinished detached workflows once the
-previous worker's claim has run out (five minutes; at once after a clean
-shutdown) and continues monitoring jobs that have already been submitted to
-Slurm. A Slurm job that failed or was cancelled is submitted again, not
-resumed.
+previous worker's claim has run out and continues monitoring jobs that have
+already been submitted to Slurm. A Slurm job that failed or was cancelled is
+submitted again, not resumed.
+
+Claims are released at once only when IceGrid stops the Processor cleanly. A
+container stop (Docker, Podman) ends the processes before that. Either way
+the workflows resume no later than once the lease has run out, at most about
+five minutes after the stop. Nothing runs twice and no Slurm job is submitted
+again.
+
+``biomeroworker`` can be started while the tracking database is down. It
+logs ``cannot reach the database, retrying`` as a warning, retries with
+waits of up to 60 seconds, and starts supervising by itself once the database
+is back; no restart is needed.
 
 Do not disable detached mode while workflows are queued or running. They remain
 recorded but cannot progress until the background worker is available again.

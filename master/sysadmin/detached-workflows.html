@@ -955,10 +955,18 @@ progress and final status can be monitored independently of the original web
 session.</p>
 <p>Workflow state is stored in the BIOMERO tracking database. If
 <code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code> restarts, it resumes unfinished detached workflows once the
-previous worker’s claim has run out (five minutes; at once after a clean
-shutdown) and continues monitoring jobs that have already been submitted to
-Slurm. A Slurm job that failed or was cancelled is submitted again, not
-resumed.</p>
+previous worker’s claim has run out and continues monitoring jobs that have
+already been submitted to Slurm. A Slurm job that failed or was cancelled is
+submitted again, not resumed.</p>
+<p>Claims are released at once only when IceGrid stops the Processor cleanly. A
+container stop (Docker, Podman) ends the processes before that. Either way
+the workflows resume no later than once the lease has run out, at most about
+five minutes after the stop. Nothing runs twice and no Slurm job is submitted
+again.</p>
+<p><code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code> can be started while the tracking database is down. It
+logs <code class="docutils literal notranslate"><span class="pre">cannot</span> <span class="pre">reach</span> <span class="pre">the</span> <span class="pre">database,</span> <span class="pre">retrying</span></code> as a warning, retries with
+waits of up to 60 seconds, and starts supervising by itself once the database
+is back; no restart is needed.</p>
 <p>Do not disable detached mode while workflows are queued or running. They remain
 recorded but cannot progress until the background worker is available again.</p>
 <p>Confirm the active configuration with:</p>
