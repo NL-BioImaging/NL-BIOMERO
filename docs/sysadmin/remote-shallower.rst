@@ -251,9 +251,9 @@ verify image availability with ``SLURM_check_setup``. Runtime shallowing never
 downloads images. When the helper image is not installed, the workflow keeps
 its full results and logs a warning to run Slurm Init; an invalid image, or a
 missing image of a helper task that already started, stops result retrieval
-with a setup error identifying the required image. BIOMERO also verifies the installed
-helper's version and storage-format capabilities before it changes result data;
-initialize and verify the selected image before retrying.
+with a setup error identifying the required image. BIOMERO also verifies the
+installed helper's version and storage-format capabilities before it changes
+result data; initialize and verify the helper image before retrying.
 
 After upgrading an installation that already contains older shallow-storage
 data, run ``BIOMERO Migrate Shallow Storage (Admin Only)``. Run its dry mode
