@@ -52,10 +52,11 @@ managed source, refreshes its cache and performs the comparison locally.
      shallowing new results. Existing shallow results still need their sources.
    * Remote processing is the recommended default. It reduces transfer volume
      and importer work at the cost of a CPU-only HPC helper job.
-   * Configure the helper image/resources and run Slurm Init after upgrading.
-     This is the normal post-upgrade initialization step and acquires the helper
-     image together with the other configured workflow images when importer,
-     shallow storage and remote processing are all enabled.
+   * Run Slurm Init after upgrading, and configure the helper resources if
+     needed. This is the normal post-upgrade initialization step and installs
+     the helper image of the installed shallower package together with the
+     other workflow images when importer, shallow storage and remote processing
+     are all enabled.
    * Keep source storage available. This feature reduces duplicate result data;
      it does not replace backups or enable detached execution.
 
@@ -211,12 +212,14 @@ and the workflow worker. ``SLURM_CONFIG_HOST_PATH`` selects this canonical
 configuration in the root Compose files; deployment-scenario files mount the
 same file. The INIs under ``biomeroworker/`` are alternative examples, not
 additional active configurations. Feature flags belong to the deployment
-environment; helper image and resource settings belong to the shared INI.
+environment; helper resource settings belong to the shared INI.
 
 Install compatible BIOMERO core, scripts, importer, shallower and schema
 packages. The Python package installation does not acquire the helper image
-on Slurm. Supply a helper image in a registry accessible to the cluster;
-a pinned tag or immutable ``@sha256:...`` reference is recommended.
+on Slurm: Slurm Init installs it. The helper image is built from the same
+repository and version as the installed shallower package, which names it
+itself, so the image on Slurm always matches the package. The cluster must be
+able to reach the image's registry.
 
 Set these deployment environment values:
 
@@ -230,32 +233,25 @@ Configure helper runtime settings under ``[SLURM]`` in the shared
 ``web/slurm-config.ini`` or through OMERO.biomero's admin settings. Do not supply
 worker runtime overrides in Compose: they take precedence over saved INI values.
 
-Prefer a pinned ``remote_shallower_image`` under ``[SLURM]`` in the worker's
-``slurm-config.ini``. The fallback is
-``cellularimagingcf/biomero-shallower:latest``; NL-BIOMERO supplies a pinned
-release selection in its shared configuration.
-When ``remote_shallower_version`` is unset, core reads the installed image's
-OCI tool-version label before submitting a new helper task. An explicit value
-must exactly match the version written into receipts. Existing tasks retain
-their recorded version for recovery.
+Neither the helper image nor its version is configured. Core reads the
+installed image's OCI tool-version label before submitting a new helper task,
+and existing tasks retain their recorded version for recovery. The importer
+validates receipts against its own installed shallower package; a receipt from
+another version is accepted with a warning when the installed package can still
+read it. The importer has its own settings and does not read the Slurm INI.
 
-Set ``BIOMERO_REMOTE_SHALLOWER_IMAGE`` and
-``BIOMERO_REMOTE_SHALLOWER_VERSION`` on the importer to the same selected
-values for receipt validation. The importer has its own settings and does not
-read the Slurm INI. The demonstration supplies these trust values only to the
-importer, not to web or the workflow worker. Keep them aligned when changing
-the helper image through the admin interface.
-
-The worker loads helper runtime settings from the shared Slurm INI. Compose
-supplies matching trust settings to the importer. An empty helper partition inherits the generic configured partition,
+The worker loads helper runtime settings from the shared Slurm INI.
+An empty helper partition inherits the generic configured partition,
 then the scheduler default; administrators can choose their CPU partition
 explicitly. The helper requests no GPU. It uses its
 worker count as CPUs per task and inherits global memory, time, account,
 reservation, and QoS settings. Image acquisition uses the established image-pull
 resource settings. Run ``SLURM_Init_environment`` before running analyses and
 verify image availability with ``SLURM_check_setup``. Runtime shallowing never
-downloads images. A missing or invalid image stops result retrieval with a
-setup error identifying the required image. BIOMERO also verifies the installed
+downloads images. When the helper image is not installed, the workflow keeps
+its full results and logs a warning to run Slurm Init; an invalid image, or a
+missing image of a helper task that already started, stops result retrieval
+with a setup error identifying the required image. BIOMERO also verifies the installed
 helper's version and storage-format capabilities before it changes result data;
 initialize and verify the selected image before retrying.
 
@@ -269,8 +265,8 @@ canonical registrations, and keeps a backup of the files it changes
 are.
 
 Equivalent ``[SLURM]`` options are ``remote_shallow_zarr``,
-``remote_shallower_image``, ``remote_shallower_version``,
-``remote_shallower_workers``, and ``remote_shallower_partition``. Environment
+``remote_shallower_workers``, ``remote_shallower_partition``,
+``remote_shallower_mem`` and ``remote_shallower_time``. Environment
 values override ini values when explicitly supplied. The demonstration keeps
 runtime settings in the INI and supplies only feature flags to the worker through
 the deployment environment.
@@ -281,10 +277,10 @@ Admin settings
 When shallow Zarr is enabled, OMERO.biomero's admin settings show a Shallow Zarr
 section. The demonstration configuration enables remote shallowing; switching it off hides the
 helper fields without removing their saved values. When enabled, the section
-provides image, tool version, worker count, partition, memory and time settings.
+provides worker count, partition, memory and time settings.
 These fields save the worker's Slurm configuration, not the importer's separate
-settings. Keep the importer trust settings aligned. Run Slurm Init after changing
-the helper image.
+settings. Run Slurm Init after upgrading the shallower package, so the matching
+helper image is installed.
 
 The workflow-level **Skip original-pixel comparison** switch is independent of
 these helper controls. For workflows known to leave original pixels unchanged,
@@ -354,7 +350,7 @@ Do not remove prune journals; they can contain arrays needed for rollback.
 The :doc:`BIOMERO file reference <../developer/biomero-files>` lists every
 ``.biomero*`` file, which component writes it, and what happens if it is
 deleted.
-Keep the original image configured until outstanding recovery is complete.
+Keep the original image installed until outstanding recovery is complete.
 
 The helper uses the trusted BIOMERO Slurm account, image, event store, and
 import-order writers. Canonical managed identifiers are resolved through the
