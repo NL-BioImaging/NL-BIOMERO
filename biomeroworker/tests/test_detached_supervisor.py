@@ -24,6 +24,9 @@ import uuid
 from uuid import uuid4
 
 import pytest
+from biomero.database import backoff_delay as core_backoff_delay
+from eventsourcing.persistence import PersistenceError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from biomero import constants as biomero_constants
 
 SOURCE = Path(__file__).parents[1] / "processor.py"
@@ -41,6 +44,11 @@ YOUNG_AGE_SECONDS = 5
 SCRIPT_ID = 42
 RELEASE_SECONDS = 0.5
 RESTART_DELAY_SECONDS = 60
+RETRY_TEST_WAIT_SECONDS = 0.5
+RETRY_TEST_JOIN_SECONDS = 5
+RETRY_TEST_SUCCESSES = 10
+DATABASE_ERRORS = (SQLAlchemyError, PersistenceError)
+POLL_SECONDS = 10
 
 
 try:
@@ -82,7 +90,9 @@ SHIPPED_CONSTANTS = {
     "CLAIM_RENEW_SECONDS", "WORKER_RESTART_DELAY_SECONDS",
     "CANCEL_CHECK_SECONDS", "IGNORE_MIN_AGE_SECONDS", "SCRIPT_POLL_SECONDS",
     "SCRIPT_POLL_FAILURE_LIMIT", "CHILD_POLL_SECONDS",
-    "WORKFLOW_TRACKER_APPLICATION", "SUPERVISOR_STOP_TIMEOUT_SECONDS"}
+    "WORKFLOW_TRACKER_APPLICATION", "SUPERVISOR_STOP_TIMEOUT_SECONDS",
+    "SUPERVISOR_SETUP_RETRY_MAX_SECONDS",
+    "SUPERVISOR_SETUP_RETRY_MIN_SECONDS"}
 
 
 def processor_namespace(**overrides: Any) -> Dict[str, Any]:
@@ -539,7 +549,9 @@ def test_stopping_the_supervisor_waits_for_its_claims_to_be_released(
     modules = {
         "biomero": SimpleNamespace(
             WorkflowTracker=Mock(return_value=tracker)),
-        "biomero.database": SimpleNamespace(EngineManager=Mock())}
+        "biomero.database": SimpleNamespace(
+            EngineManager=Mock(), backoff_delay=Mock()),
+        "biomero.views": SimpleNamespace(LOOKUP_ERRORS=DATABASE_ERRORS)}
 
     with patch.dict(sys.modules, modules):
         supervisor.start()
@@ -1308,12 +1320,107 @@ def test_supervisor_loop_releases_the_claims_on_the_way_out(
         side_effect=lambda: supervisor.shutdown_event.set())
     supervisor.release_claims = Mock()
     modules = {"biomero": SimpleNamespace(WorkflowTracker=Mock()),
-               "biomero.database": SimpleNamespace(EngineManager=Mock())}
+               "biomero.database": SimpleNamespace(
+                   EngineManager=Mock(), backoff_delay=Mock()),
+               "biomero.views": SimpleNamespace(
+                   LOOKUP_ERRORS=DATABASE_ERRORS)}
 
     with patch.dict(sys.modules, modules):
         supervisor.run()
 
     supervisor.release_claims.assert_called_once()
+
+
+@contextlib.contextmanager
+def supervisor_thread_with_database_down(
+        failures: int, retry_seconds: float
+) -> Iterator[Tuple[Any, Mock, Thread]]:
+    """Run a supervisor in a thread while its database session fails.
+
+    Args:
+        failures (int): How many times creating the session raises first.
+        retry_seconds (float): The wait before each retry.
+
+    Yields:
+        Tuple[Any, Mock, Thread]: The supervisor (``spawn_workers`` is a
+        mock), the mocked ``create_scoped_session`` and the running thread,
+        given half a second to get going; the thread is stopped afterwards.
+    """
+    namespace = processor_namespace(
+        load_biomero_scripts=Mock(return_value=(SimpleNamespace(), Mock())),
+        SUPERVISOR_STARTUP_GRACE_SECONDS=0, SUPERVISOR_POLL_SECONDS=0,
+        SUPERVISOR_SETUP_RETRY_MIN_SECONDS=0,
+        IGNORE_CACHE_POLLS=90, polling_script_runner=Mock())
+    supervisor = namespace["WorkflowSupervisor"]()
+    supervisor.prune_workers = Mock()
+    supervisor.spawn_maintenance = Mock()
+    supervisor.spawn_workers = Mock()
+    supervisor.release_claims = Mock()
+    create_session = Mock(
+        side_effect=[OperationalError("down", None, Exception("refused"))]
+        * failures + [None] * RETRY_TEST_SUCCESSES)
+    modules = {
+        "biomero": SimpleNamespace(WorkflowTracker=Mock()),
+        "biomero.database": SimpleNamespace(
+            EngineManager=SimpleNamespace(
+                create_scoped_session=create_session),
+            backoff_delay=Mock(return_value=retry_seconds)),
+        "biomero.views": SimpleNamespace(LOOKUP_ERRORS=DATABASE_ERRORS)}
+    with patch.dict(sys.modules, modules):
+        thread = Thread(target=supervisor.run)
+        thread.start()
+        try:
+            time.sleep(RETRY_TEST_WAIT_SECONDS)
+            yield supervisor, create_session, thread
+        finally:
+            supervisor.shutdown_event.set()
+            thread.join(RETRY_TEST_JOIN_SECONDS)
+
+
+def test_supervisor_retries_its_setup_until_the_database_is_back(
+        core: None, caplog: pytest.LogCaptureFixture) -> None:
+    """A supervisor that started with the database down recovers by itself.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+        caplog (pytest.LogCaptureFixture): Captures the supervisor's logs.
+    """
+    with caplog.at_level(logging.INFO, logger="biomero.detached.supervisor"):
+        with supervisor_thread_with_database_down(
+                failures=2, retry_seconds=0.01) as (
+                supervisor, create_session, thread):
+            assert thread.is_alive()
+            assert create_session.call_count == 3
+            supervisor.spawn_workers.assert_called()
+
+    warnings = [record.getMessage() for record in caplog.records
+                if record.levelno == logging.WARNING]
+    assert len(warnings) == 2
+    assert "cannot reach the database, retrying in 0s (attempt 1)" in (
+        warnings[0])
+    assert sum("succeeded after 2 failed attempts" in record.getMessage()
+               for record in caplog.records) == 1
+
+
+def test_shutdown_during_the_setup_retry_wait_ends_the_thread(
+        core: None) -> None:
+    """A shutdown does not wait for the next database attempt.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+    """
+    with supervisor_thread_with_database_down(
+            failures=RETRY_TEST_SUCCESSES, retry_seconds=60) as (
+            supervisor, create_session, thread):
+        assert thread.is_alive()
+        started = time.monotonic()
+
+        supervisor.shutdown_event.set()
+        thread.join(RETRY_TEST_JOIN_SECONDS)
+
+        assert not thread.is_alive()
+        assert time.monotonic() - started < RETRY_TEST_JOIN_SECONDS
+        supervisor.spawn_workers.assert_not_called()
 
 
 def test_ended_workers_are_forgotten_after_the_restart_delay(
@@ -1334,3 +1441,82 @@ def test_ended_workers_are_forgotten_after_the_restart_delay(
     supervisor.prune_workers()
 
     assert supervisor.ended_at == {}
+
+
+def set_up_failing_with(error: Exception, poll_seconds: int,
+                        caplog: pytest.LogCaptureFixture) -> Tuple[Any, Mock]:
+    """Run ``set_up`` once with a failing ``open_tracker``, real backoff.
+
+    Args:
+        error (Exception): What ``open_tracker`` raises.
+        poll_seconds (int): The supervisor poll interval.
+        caplog (pytest.LogCaptureFixture): Captures the supervisor's logs.
+
+    Returns:
+        Tuple[Any, Mock]: The supervisor and its mocked shutdown event; the
+        event reports a shutdown after the first failed attempt.
+    """
+    namespace = processor_namespace(SUPERVISOR_POLL_SECONDS=poll_seconds)
+    supervisor = namespace["WorkflowSupervisor"]()
+    supervisor.open_tracker = Mock(side_effect=error)
+    supervisor.shutdown_event = Mock()
+    supervisor.shutdown_event.is_set.side_effect = [False, True]
+    modules = {
+        "biomero.database": SimpleNamespace(backoff_delay=core_backoff_delay),
+        "biomero.views": SimpleNamespace(LOOKUP_ERRORS=DATABASE_ERRORS)}
+    with patch.dict(sys.modules, modules), caplog.at_level(
+            logging.INFO, logger="biomero.detached.supervisor"):
+        supervisor.set_up()
+    return supervisor, supervisor.shutdown_event
+
+
+def test_first_setup_retry_waits_one_poll_interval(
+        core: None, caplog: pytest.LogCaptureFixture) -> None:
+    """The first wait is the poll interval (plus core's small jitter).
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+        caplog (pytest.LogCaptureFixture): Captures the supervisor's logs.
+    """
+    _, event = set_up_failing_with(
+        OperationalError("down", None, Exception("refused")), POLL_SECONDS,
+        caplog)
+
+    delay = event.wait.call_args.args[0]
+    assert POLL_SECONDS <= delay <= POLL_SECONDS + 0.2
+
+
+def test_setup_retry_wait_has_a_floor(
+        core: None, caplog: pytest.LogCaptureFixture) -> None:
+    """A poll interval of 0 does not make the retry spin.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+        caplog (pytest.LogCaptureFixture): Captures the supervisor's logs.
+    """
+    _, event = set_up_failing_with(
+        OperationalError("down", None, Exception("refused")), 0, caplog)
+
+    assert event.wait.call_args.args[0] >= 1
+
+
+def test_setup_error_that_is_not_the_database_ends_the_supervisor(
+        core: None, caplog: pytest.LogCaptureFixture) -> None:
+    """A defect is logged as an error with its traceback, without a retry.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+        caplog (pytest.LogCaptureFixture): Captures the supervisor's logs.
+    """
+    supervisor, event = set_up_failing_with(
+        ImportError("no biomero"), POLL_SECONDS, caplog)
+
+    assert supervisor.open_tracker.call_count == 1
+    event.wait.assert_not_called()
+    errors = [record for record in caplog.records
+              if record.levelno == logging.ERROR]
+    assert len(errors) == 1
+    assert "Cannot supervise workflows: no biomero" in errors[0].getMessage()
+    assert errors[0].exc_info is not None
+    assert not [record for record in caplog.records
+                if record.levelno == logging.WARNING]
