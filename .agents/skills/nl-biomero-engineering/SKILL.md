@@ -169,7 +169,11 @@ is a requirement, not polish.
 - Keep the documentation factual, including diagrams and file trees. A change
   to a design, file, contract or behaviour updates the affected text and
   diagrams in the same change, because the docs are versioned with the
-  release and readers rely on them to match that version.
+  release and readers rely on them to match that version. The same holds for
+  agent guidance (skills, `AGENTS.md`, their references): a change updates the
+  guidance that describes it, in the same PR or, for shared guidance in another
+  repository, in a guidance commit when the change merges. Reviewers check
+  both.
 - Document every file BIOMERO writes (sidecars, manifests, markers,
   journals) in the file reference (NL-BIOMERO
   `docs/developer/biomero-files.md`), so someone who finds such a file can

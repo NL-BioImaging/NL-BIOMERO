@@ -53,7 +53,9 @@ restart. Do not treat this as permission to put every BIOMERO setting in env.
 Runtime and Slurm Init-managed settings belong in the canonical
 `web/slurm-config.ini`, so OMERO.biomero administrators can manage them without
 editing a deployment. This includes worker/CPU counts, partitions, memory/time
-limits, image acquisition settings and helper image/version selection. Keep
+limits and image acquisition settings. The remote shallower helper image is not
+a setting: Slurm Init installs the image of the shallower package installed in
+the worker. Keep
 alternative INI examples aligned where applicable. Do not inject matching env
 overrides into web or biomeroworker, including empty values or fallback defaults:
 env precedence prevents the admin interface's saved INI values from taking effect.
@@ -65,18 +67,19 @@ Verify the consumer rather than inferring timing from the section name. Shared
 indicators are sufficient for homogeneous groups; mixed sections show both and
 classify each field/subgroup. Runtime applies to new runs or requests after
 saving. Slurm Init installs helper images/generated scripts or rebuilds analytics.
-For Shallow Zarr, mark the helper image as Slurm Init and remote/local selection,
-receipt version and resource limits as runtime; explain that first remote use
-requires an installed helper and matching importer trust settings. Keep deployment
+For Shallow Zarr, mark remote/local selection and the helper resource limits as
+runtime; explain that first remote use requires Slurm Init to have installed the
+helper image, and that after an upgrade Slurm Init must run again to install the
+new one (until then results stay full). Keep deployment
 flags/restarts distinct from these INI-managed settings. Update the sibling web
 plugin and this repository's admin docs together when their behavior changes.
 
 Respect component boundaries: the importer has its own settings and does not
-read `slurm-config.ini`. Preserve its required validation/trust configuration;
-do not force importer settings into the Slurm INI. Where importer trust settings
-must match a Slurm helper selection, document that alignment without injecting
-the importer's values as overrides into web or biomeroworker. Do not remove
-required validation inputs or weaken validation to simplify configuration.
+read `slurm-config.ini`; do not force importer settings into the Slurm INI or
+inject them as overrides into web or biomeroworker. The importer validates
+remote shallow results against its own installed shallower package, so no
+helper version needs to be aligned by configuration. Do not remove required
+validation inputs or weaken validation to simplify configuration.
 
 All enabled values and concrete examples shipped by this repository must work in
 the documented local environments:
@@ -229,8 +232,8 @@ Use the appropriate version format: PyPI pins use normalized versions such as
 use the actually published Docker tags such as `1.8.0-beta.6`. Stable container
 releases cascade to full-version, major/minor and `latest` tags; prereleases do
 not update stable aliases. Pin prerelease images explicitly for ACC, including
-the shallower. Its receipt/tool version is the normalized package version, not
-the Docker tag; keep importer trust settings aligned with that selected image.
+the shallower. The helper image tag is derived from the installed shallower
+package version (`0.1.0b11` becomes `0.1.0-beta.11`), not configured.
 
 ## Stack Root
 
