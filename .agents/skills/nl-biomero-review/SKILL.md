@@ -119,6 +119,12 @@ When a rule was added or changed after a PR's last full review, the next
 review checks the whole PR against the current rules, not only the delta.
 When a rule changes, coordinators recheck every open PR reviewed under the
 old rules before it goes to the maintainer.
+Style-only findings outside a PR's own change never block or delay a
+release: fix them in the same PR when that is cheap and the release happens
+anyway, otherwise propose a follow-up pull request on the default branch.
+To find shared names typed out as strings, compare every string literal in
+the touched files against core `biomero.constants`, not only the changed
+lines.
 Then add a PR comment
 summarizing the review (reviewer, findings, how each was resolved, what remains
 open), wait until CI passes, and ask the user to review. Test-only PRs (for
