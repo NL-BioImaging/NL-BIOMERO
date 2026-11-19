@@ -1269,16 +1269,6 @@ full result. See <a class="reference internal" href="remote-shallower.html"><spa
 Off processes the full transferred result in the importer.</p></td>
 <td><p>Runtime</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>Shallower image</strong></p></td>
-<td><p>Versioned helper container. Install it before first remote use or after
-changing the image; keep the previous image while its jobs are outstanding.</p></td>
-<td><p>Slurm Init</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>Shallower tool version</strong></p></td>
-<td><p>Expected version in the helper’s receipt. Must match the helper image
-and the importer’s trust configuration.</p></td>
-<td><p>Runtime</p></td>
-</tr>
 <tr class="row-odd"><td><p><strong>Shallower workers</strong></p></td>
 <td><p>Positive worker count; also sets CPUs per task. The helper requests no GPU.</p></td>
 <td><p>Runtime</p></td>
@@ -1295,10 +1285,11 @@ then scheduler defaults.</p></td>
 </tr>
 </tbody>
 </table>
-<p>The importer has its own validation/trust configuration and does not read this
-form’s INI file. Coordinate image/tool changes with that service. See
-<a class="reference internal" href="remote-shallower.html"><span class="doc">Shallow OME-Zarr Storage</span></a> for enablement, compatible components, storage obligations
-and measured costs and savings.</p>
+<p>The helper image is not a setting: Slurm Init installs the image of the
+installed shallower package (see <a class="reference internal" href="remote-shallower.html"><span class="doc">Shallow OME-Zarr Storage</span></a>). The importer checks
+receipts against its own installed shallower package and does not read this
+form’s INI file. See <a class="reference internal" href="remote-shallower.html"><span class="doc">Shallow OME-Zarr Storage</span></a> for enablement, compatible
+components, storage obligations and measured costs and savings.</p>
 </section>
 <section id="ui-settings">
 <h3>UI Settings<a class="headerlink" href="#ui-settings" title="Permalink to this heading"></a></h3>

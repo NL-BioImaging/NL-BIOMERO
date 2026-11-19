@@ -126,7 +126,7 @@ versioned; see [biomero-schema](https://nl-bioimaging.github.io/biomero-schema/)
   image, timings, and the manifest when shallowed.
 - **Written by:** the remote helper (BIOMERO.shallower on HPC), before the prune
   commits. It travels back in the result archive.
-- **Read by:** BIOMERO.importer (checks it against the trusted receipt),
+- **Read by:** BIOMERO.importer (checks it against the receipt with its installed BIOMERO.shallower),
   BIOMERO.shallower (validation, migration).
 - **Schema:** `ShallowOperationReport`, `schema: 2`, `inputContract: 1`,
   `outputContract: 2`
@@ -187,7 +187,7 @@ versioned; see [biomero-schema](https://nl-bioimaging.github.io/biomero-schema/)
 - **Appears:** root of a result Zarr store.
 - **What:** an operation report that the importer set aside, kept for
   diagnosis. It exists when the remote helper left a report for a store but
-  had not shallowed it (and no trusted receipt exists); the importer then
+  had not shallowed it (and no valid receipt exists); the importer then
   evaluates the store itself.
 - **Written by:** BIOMERO.importer (renames the report). Nothing reads it.
 - **Schema:** a `ShallowOperationReport` (`schema: 2`) under another name.

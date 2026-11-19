@@ -1236,10 +1236,11 @@ managed source, refreshes its cache and performs the comparison locally.</p>
 shallowing new results. Existing shallow results still need their sources.</p></li>
 <li><p>Remote processing is the recommended default. It reduces transfer volume
 and importer work at the cost of a CPU-only HPC helper job.</p></li>
-<li><p>Configure the helper image/resources and run Slurm Init after upgrading.
-This is the normal post-upgrade initialization step and acquires the helper
-image together with the other configured workflow images when importer,
-shallow storage and remote processing are all enabled.</p></li>
+<li><p>Run Slurm Init after upgrading, and configure the helper resources if
+needed. This is the normal post-upgrade initialization step and installs
+the helper image of the installed shallower package together with the
+other workflow images when importer, shallow storage and remote processing
+are all enabled.</p></li>
 <li><p>Keep source storage available. This feature reduces duplicate result data;
 it does not replace backups or enable detached execution.</p></li>
 </ul>
@@ -1408,11 +1409,13 @@ and the workflow worker. <code class="docutils literal notranslate"><span class=
 configuration in the root Compose files; deployment-scenario files mount the
 same file. The INIs under <code class="docutils literal notranslate"><span class="pre">biomeroworker/</span></code> are alternative examples, not
 additional active configurations. Feature flags belong to the deployment
-environment; helper image and resource settings belong to the shared INI.</p>
+environment; helper resource settings belong to the shared INI.</p>
 <p>Install compatible BIOMERO core, scripts, importer, shallower and schema
 packages. The Python package installation does not acquire the helper image
-on Slurm. Supply a helper image in a registry accessible to the cluster;
-a pinned tag or immutable <code class="docutils literal notranslate"><span class="pre">&#64;sha256:...</span></code> reference is recommended.</p>
+on Slurm: Slurm Init installs it. The helper image is built from the same
+repository and version as the installed shallower package, which names it
+itself, so the image on Slurm always matches the package. The cluster must be
+able to reach the image’s registry.</p>
 <p>Set these deployment environment values:</p>
 <div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="na">IMPORTER_ENABLED</span><span class="o">=</span><span class="s">true</span>
 <span class="na">BIOMERO_SHALLOW_ZARR</span><span class="o">=</span><span class="s">true</span>
@@ -1422,32 +1425,26 @@ a pinned tag or immutable <code class="docutils literal notranslate"><span class
 <p>Configure helper runtime settings under <code class="docutils literal notranslate"><span class="pre">[SLURM]</span></code> in the shared
 <code class="docutils literal notranslate"><span class="pre">web/slurm-config.ini</span></code> or through OMERO.biomero’s admin settings. Do not supply
 worker runtime overrides in Compose: they take precedence over saved INI values.</p>
-<p>Prefer a pinned <code class="docutils literal notranslate"><span class="pre">remote_shallower_image</span></code> under <code class="docutils literal notranslate"><span class="pre">[SLURM]</span></code> in the worker’s
-<code class="docutils literal notranslate"><span class="pre">slurm-config.ini</span></code>. The fallback is
-<code class="docutils literal notranslate"><span class="pre">cellularimagingcf/biomero-shallower:latest</span></code>; NL-BIOMERO supplies a pinned
-release selection in its shared configuration.
-When <code class="docutils literal notranslate"><span class="pre">remote_shallower_version</span></code> is unset, core reads the installed image’s
-OCI tool-version label before submitting a new helper task. An explicit value
-must exactly match the version written into receipts. Existing tasks retain
-their recorded version for recovery.</p>
-<p>Set <code class="docutils literal notranslate"><span class="pre">BIOMERO_REMOTE_SHALLOWER_IMAGE</span></code> and
-<code class="docutils literal notranslate"><span class="pre">BIOMERO_REMOTE_SHALLOWER_VERSION</span></code> on the importer to the same selected
-values for receipt validation. The importer has its own settings and does not
-read the Slurm INI. The demonstration supplies these trust values only to the
-importer, not to web or the workflow worker. Keep them aligned when changing
-the helper image through the admin interface.</p>
-<p>The worker loads helper runtime settings from the shared Slurm INI. Compose
-supplies matching trust settings to the importer. An empty helper partition inherits the generic configured partition,
+<p>Neither the helper image nor its version is configured. Core reads the
+installed image’s OCI tool-version label before submitting a new helper task,
+and existing tasks retain their recorded version for recovery. The importer
+validates receipts against its own installed shallower package; a receipt from
+another version is accepted with a warning when the installed package can still
+read it. The importer has its own settings and does not read the Slurm INI.</p>
+<p>The worker loads helper runtime settings from the shared Slurm INI.
+An empty helper partition inherits the generic configured partition,
 then the scheduler default; administrators can choose their CPU partition
 explicitly. The helper requests no GPU. It uses its
 worker count as CPUs per task and inherits global memory, time, account,
 reservation, and QoS settings. Image acquisition uses the established image-pull
 resource settings. Run <code class="docutils literal notranslate"><span class="pre">SLURM_Init_environment</span></code> before running analyses and
 verify image availability with <code class="docutils literal notranslate"><span class="pre">SLURM_check_setup</span></code>. Runtime shallowing never
-downloads images. A missing or invalid image stops result retrieval with a
-setup error identifying the required image. BIOMERO also verifies the installed
-helper’s version and storage-format capabilities before it changes result data;
-initialize and verify the selected image before retrying.</p>
+downloads images. When the helper image is not installed, the workflow keeps
+its full results and logs a warning to run Slurm Init; an invalid image, or a
+missing image of a helper task that already started, stops result retrieval
+with a setup error identifying the required image. BIOMERO also verifies the
+installed helper’s version and storage-format capabilities before it changes
+result data; initialize and verify the helper image before retrying.</p>
 <p>After upgrading an installation that already contains older shallow-storage
 data, run <code class="docutils literal notranslate"><span class="pre">BIOMERO</span> <span class="pre">Migrate</span> <span class="pre">Shallow</span> <span class="pre">Storage</span> <span class="pre">(Admin</span> <span class="pre">Only)</span></code>. Run its dry mode
 first, then apply the migration after reviewing the count and estimated space
@@ -1457,8 +1454,8 @@ canonical registrations, and keeps a backup of the files it changes
 <a class="reference internal" href="../developer/biomero-files.html"><span class="doc">BIOMERO file reference</span></a> for what these files
 are.</p>
 <p>Equivalent <code class="docutils literal notranslate"><span class="pre">[SLURM]</span></code> options are <code class="docutils literal notranslate"><span class="pre">remote_shallow_zarr</span></code>,
-<code class="docutils literal notranslate"><span class="pre">remote_shallower_image</span></code>, <code class="docutils literal notranslate"><span class="pre">remote_shallower_version</span></code>,
-<code class="docutils literal notranslate"><span class="pre">remote_shallower_workers</span></code>, and <code class="docutils literal notranslate"><span class="pre">remote_shallower_partition</span></code>. Environment
+<code class="docutils literal notranslate"><span class="pre">remote_shallower_workers</span></code>, <code class="docutils literal notranslate"><span class="pre">remote_shallower_partition</span></code>,
+<code class="docutils literal notranslate"><span class="pre">remote_shallower_mem</span></code> and <code class="docutils literal notranslate"><span class="pre">remote_shallower_time</span></code>. Environment
 values override ini values when explicitly supplied. The demonstration keeps
 runtime settings in the INI and supplies only feature flags to the worker through
 the deployment environment.</p>
@@ -1468,10 +1465,10 @@ the deployment environment.</p>
 <p>When shallow Zarr is enabled, OMERO.biomero’s admin settings show a Shallow Zarr
 section. The demonstration configuration enables remote shallowing; switching it off hides the
 helper fields without removing their saved values. When enabled, the section
-provides image, tool version, worker count, partition, memory and time settings.
+provides worker count, partition, memory and time settings.
 These fields save the worker’s Slurm configuration, not the importer’s separate
-settings. Keep the importer trust settings aligned. Run Slurm Init after changing
-the helper image.</p>
+settings. Run Slurm Init after upgrading the shallower package, so the matching
+helper image is installed.</p>
 <p>The workflow-level <strong>Skip original-pixel comparison</strong> switch is independent of
 these helper controls. For workflows known to leave original pixels unchanged,
 it avoids comparison work per run. See <a class="reference internal" href="omero-biomero-admin.html"><span class="doc">OMERO.biomero Plugin Administration</span></a> for its saved
@@ -1529,7 +1526,7 @@ Do not remove prune journals; they can contain arrays needed for rollback.
 The <a class="reference internal" href="../developer/biomero-files.html"><span class="doc">BIOMERO file reference</span></a> lists every
 <code class="docutils literal notranslate"><span class="pre">.biomero*</span></code> file, which component writes it, and what happens if it is
 deleted.
-Keep the original image configured until outstanding recovery is complete.</p>
+Keep the original image installed until outstanding recovery is complete.</p>
 <p>The helper uses the trusted BIOMERO Slurm account, image, event store, and
 import-order writers. Canonical managed identifiers are resolved through the
 importer’s existing authoritative local group mappings. The canonical store is

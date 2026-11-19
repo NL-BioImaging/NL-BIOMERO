@@ -438,14 +438,6 @@ full result. See :doc:`remote-shallower` for the supported output scope and
      - Runs the helper on HPC before the return archive is transferred.
        Off processes the full transferred result in the importer.
      - Runtime
-   * - **Shallower image**
-     - Versioned helper container. Install it before first remote use or after
-       changing the image; keep the previous image while its jobs are outstanding.
-     - Slurm Init
-   * - **Shallower tool version**
-     - Expected version in the helper's receipt. Must match the helper image
-       and the importer's trust configuration.
-     - Runtime
    * - **Shallower workers**
      - Positive worker count; also sets CPUs per task. The helper requests no GPU.
      - Runtime
@@ -458,10 +450,11 @@ full result. See :doc:`remote-shallower` for the supported output scope and
        then scheduler defaults.
      - Runtime
 
-The importer has its own validation/trust configuration and does not read this
-form's INI file. Coordinate image/tool changes with that service. See
-:doc:`remote-shallower` for enablement, compatible components, storage obligations
-and measured costs and savings.
+The helper image is not a setting: Slurm Init installs the image of the
+installed shallower package (see :doc:`remote-shallower`). The importer checks
+receipts against its own installed shallower package and does not read this
+form's INI file. See :doc:`remote-shallower` for enablement, compatible
+components, storage obligations and measured costs and savings.
 
 UI Settings
 ~~~~~~~~~~~

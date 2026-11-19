@@ -1043,7 +1043,7 @@ path writes no report.</p></li>
 image, timings, and the manifest when shallowed.</p></li>
 <li><p><strong>Written by:</strong> the remote helper (BIOMERO.shallower on HPC), before the prune
 commits. It travels back in the result archive.</p></li>
-<li><p><strong>Read by:</strong> BIOMERO.importer (checks it against the trusted receipt),
+<li><p><strong>Read by:</strong> BIOMERO.importer (checks it against the receipt with its installed BIOMERO.shallower),
 BIOMERO.shallower (validation, migration).</p></li>
 <li><p><strong>Schema:</strong> <code class="docutils literal notranslate"><span class="pre">ShallowOperationReport</span></code>, <code class="docutils literal notranslate"><span class="pre">schema:</span> <span class="pre">2</span></code>, <code class="docutils literal notranslate"><span class="pre">inputContract:</span> <span class="pre">1</span></code>,
 <code class="docutils literal notranslate"><span class="pre">outputContract:</span> <span class="pre">2</span></code>
@@ -1107,7 +1107,7 @@ Without it, scripts record the storage location of a shallow result as
 <li><p><strong>Appears:</strong> root of a result Zarr store.</p></li>
 <li><p><strong>What:</strong> an operation report that the importer set aside, kept for
 diagnosis. It exists when the remote helper left a report for a store but
-had not shallowed it (and no trusted receipt exists); the importer then
+had not shallowed it (and no valid receipt exists); the importer then
 evaluates the store itself.</p></li>
 <li><p><strong>Written by:</strong> BIOMERO.importer (renames the report). Nothing reads it.</p></li>
 <li><p><strong>Schema:</strong> a <code class="docutils literal notranslate"><span class="pre">ShallowOperationReport</span></code> (<code class="docutils literal notranslate"><span class="pre">schema:</span> <span class="pre">2</span></code>) under another name.</p></li>
