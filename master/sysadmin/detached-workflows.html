@@ -478,6 +478,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#worker-identity-and-omero-access">Worker identity and OMERO access</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#discovery-and-concurrency">Discovery and concurrency</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#claim-and-recovery-semantics">Claim and recovery semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#cancellation">Cancellation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#startup-shutdown-and-failures">Startup, shutdown, and failures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#deployment-compatibility">Deployment compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#metadata-maintenance">Metadata maintenance</a></li>
@@ -872,8 +873,10 @@ the flag is absent or <code class="docutils literal notranslate"><span class="pr
 <p>Detached execution requires the same compatible <code class="docutils literal notranslate"><span class="pre">biomero-scripts</span></code> release
 in <code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code> and OMERO.server. The supplied NL-BIOMERO images
 keep these versions aligned through <code class="docutils literal notranslate"><span class="pre">BIOMERO_SCRIPTS_VERSION</span></code>.</p>
-<p>Detached mode currently supports one active <code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code> per BIOMERO
-tracking database. Multiple worker replicas are not supported.</p>
+<p>Run one active <code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code> per BIOMERO tracking database. A claim on
+each queued workflow keeps two workers from running the same workflow, but
+metadata maintenance requests are not claimed, so multiple worker replicas
+remain unsupported.</p>
 </div>
 <p>The background worker can be tuned with these optional settings:</p>
 <table class="docutils align-default">
@@ -951,8 +954,11 @@ Metadata maintenance does not appear as an analysis workflow or submit Slurm job
 progress and final status can be monitored independently of the original web
 session.</p>
 <p>Workflow state is stored in the BIOMERO tracking database. If
-<code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code> restarts, it resumes unfinished detached workflows and
-continues monitoring jobs that have already been submitted to Slurm.</p>
+<code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code> restarts, it resumes unfinished detached workflows once the
+previous worker’s claim has run out (five minutes; at once after a clean
+shutdown) and continues monitoring jobs that have already been submitted to
+Slurm. A Slurm job that failed or was cancelled is submitted again, not
+resumed.</p>
 <p>Do not disable detached mode while workflows are queued or running. They remain
 recorded but cannot progress until the background worker is available again.</p>
 <p>Confirm the active configuration with:</p>
