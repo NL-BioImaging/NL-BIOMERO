@@ -20,3 +20,9 @@ features; existing deployments should follow each feature's enablement guide.
 * :doc:`ui-customization` — adapt the interface
 * :doc:`backup-restore` — data protection and recovery
 * :doc:`metadata-refresh` — explicitly requested annotation maintenance
+
+.. admonition:: Found a ``.biomero*`` file?
+
+   The :doc:`BIOMERO file reference <../developer/biomero-files>` lists each
+   file BIOMERO writes next to results: what it is, which component writes and
+   reads it, and whether it is safe to delete or move.

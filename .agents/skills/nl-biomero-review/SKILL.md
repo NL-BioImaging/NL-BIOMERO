@@ -42,6 +42,10 @@ the change fits. Check, in this order:
    an issue for larger ones. If the code is too hard to follow to judge its
    approach, report that as blocking and ask for it to be restructured first;
    do not approve what you cannot understand.
+   A brief, an agreed API or an earlier decision never exempts a change from
+   the rules. When a change follows a design that conflicts with a rule,
+   report the conflict as a blocking finding for the user to decide; never
+   waive the rule because the change was designed that way.
 3. **Tests:** regression tests at the lowest useful layer; every changed
    behavior and flag state (enabled, false, missing, empty) covered.
    Assertions check the exact outcome (for example the log level), not one of
@@ -60,6 +64,10 @@ the change fits. Check, in this order:
    than skip in CI when it is missing.
 4. **Configuration and documentation:** feature-flag and settings rules,
    docs and guidance updated with the behavior.
+   When the PR adds, moves, renames or removes a file that BIOMERO writes,
+   check that the file reference (NL-BIOMERO `docs/developer/biomero-files.md`)
+   changes with it; a PR in another repository names the NL-BIOMERO docs PR
+   that does.
 5. **Parallel PRs:** when other open PRs change the same files, merge them
    with this one (`git merge-tree`) and check the result for duplicate
    definitions or changed signatures that merge without a conflict; agree
@@ -100,8 +108,24 @@ changes to the branch.
 Fix or reply to every blocking and should-fix finding; nits are optional.
 Verify each suggestion against the code before applying it, as reviewers can
 be wrong too.
+Resolve a review comment's intent, not only the line it is attached to: apply
+it everywhere in the change where the same point holds, and say in the reply
+which places changed. GitHub moves a comment to a nearby line when its line
+disappears, so a narrow fix can leave the comment pointing at code it also
+meant.
 One review round is the default; request a second round only when fixing a
-blocking finding required non-trivial code changes. Then add a PR comment
+blocking finding required non-trivial code changes.
+When a rule was added or changed after a PR's last full review, the next
+review checks the whole PR against the current rules, not only the delta.
+When a rule changes, coordinators recheck every open PR reviewed under the
+old rules before it goes to the maintainer.
+Style-only findings outside a PR's own change never block or delay a
+release: fix them in the same PR when that is cheap and the release happens
+anyway, otherwise propose a follow-up pull request on the default branch.
+To find shared names typed out as strings, compare every string literal in
+the touched files against core `biomero.constants`, not only the changed
+lines.
+Then add a PR comment
 summarizing the review (reviewer, findings, how each was resolved, what remains
 open), wait until CI passes, and ask the user to review. Test-only PRs (for
 example into the biomero-scripts `test-suite` branch) are the exception: the

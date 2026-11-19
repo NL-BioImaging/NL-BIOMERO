@@ -34,6 +34,15 @@ is a requirement, not polish.
   future features reuse them. Put behavior in the
   component that owns it (see each component's ownership section) and keep
   workflow decisions in the callers rather than in shared libraries.
+  Do not add a module for one function or one setting: put it in the existing
+  module that owns the concept (its constants, its feature module). A new
+  module needs a reason in the PR description, and reviewers check it.
+- Leave the code cleaner than you found it (the boy scout rule). When a
+  change touches code, clean up what you pass along the way: names, literals
+  that should be constants, duplication, formatting. Style-only cleanup never
+  needs a release of its own; it ships with the next functional change, or
+  waits on the default branch in its own pull request until a release
+  happens anyway.
 - Match the surrounding code: its naming, structure, error handling, logging
   and test style. New code should look like it was written by the same team.
   A new module follows the package's established modules, not only its own
@@ -44,9 +53,13 @@ is a requirement, not polish.
   `Args:` as `name (type): description`, `Returns:`, `Raises:`), type hints on
   every signature, f-strings and double quotes. New components start in this
   style; reviewers comment on deviations.
-- Start every source file with the licence header used by its repository
-  (the Apache-2.0 header of BIOMERO core, or the GPL header of a GPL
-  repository), matching the repository's `LICENSE`.
+- Start every source file with the licence header used by its repository,
+  naming the licence in `LICENSE`: Apache-2.0 (BIOMERO core), GNU GPL
+  version 2 (biomero-scripts) or BSD 2-Clause (NL-BIOMERO). A new file
+  carries the year it was written and points to the existing `LICENSE` file.
+- READMEs and user documentation do not state component versions (no `>=`
+  floors, never prereleases): they are for users, and the release pins define
+  which versions work together. Say what is needed, not which version has it.
 - State behavior changes. A PR described as logging-only, refactoring or
   style must not change behavior; list any deliberate change in the
   description.
@@ -89,10 +102,14 @@ is a requirement, not polish.
   drive decisions (`shallower_already_completed`, `existing_task`) instead of
   reusing `matches[0]`; store a repeated expression once in a named variable.
   Give non-trivial commands and queries a named variable before running them.
-- Define a value that more than one script or component uses (script output
-  names, file names, namespaces) once, in a shared constants module: core
-  `biomero.constants` for the scripts, biomero-schema for cross-component
-  contracts. Copies kept in step by a test still drift.
+- Define every name that scripts and components call each other by once, in
+  core `biomero.constants`: script parameter and output names, launcher
+  parameters, file names, namespaces. Scripts, the NL-BIOMERO processor and
+  OMERO.biomero address each other's parameters by these string names, and
+  `biomero.constants` exists to give them one place to reference. Never repeat
+  such a name as a string literal; reviewers flag every literal that names
+  another script's or component's parameter, output or key. biomero-schema
+  holds cross-component data models. Copies kept in step by a test still drift.
 - Do not hardcode values that may change, such as versions, contract numbers,
   paths, names and limits. Define them as constants at the top of the module
   or class (shared constants in the component's constants module) and expose
@@ -154,9 +171,11 @@ is a requirement, not polish.
   diagrams in the same change, because the docs are versioned with the
   release and readers rely on them to match that version.
 - Document every file BIOMERO writes (sidecars, manifests, markers,
-  journals) in the file reference, so someone who finds such a file can look
-  up what it is, who writes and reads it, and whether it is safe to remove.
-  Adding, moving or removing a file updates that reference in the same change.
+  journals) in the file reference (NL-BIOMERO
+  `docs/developer/biomero-files.md`), so someone who finds such a file can
+  look up what it is, who writes and reads it, and whether it is safe to
+  remove. Adding, moving or removing a file updates that reference in the
+  same change.
 
 ## Issues and the project board
 
@@ -281,6 +300,9 @@ Guidance must work for any agent or tool, from any provider.
   developer pages, in this repository and in NL-BIOMERO) before designing,
   implementing or reviewing, together with the skills. If code and docs
   disagree, report it and fix the one that is wrong in the same change.
+- Coordinators check a design against the component skills before proposing it
+  or putting it in a brief. A brief that fixes an API or mechanism must state
+  which rules it was checked against.
 - Write rules as imperatives with a one-line reason. Do not name a specific
   agent, model or tool in a rule; say "run the tests", not which tool runs them.
 - Keep durable rules separate from status. Do not put version pins, release
