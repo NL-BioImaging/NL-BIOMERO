@@ -478,6 +478,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#worker-identity-and-omero-access">Worker identity and OMERO access</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#discovery-and-concurrency">Discovery and concurrency</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#claim-and-recovery-semantics">Claim and recovery semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#cancellation">Cancellation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#startup-shutdown-and-failures">Startup, shutdown, and failures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#deployment-compatibility">Deployment compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/detached-workflow-supervisor.html#metadata-maintenance">Metadata maintenance</a></li>
@@ -850,8 +851,8 @@ and security configuration, see <a class="reference internal" href="metabase-adm
 <h3>General Settings<a class="headerlink" href="#general-settings" title="Permalink to this heading"></a></h3>
 <p>These controls save automatically to the <code class="docutils literal notranslate"><span class="pre">UPLOADER</span></code> section of
 <code class="docutils literal notranslate"><span class="pre">biomero-config.json</span></code>. They do not use the Analyzer’s <strong>Save Settings</strong> button.</p>
-<table class="docutils align-default" id="id4">
-<caption><span class="caption-text">Browser upload controls</span><a class="headerlink" href="#id4" title="Permalink to this table"></a></caption>
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-text">Browser upload controls</span><a class="headerlink" href="#id5" title="Permalink to this table"></a></caption>
 <colgroup>
 <col style="width: 30%" />
 <col style="width: 70%" />
@@ -1004,7 +1005,8 @@ Run <strong>Slurm Init</strong> after changing the cluster connection.</p>
 <code class="docutils literal notranslate"><span class="pre">[SLURM]</span> <span class="pre">ssh_recovery_timeout</span></code>. Temporary HPC connection failures are retried
 for up to 900 seconds (15 minutes) by default, in both inline and detached
 workflows. Missing or empty settings use this default. Enter a positive whole
-number to change the window, or <code class="docutils literal notranslate"><span class="pre">0</span></code> to disable recovery. Saving applies to new
+number to change the window, or <code class="docutils literal notranslate"><span class="pre">0</span></code> for no retries: an operation that fails
+because the connection is lost fails immediately. Saving applies to new
 runs; Slurm Init is not required. A nonempty <code class="docutils literal notranslate"><span class="pre">BIOMERO_SSH_RECOVERY_TIMEOUT</span></code>
 environment override takes precedence over the saved value.</p>
 <p>Each interruption gets its own window, starting at the first failed attempt.
@@ -1021,8 +1023,8 @@ See <a class="reference internal" href="detached-workflows.html"><span class="do
 compute nodes. Absolute paths are clearest; relative paths are resolved against
 the remote account’s home directory. Changing a path does not migrate existing
 data or installed images.</p>
-<table class="docutils align-default" id="id5">
-<caption><span class="caption-text">Storage and container paths</span><a class="headerlink" href="#id5" title="Permalink to this table"></a></caption>
+<table class="docutils align-default" id="id6">
+<caption><span class="caption-text">Storage and container paths</span><a class="headerlink" href="#id6" title="Permalink to this table"></a></caption>
 <colgroup>
 <col style="width: 28%" />
 <col style="width: 57%" />
@@ -1097,8 +1099,8 @@ GPUs by itself; resource requests come from the settings below.</p></li>
 <h5>Partition and GPU Fallback<a class="headerlink" href="#partition-and-gpu-fallback" title="Permalink to this heading"></a></h5>
 <p>These are runtime defaults. Leave partition fields blank when the scheduler’s
 defaults are appropriate.</p>
-<table class="docutils align-default" id="id6">
-<caption><span class="caption-text">Submission defaults</span><a class="headerlink" href="#id6" title="Permalink to this table"></a></caption>
+<table class="docutils align-default" id="id7">
+<caption><span class="caption-text">Submission defaults</span><a class="headerlink" href="#id7" title="Permalink to this table"></a></caption>
 <colgroup>
 <col style="width: 30%" />
 <col style="width: 70%" />
@@ -1155,6 +1157,23 @@ auto-detects <code class="docutils literal notranslate"><span class="pre">7z</sp
 executable must also be available. This controls archive handling, not
 compression inside Zarr arrays.</p>
 </section>
+<section id="slurm-lock-command">
+<span id="id3"></span><h5>Slurm Lock Command<a class="headerlink" href="#slurm-lock-command" title="Permalink to this heading"></a></h5>
+<p><strong>Slurm Lock Command</strong> is a Runtime setting stored as <code class="docutils literal notranslate"><span class="pre">[SLURM]</span> <span class="pre">slurm_lock_cmd</span></code>.
+BIOMERO runs it on the HPC in front of scripts that must not run twice at once:
+job submission, input extraction and result archive creation. It is a template
+in which <code class="docutils literal notranslate"><span class="pre">{lock_file}</span></code> and <code class="docutils literal notranslate"><span class="pre">{busy_exit_code}</span></code> are required and
+<code class="docutils literal notranslate"><span class="pre">{wait_seconds}</span></code> is optional; BIOMERO fills them in and appends the script.
+The command must exit with <code class="docutils literal notranslate"><span class="pre">{busy_exit_code}</span></code> when the lock is not obtained in
+time, so that BIOMERO asks again instead of failing. Blank uses the default:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">flock</span> <span class="o">-</span><span class="n">w</span> <span class="p">{</span><span class="n">wait_seconds</span><span class="p">}</span> <span class="o">-</span><span class="n">E</span> <span class="p">{</span><span class="n">busy_exit_code</span><span class="p">}</span> <span class="p">{</span><span class="n">lock_file</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>Change it only when the HPC has no <code class="docutils literal notranslate"><span class="pre">flock</span></code>. <strong>Slurm Init</strong> and <strong>Slurm Check
+Setup</strong> warn when the lock command or <code class="docutils literal notranslate"><span class="pre">sacct</span></code> is missing on the cluster. A
+nonempty <code class="docutils literal notranslate"><span class="pre">BIOMERO_SLURM_LOCK_CMD</span></code> environment override takes precedence over
+the saved value.</p>
+</section>
 <section id="global-sbatch-parameters">
 <h5>Global Sbatch Parameters<a class="headerlink" href="#global-sbatch-parameters" title="Permalink to this heading"></a></h5>
 <p>Add shared Slurm submission options as a full flag name and value, without
@@ -1182,8 +1201,8 @@ storage. Other deployments opt in explicitly. The <strong>Remote shallowing</str
 chooses where processing happens; turning it off selects local importer
 processing rather than disabling shallow storage.</p>
 <p>Result handling follows this order:</p>
-<table class="docutils align-default" id="id7">
-<caption><span class="caption-text">Result storage decision</span><a class="headerlink" href="#id7" title="Permalink to this table"></a></caption>
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text">Result storage decision</span><a class="headerlink" href="#id8" title="Permalink to this table"></a></caption>
 <colgroup>
 <col style="width: 42%" />
 <col style="width: 58%" />
@@ -1231,8 +1250,8 @@ default of false; scripts do not read the web interface’s <code class="docutil
 datasets. A bare labels-only output is not automatically materialized into a
 full result. See <a class="reference internal" href="remote-shallower.html"><span class="doc">Shallow OME-Zarr Storage</span></a> for the supported output scope and
 <a class="reference internal" href="../developer/biomero-shallow-zarr.html"><span class="doc">Working with shallow OME-Zarr results</span></a> for comparison semantics.</p>
-<table class="docutils align-default" id="id8">
-<caption><span class="caption-text">Shallow result processing controls</span><a class="headerlink" href="#id8" title="Permalink to this table"></a></caption>
+<table class="docutils align-default" id="id9">
+<caption><span class="caption-text">Shallow result processing controls</span><a class="headerlink" href="#id9" title="Permalink to this table"></a></caption>
 <colgroup>
 <col style="width: 28%" />
 <col style="width: 57%" />
@@ -1306,8 +1325,8 @@ cluster and OMERO capacity. These options apply after saving without Slurm Init.
 dashboards. Keep <strong>Track Workflows</strong> enabled for the normal BIOMERO deployment.
 Disabling it stops event recording and disables the listeners below, even when
 their individual switches are on. Missing events cannot be reconstructed later.</p>
-<table class="docutils align-default" id="id9">
-<caption><span class="caption-text">Tracking controls</span><a class="headerlink" href="#id9" title="Permalink to this table"></a></caption>
+<table class="docutils align-default" id="id10">
+<caption><span class="caption-text">Tracking controls</span><a class="headerlink" href="#id10" title="Permalink to this table"></a></caption>
 <colgroup>
 <col style="width: 30%" />
 <col style="width: 70%" />
@@ -1362,7 +1381,7 @@ receives v2 / OME-Zarr 0.4 input; native Zarr workflows skip that conversion.</p
 <h3>Workflows Settings<a class="headerlink" href="#workflows-settings" title="Permalink to this heading"></a></h3>
 <p><strong>Purpose</strong>: Add and manage analysis workflows available to users</p>
 <section id="adding-new-workflows">
-<span id="id3"></span><h4>Adding New Workflows<a class="headerlink" href="#adding-new-workflows" title="Permalink to this heading"></a></h4>
+<span id="id4"></span><h4>Adding New Workflows<a class="headerlink" href="#adding-new-workflows" title="Permalink to this heading"></a></h4>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>🎥 <strong>Visual explanation · 1:26:</strong> <a class="reference internal" href="../overview.html#video-adding-analysis-workflow"><span class="std std-ref">See how a pinned container and

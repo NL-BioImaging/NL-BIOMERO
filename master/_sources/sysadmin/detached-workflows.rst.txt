@@ -57,8 +57,10 @@ the flag is absent or ``FALSE``, workflows use inline execution.
    in ``biomeroworker`` and OMERO.server. The supplied NL-BIOMERO images
    keep these versions aligned through ``BIOMERO_SCRIPTS_VERSION``.
 
-   Detached mode currently supports one active ``biomeroworker`` per BIOMERO
-   tracking database. Multiple worker replicas are not supported.
+   Run one active ``biomeroworker`` per BIOMERO tracking database. A claim on
+   each queued workflow keeps two workers from running the same workflow, but
+   metadata maintenance requests are not claimed, so multiple worker replicas
+   remain unsupported.
 
 The background worker can be tuned with these optional settings:
 
@@ -140,8 +142,11 @@ progress and final status can be monitored independently of the original web
 session.
 
 Workflow state is stored in the BIOMERO tracking database. If
-``biomeroworker`` restarts, it resumes unfinished detached workflows and
-continues monitoring jobs that have already been submitted to Slurm.
+``biomeroworker`` restarts, it resumes unfinished detached workflows once the
+previous worker's claim has run out (five minutes; at once after a clean
+shutdown) and continues monitoring jobs that have already been submitted to
+Slurm. A Slurm job that failed or was cancelled is submitted again, not
+resumed.
 
 Do not disable detached mode while workflows are queued or running. They remain
 recorded but cannot progress until the background worker is available again.
@@ -209,7 +214,8 @@ the workflow fails. Existing jobs and recovery records are preserved, but the
 workflow does not automatically resume later.
 
 Submission reconciliation reserves the Slurm job name for a tracked task ID.
-It requires workflow tracking, ``flock``, writable shared HPC storage and Slurm
+It requires workflow tracking, the Slurm lock command (``slurm_lock_cmd``, see
+:ref:`slurm-lock-command`), writable shared HPC storage and Slurm
 accounting/job-name lookup. Unresolved submission intent never triggers a blind
 second submission. Archive publication and input transfer require the documented
 atomic filesystem/SFTP operations; retain their records while recovery is pending.
