@@ -136,6 +136,20 @@ the board for each major release, because it usually needs code changes. Raise
 the pins in the components' own PRs before step 1, and mention notable
 upgrades, especially security fixes, in the release notes.
 
+Before publishing any component prerelease for a release, the release
+coordinator lists every item on the BIOMERO Roadmap board with that
+**Release** value that is not Done, in all repositories (the filtered board
+`?filterQuery=release:"X.Y.Z-beta.N"`, or the project GraphQL API). A
+component is ready for its prerelease only when no open story for that
+release still needs a change in it, including sub-issues and parent stories
+tracked in other repositories. Finish such a story first, or move it to
+another release with the maintainer's agreement, so each component gets one
+prerelease per release instead of small follow-up prereleases. Parent
+stories whose PRs only reference them are not closed automatically: close a
+parent with a summary of its PRs when all its sub-issues are done, and
+reopen the question with the maintainer when an open parent still has work
+that no sub-issue covers.
+
 Follow dependency availability, rather than assuming a release announcement
 means all artifacts are ready:
 
