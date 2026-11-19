@@ -48,7 +48,7 @@ already fully configured stable stack, focus on new actions and link established
 prerequisites rather than repeating initial installation.
 
 Call out required coordinated component updates, Slurm Init / Check Setup,
-helper-image and importer-trust alignment, proxy/storage requirements, and any
+re-running Slurm Init to install a new helper image, proxy/storage requirements, and any
 real migration. State format defaults and existing-data compatibility accurately.
 Link detailed setup instructions instead of reproducing the full runbook.
 
