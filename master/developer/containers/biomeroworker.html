@@ -478,7 +478,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#worker-identity-and-omero-access">Worker identity and OMERO access</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#discovery-and-concurrency">Discovery and concurrency</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#claim-and-recovery-semantics">Claim and recovery semantics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#cancellation">Cancellation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#startup-shutdown-and-failures">Startup, shutdown, and failures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#deployment-compatibility">Deployment compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../detached-workflow-supervisor.html#metadata-maintenance">Metadata maintenance</a></li>
@@ -975,13 +974,10 @@ and executes each one in a worker thread, calling the same
 <p>Each worker connects as the processor’s own OMERO user and sudoes into the
 requesting user’s account and group, so results are created and owned exactly
 as an inline run creates them.</p>
-<p>An interrupted run (worker crash, container restart) is picked up again once
-its supervisor’s claim has run out (at once after a clean shutdown, when the
-node stop reaches <code class="docutils literal notranslate"><span class="pre">ProcessorI.cleanup</span></code> in time; after a kill, the lease): the
-pipeline skips a transfer or conversion that already completed and resumes
-monitoring a Slurm job it already submitted, rather than submitting it twice.
-A job that failed or was cancelled is submitted anew, and a run that cannot
-read its task history fails instead of starting over.</p>
+<p>An interrupted run (worker crash, container restart) is picked up again on the
+next poll: the pipeline skips a transfer or conversion that already completed
+and resumes monitoring a Slurm job it already submitted, rather than
+submitting it twice.</p>
 <p><strong>Settings</strong>:</p>
 <table class="docutils align-default">
 <thead>
@@ -1020,8 +1016,7 @@ are centralized in <code class="docutils literal notranslate"><span class="pre">
 also read by the <em>script</em> subprocess and is forwarded there by this
 processor. Detached mode needs a <code class="docutils literal notranslate"><span class="pre">biomero</span></code> that ships
 <code class="docutils literal notranslate"><span class="pre">biomero.detached</span></code>; without it the scripts run inline as before, and the
-supervisor does not start. The switch is read through
-<code class="docutils literal notranslate"><span class="pre">biomero.detached.detached_mode_enabled()</span></code> everywhere.</p>
+supervisor does not start.</p>
 </div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
@@ -1244,8 +1239,7 @@ python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"from b
 <li><p>Verify grid role assignment in docker-compose</p></li>
 <li><p>Check OMERO.grid node status: <code class="docutils literal notranslate"><span class="pre">omero</span> <span class="pre">admin</span> <span class="pre">diagnostics</span></code></p></li>
 <li><p>Ensure only one detached supervisor is active for each BIOMERO tracking
-database (launcher claims keep two from running the same workflow, but
-metadata maintenance requests are not claimed)</p></li>
+database</p></li>
 </ul>
 <p><strong>BIOMERO Script Failures</strong>:</p>
 <ul class="simple">

@@ -478,7 +478,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#worker-identity-and-omero-access">Worker identity and OMERO access</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#discovery-and-concurrency">Discovery and concurrency</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#claim-and-recovery-semantics">Claim and recovery semantics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#cancellation">Cancellation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#startup-shutdown-and-failures">Startup, shutdown, and failures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#deployment-compatibility">Deployment compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#metadata-maintenance">Metadata maintenance</a></li>
@@ -835,19 +834,15 @@ enablement and timeout settings, see
 <h2>Components and responsibilities<a class="headerlink" href="#components-and-responsibilities" title="Permalink to this heading"></a></h2>
 <p>The workflow scripts remain responsible for validating a request and creating
 the event-sourced workflow aggregate. With detached mode enabled, a script also
-creates a <em>launcher task</em> (<code class="docutils literal notranslate"><span class="pre">WorkflowTracker.add_launcher_task</span></code>). Its
-parameters contain the validated script inputs, derived pipeline values, and the
-<code class="docutils literal notranslate"><span class="pre">_biomero_detached_launcher</span></code> marker. The script then returns instead of
-executing the pipeline itself. The scripts also decide how an interrupted run
-resumes; core only provides the mechanisms (marker, claim, cancel request).</p>
+creates a <em>launcher task</em>. Its parameters contain the validated script inputs,
+derived pipeline values, and the <code class="docutils literal notranslate"><span class="pre">_biomero_detached_launcher</span></code> marker. The
+script then returns instead of executing the pipeline itself.</p>
 <p>The custom <code class="docutils literal notranslate"><span class="pre">processor.py</span></code> starts a <code class="docutils literal notranslate"><span class="pre">WorkflowSupervisor</span></code> alongside the
 normal OMERO script processor. The supervisor:</p>
 <ol class="arabic simple">
 <li><p>reads unfinished workflows from <code class="docutils literal notranslate"><span class="pre">WorkflowProgressView</span></code>;</p></li>
-<li><p>identifies detached requests by loading their launcher task
-(<code class="docutils literal notranslate"><span class="pre">WorkflowTracker.find_launcher_task</span></code>);</p></li>
-<li><p>claims the launcher task and starts one <code class="docutils literal notranslate"><span class="pre">WorkflowWorker</span></code> thread per
-claimed workflow; and</p></li>
+<li><p>identifies detached requests by loading their launcher task;</p></li>
+<li><p>starts one <code class="docutils literal notranslate"><span class="pre">WorkflowWorker</span></code> thread per eligible workflow; and</p></li>
 <li><p>calls the same <code class="docutils literal notranslate"><span class="pre">execute_workflow_pipeline(...,</span> <span class="pre">resume=True)</span></code> entry point
 that is used for inline execution.</p></li>
 </ol>
@@ -885,58 +880,22 @@ does not exclude a workflow until the next container restart.</p>
 </section>
 <section id="claim-and-recovery-semantics">
 <h2>Claim and recovery semantics<a class="headerlink" href="#claim-and-recovery-semantics" title="Permalink to this heading"></a></h2>
-<p>Before it starts a worker, the supervisor claims the launcher task with
-<code class="docutils literal notranslate"><span class="pre">WorkflowTracker.claim_launcher_task</span></code>. The claim is an event on the launcher
-task that records the supervisor’s name and the time. It is a compare-and-set
-in the event store: when two supervisors try to claim the same launcher, one
-wins and the other does not run the workflow. A claim does not change the task
-status, so it is not an analysis phase and does not appear as workflow progress.</p>
-<p>A claim is valid for a lease (<code class="docutils literal notranslate"><span class="pre">LAUNCHER_CLAIM_LEASE_SECONDS</span></code>, five minutes).
-The supervisor renews the claim of each running workflow every
-<code class="docutils literal notranslate"><span class="pre">CLAIM_RENEW_SECONDS</span></code>, and gives the claims up on a clean shutdown (see
-below). After a
-crash or restart the lease runs out and the new supervisor claims the launcher
-and resumes the run: with <code class="docutils literal notranslate"><span class="pre">resume=True</span></code>, completed transfer and conversion
-stages are skipped and an existing Slurm job is adopted instead of submitted
-again, while a job that FAILED, was CANCELLED or timed out is submitted anew.
-A resume that cannot read the task history fails instead of starting over. A
-worker that ends without its workflow reaching a final state is run again after
-<code class="docutils literal notranslate"><span class="pre">WORKER_RESTART_DELAY_SECONDS</span></code>.</p>
-<p>Launchers claimed by a 2.9 beta carry the status <code class="docutils literal notranslate"><span class="pre">CLAIMED</span></code> and no owner; they
-are free to claim. A worker that stops because it lost its claim, or because
-its supervisor released it, raises <code class="docutils literal notranslate"><span class="pre">ClaimLost</span></code> (a <code class="docutils literal notranslate"><span class="pre">WorkflowInterrupted</span></code>):
-the pipeline’s stage handlers let it pass without failing any task, and a
-batched parent also stops before it writes any child or parent state.</p>
-<p>When a renewal finds the claim in another supervisor’s hands, the supervisor
-logs an error and the worker stops at its next check (between pipeline steps,
-or by cancelling the running sub-script) without failing the workflow. A clean
-shutdown stops its workers the same way, logged at INFO; the supervisor thread
-releases the claims, because the tracker belongs to that thread. The shutdown
-starts in <code class="docutils literal notranslate"><span class="pre">omero.util.Server.run</span></code>: when the node stops (SIGTERM, for example
-on <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">stop</span></code>), its <code class="docutils literal notranslate"><span class="pre">finally</span></code> block calls the servant’s <code class="docutils literal notranslate"><span class="pre">cleanup()</span></code>,
-which <code class="docutils literal notranslate"><span class="pre">ProcessorI.cleanup</span></code> overrides to stop the supervisor and wait for it
-up to <code class="docutils literal notranslate"><span class="pre">SUPERVISOR_STOP_TIMEOUT_SECONDS</span></code>. A process that is killed, or that
-is not given that time (mind the container stop grace period), does not
-release anything: its claims run out after the lease. Run a single
-detached supervisor per BIOMERO tracking database anyway: the claim keeps two
-of them from running the same workflow, but metadata maintenance requests
-below are not claimed.</p>
-</section>
-<section id="cancellation">
-<h2>Cancellation<a class="headerlink" href="#cancellation" title="Permalink to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">WorkflowTracker.request_workflow_cancel(workflow_id,</span> <span class="pre">reason)</span></code> records that a
-workflow must stop. The worker needs no signal: the workflow pipeline checks the
-request between its steps and between Slurm polls, cancels the Slurm jobs it
-submitted (<code class="docutils literal notranslate"><span class="pre">SlurmClient.cancel_slurm_jobs</span></code>), closes their tasks and marks the
-workflow failed with the reason. While an OMERO sub-script (such as the data
-export) runs, <code class="docutils literal notranslate"><span class="pre">polling_script_runner</span></code> checks every <code class="docutils literal notranslate"><span class="pre">CANCEL_CHECK_SECONDS</span></code> and
-cancels the sub-script’s OMERO process. A batched parent passes the request on
-to each unfinished child and fails once they ended. A cancelled workflow
-appears as <code class="docutils literal notranslate"><span class="pre">FAILED</span></code> in the workflow overview, with the reason as its message.
-The BIOMERO script <strong>Cancel BIOMERO Workflow</strong> (<code class="docutils literal notranslate"><span class="pre">admin/SLURM_Cancel_Workflow.py</span></code>)
-sends the request for a workflow ID; it is allowed for the workflow’s owner and
-for administrators and logs who asked. An OMERO.biomero button can call the same
-tracker method later.</p>
+<p>Before executing a workflow, the worker updates the launcher task to
+<code class="docutils literal notranslate"><span class="pre">CLAIMED</span></code>. This is internal supervisor bookkeeping. It records that a
+processor started handling the request and allows a replacement process to
+recognize an interrupted run. It is not an analysis phase and must not be
+presented as workflow progress.</p>
+<p><code class="docutils literal notranslate"><span class="pre">CLAIMED</span></code> is intentionally resumable: after a worker or container restart,
+the new supervisor may claim the same launcher again and reconstruct the
+pipeline from the event-sourced workflow and task aggregates. With
+<code class="docutils literal notranslate"><span class="pre">resume=True</span></code>, completed transfer and conversion stages are skipped and an
+existing Slurm job is adopted instead of submitted again.</p>
+<p>The in-memory <code class="docutils literal notranslate"><span class="pre">active_workers</span></code> map prevents duplicate workers within one
+processor process. The claim does <strong>not</strong> currently contain an owner, lease, or
+atomic cross-process lock. Consequently, the supported topology is exactly one
+active detached supervisor for each BIOMERO tracking database. Do not run
+multiple <code class="docutils literal notranslate"><span class="pre">biomeroworker</span></code> replicas or assign additional <code class="docutils literal notranslate"><span class="pre">Processor-N</span></code> nodes
+with detached mode enabled against the same tracking database.</p>
 </section>
 <section id="startup-shutdown-and-failures">
 <h2>Startup, shutdown, and failures<a class="headerlink" href="#startup-shutdown-and-failures" title="Permalink to this heading"></a></h2>
@@ -1019,10 +978,9 @@ single-supervisor topology restriction applies to maintenance.</p>
 </ul>
 <p>Metadata requests use <code class="docutils literal notranslate"><span class="pre">biomero.detached.maintenance.&lt;request</span> <span class="pre">UUID&gt;</span></code>.</p>
 <p>Use the event store and aggregate repository to distinguish durable workflow
-state from a projection or metadata problem. In particular, a launcher task with
-a <code class="docutils literal notranslate"><span class="pre">claimed_by</span></code> owner and a recent <code class="docutils literal notranslate"><span class="pre">claimed_at</span></code> is held by that supervisor
-(<code class="docutils literal notranslate"><span class="pre">LauncherClaimed</span></code> events show each renewal); the subsequent pipeline task
-events determine the analysis phase and outcome.</p>
+state from a projection or metadata problem. In particular, a launcher task at
+<code class="docutils literal notranslate"><span class="pre">CLAIMED</span></code> means that the supervisor has handled it; the subsequent pipeline
+task events determine the analysis phase and outcome.</p>
 </section>
 <section id="see-also">
 <h2>See also<a class="headerlink" href="#see-also" title="Permalink to this heading"></a></h2>
