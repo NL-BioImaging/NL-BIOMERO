@@ -214,7 +214,8 @@ the workflow fails. Existing jobs and recovery records are preserved, but the
 workflow does not automatically resume later.
 
 Submission reconciliation reserves the Slurm job name for a tracked task ID.
-It requires workflow tracking, ``flock``, writable shared HPC storage and Slurm
+It requires workflow tracking, the Slurm lock command (``slurm_lock_cmd``, see
+:ref:`slurm-lock-command`), writable shared HPC storage and Slurm
 accounting/job-name lookup. Unresolved submission intent never triggers a blind
 second submission. Archive publication and input transfer require the documented
 atomic filesystem/SFTP operations; retain their records while recovery is pending.

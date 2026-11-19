@@ -37,6 +37,12 @@ is a requirement, not polish.
   Do not add a module for one function or one setting: put it in the existing
   module that owns the concept (its constants, its feature module). A new
   module needs a reason in the PR description, and reviewers check it.
+- Leave the code cleaner than you found it (the boy scout rule). When a
+  change touches code, clean up what you pass along the way: names, literals
+  that should be constants, duplication, formatting. Style-only cleanup never
+  needs a release of its own; it ships with the next functional change, or
+  waits on the default branch in its own pull request until a release
+  happens anyway.
 - Match the surrounding code: its naming, structure, error handling, logging
   and test style. New code should look like it was written by the same team.
   A new module follows the package's established modules, not only its own
