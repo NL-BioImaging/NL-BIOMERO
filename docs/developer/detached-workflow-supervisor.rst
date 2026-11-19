@@ -80,8 +80,8 @@ status, so it is not an analysis phase and does not appear as workflow progress.
 
 A claim is valid for a lease (``LAUNCHER_CLAIM_LEASE_SECONDS``, five minutes).
 The supervisor renews the claim of each running workflow every
-``CLAIM_RENEW_SECONDS``, and gives the claims up on a clean shutdown (see
-below). After a
+``CLAIM_RENEW_SECONDS``, and gives the claims up when IceGrid stops the
+Processor cleanly (see below). After a
 crash or restart the lease runs out and the new supervisor claims the launcher
 and resumes the run: with ``resume=True``, completed transfer and conversion
 stages are skipped and an existing Slurm job is adopted instead of submitted
@@ -101,12 +101,16 @@ logs an error and the worker stops at its next check (between pipeline steps,
 or by cancelling the running sub-script) without failing the workflow. A clean
 shutdown stops its workers the same way, logged at INFO; the supervisor thread
 releases the claims, because the tracker belongs to that thread. The shutdown
-starts in ``omero.util.Server.run``: when the node stops (SIGTERM, for example
-on ``docker stop``), its ``finally`` block calls the servant's ``cleanup()``,
-which ``ProcessorI.cleanup`` overrides to stop the supervisor and wait for it
-up to ``SUPERVISOR_STOP_TIMEOUT_SECONDS``. A process that is killed, or that
-is not given that time (mind the container stop grace period), does not
-release anything: its claims run out after the lease. Run a single
+starts in ``omero.util.Server.run``: when IceGrid stops the Processor, its
+``finally`` block calls the servant's ``cleanup()``, which
+``ProcessorI.cleanup`` overrides to stop the supervisor and wait for it up to
+``SUPERVISOR_STOP_TIMEOUT_SECONDS``. Only that path releases the claims. A
+container stop (Docker, Podman) does not reach it: ``omero node start
+--foreground`` does not forward SIGTERM to ``icegridnode``, so the processes
+end before ``cleanup()`` runs. Any process that ends without ``cleanup()``
+releases nothing: its claims run out after the lease, and the workflows then
+resume at most about five minutes after the stop. Nothing runs twice and no
+Slurm job is submitted again. Run a single
 detached supervisor per BIOMERO tracking database anyway: the claim keeps two
 of them from running the same workflow, but metadata maintenance requests
 below are not claimed.
@@ -138,9 +142,11 @@ start OMERO sub-scripts. A sub-script that receives
 ``NoProcessorAvailable`` during startup is retried for up to three minutes.
 
 If the tracking database is not reachable when the processor starts, the
-supervisor logs ``Cannot supervise workflows yet; retrying in Ns (attempt n)``
-at ``WARNING`` and tries again, waiting ``BIOMERO_SUPERVISOR_POLL_SECONDS``
-seconds at first and doubling up to 60 seconds. Once the database is back it
+supervisor logs ``Cannot supervise workflows yet: cannot reach the database,
+retrying in Ns (attempt n)`` at ``WARNING`` and tries again, waiting
+``BIOMERO_SUPERVISOR_POLL_SECONDS`` seconds (at least one) at first and
+doubling up to 60 seconds. Any other set-up error is logged at ``ERROR`` with
+its traceback and ends the supervisor, as before. Once the database is back it
 logs the recovery at ``INFO`` and supervises as usual. A processor shutdown
 ends the wait at once.
 

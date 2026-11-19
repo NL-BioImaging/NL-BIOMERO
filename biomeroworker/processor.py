@@ -799,6 +799,8 @@ SUPERVISOR_POLL_SECONDS = int(
                 "BIOMERO_SUPERVISOR_POLL_SECONDS"), "10"))
 # The longest wait between attempts to reach the tracking database at start.
 SUPERVISOR_SETUP_RETRY_MAX_SECONDS = 60
+# The shortest wait, so that a poll interval of 0 does not make it spin.
+SUPERVISOR_SETUP_RETRY_MIN_SECONDS = 1
 # How long to hold off the first poll. A run needs sub-scripts, which cannot
 # start until this processor is registered and the server is routing work to
 # it, so resuming a run the moment the process comes up would fail it.
@@ -1955,35 +1957,45 @@ class WorkflowSupervisor(Thread):
         self.logger.info("Workflow supervisor shutting down")
 
     def set_up(self) -> bool:
-        """Open the tracking database session and tracker, retrying until
-        the database is reachable.
+        """Open the tracking database session and tracker, retrying while
+        the database cannot be reached.
 
-        The processor can start before the database does, so a failure is
-        logged and retried with a growing wait (up to
-        ``SUPERVISOR_SETUP_RETRY_MAX_SECONDS``) instead of ending the thread.
+        The processor can start before the database does, so a database
+        error is logged and retried with a growing wait, from
+        ``SUPERVISOR_POLL_SECONDS`` up to ``SUPERVISOR_SETUP_RETRY_MAX_SECONDS``
+        (never below ``SUPERVISOR_SETUP_RETRY_MIN_SECONDS``). Any other error
+        is a defect that waiting does not fix, so it ends the supervisor.
 
         Returns:
             bool: True when ready to supervise; False when the shutdown came
-            first.
+            first or the set-up failed for a reason other than the database.
         """
         from biomero.database import backoff_delay
+        from biomero.views import LOOKUP_ERRORS
         attempt = 0
         while not self.shutdown_event.is_set():
             try:
                 self.open_tracker()
-            except Exception as e:
+            except LOOKUP_ERRORS as e:
+                delay = max(
+                    backoff_delay(attempt, SUPERVISOR_POLL_SECONDS,
+                                  SUPERVISOR_SETUP_RETRY_MAX_SECONDS),
+                    SUPERVISOR_SETUP_RETRY_MIN_SECONDS)
                 attempt += 1
-                delay = backoff_delay(attempt, SUPERVISOR_POLL_SECONDS,
-                                      SUPERVISOR_SETUP_RETRY_MAX_SECONDS)
                 self.logger.warning(
-                    f"Cannot supervise workflows yet; retrying in "
-                    f"{delay:.0f}s (attempt {attempt}): {e}")
+                    f"Cannot supervise workflows yet: cannot reach the "
+                    f"database, retrying in {delay:.0f}s "
+                    f"(attempt {attempt}): {e}")
                 self.shutdown_event.wait(delay)
-                continue
-            if attempt:
-                self.logger.info(f"Supervisor set-up succeeded after "
-                                 f"{attempt} failed attempts")
-            return True
+            except Exception as e:
+                self.logger.error(f"Cannot supervise workflows: {e}",
+                                  exc_info=True)
+                return False
+            else:
+                if attempt:
+                    self.logger.info(f"Supervisor set-up succeeded after "
+                                     f"{attempt} failed attempts")
+                return True
         self.logger.info("Workflow supervisor stopped before it could "
                          "set up")
         return False
