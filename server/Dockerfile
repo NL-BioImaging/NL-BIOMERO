@@ -9,7 +9,7 @@ RUN mvn -B -q -f /build/pom.xml dependency:copy-dependencies \
         -Dmdep.stripVersion=true \
         -DoutputDirectory=/deps
 
-FROM openmicroscopy/omero-server:5.6.18
+FROM openmicroscopy/omero-server:5.6.18-1
 
 ARG BIOMERO_SCRIPTS_VERSION
 ARG LABEL2ROIS_VERSION
