@@ -205,6 +205,12 @@ public audience and keep non-public details out of them.
   before a PR exists, and set Blocked with a comment explaining why.
   Priority, Impact and Effort are the user's decisions; suggest values in a
   comment, do not set them.
+- The coordinator adds a new **Release** option (for example the next beta)
+  when the first item needs it. Through the API, `updateProjectV2Field`
+  replaces the whole option list: fetch the current options and send them back
+  with their `id`, adding the new one without an `id`. An option sent without
+  its `id` loses every item's value for it. Compare the per-Release item counts
+  before and after.
 - Every PR description either links its issues or says why it has none (for
   example a guidance-only or trivial chore PR). Write
   `Closes NL-BioImaging/<repo>#<n>` for each issue the PR completes; GitHub
