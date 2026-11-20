@@ -217,6 +217,21 @@ means all artifacts are ready:
    pull. Verify every required image build/push succeeds before handing the
    pinned image tags to ACC for redeployment. Coordinate its smoke test before a full-Plate test;
    do not automatically start deployment or analysis jobs.
+10. ACC reports its findings as commits on the deploy-omero branch it deploys
+   from (currently `acc-direct-vfs`, under `plans/acceptance-issues/X.Y.Z-beta.N/`),
+   because it cannot create GitHub issues. That branch is ACC's: read it,
+   never push to it. Only those reports count as ACC findings; other new
+   issues are not picked up as release work. While ACC tests, the coordinator
+   polls the branch, checks each claimed cause in the code, files the finding
+   in NL-BIOMERO with a sub-issue in the component that owns the fix, and has
+   workers fix it. A finding that blocks acceptance (a regression or a bug in
+   the release's new work) gets the next beta as **Release**; a pre-existing or
+   minor one gets `Later`. The issue body names the beta it was found in. When
+   ACC's report is final, fold every blocking fix into one new beta and
+   release it through steps 1-9; its release notes and PR are the answer to
+   ACC, listing each finding with its issue and outcome. ACC then redeploys
+   and retests, and the loop repeats until ACC accepts. Stable X.Y.Z is
+   released from the accepted beta.
 
 Structure the release PR description as in previous release PRs (for example
 NL-BIOMERO #66): component
