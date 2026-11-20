@@ -169,7 +169,9 @@ means all artifacts are ready:
 4. Update OMERO.biomero to published core/importer dependencies (it comes late
    because it depends on both), merge and prerelease it. Verify its PyPI package contains no feature-branch dependencies.
 5. Prepare NL-BIOMERO last, on a `release/X.Y.Z-beta.N` branch with its own
-   PR. Open that PR as a draft as soon as work on the next prerelease starts:
+   PR titled `Release X.Y.Z-beta.N` (stable: `release/X.Y.Z`, `Release X.Y.Z`);
+   ACC and other readers find it by these names. Open that PR as a draft as
+   soon as work on the next prerelease starts:
    its plan (`plans/releases/X.Y.Z-beta.N.md`) keeps a release test checklist,
    and every component PR or review that finds behaviour needing a test in a
    real stack adds it there, with its source PR. Step 6 runs every item
@@ -231,7 +233,12 @@ means all artifacts are ready:
    release it through steps 1-9; its release notes and PR are the answer to
    ACC, listing each finding with its issue and outcome. ACC then redeploys
    and retests, and the loop repeats until ACC accepts. Stable X.Y.Z is
-   released from the accepted beta.
+   released from the accepted beta. Open the next beta's release PR as soon as
+   the first blocking finding is filed, so ACC can follow it without GitHub
+   authentication: the public API
+   `https://api.github.com/repos/NL-BioImaging/NL-BIOMERO/pulls?state=all&head=NL-BioImaging:release/X.Y.Z-beta.N`,
+   the plan `plans/releases/X.Y.Z-beta.N.md` on that branch, and finally the
+   published release and its image tags.
 
 Structure the release PR description as in previous release PRs (for example
 NL-BIOMERO #66): component
