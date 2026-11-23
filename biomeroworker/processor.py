@@ -831,6 +831,8 @@ WORKER_RESTART_DELAY_SECONDS = 60
 SUPERVISOR_STOP_TIMEOUT_SECONDS = 30
 # How often a sub-script run looks for a cancel request of its workflow.
 CANCEL_CHECK_SECONDS = 10
+# How long a cancelled sub-script's process gets to end before it is killed.
+SCRIPT_CANCEL_WAIT_SECONDS = 30
 # The application whose recording carries the workflow progress events.
 WORKFLOW_TRACKER_APPLICATION = "WorkflowTracker"
 # For each batch index of a batched parent: the ID of its bookkeeping task and
@@ -1140,8 +1142,8 @@ def cancel_process_if_stopped(proc: Any, script_id: int,
         logger (logging.Logger): Where the decision is logged.
 
     Raises:
-        WorkflowInterrupted: When the check asked to stop (the process is
-            cancelled before this is raised).
+        WorkflowInterrupted: When the check asked to stop (the process has
+            ended, or been killed, before this is raised).
     """
     try:
         raise_if_stopped()
@@ -1149,10 +1151,45 @@ def cancel_process_if_stopped(proc: Any, script_id: int,
         logger.info(f"Stopping the OMERO process of script "
                     f"{script_id}: {stopped}")
         proc.cancel()
+        wait_for_cancelled_process(proc, script_id, logger)
         raise
     except Exception as e:
         logger.warning(f"Could not check for a cancel request "
                        f"of script {script_id}: {e}")
+
+
+def wait_for_cancelled_process(proc: Any, script_id: int,
+                               logger: logging.Logger) -> None:
+    """Wait for a cancelled process to end, killing it when it does not.
+
+    OMERO only marks the sub-script's job as cancelled when a poll sees the
+    process end, and cancel() does not poll. Nobody polls after the runner
+    closes the process, so the job would stay running without a process.
+    A failing poll is only logged: the interrupt that follows matters more.
+
+    Args:
+        proc (Any): The OMERO process, already cancelled.
+        script_id (int): ID of the sub-script, for the logs.
+        logger (logging.Logger): Where the decisions are logged.
+    """
+    try:
+        deadline = time.monotonic() + SCRIPT_CANCEL_WAIT_SECONDS
+        process_ended = proc.poll() is not None
+        while not process_ended and time.monotonic() < deadline:
+            time.sleep(SCRIPT_POLL_SECONDS)
+            process_ended = proc.poll() is not None
+        if not process_ended:
+            logger.info(f"The OMERO process of script {script_id} did not "
+                        f"end within {SCRIPT_CANCEL_WAIT_SECONDS}s of the "
+                        f"cancel; killing it")
+            proc.kill()
+            process_ended = proc.poll() is not None
+        if not process_ended:
+            logger.warning(f"The OMERO process of script {script_id} has "
+                           f"not ended after being killed")
+    except Ice.LocalException as e:
+        logger.warning(f"Could not confirm that the OMERO process of "
+                       f"script {script_id} ended: {e}")
 
 
 def start_script(svc: Any, script_id: int, inputs: Dict[str, Any],
