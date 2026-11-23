@@ -2047,8 +2047,7 @@ class WorkflowSupervisor(Thread):
             rows = session.query(
                 WorkflowProgressView.workflow_id,
                 WorkflowProgressView.start_time).filter(
-                    WorkflowProgressView.status.notin_(
-                        [wfs.DONE, wfs.FAILED])).all()
+                    WorkflowProgressView.status.notin_(wfs.FINAL)).all()
         workflows = []
         for workflow_id, start_time in rows:
             if start_time is None:
