@@ -2075,6 +2075,8 @@ class WorkflowSupervisor(Thread):
             launcher = self.find_launcher(wf_id, age)
             if launcher is None:
                 continue
+            if not self.still_to_run(wf_id):
+                continue
             if not self.claim_workflow(wf_id, launcher):
                 continue
             self.start_worker(wf_id, launcher)
@@ -2121,6 +2123,31 @@ class WorkflowSupervisor(Thread):
                           f"leaving it alone.")
         self.ignore(wf_id)
         return None
+
+    def still_to_run(self, wf_id: uuid.UUID) -> bool:
+        """Check the event store that a workflow has not reached a final state.
+
+        The progress view is only a projection: while it is rebuilt, a row can
+        be non-final although the workflow already ended. The workflow
+        aggregate is the source of truth, so it is read before claiming.
+
+        Args:
+            wf_id (uuid.UUID): The workflow to look at.
+
+        Returns:
+            bool: False when the workflow is final and must not be run again,
+                or cannot be read (looked at again on the next poll).
+        """
+        try:
+            ended = self.tracker.is_workflow_finished(wf_id)
+        except Exception as e:
+            self.logger.warning(f"Could not read workflow {wf_id}; "
+                                f"trying again next poll: {e}")
+            return False
+        if ended:
+            self.logger.debug(f"Workflow {wf_id} is final in the event "
+                              f"store; not running it again.")
+        return not ended
 
     def claim_workflow(self, wf_id: uuid.UUID, launcher: Any) -> bool:
         """Claim a workflow's launcher task for this supervisor.

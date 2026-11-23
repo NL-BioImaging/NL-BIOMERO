@@ -26,9 +26,13 @@ normal OMERO script processor. The supervisor:
 1. reads unfinished workflows from ``WorkflowProgressView``;
 2. identifies detached requests by loading their launcher task
    (``WorkflowTracker.find_launcher_task``);
-3. claims the launcher task and starts one ``WorkflowWorker`` thread per
+3. skips a workflow whose event stream already reached a final state
+   (``WorkflowTracker.is_workflow_finished``), because the view is only a
+   projection and can show a finished workflow as unfinished while it is
+   rebuilt (for example after ``SLURM_Init_environment``);
+4. claims the launcher task and starts one ``WorkflowWorker`` thread per
    claimed workflow; and
-4. calls the same ``execute_workflow_pipeline(..., resume=True)`` entry point
+5. calls the same ``execute_workflow_pipeline(..., resume=True)`` entry point
    that is used for inline execution.
 
 ``RecordedInputsClient`` supplies the persisted launcher parameters through

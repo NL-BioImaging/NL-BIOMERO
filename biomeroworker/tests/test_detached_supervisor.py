@@ -159,6 +159,7 @@ def supervisor_with(tracker: Mock, unfinished: List[Tuple[uuid.UUID, float]],
         WorkflowWorker=worker_factory or Mock())
     supervisor = namespace["WorkflowSupervisor"]()
     supervisor.tracker = tracker
+    tracker.is_workflow_finished.return_value = False
     supervisor.unfinished_workflows = Mock(return_value=unfinished)
     return supervisor
 
@@ -219,6 +220,89 @@ def test_workflow_is_claimed_by_this_supervisor_before_a_worker_starts(
     factory.assert_called_once_with(workflow_id, queued.id, False, supervisor)
     factory.return_value.start.assert_called_once()
     assert supervisor.active_workers == {workflow_id: factory.return_value}
+
+
+def test_workflow_final_in_event_store_is_not_claimed_or_started(
+        core: None, caplog: pytest.LogCaptureFixture) -> None:
+    """A non-final view row for a finished aggregate is left alone.
+
+    While the views are rebuilt, a row is briefly non-final although the
+    workflow already ended.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+        caplog (pytest.LogCaptureFixture): Captures the log records.
+    """
+    workflow_id = uuid4()
+    tracker = Mock()
+    tracker.find_launcher_task.return_value = launcher()
+    tracker.claim_launcher_task.return_value = True
+    factory = Mock()
+    supervisor = supervisor_with(
+        tracker, [(workflow_id, OLD_AGE_SECONDS)], factory)
+    tracker.is_workflow_finished.return_value = True
+
+    with caplog.at_level(logging.DEBUG, logger="biomero.detached.supervisor"):
+        supervisor.spawn_workers()
+
+    tracker.is_workflow_finished.assert_called_once_with(workflow_id)
+    tracker.claim_launcher_task.assert_not_called()
+    factory.assert_not_called()
+    assert supervisor.active_workers == {}
+    assert any(record.levelno == logging.DEBUG
+               and "final in the event store" in record.getMessage()
+               for record in caplog.records)
+
+
+def test_unfinished_workflow_in_event_store_is_still_claimed(
+        core: None) -> None:
+    """A workflow that is not final in the event store is claimed and run.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+    """
+    workflow_id, queued = uuid4(), launcher()
+    tracker = Mock()
+    tracker.find_launcher_task.return_value = queued
+    tracker.claim_launcher_task.return_value = True
+    factory = Mock()
+    supervisor = supervisor_with(
+        tracker, [(workflow_id, OLD_AGE_SECONDS)], factory)
+    tracker.is_workflow_finished.return_value = False
+
+    supervisor.spawn_workers()
+
+    tracker.claim_launcher_task.assert_called_once_with(
+        queued.id, supervisor.owner)
+    factory.return_value.start.assert_called_once()
+
+
+def test_unreadable_aggregate_is_retried_not_claimed(
+        core: None, caplog: pytest.LogCaptureFixture) -> None:
+    """A workflow whose aggregate cannot be read is retried on the next poll.
+
+    Args:
+        core (None): Stubs the biomero modules the processor imports.
+        caplog (pytest.LogCaptureFixture): Captures the log records.
+    """
+    workflow_id = uuid4()
+    tracker = Mock()
+    tracker.find_launcher_task.return_value = launcher()
+    factory = Mock()
+    supervisor = supervisor_with(
+        tracker, [(workflow_id, OLD_AGE_SECONDS)], factory)
+    tracker.is_workflow_finished.side_effect = RuntimeError("database down")
+
+    with caplog.at_level(logging.WARNING,
+                         logger="biomero.detached.supervisor"):
+        supervisor.spawn_workers()
+
+    factory.assert_not_called()
+    tracker.claim_launcher_task.assert_not_called()
+    assert workflow_id not in supervisor.ignored
+    assert any(record.levelno == logging.WARNING
+               and "database down" in record.getMessage()
+               for record in caplog.records)
 
 
 def test_batched_launcher_starts_a_batched_worker(core: None) -> None:
@@ -649,6 +733,7 @@ def test_workflow_whose_worker_just_ended_waits_before_running_again(
     tracker = Mock()
     tracker.find_launcher_task.return_value = launcher()
     tracker.claim_launcher_task.return_value = True
+    tracker.is_workflow_finished.return_value = False
     clock = Mock(return_value=CLOCK_START)
     factory = Mock()
     namespace = processor_namespace(
