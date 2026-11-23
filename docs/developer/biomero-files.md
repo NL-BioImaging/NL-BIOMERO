@@ -434,9 +434,12 @@ These files sit in the results folder `<group base>/.analyzed/<workflow-id>/<tim
   submissions), and next to result archives and uploaded input archives `<name>.biomero-ready`,
   `<name>.biomero-partial`, `<name>.biomero-lock`, `<name>.biomero-unpacked`,
   plus `<slurm_script_path>.biomero-update.lock`. They make repeated requests
-  after a lost connection safe.
+  after a lost connection safe. A generated job script is uploaded as
+  `<script>.biomero-partial-<hex>` and renamed when complete; only a hard
+  crash during the upload leaves that file behind.
 - **Written and read by:** BIOMERO core.
-- **Delete:** not while a workflow uses that data; leave them to BIOMERO.
+- **Delete:** not while a workflow uses that data; leave them to BIOMERO. A
+  leftover `<script>.biomero-partial-<hex>` file is safe to delete.
 
 ## OMERO mirrors
 
