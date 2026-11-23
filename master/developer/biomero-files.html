@@ -1364,9 +1364,12 @@ diagnosis. See
 submissions), and next to result archives and uploaded input archives <code class="docutils literal notranslate"><span class="pre">&lt;name&gt;.biomero-ready</span></code>,
 <code class="docutils literal notranslate"><span class="pre">&lt;name&gt;.biomero-partial</span></code>, <code class="docutils literal notranslate"><span class="pre">&lt;name&gt;.biomero-lock</span></code>, <code class="docutils literal notranslate"><span class="pre">&lt;name&gt;.biomero-unpacked</span></code>,
 plus <code class="docutils literal notranslate"><span class="pre">&lt;slurm_script_path&gt;.biomero-update.lock</span></code>. They make repeated requests
-after a lost connection safe.</p></li>
+after a lost connection safe. A generated job script is uploaded as
+<code class="docutils literal notranslate"><span class="pre">&lt;script&gt;.biomero-partial-&lt;hex&gt;</span></code> and renamed when complete; only a hard
+crash during the upload leaves that file behind.</p></li>
 <li><p><strong>Written and read by:</strong> BIOMERO core.</p></li>
-<li><p><strong>Delete:</strong> not while a workflow uses that data; leave them to BIOMERO.</p></li>
+<li><p><strong>Delete:</strong> not while a workflow uses that data; leave them to BIOMERO. A
+leftover <code class="docutils literal notranslate"><span class="pre">&lt;script&gt;.biomero-partial-&lt;hex&gt;</span></code> file is safe to delete.</p></li>
 </ul>
 </section>
 </section>
