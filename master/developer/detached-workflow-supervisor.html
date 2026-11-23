@@ -846,6 +846,10 @@ normal OMERO script processor. The supervisor:</p>
 <li><p>reads unfinished workflows from <code class="docutils literal notranslate"><span class="pre">WorkflowProgressView</span></code>;</p></li>
 <li><p>identifies detached requests by loading their launcher task
 (<code class="docutils literal notranslate"><span class="pre">WorkflowTracker.find_launcher_task</span></code>);</p></li>
+<li><p>skips a workflow whose event stream already reached a final state
+(<code class="docutils literal notranslate"><span class="pre">WorkflowTracker.is_workflow_finished</span></code>), because the view is only a
+projection and can show a finished workflow as unfinished while it is
+rebuilt (for example after <code class="docutils literal notranslate"><span class="pre">SLURM_Init_environment</span></code>);</p></li>
 <li><p>claims the launcher task and starts one <code class="docutils literal notranslate"><span class="pre">WorkflowWorker</span></code> thread per
 claimed workflow; and</p></li>
 <li><p>calls the same <code class="docutils literal notranslate"><span class="pre">execute_workflow_pipeline(...,</span> <span class="pre">resume=True)</span></code> entry point
