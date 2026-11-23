@@ -33,7 +33,8 @@ SOURCE = Path(__file__).parents[1] / "processor.py"
 CLASSES = {"WorkflowSupervisor", "WorkflowWorker", "ClaimLost",
            "RecordedInputsClient", "ProcessorI"}
 FUNCTIONS = {"polling_script_runner", "latest_progress_position",
-             "pump_progress_listener", "cancel_process_if_stopped"}
+             "pump_progress_listener", "cancel_process_if_stopped",
+             "wait_for_cancelled_process"}
 LAUNCHER_TASK_NAME = "SLURM_Run_Workflow.py"
 BATCHED_LAUNCHER_TASK_NAME = "SLURM_Run_Workflow_Batched.py"
 CORE_LEASE_SECONDS = 300
@@ -89,7 +90,8 @@ CORE = SimpleNamespace(eventsourcing=SimpleNamespace(
 SHIPPED_CONSTANTS = {
     "CLAIM_RENEW_SECONDS", "WORKER_RESTART_DELAY_SECONDS",
     "CANCEL_CHECK_SECONDS", "IGNORE_MIN_AGE_SECONDS", "SCRIPT_POLL_SECONDS",
-    "SCRIPT_POLL_FAILURE_LIMIT", "CHILD_POLL_SECONDS",
+    "SCRIPT_POLL_FAILURE_LIMIT", "SCRIPT_CANCEL_WAIT_SECONDS",
+    "CHILD_POLL_SECONDS",
     "WORKFLOW_TRACKER_APPLICATION", "SUPERVISOR_STOP_TIMEOUT_SECONDS",
     "SUPERVISOR_SETUP_RETRY_MAX_SECONDS",
     "SUPERVISOR_SETUP_RETRY_MIN_SECONDS"}
@@ -778,7 +780,7 @@ def test_sub_script_is_cancelled_when_its_workflow_is_cancelled(
         core (None): Stubs the biomero modules the processor imports.
     """
     process = Mock()
-    process.poll.return_value = None
+    process.poll.side_effect = [None, 143]
     namespace = processor_namespace()
     namespace["start_script"].return_value = process
     check = Mock(side_effect=WorkflowCancelled("asked"))
@@ -1375,7 +1377,7 @@ def test_sub_script_is_cancelled_when_the_claim_is_lost(core: None) -> None:
         core (None): Stubs the biomero modules the processor imports.
     """
     process = Mock()
-    process.poll.return_value = None
+    process.poll.side_effect = [None, 143]
     namespace = processor_namespace()
     namespace["start_script"].return_value = process
     check = Mock(side_effect=namespace["ClaimLost"]("lost"))
