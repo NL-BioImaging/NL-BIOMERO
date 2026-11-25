@@ -57,7 +57,7 @@ re-running Slurm Init to install a new helper image, proxy/storage requirements,
 real migration. State format defaults and existing-data compatibility accurately.
 Link detailed setup instructions instead of reproducing the full runbook.
 
-Link directly to feature-specific online manuals. Verify their paths against the
+Link directly to feature-specific online manuals: give every Major Feature its own short `[docs](...)` link on its heading line, not only a list at the end. Verify their paths against the
 release's documentation configuration: `/latest/` follows stable releases and
 can still show the old manual while drafting; `/master/` carries prerelease
 documentation. Versioned stable URLs become available after the release docs
