@@ -46,6 +46,12 @@ the change fits. Check, in this order:
    the rules. When a change follows a design that conflicts with a rule,
    report the conflict as a blocking finding for the user to decide; never
    waive the rule because the change was designed that way.
+   Weigh the complexity against the proven benefit. When a simpler change
+   would solve the observed problem (for example a few delayed retries of a
+   transient failure instead of extra machinery around another component's
+   internals), suggest it as a should-fix finding. Code that rests on an
+   unconfirmed root cause, or works around how a third-party tool (OME, Slurm)
+   behaves inside, needs evidence that the simple version is not enough.
 3. **Tests:** regression tests at the lowest useful layer; every changed
    behavior and flag state (enabled, false, missing, empty) covered.
    Assertions check the exact outcome (for example the log level), not one of
