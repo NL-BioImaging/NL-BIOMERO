@@ -265,7 +265,8 @@ means all artifacts are ready:
 A stable release PR carries a **production plan** instead of an acceptance
 plan: `plans/releases/X.Y.Z.md` says what production must do to upgrade from
 its running version (images, settings, Slurm Init, migrations, downtime and
-its order, backup before the upgrade, rollback, post-upgrade checks). Before
+its order, backup before the upgrade, rollback, post-upgrade checks, and the two user mails drafted from the release notes as in
+[references/user-mails.md](references/user-mails.md)). Before
 writing it, compare the acceptance and production branches of the private
 deployment repository (production deploys from its production branch as
 named in that repository's guidance). The first comparison covers the main
@@ -394,6 +395,7 @@ Read only the relevant reference before acting:
 
 - [references/documentation.md](references/documentation.md): required for documentation work; audience boundaries, concise feature explanations, measurement evidence, navigation and local preview verification.
 - [references/release-announcements.md](references/release-announcements.md): release-message style, stable-to-stable scope, component versions, upgrade actions and documentation links. Read before drafting release announcements.
+- [references/user-mails.md](references/user-mails.md): bilingual announcement and back-online mails to OMERO users for a production upgrade, mail 2 drafted from the release notes. Read when writing a stable release plan.
 - [references/component-release-notes.md](references/component-release-notes.md): concise component release bodies, shipped PR/issue links and stable/beta scope. Read when coordinating component notes or linking them from a stack announcement.
 - [references/permissions-and-deployment.md](references/permissions-and-deployment.md): host/container UID/GID issues, project-local SSH, writable bind mounts, `chmod`/ownership workarounds, production vs dev compose, backup/restore guardrails.
 - [references/metabase-dashboards.md](references/metabase-dashboards.md): BIOMERO Analyze/Import iframe failures, dashboard IDs, embedding secrets, H2 inspection, datasource credential repair, signed embed smoke tests.
