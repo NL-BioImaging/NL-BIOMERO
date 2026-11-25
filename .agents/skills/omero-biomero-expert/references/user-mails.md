@@ -107,3 +107,36 @@ when. User guide: [USER_GUIDE_URL]
 Kind regards,
 [TEAM]
 ```
+
+Mail 3, postponed (after a rollback, once OMERO is back on the old version; it
+replaces mail 2):
+
+```text
+Subject: OMERO is weer beschikbaar / OMERO is back (upgrade uitgesteld / upgrade postponed)
+
+(English below)
+
+Beste OMERO-gebruiker,
+
+OMERO is weer beschikbaar: [OMERO_URL]
+De upgrade naar NL-BIOMERO [VERSION] is uitgesteld; OMERO werkt zoals voorheen.
+Werk dat om [START] werd gestopt, kunt u nu opnieuw starten.
+We laten het weten wanneer we de upgrade opnieuw plannen.
+
+Excuses voor het ongemak.
+
+[TEAM]
+
+---
+
+Dear OMERO user,
+
+OMERO is available again: [OMERO_URL]
+The upgrade to NL-BIOMERO [VERSION] has been postponed; OMERO works as before.
+Work that was stopped at [START] can be started again now.
+We will let you know when we plan the upgrade again.
+
+Apologies for the inconvenience.
+
+[TEAM]
+```

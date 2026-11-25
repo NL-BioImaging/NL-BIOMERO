@@ -287,6 +287,25 @@ announcement as a reply in the NL-BIOMERO thread, in the style of the earlier
 announcements there: shorter than the release notes, written to make users
 want to upgrade, linking the notes. The maintainer posts it.
 
+Every production plan names its rollback rule before the window starts:
+- Decision time: a fixed time in the window (for example 30 minutes before the
+  announced end of work) by which the upgrade is either accepted or rolled back.
+- Rollback when, at the decision time, a core smoke step fails (login over the
+  public URL, an import, one workflow end to end, a detached workflow surviving
+  logout), data integrity is in doubt (failed migration, missing or wrong data),
+  or the core smoke has not finished. Checks that passed on ACC with the same
+  build but can't be run on production (no fixture, needs a browser click) do not
+  cause a rollback; they are done after the window.
+- Who decides: the production agent applies the rule; the maintainer can override.
+- How: back to maintenance; if only images and config changed, redeploy the
+  recorded previous tags and config and rerun Slurm Init; if databases changed,
+  restore both from the pre-upgrade backup. Then the same smoke test on the old
+  version.
+- Communication: users get the "postponed" mail from
+  [references/user-mails.md](references/user-mails.md) once OMERO is back on the
+  old version; the maintainer gets the agent's report with the reason; a finding
+  goes to the coordinator.
+
 Structure the release PR description as in previous release PRs (for example
 NL-BIOMERO #66): component
 checklist (version, PR and published artifact per component), configuration for
