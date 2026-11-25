@@ -30,25 +30,25 @@ it right away; the documentation link is secondary.
 
 ## Templates
 
-Mail 1, announcement (one time, only what users must do; no reassurance that
-contradicts the stop):
+Mail 1, announcement (only the start time, no end time: the back-online mail marks
+the end; only what users must do; no reassurance that contradicts the stop):
 
 ```text
-Subject: OMERO [WHEN] offline [START]–[END] / OMERO offline [WHEN EN] [START]–[END]
+Subject: OMERO [WHEN] vanaf [START] offline / OMERO offline [WHEN EN] from [START]
 
 (English below)
 
 Beste OMERO-gebruiker,
 
-[WHEN], [DATE], is OMERO van [START] tot ongeveer [END] offline voor een upgrade naar
-NL-BIOMERO [VERSION].
+[WHEN], [DATE], is OMERO vanaf [START] [DURATION] offline voor een upgrade naar
+NL-BIOMERO [VERSION]. We mailen zodra OMERO weer beschikbaar is.
 
 - Start geen imports of BIOMERO-analyses meer die na [START] nog lopen.
 - Wat om [START] nog loopt, ook op het HPC-cluster, wordt gestopt. Die resultaten gaan
   verloren; start het daarna opnieuw.
 - Loopt er iets dat niet gestopt mag worden? Mail ons vóór [REPLY BY]: [CONTACT]
 
-We laten het weten zodra OMERO weer beschikbaar is. Excuses voor het ongemak.
+Excuses voor het ongemak.
 
 [TEAM]
 
@@ -56,18 +56,21 @@ We laten het weten zodra OMERO weer beschikbaar is. Excuses voor het ongemak.
 
 Dear OMERO user,
 
-[WHEN EN], [DATE EN], OMERO is offline from [START] until about [END] for an upgrade to
-NL-BIOMERO [VERSION].
+[WHEN EN], [DATE EN], OMERO is offline from [START] for [DURATION EN] for an upgrade to
+NL-BIOMERO [VERSION]. We will mail you when it is back.
 
 - Do not start imports or BIOMERO analyses that would still be running after [START].
 - Anything still running at [START], including on the HPC cluster, is stopped. Those results
   are lost; start it again afterwards.
 - Something running that must not be stopped? Mail us before [REPLY BY]: [CONTACT]
 
-We will let you know when OMERO is back. Apologies for the inconvenience.
+Apologies for the inconvenience.
 
 [TEAM]
 ```
+
+[DURATION] is a rough phrase such as "een paar uur" / "a few hours", never a
+worst-case end time.
 
 Mail 2, back online:
 
