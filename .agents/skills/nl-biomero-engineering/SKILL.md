@@ -346,6 +346,15 @@ for a local deployment, below.
 - Deployment repositories (such as `deploy-omero`, site forks of NL-BIOMERO and
   the local Slurm clusters) are also the user's: keep them and their deployment
   branches, and follow the operations skills in those repositories.
+- Private deployment repositories feed public ones only in general terms.
+  Before anything from a private repository goes into a public issue, PR,
+  commit, plan, release note or forum post, remove hostnames, IP addresses,
+  user and account names, e-mail addresses, private paths, mount and share
+  names, secrets, internal ticket or workflow IDs, and raw logs; name the
+  environment generically ("the acceptance environment", "our production
+  deployment"). Timings, versions, public error messages and the public code
+  they point at may be quoted. Delete local copies of private files when done.
+  The coordinator checks this before publishing.
 - A local stack deployment uses the primary NL-BIOMERO checkout with
   `docker-compose.yml`, which builds the images with the pinned component
   versions, and NL-BIOMERO-Local-Slurm or NL-BIOMERO-Local-Slurm-GPU. Use
