@@ -30,55 +30,42 @@ it right away; the documentation link is secondary.
 
 ## Templates
 
-Mail 1, announcement:
+Mail 1, announcement (one time, only what users must do; no reassurance that
+contradicts the stop):
 
 ```text
-Subject: OMERO-onderhoud / OMERO maintenance: [DATE] [START]–[END]
+Subject: OMERO [WHEN] offline [START]–[END] / OMERO offline [WHEN EN] [START]–[END]
 
 (English below)
 
 Beste OMERO-gebruiker,
 
-Op [DATE] is OMERO van [START] tot ongeveer [END] niet beschikbaar, omdat we upgraden
-naar NL-BIOMERO [VERSION].
+[WHEN], [DATE], is OMERO van [START] tot ongeveer [END] offline voor een upgrade naar
+NL-BIOMERO [VERSION].
 
-Wat betekent dit voor u?
-- Start na [CUTOFF TIME] geen lange analyses of grote imports meer. Wat om [START] nog loopt,
-  ook op het HPC-cluster, wordt gestopt; de resultaten daarvan kunnen verloren gaan en u moet
-  het daarna opnieuw starten.
-- Loopt er bij u iets belangrijks dat niet onderbroken mag worden, of komt dit tijdstip slecht
-  uit? Laat het ons vóór [REPLY BY] weten via [CONTACT], dan zoeken we een oplossing.
-- Uw opgeslagen data is veilig: we maken vooraf een volledige back-up.
-- Tijdens het onderhoud toont de OMERO-website een onderhoudspagina.
+- Start geen imports of BIOMERO-analyses meer die na [START] nog lopen.
+- Wat om [START] nog loopt, ook op het HPC-cluster, wordt gestopt. Die resultaten gaan
+  verloren; start het daarna opnieuw.
+- Loopt er iets dat niet gestopt mag worden? Mail ons vóór [REPLY BY]: [CONTACT]
 
-We sturen een kort bericht zodra OMERO weer beschikbaar is.
+We laten het weten zodra OMERO weer beschikbaar is. Excuses voor het ongemak.
 
-Vragen? Neem contact op met [CONTACT].
-
-Met vriendelijke groet,
 [TEAM]
 
 ---
 
 Dear OMERO user,
 
-On [DATE], from [START] until about [END], OMERO will be unavailable while we upgrade it
-to NL-BIOMERO [VERSION].
+[WHEN EN], [DATE EN], OMERO is offline from [START] until about [END] for an upgrade to
+NL-BIOMERO [VERSION].
 
-What this means for you:
-- Please do not start long analyses or large imports after [CUTOFF TIME]. Anything still
-  running at [START], including jobs on the HPC cluster, will be stopped; its results may be
-  lost and you will need to start it again afterwards.
-- Is something important running that must not be interrupted, or is this time a problem?
-  Let us know before [REPLY BY] via [CONTACT] and we will find a solution.
-- Your stored data is safe: we make a full backup before the upgrade.
-- During the maintenance, the OMERO website shows a maintenance page.
+- Do not start imports or BIOMERO analyses that would still be running after [START].
+- Anything still running at [START], including on the HPC cluster, is stopped. Those results
+  are lost; start it again afterwards.
+- Something running that must not be stopped? Mail us before [REPLY BY]: [CONTACT]
 
-We will send a short message when OMERO is back.
+We will let you know when OMERO is back. Apologies for the inconvenience.
 
-Questions? Contact [CONTACT].
-
-Kind regards,
 [TEAM]
 ```
 
