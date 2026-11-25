@@ -63,8 +63,9 @@ build. Check publication and link availability before claiming either is ready.
 A stable announcement names only stable versions; a beta in it means a
 dependency still needs its stable release first. Keep Other Improvements to
 one line per item. Instead of a Known Issues list, end with a short
-**Coming in X.Y+1** sneak peek: the main planned work and the open issues that
-will be fixed, each one line with its GitHub link. Mention a workaround only
+**Coming next** sneak peek: the main planned work and the open issues that
+will be fixed, each one line with its GitHub link. Do not promise a version or
+timeline; the scope of the next release is still open. Mention a workaround only
 when users may hit the issue before then.
 
 End with the stack comparison from the previous stable release, plus component
