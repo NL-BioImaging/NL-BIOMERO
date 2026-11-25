@@ -1,7 +1,6 @@
 # User mails for a production upgrade
 
-Every production upgrade sends two short mails to all OMERO users, in Dutch with
-English below: an announcement before the downtime and a "back online" mail after
+Every production upgrade sends two short mails to all OMERO users. Mail 1 asks users not to start long work before the window and to object in time if something critical is running, because running work (also on the HPC) is cancelled and its results can be lost. in Dutch with English below: an announcement before the downtime and a "back online" mail after
 the smoke test passes. They are for users, not administrators: no versions of
 components, Slurm, storage formats or other technical detail.
 
@@ -40,9 +39,12 @@ Op [DATE] is OMERO van [START] tot ongeveer [END] niet beschikbaar, omdat we upg
 naar NL-BIOMERO [VERSION].
 
 Wat betekent dit voor u?
-- Start na [CUTOFF TIME] geen imports of BIOMERO-analyses meer. Wat om [START] nog loopt,
-  kan worden gestopt en moet u daarna opnieuw starten.
-- Uw data is veilig: we maken vooraf een volledige back-up.
+- Start na [CUTOFF TIME] geen lange analyses of grote imports meer. Wat om [START] nog loopt,
+  ook op het HPC-cluster, wordt gestopt; de resultaten daarvan kunnen verloren gaan en u moet
+  het daarna opnieuw starten.
+- Loopt er bij u iets belangrijks dat niet onderbroken mag worden, of komt dit tijdstip slecht
+  uit? Laat het ons vóór [REPLY BY] weten via [CONTACT], dan zoeken we een oplossing.
+- Uw opgeslagen data is veilig: we maken vooraf een volledige back-up.
 - Tijdens het onderhoud toont de OMERO-website een onderhoudspagina.
 
 We sturen een kort bericht zodra OMERO weer beschikbaar is.
@@ -60,9 +62,12 @@ On [DATE], from [START] until about [END], OMERO will be unavailable while we up
 to NL-BIOMERO [VERSION].
 
 What this means for you:
-- Please do not start imports or BIOMERO analysis workflows after [CUTOFF TIME].
-  Anything running at [START] may be stopped and need to be restarted.
-- Your data is safe: we make a full backup before the upgrade.
+- Please do not start long analyses or large imports after [CUTOFF TIME]. Anything still
+  running at [START], including jobs on the HPC cluster, will be stopped; its results may be
+  lost and you will need to start it again afterwards.
+- Is something important running that must not be interrupted, or is this time a problem?
+  Let us know before [REPLY BY] via [CONTACT] and we will find a solution.
+- Your stored data is safe: we make a full backup before the upgrade.
 - During the maintenance, the OMERO website shows a maintenance page.
 
 We will send a short message when OMERO is back.
