@@ -245,13 +245,24 @@ means all artifacts are ready:
    `https://api.github.com/repos/NL-BioImaging/NL-BIOMERO/pulls?state=all&head=NL-BioImaging:release/X.Y.Z-beta.N`,
    the plan `plans/releases/X.Y.Z-beta.N.md` on that branch, and finally the
    published release and its image tags.
+   Commits on the deployment branches start with a category so the
+   coordinator reads only what matters: `[finding]` (a classified finding
+   for the coordinator), `[report]` (checkpoint or progress), `[verdict]`
+   (final acceptance verdict), `[deploy]` (deployment, proxy or config
+   change: the input for the acceptance/production comparison), `[harness]`
+   (test tooling), `[backup]` (backup and restore) and `[docs]` (guidance,
+   plans). The coordinator polls for `[finding]`, `[report]` and `[verdict]`,
+   and reads `[deploy]` for the comparison; the rest is noise to it.
 
 A stable release PR carries a **production plan** instead of an acceptance
 plan: `plans/releases/X.Y.Z.md` says what production must do to upgrade from
 its running version (images, settings, Slurm Init, migrations, downtime and
 its order, backup before the upgrade, rollback, post-upgrade checks). Before
 writing it, compare the acceptance and production branches of the private
-deployment repository: list deployment changes (proxy, compose/units,
+deployment repository (production deploys from its production branch as
+named in that repository's guidance). The first comparison covers the main
+deployment files; record the compared commits in the plan and later compare
+only the commits since then: list deployment changes (proxy, compose/units,
 config) that acceptance has and production lacks, leaving out what belongs
 to one side by design (acceptance testing tooling; production backup and
 restore). The plan is public, so it names the changes generically; site
