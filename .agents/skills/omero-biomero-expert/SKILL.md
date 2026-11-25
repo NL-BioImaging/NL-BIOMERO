@@ -245,6 +245,11 @@ means all artifacts are ready:
    `https://api.github.com/repos/NL-BioImaging/NL-BIOMERO/pulls?state=all&head=NL-BioImaging:release/X.Y.Z-beta.N`,
    the plan `plans/releases/X.Y.Z-beta.N.md` on that branch, and finally the
    published release and its image tags.
+   At every handoff, the coordinator checks that ACC's deployed configuration
+   matches the release: image tags and also the container versions pinned in
+   configuration files (converter in `biomero-config.json`, workflow versions
+   in the Slurm config). The release plan lists these pins, and "unchanged"
+   is never assumed.
    Commits on the deployment branches start with a category so the
    coordinator reads only what matters: `[finding]` (a classified finding
    for the coordinator), `[report]` (checkpoint or progress), `[verdict]`
