@@ -1,8 +1,12 @@
 # User mails for a production upgrade
 
-Every production upgrade sends two short mails to all OMERO users. Mail 1 asks users not to start long work before the window and to object in time if something critical is running, because running work (also on the HPC) is cancelled and its results can be lost. in Dutch with English below: an announcement before the downtime and a "back online" mail after
-the smoke test passes. They are for users, not administrators: no versions of
-components, Slurm, storage formats or other technical detail.
+Every production upgrade sends two short mails to all OMERO users, in Dutch with
+English below: an announcement before the downtime and a "back online" mail after
+the smoke test passes. Mail 1 asks users not to start long work before the window
+and to object in time if something important is running, because running work
+(also on the HPC cluster) is stopped and its results can be lost. The mails are
+for users, not administrators: no component versions, Slurm, storage formats or
+other technical detail.
 
 ## Who does what
 
