@@ -246,7 +246,7 @@ means all artifacts are ready:
    the plan `plans/releases/X.Y.Z-beta.N.md` on that branch, and finally the
    published release and its image tags.
    Commits on the deployment branches start with a category so the
-   coordinator reads only what matters: `[finding]` (a sorted finding
+   coordinator reads only what matters: `[finding]` (a classified finding
    for the coordinator), `[report]` (checkpoint or progress), `[verdict]`
    (final acceptance verdict), `[deploy]` (deployment, proxy or config
    change: the input for the acceptance/production comparison), `[harness]`
