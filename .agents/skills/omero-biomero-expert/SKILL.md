@@ -233,7 +233,13 @@ means all artifacts are ready:
    release it through steps 1-9; its release notes and PR are the answer to
    ACC, listing each finding with its issue and outcome. ACC then redeploys
    and retests, and the loop repeats until ACC accepts. Stable X.Y.Z is
-   released from the accepted beta. Open the next beta's release PR as soon as
+   released from the accepted beta. A stable release ships no prerelease
+   anywhere: before it, the coordinator releases every prerelease dependency
+   (for example BIOMERO.shallower and biomero-schema) as stable from its
+   accepted beta, raises the requirement floors of the components that use it
+   to that stable version, and checks that installed packages, pins and helper
+   images (the shallower image follows the installed shallower version) are all
+   stable. Open the next beta's release PR as soon as
    the first blocking finding is filed, so ACC can follow it without GitHub
    authentication: the public API
    `https://api.github.com/repos/NL-BioImaging/NL-BIOMERO/pulls?state=all&head=NL-BioImaging:release/X.Y.Z-beta.N`,
