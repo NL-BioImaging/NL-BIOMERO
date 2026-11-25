@@ -5,12 +5,29 @@ Resumable Web Uploader
 
 The Resumable Web Uploader is a feature in OMERO.biomero that allows users to upload large image files directly through the browser. It uses the TUS protocol for resumable uploads, ensuring that large transfers can recover from network interruptions.
 
+The demo's supplied configuration enables the uploader. In an existing setup,
+enable **Web Uploader** under **Import -> Admin -> General Settings**. This saves
+``UPLOADER.enabled=true`` in the BIOMERO JSON configuration; it is not a separate
+Compose feature flag. Missing or false ``enabled`` hides the upload tab.
+
+.. note::
+   **Summary for system administrators:**
+
+   * Enable or disable **Web Uploader** in the Import admin settings.
+   * Requires a working BIOMERO.importer service to import completed uploads.
+     :doc:`analyzer-importer-admin` covers the separate analysis-result integration.
+   * Provide writable upload storage and a final destination shared with the
+     importer and OMERO.server; configure proxy limits for the chosen chunk size.
+   * Use it for supported single-file formats. Folder-based and multi-file
+     datasets should use the in-place importer instead.
+
 Overview
 --------
 
 The uploader is integrated into the "Import" tab of the OMERO.biomero plugin. When enabled, it provides a drag-and-drop interface powered by `Uppy <https://uppy.io/>`_.
 
 Features:
+
 - **Resumable**: Automatically resumes uploads after network failures or browser restarts.
 - **Large File Support**: Supports multi-gigabyte uploads by splitting files into chunks.
 - **File Types**: Supports all standard Bio-Formats single-file extensions.
@@ -125,8 +142,14 @@ Because the Docker engine mounts host folders directly, local OS permissions app
    # Example: Setting permissions on the host directory
    chown -R 1000:1000 /path/to/shared/group/directories
 
+.. _uploader-data-flow:
+
 Uploader Data Flow
 ------------------
+
+.. tip::
+   🎥 **Visual explanation · 1:24:** :ref:`See how uploads enter the same
+   asynchronous in-place import route <video-in-place-importing>`.
 
 The life cycle of an upload and its automatic import follows these steps:
 

@@ -8,6 +8,9 @@ Analyzer → Importer Integration
 Overview
 --------
 
+.. tip::
+   🎥 **Visual explanation · 1:24:** :ref:`See the in-place import route used for both source data and analysis results <video-in-place-importing>`.
+
 Before this integration, analysis results (segmentation masks, measurements, etc.) produced by SLURM
 workflows were imported back into OMERO exclusively via the OMERO API.  This means the files landed on
 **OMERO server storage** (the ``/OMERO`` volume), which grows without limit and bypasses the managed
@@ -58,12 +61,11 @@ Results are written to the shared drive under the group's subfolder:
    └── .analyzed/
        └── <workflow-uuid>/
            └── <YYYYMMDD_HHMMSS>/
-               ├── <job_id>_out.zip          # original results archive
-               ├── <job_id>_out/             # extracted result images + CSVs
-               │   ├── data/out/
-               │   │   ├── result_image.tiff
-               │   │   └── measurements.csv
-               │   └── metadata.csv          # workflow provenance metadata
+               ├── result_image.zarr/        # result images (or .tiff) and other outputs,
+               ├── measurements.csv          #   as the workflow wrote them to data/out
+               ├── metadata.csv              # workflow provenance, beside the images
+               ├── <job_id>_out.zip          # results archive; removed after the import
+               │                             #   unless it was attached to OMERO
                └── omero-<job_id>.log        # SLURM job log
 
 The ``.analyzed`` hidden directory distinguishes archived analysis results from raw incoming data.

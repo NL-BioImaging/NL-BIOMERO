@@ -186,4 +186,5 @@ Related Documentation
 * :doc:`../../sysadmin/omero-biomero-admin` - OMERO.biomero plugin administration guide
 * :doc:`omeroweb` - Web interface integration
 * :doc:`../architecture` - System architecture
+* :ref:`Provenance while the work happens <video-provenance-while-working>` - Short video about BIOMERO event history and live progress
 * `Metabase Documentation <https://www.metabase.com/docs/>`_
