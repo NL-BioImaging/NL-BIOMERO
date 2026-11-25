@@ -262,6 +262,13 @@ means all artifacts are ready:
    plans). The coordinator polls for `[finding]`, `[report]` and `[verdict]`,
    and reads `[deploy]` for the comparison; the rest is noise to it.
 
+The check ACC runs on a stable release only repeats what the accepted beta
+already covered, as a short smoke on the stable build, plus the version check
+(stable pins, no prerelease installed) and rows for code that changed since
+that beta. The coordinator never adds a check there that the beta did not
+run; a gap noticed then becomes a check for the next beta cycle, not a new
+requirement for the stable release.
+
 A stable release PR carries a **production plan** instead of an acceptance
 plan: `plans/releases/X.Y.Z.md` says what production must do to upgrade from
 its running version (images, settings, Slurm Init, migrations, downtime and
