@@ -239,7 +239,10 @@ means all artifacts are ready:
    accepted beta, raises the requirement floors of the components that use it
    to that stable version, and checks that installed packages, pins and helper
    images (the shallower image follows the installed shallower version) are all
-   stable. Open the next beta's release PR as soon as
+   stable. Publish in dependency order, each after everything it requires:
+   biomero-schema, BIOMERO.shallower, BIOMERO.importer, BIOMERO core (its
+   `full` extra requires the importer), biomero-scripts (same version as core),
+   OMERO.biomero; then NL-BIOMERO. Open the next beta's release PR as soon as
    the first blocking finding is filed, so ACC can follow it without GitHub
    authentication: the public API
    `https://api.github.com/repos/NL-BioImaging/NL-BIOMERO/pulls?state=all&head=NL-BioImaging:release/X.Y.Z-beta.N`,
