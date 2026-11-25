@@ -246,6 +246,20 @@ means all artifacts are ready:
    the plan `plans/releases/X.Y.Z-beta.N.md` on that branch, and finally the
    published release and its image tags.
 
+A stable release PR carries a **production plan** instead of an acceptance
+plan: `plans/releases/X.Y.Z.md` says what production must do to upgrade from
+its running version (images, settings, Slurm Init, migrations, downtime and
+its order, backup before the upgrade, rollback, post-upgrade checks). Before
+writing it, compare the acceptance and production branches of the private
+deployment repository: list deployment changes (proxy, compose/units,
+config) that acceptance has and production lacks, leaving out what belongs
+to one side by design (acceptance testing tooling; production backup and
+restore). The plan is public, so it names the changes generically; site
+details stay in the deployment repository. Also draft the image.sc
+announcement as a reply in the NL-BIOMERO thread, in the style of the earlier
+announcements there: shorter than the release notes, written to make users
+want to upgrade, linking the notes. The maintainer posts it.
+
 Structure the release PR description as in previous release PRs (for example
 NL-BIOMERO #66): component
 checklist (version, PR and published artifact per component), configuration for
