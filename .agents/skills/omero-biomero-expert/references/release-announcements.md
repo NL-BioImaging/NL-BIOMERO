@@ -41,6 +41,11 @@ instead of repeating every component fix and PR.
 
 ## Make adoption clear
 
+Lead upgrades with pulling the released containers by version: they bundle
+matching, tested component versions and are the recommended route, certainly in
+production. Give the component pins (core, scripts and so on) only as a
+secondary note for sites that build their own images.
+
 For each substantial optional feature, state its actual enablement: deployment
 flag, administrator setting, per-workflow choice or maintenance action. Explain
 enabled demo defaults versus existing-deployment opt-in. For upgrades from an
