@@ -55,6 +55,11 @@ chmod 644 /opt/omero/server/.ssh/known_hosts
   account can't read the keys, so Slurm steps fail with permission errors.
   Don't change the folder's ownership or permissions to work around this, and
   never open or print the keys.
+- Admin scripts such as **Slurm Init** and **Slurm Check Setup** run from the
+  command line too: in the `omeroserver` container, `omero login` as root
+  (password from the environment, never printed), `omero script list` to find
+  the script ID, then `omero script launch <id>`. With no arguments the script
+  uses the same defaults as the browser form.
 
 The repo-local `.ssh/config` may contain deploy aliases such as:
 
