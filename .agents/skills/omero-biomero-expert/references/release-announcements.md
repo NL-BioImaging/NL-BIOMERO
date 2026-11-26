@@ -71,7 +71,10 @@ one line per item. Instead of a Known Issues list, end with a short
 **Coming next** sneak peek: the main planned work and the open issues that
 will be fixed, each one line with its GitHub link. Do not promise a version or
 timeline; the scope of the next release is still open. Mention a workaround only
-when users may hit the issue before then.
+when users may hit the issue before then. Never put "fix", "fixes", "close" or
+"resolve" (with or without a colon) right before a link to an issue that is not
+solved: in a PR body GitHub reads that as a closing keyword and closes the issue
+on merge. Write for example "Smaller items:" instead.
 
 End with the stack comparison from the previous stable release, plus component
 comparisons when useful, following the historical feature-release examples.
