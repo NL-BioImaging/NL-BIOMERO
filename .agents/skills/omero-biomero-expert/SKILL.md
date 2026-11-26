@@ -273,7 +273,15 @@ A stable release PR carries a **production plan** instead of an acceptance
 plan: `plans/releases/X.Y.Z.md` says what production must do to upgrade from
 its running version (images, settings, Slurm Init, migrations, downtime and
 its order, backup before the upgrade, rollback, post-upgrade checks, and the two user mails drafted from the release notes as in
-[references/user-mails.md](references/user-mails.md)). Before
+[references/user-mails.md](references/user-mails.md)). The coordinator thinks
+through how the release's changes affect the upgrade procedure itself, not only
+the running stack, and writes any consequence into the plan. For example, if the
+release changes the front end (proxy configuration, its mounts or ports), the
+plan makes that a separate step: the proxy usually serves the maintenance page
+and keeps running through the upgrade, so pulling new images does not apply the
+change. Say when the proxy is recreated or reloaded (usually on leaving
+maintenance), and check the change through the public route (for example, a
+viewer store file returns 200, not only the viewer API). Before
 writing it, compare the acceptance and production branches of the private
 deployment repository (production deploys from its production branch as
 named in that repository's guidance). The first comparison covers the main
