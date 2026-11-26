@@ -24,9 +24,13 @@ other technical detail.
 
 Take the release's Major Features and keep only what users notice: three to five
 one-line bullets in plain language, each saying what the user can now do and,
-where it helps, where to find it in the interface. Leave out features that are
-off at the site. Start the mail with a link to the site's OMERO, so users can try
-it right away; the documentation link is secondary.
+where it helps, where to find it in the interface. Describe an interface step
+only as the documentation describes it (for example "select an OME-Zarr image
+and choose Open With > OME-Zarr Viewer"); never guess clicks or menus such as
+right-click, which most of OMERO does not have. If the docs don't describe the
+step, leave it out. Leave out features that are off at the site. Start the mail
+with a link to the site's OMERO, so users can try it right away; the
+documentation link is secondary.
 
 ## Templates
 
