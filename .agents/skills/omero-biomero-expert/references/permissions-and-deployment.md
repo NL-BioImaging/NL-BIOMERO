@@ -56,10 +56,12 @@ chmod 644 /opt/omero/server/.ssh/known_hosts
   Don't change the folder's ownership or permissions to work around this, and
   never open or print the keys.
 - Admin scripts such as **Slurm Init** and **Slurm Check Setup** run from the
-  command line too: in the `omeroserver` container, `omero login` as root
-  (password from the environment, never printed), `omero script list` to find
-  the script ID, then `omero script launch <id>`. With no arguments the script
-  uses the same defaults as the browser form.
+  command line too, in the `omeroserver` container. The CLI is not on the PATH
+  there; use `/opt/omero/server/venv3/bin/omero`. Log in as the OMERO root user
+  with the password in `OMERO_PASSWORD` (not on the command line, never printed),
+  find the script ID with `omero script list`, then `omero script launch <id>`.
+  With no arguments the script uses the same defaults as the browser form.
+  Exit code 0 only means the launch ran: read the script's output for errors.
 
 The repo-local `.ssh/config` may contain deploy aliases such as:
 
