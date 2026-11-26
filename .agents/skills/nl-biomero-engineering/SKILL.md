@@ -43,11 +43,16 @@ is a requirement, not polish.
   needs a release of its own; it ships with the next functional change, or
   waits on the default branch in its own pull request until a release
   happens anyway.
-- Match the surrounding code: its naming, structure, error handling, logging
-  and test style. New code should look like it was written by the same team.
-  A new module follows the package's established modules, not only its own
-  file: the same docstring format, type hints, naming and quoting. Each
-  component's `<repo>-dev` skill names its reference module.
+- Match the existing style, in everything you add: code, frontend,
+  documentation, configuration and tests. For code that means its naming,
+  structure, error handling, logging and test style; for docs and frontend,
+  the existing layout, components, icons and wording. New work should look
+  like it was written by the same team. Follow the established style (what was
+  there before the current release), not the most recent addition: if recent
+  additions already differ, align them with the established style. A new module
+  follows the package's established modules, not only its own file: the same
+  docstring format, type hints, naming and quoting. Each component's
+  `<repo>-dev` skill names its reference module.
 - Use one Python style across all NL-BIOMERO repositories, modelled on BIOMERO
   core (`biomero/slurm_client.py`): Google-style docstrings (summary line,
   `Args:` as `name (type): description`, `Returns:`, `Raises:`), type hints on

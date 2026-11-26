@@ -52,7 +52,14 @@ the change fits. Check, in this order:
    internals), suggest it as a should-fix finding. Code that rests on an
    unconfirmed root cause, or works around how a third-party tool (OME, Slurm)
    behaves inside, needs evidence that the simple version is not enough.
-3. **Tests:** regression tests at the lowest useful layer; every changed
+3. **Existing style:** compare everything the PR adds (code, frontend,
+   documentation, configuration, tests) with the established style of the
+   repository, meaning what was there before the current release, not the
+   most recent addition. Name each deviation as a finding with the existing
+   example it should match (for example a docs card without the icons the
+   other cards use). Where recent additions already differ, the established
+   style wins; fix them in the PR when small.
+4. **Tests:** regression tests at the lowest useful layer; every changed
    behavior and flag state (enabled, false, missing, empty) covered.
    Assertions check the exact outcome (for example the log level), not one of
    several acceptable outcomes.
@@ -68,28 +75,28 @@ the change fits. Check, in this order:
    broken one. A broken change must make a test fail, not hang (give polling
    stubs a call budget), and tests that need a dependency must fail rather
    than skip in CI when it is missing.
-4. **Configuration and documentation:** feature-flag and settings rules,
+5. **Configuration and documentation:** feature-flag and settings rules,
    docs and guidance updated with the behavior.
    When the PR adds, moves, renames or removes a file that BIOMERO writes,
    check that the file reference (NL-BIOMERO `docs/developer/biomero-files.md`)
    changes with it; a PR in another repository names the NL-BIOMERO docs PR
    that does.
-5. **Parallel PRs:** when other open PRs change the same files, merge them
+6. **Parallel PRs:** when other open PRs change the same files, merge them
    with this one (`git merge-tree`) and check the result for duplicate
    definitions or changed signatures that merge without a conflict; agree
    which PR owns the shared code and the merge order.
-6. **Dependencies:** a PR that uses a feature of another component must not
+7. **Dependencies:** a PR that uses a feature of another component must not
    be ready for merge before that component's prerelease is published and the
    minimum version is raised in the PR. A pin the PR adds or changes uses
    the latest compatible release of that dependency.
-7. **Stored data:** review every change to event classes, aggregate
+8. **Stored data:** review every change to event classes, aggregate
    attributes, event handlers, constructors and database tables against the
    history already stored in installs. Check that event names (topics) and
    attributes are unchanged, new attributes are initialised so old histories
    replay, new parameters have defaults, a test replays a history from the
    previous release, and the PR says whether a downgrade still works. Ask
    whether the change is needed at all; prefer designs without one.
-8. **Planned work:** check the open stories on the project board
+9. **Planned work:** check the open stories on the project board
    (`gh project item-list 2 --owner NL-BioImaging`) and the issues of the
    touched repositories for planned work in the same area. Report a change
    that clashes with a story (for example one that removes a hook or fixes a
@@ -97,7 +104,7 @@ the change fits. Check, in this order:
    an extension point in an existing function) would make the story easier
    later, suggest it, but do not build the story itself or add code nothing
    uses yet; mention larger preparations in the story instead.
-9. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
+10. **Traceability:** the PR links its issue with `Closes` or `Refs`, or says
    why it has none.
 
 Verify each finding against the code before reporting it; drop what you
