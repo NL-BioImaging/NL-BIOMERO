@@ -139,6 +139,16 @@ the board for each major release, because it usually needs code changes. Raise
 the pins in the components' own PRs before step 1, and mention notable
 upgrades, especially security fixes, in the release notes.
 
+The coordinator also lists every version the stack pins outside the component
+repositories: images in `web/biomero-config.json` (such as biomero-converter),
+workflow versions in the Slurm INIs (`slurm-config*.ini`), and the other pins in
+`.env`. For each one, compare it with the latest release and decide whether this
+release takes it up, which also means testing it in acceptance, or leaves it for
+a later release. Record the decision in the release plan. A pin held back on
+purpose has a comment at the pin giving the reason (for example the ImageJ
+nuclei segmentation workflow stays at v1.12.10, because later versions break);
+leave it unless that reason has gone.
+
 Before publishing any component prerelease for a release, the release
 coordinator lists every item on the BIOMERO Roadmap board with that
 **Release** value that is not Done, in all repositories (the filtered board
