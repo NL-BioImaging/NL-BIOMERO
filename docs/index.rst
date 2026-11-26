@@ -3,7 +3,7 @@
 Welcome to NL-BIOMERO's documentation!
 =======================================
 
-|biomero_badge| |biomero_importer_badge| |omero_biomero_badge| |omero_forms_badge| |zarr_viewer_badge|
+|biomero_badge| |biomero_scripts_badge| |biomero_importer_badge| |biomero_schema_badge| |biomero_shallower_badge| |omero_biomero_badge| |omero_forms_badge| |zarr_viewer_badge|
 
 **NL-BIOMERO** delivers a complete FAIR-oriented bioimaging infrastructure built on OMERO and |biomero_2_0|.
 
@@ -126,17 +126,34 @@ This documentation serves as your **main gateway** to the BIOMERO 2.0 ecosystem.
    
    <div style="background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%); color: white; padding: 25px; border-radius: 12px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-   <h3 style="margin: 0; font-size: 18px;">BIOMERO Schema</h3>
+   <h3 style="margin: 0; font-size: 18px;">📐 BIOMERO Schema</h3>
    <div style="display: flex; gap: 8px; align-items: center;">
-   <a href="https://github.com/NL-BioImaging/biomero-schema" target="_blank" style="background: rgba(0,0,0,0.3); color: white; padding: 4px 8px; text-decoration: none; border-radius: 4px; font-size: 11px;">Repository</a>
+   <a href="https://github.com/NL-BioImaging/biomero-schema" target="_blank" style="background: rgba(0,0,0,0.3); color: white; padding: 4px 8px; text-decoration: none; border-radius: 4px; font-size: 11px;">🔍 Repository</a>
    <div style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 15px; font-size: 11px;">Apache-2.0</div>
    </div>
    </div>
    <p style="margin: 0 0 15px 0; font-size: 14px; opacity: 0.9;">Shared workflow descriptors and versioned cross-service contracts for BIOMERO components</p>
    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-   <a href="https://nl-bioimaging.github.io/biomero-schema/" target="_blank" style="background: #007bff; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,123,255,0.3);">Documentation</a>
-   <a href="https://github.com/NL-BioImaging/biomero-schema?tab=readme-ov-file#readme" target="_blank" style="background: #6c757d; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(108,117,125,0.3);">README</a>
-   <a href="https://nl-bioimaging.github.io/biomero-schema/api/workflow/" target="_blank" style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(23,162,184,0.3);">Python API</a>
+   <a href="https://nl-bioimaging.github.io/biomero-schema/" target="_blank" style="background: #007bff; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,123,255,0.3);">📚 Documentation</a>
+   <a href="https://github.com/NL-BioImaging/biomero-schema?tab=readme-ov-file#readme" target="_blank" style="background: #6c757d; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(108,117,125,0.3);">📖 README</a>
+   <a href="https://nl-bioimaging.github.io/biomero-schema/api/workflow/" target="_blank" style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(23,162,184,0.3);">👨‍💻 Python API</a>
+   </div>
+   </div>
+
+   <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 25px; border-radius: 12px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+   <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+   <h3 style="margin: 0; font-size: 18px;">♻️ BIOMERO.shallower</h3>
+   <div style="display: flex; gap: 8px; align-items: center;">
+   <a href="https://hub.docker.com/r/cellularimagingcf/biomero-shallower" target="_blank" style="background: rgba(255,255,255,0.2); color: white; padding: 4px 8px; text-decoration: none; border-radius: 4px; font-size: 11px;">🐳 DockerHub</a>
+   <a href="https://github.com/NL-BioImaging/BIOMERO.shallower" target="_blank" style="background: rgba(0,0,0,0.3); color: white; padding: 4px 8px; text-decoration: none; border-radius: 4px; font-size: 11px;">🔍 Repository</a>
+   <div style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 15px; font-size: 11px;">Apache-2.0</div>
+   </div>
+   </div>
+   <p style="margin: 0 0 15px 0; font-size: 14px; opacity: 0.9;">Shallow OME-Zarr results: reuses verified original pixels instead of storing and transferring them again, on the HPC or in the importer</p>
+   <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+   <a href="https://nl-bioimaging.github.io/BIOMERO.shallower/" target="_blank" style="background: #007bff; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,123,255,0.3);">📚 Documentation</a>
+   <a href="https://github.com/NL-BioImaging/BIOMERO.shallower?tab=readme-ov-file#readme" target="_blank" style="background: #6c757d; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(108,117,125,0.3);">📖 README</a>
+   <a href="sysadmin/remote-shallower.html" target="_blank" style="background: #28a745; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 6px rgba(40,167,69,0.4);">⚙️ Admin Guide</a>
    </div>
    </div>
 
@@ -215,17 +232,17 @@ This documentation serves as your **main gateway** to the BIOMERO 2.0 ecosystem.
    
    <div style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); color: white; padding: 25px; border-radius: 12px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-   <h3 style="margin: 0; font-size: 18px;">OME-Zarr Viewer</h3>
+   <h3 style="margin: 0; font-size: 18px;">🔭 OME-Zarr Viewer</h3>
    <div style="display: flex; gap: 8px; align-items: center;">
-   <a href="https://github.com/NL-BioImaging/BIOMERO.ZarrViewer" target="_blank" style="background: rgba(0,0,0,0.3); color: white; padding: 4px 8px; text-decoration: none; border-radius: 4px; font-size: 11px;">Repository</a>
+   <a href="https://github.com/NL-BioImaging/BIOMERO.ZarrViewer" target="_blank" style="background: rgba(0,0,0,0.3); color: white; padding: 4px 8px; text-decoration: none; border-radius: 4px; font-size: 11px;">🔍 Repository</a>
    <div style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 15px; font-size: 11px;">AGPL-3.0</div>
    </div>
    </div>
    <p style="margin: 0 0 15px 0; font-size: 14px; opacity: 0.9;">Authenticated viewing of physical OME-Zarr images, plates, and segmentation labels in OMERO.web</p>
    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-   <a href="https://nl-bioimaging.github.io/BIOMERO.ZarrViewer/" target="_blank" style="background: #007bff; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,123,255,0.3);">Documentation</a>
-   <a href="https://github.com/NL-BioImaging/BIOMERO.ZarrViewer?tab=readme-ov-file#readme" target="_blank" style="background: #6c757d; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(108,117,125,0.3);">README</a>
-   <a href="sysadmin/zarrviewer.html" target="_blank" style="background: #28a745; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 6px rgba(40,167,69,0.4);">Admin Guide</a>
+   <a href="https://nl-bioimaging.github.io/BIOMERO.ZarrViewer/" target="_blank" style="background: #007bff; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,123,255,0.3);">📚 Documentation</a>
+   <a href="https://github.com/NL-BioImaging/BIOMERO.ZarrViewer?tab=readme-ov-file#readme" target="_blank" style="background: #6c757d; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(108,117,125,0.3);">📖 README</a>
+   <a href="sysadmin/zarrviewer.html" target="_blank" style="background: #28a745; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 6px rgba(40,167,69,0.4);">⚙️ Admin Guide</a>
    </div>
    </div>
 
