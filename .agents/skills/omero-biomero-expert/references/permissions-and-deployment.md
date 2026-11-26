@@ -50,6 +50,12 @@ chmod 644 /opt/omero/server/.ssh/*.pub
 chmod 644 /opt/omero/server/.ssh/known_hosts
 ```
 
+- Run deployment and maintenance commands as the account that owns the SSH key
+  folder mounted into the worker (`SSH_HOST_PATH`), or through `sudo`. Another
+  account can't read the keys, so Slurm steps fail with permission errors.
+  Don't change the folder's ownership or permissions to work around this, and
+  never open or print the keys.
+
 The repo-local `.ssh/config` may contain deploy aliases such as:
 
 ```text
