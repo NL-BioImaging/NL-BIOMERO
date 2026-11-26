@@ -319,7 +319,8 @@ Every production plan names its rollback rule before the window starts:
 
 Structure the release PR description as in previous release PRs (for example
 NL-BIOMERO #66): component
-checklist (version, PR and published artifact per component), configuration for
+checklist (version, PR, published artifact and docs front-page badge and card
+per component), configuration for
 acceptance, ACC acceptance criteria, validation and publication status, local
 acceptance report link and published image verification. Draft the release
 announcement and component release notes with
