@@ -3,7 +3,7 @@
 Welcome to NL-BIOMERO's documentation!
 =======================================
 
-|biomero_badge| |biomero_scripts_badge| |biomero_importer_badge| |biomero_schema_badge| |biomero_shallower_badge| |omero_biomero_badge| |omero_forms_badge| |zarr_viewer_badge|
+|biomero_badge| |biomero_scripts_badge| |biomero_importer_badge| |biomero_converter_badge| |biomero_schema_badge| |biomero_shallower_badge| |omero_biomero_badge| |omero_forms_badge| |zarr_viewer_badge|
 
 **NL-BIOMERO** delivers a complete FAIR-oriented bioimaging infrastructure built on OMERO and |biomero_2_0|.
 
@@ -149,7 +149,7 @@ This documentation serves as your **main gateway** to the BIOMERO 2.0 ecosystem.
    <div style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 15px; font-size: 11px;">Apache-2.0</div>
    </div>
    </div>
-   <p style="margin: 0 0 15px 0; font-size: 14px; opacity: 0.9;">Shallow OME-Zarr results: reuses verified original pixels instead of storing and transferring them again, on the HPC or in the importer</p>
+   <p style="margin: 0 0 15px 0; font-size: 14px; opacity: 0.9;">Shallow OME-Zarr storage that reuses verified original pixels instead of copying them</p>
    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
    <a href="https://nl-bioimaging.github.io/BIOMERO.shallower/" target="_blank" style="background: #007bff; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,123,255,0.3);">📚 Documentation</a>
    <a href="https://github.com/NL-BioImaging/BIOMERO.shallower?tab=readme-ov-file#readme" target="_blank" style="background: #6c757d; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(108,117,125,0.3);">📖 README</a>
@@ -183,6 +183,22 @@ This documentation serves as your **main gateway** to the BIOMERO 2.0 ecosystem.
    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
    <a href="https://github.com/NL-BioImaging/BIOMERO.importer?tab=readme-ov-file#readme" target="_blank" style="background: #6c757d; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(108,117,125,0.3);">📖 README</a>
    <a href="sysadmin/analyzer-importer-admin.html" target="_blank" style="background: #6f42c1; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 6px rgba(111,66,193,0.4);">🔗 Analyzer+Importer</a>
+   </div>
+   </div>
+   
+   <div style="background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%); color: white; padding: 25px; border-radius: 12px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+   <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+   <h3 style="margin: 0; font-size: 18px;">🔄 BIOMERO.converter</h3>
+   <div style="display: flex; gap: 8px; align-items: center;">
+   <a href="https://hub.docker.com/r/cellularimagingcf/biomero-converter" target="_blank" style="background: rgba(255,255,255,0.2); color: white; padding: 4px 8px; text-decoration: none; border-radius: 4px; font-size: 11px;">🐳 DockerHub</a>
+   <a href="https://github.com/NL-BioImaging/biomero-converter" target="_blank" style="background: rgba(0,0,0,0.3); color: white; padding: 4px 8px; text-decoration: none; border-radius: 4px; font-size: 11px;">🔍 Repository</a>
+   <div style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 15px; font-size: 11px;">Apache-2.0</div>
+   </div>
+   </div>
+   <p style="margin: 0 0 15px 0; font-size: 14px; opacity: 0.9;">Format conversion of Leica and Incucyte data to OME-Zarr during import preprocessing</p>
+   <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+   <a href="https://nl-bioimaging.github.io/biomero-converter/" target="_blank" style="background: #007bff; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,123,255,0.3);">📚 Documentation</a>
+   <a href="https://github.com/NL-BioImaging/biomero-converter?tab=readme-ov-file#readme" target="_blank" style="background: #6c757d; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(108,117,125,0.3);">📖 README</a>
    </div>
    </div>
    

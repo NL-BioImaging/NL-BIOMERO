@@ -3,6 +3,7 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import json
 import os
 import sys
 import re
@@ -156,6 +157,36 @@ html_theme_options = {
 # RST substitutions - will be set dynamically during build process
 rst_prolog = ""  # Initially empty, will be populated by setup_dynamic_rst_prolog()
 
+def badge_version(version):
+    """Return a version without its 'v' prefix, for badge text."""
+    return version.removeprefix('v')
+
+def release_tag(version):
+    """Return a version with a 'v' prefix, for release tag links."""
+    return f"v{badge_version(version)}"
+
+def read_converter_version():
+    """Read the biomero-converter image tag pinned in web/biomero-config.json.
+
+    All preprocessing routes must use the same converter version, so a
+    mismatch fails the build instead of showing one of them.
+    """
+    config_paths = ['web/biomero-config.json', '../web/biomero-config.json', '../../web/biomero-config.json']
+    config_path = next((path for path in config_paths if os.path.exists(path)), None)
+    if config_path is None:
+        return 'unknown'
+    with open(config_path, 'r') as f:
+        preprocessing_config = json.load(f).get('PREPROCESSING_CONFIG', {})
+    converter_image = 'cellularimagingcf/biomero-converter:'
+    converter_versions = {
+        route['container'].removeprefix(converter_image)
+        for route in preprocessing_config.values()
+        if route.get('container', '').startswith(converter_image)
+    }
+    if len(converter_versions) > 1:
+        raise ValueError(f"{config_path} pins different biomero-converter versions: {sorted(converter_versions)}")
+    return converter_versions.pop() if converter_versions else 'unknown'
+
 def setup_dynamic_rst_prolog(app):
     """Dynamically update RST prolog with current environment values"""
     env_values = read_env_at_render_time()
@@ -169,26 +200,7 @@ def setup_dynamic_rst_prolog(app):
     biomero_scripts_version = env_values.get('BIOMERO_SCRIPTS_VERSION', 'unknown')
     biomero_schema_version = env_values.get('BIOMERO_SCHEMA_VERSION', 'unknown')
     biomero_shallower_version = env_values.get('BIOMERO_SHALLOWER_VERSION', 'unknown')
-    
-    # Clean versions for badges (remove 'v' prefix)
-    clean_biomero = biomero_version.lstrip('v') if biomero_version.startswith('v') else biomero_version
-    clean_importer = biomero_importer_version.lstrip('v') if biomero_importer_version.startswith('v') else biomero_importer_version
-    clean_forms = omero_forms_version.lstrip('v') if omero_forms_version.startswith('v') else omero_forms_version  
-    clean_omero_biomero = omero_biomero_version.lstrip('v') if omero_biomero_version.startswith('v') else omero_biomero_version
-    clean_zarr_viewer = zarr_viewer_version.lstrip('v') if zarr_viewer_version.startswith('v') else zarr_viewer_version
-    clean_scripts = biomero_scripts_version.lstrip('v') if biomero_scripts_version.startswith('v') else biomero_scripts_version
-    clean_schema = biomero_schema_version.lstrip('v') if biomero_schema_version.startswith('v') else biomero_schema_version
-    clean_shallower = biomero_shallower_version.lstrip('v') if biomero_shallower_version.startswith('v') else biomero_shallower_version
-    
-    # Create version tags for links (ensure 'v' prefix)
-    tag_biomero = biomero_version if biomero_version.startswith('v') else f'v{biomero_version}'
-    tag_importer = biomero_importer_version if biomero_importer_version.startswith('v') else f'v{biomero_importer_version}'
-    tag_forms = omero_forms_version if omero_forms_version.startswith('v') else f'v{omero_forms_version}'
-    tag_omero_biomero = omero_biomero_version if omero_biomero_version.startswith('v') else f'v{omero_biomero_version}'
-    tag_zarr_viewer = zarr_viewer_version if zarr_viewer_version.startswith('v') else f'v{zarr_viewer_version}'
-    tag_scripts = biomero_scripts_version if biomero_scripts_version.startswith('v') else f'v{biomero_scripts_version}'
-    tag_schema = biomero_schema_version if biomero_schema_version.startswith('v') else f'v{biomero_schema_version}'
-    tag_shallower = biomero_shallower_version if biomero_shallower_version.startswith('v') else f'v{biomero_shallower_version}'
+    biomero_converter_version = read_converter_version()
     
     # Update the config's rst_prolog
     app.config.rst_prolog = f"""
@@ -197,41 +209,42 @@ def setup_dynamic_rst_prolog(app):
 .. |omero_forms_version| replace:: {omero_forms_version}
 .. |omero_biomero_version| replace:: {omero_biomero_version}
 .. |zarr_viewer_version| replace:: {zarr_viewer_version}
-.. |biomero_scripts_version| replace:: {biomero_scripts_version}
-.. |biomero_schema_version| replace:: {biomero_schema_version}
-.. |biomero_shallower_version| replace:: {biomero_shallower_version}
 
-.. |biomero_badge| image:: https://img.shields.io/badge/BIOMERO.analyzer-{clean_biomero}-purple?style=flat-square
+.. |biomero_badge| image:: https://img.shields.io/badge/BIOMERO.analyzer-{badge_version(biomero_version)}-purple?style=flat-square
    :alt: BIOMERO Version  
-   :target: https://github.com/NL-BioImaging/biomero/releases/tag/{tag_biomero}
+   :target: https://github.com/NL-BioImaging/biomero/releases/tag/{release_tag(biomero_version)}
 
-.. |biomero_importer_badge| image:: https://img.shields.io/badge/BIOMERO.importer-{clean_importer}-green?style=flat-square
+.. |biomero_importer_badge| image:: https://img.shields.io/badge/BIOMERO.importer-{badge_version(biomero_importer_version)}-green?style=flat-square
    :alt: BIOMERO Importer Version
-   :target: https://github.com/NL-BioImaging/BIOMERO.importer/releases/tag/{tag_importer}
+   :target: https://github.com/NL-BioImaging/BIOMERO.importer/releases/tag/{release_tag(biomero_importer_version)}
 
-.. |omero_forms_badge| image:: https://img.shields.io/badge/OMERO.forms-{clean_forms}-orange?style=flat-square
+.. |omero_forms_badge| image:: https://img.shields.io/badge/OMERO.forms-{badge_version(omero_forms_version)}-orange?style=flat-square
    :alt: OMERO Forms Version
-   :target: https://github.com/NL-BioImaging/OMERO.forms/releases/tag/{tag_forms}
+   :target: https://github.com/NL-BioImaging/OMERO.forms/releases/tag/{release_tag(omero_forms_version)}
 
-.. |omero_biomero_badge| image:: https://img.shields.io/badge/OMERO.biomero-{clean_omero_biomero}-red?style=flat-square
+.. |omero_biomero_badge| image:: https://img.shields.io/badge/OMERO.biomero-{badge_version(omero_biomero_version)}-red?style=flat-square
    :alt: OMERO Biomero Version
-   :target: https://github.com/NL-BioImaging/OMERO.biomero/releases/tag/{tag_omero_biomero}
+   :target: https://github.com/NL-BioImaging/OMERO.biomero/releases/tag/{release_tag(omero_biomero_version)}
 
-.. |zarr_viewer_badge| image:: https://img.shields.io/badge/BIOMERO.ZarrViewer-{clean_zarr_viewer}-blue?style=flat-square
+.. |zarr_viewer_badge| image:: https://img.shields.io/badge/BIOMERO.ZarrViewer-{badge_version(zarr_viewer_version)}-blue?style=flat-square
    :alt: BIOMERO ZarrViewer Version
-   :target: https://github.com/NL-BioImaging/BIOMERO.ZarrViewer/releases/tag/{tag_zarr_viewer}
+   :target: https://github.com/NL-BioImaging/BIOMERO.ZarrViewer/releases/tag/{release_tag(zarr_viewer_version)}
 
-.. |biomero_scripts_badge| image:: https://img.shields.io/badge/BIOMERO.scripts-{clean_scripts}-ff69b4?style=flat-square
+.. |biomero_scripts_badge| image:: https://img.shields.io/badge/BIOMERO.scripts-{badge_version(biomero_scripts_version)}-pink?style=flat-square
    :alt: BIOMERO Scripts Version
-   :target: https://github.com/NL-BioImaging/biomero-scripts/releases/tag/{tag_scripts}
+   :target: https://github.com/NL-BioImaging/biomero-scripts/releases/tag/{release_tag(biomero_scripts_version)}
 
-.. |biomero_schema_badge| image:: https://img.shields.io/badge/BIOMERO_Schema-{clean_schema}-teal?style=flat-square
+.. |biomero_schema_badge| image:: https://img.shields.io/badge/BIOMERO_Schema-{badge_version(biomero_schema_version)}-teal?style=flat-square
    :alt: BIOMERO Schema Version
-   :target: https://github.com/NL-BioImaging/biomero-schema/releases/tag/{tag_schema}
+   :target: https://github.com/NL-BioImaging/biomero-schema/releases/tag/{release_tag(biomero_schema_version)}
 
-.. |biomero_shallower_badge| image:: https://img.shields.io/badge/BIOMERO.shallower-{clean_shallower}-yellowgreen?style=flat-square
+.. |biomero_shallower_badge| image:: https://img.shields.io/badge/BIOMERO.shallower-{badge_version(biomero_shallower_version)}-yellowgreen?style=flat-square
    :alt: BIOMERO Shallower Version
-   :target: https://github.com/NL-BioImaging/BIOMERO.shallower/releases/tag/{tag_shallower}
+   :target: https://github.com/NL-BioImaging/BIOMERO.shallower/releases/tag/{release_tag(biomero_shallower_version)}
+
+.. |biomero_converter_badge| image:: https://img.shields.io/badge/BIOMERO.converter-{badge_version(biomero_converter_version)}-blueviolet?style=flat-square
+   :alt: BIOMERO Converter Version
+   :target: https://github.com/NL-BioImaging/biomero-converter/releases/tag/{release_tag(biomero_converter_version)}
 
 .. |biomero_icon| raw:: html
 
